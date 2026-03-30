@@ -1,2 +1,84 @@
 .claude/settings.local.json
 .DS_Store
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Build output
+dist/
+build/
+out/
+*.exe
+*.app
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Game engine specific
+# Godot
+.godot/
+*.import
+export_presets.cfg
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+/[Aa]ssets/[Aa]ssets/StreamingAssets/aa.meta
+/[Aa]ssets/[Aa]ssets/StreamingAssets/aa/
+
+# Phaser/Web game
+.parcel-cache/
+.cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Assets (large binary — manage via Git LFS if needed)
+# *.png
+# *.jpg
+# *.wav
+# *.mp3
+# *.ogg
+
+# Saves / runtime data
+saves/
+*.save

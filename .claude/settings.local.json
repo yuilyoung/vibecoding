@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/yuiy/Documents/Dev/ai-project log --oneline -5)",
+      "Bash(git -C /c/Users/yuiy/Documents/Dev/ai-project remote -v)",
+      "Bash(git -C /c/Users/yuiy/Documents/Dev/ai-project status)",
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(gh --version)"
+    ]
+  }
+}
