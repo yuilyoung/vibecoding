@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비전 대시보드 — Unity 4v4 2D FPS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+    * { box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); }
+    .glow-green { box-shadow: 0 0 12px rgba(52,211,153,0.3); }
+    .glow-blue { box-shadow: 0 0 12px rgba(99,179,237,0.3); }
+    .glow-purple { box-shadow: 0 0 12px rgba(167,139,250,0.3); }
+    .pulse-dot { animation: pulseDot 1.6s infinite; }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    .bar-fill { transition: width 1s ease; }
+    .kanban-card { border-left: 3px solid; }
+    .scroll-panel { overflow-y: auto; max-height: 420px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 9999px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; }
+    .agent-card:hover { background: rgba(255,255,255,0.06); }
+    .milestone-active { background: linear-gradient(90deg, rgba(59,130,246,0.15), transparent); border-left: 3px solid #3b82f6; }
+    .milestone-done { border-left: 3px solid #10b981; }
+    .milestone-wait { border-left: 3px solid rgba(255,255,255,0.1); }
+    select option { background: #1e2130; }
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="border-b border-white/10 px-6 py-3 flex items-center justify-between" style="background:rgba(15,17,23,0.95);">
+  <div class="flex items-center gap-3">
+    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-xs">V</div>
+    <div>
+      <span class="font-bold text-white text-sm">비전 대시보드</span>
+      <span class="text-white/30 text-xs ml-2">Unity 4v4 2D FPS · 오케스트레이터 뷰</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-4 text-xs text-white/40">
+    <div class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot inline-block"></span>
+      <span>시스템 정상</span>
+    </div>
+    <span class="mono">2026-04-05</span>
+    <span class="bg-emerald-900/50 text-emerald-400 border border-emerald-700/50 px-2 py-0.5 rounded mono">M0 완료 · M1 착수 가능</span>
+  </div>
+</div>
+
+<div class="p-6 grid grid-cols-12 gap-5">
+
+  <!-- ===================== LEFT COLUMN: 시스템 현황 패널 ===================== -->
+  <div class="col-span-12 lg:col-span-4 space-y-5">
+
+    <!-- Panel Header -->
+    <div class="flex items-center gap-2 mb-1">
+      <div class="w-1 h-5 rounded-full bg-blue-500"></div>
+      <h2 class="text-sm font-bold text-white/80 uppercase tracking-widest">시스템 현황 패널</h2>
+    </div>
+
+    <!-- Agent Status -->
+    <div class="glass rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">에이전트 상태</h3>
+      <div class="space-y-1.5">
+
+        <!-- Planner Group -->
+        <div class="text-xs text-white/30 pt-1 pb-0.5 mono">— planner 그룹</div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-sm font-medium">planner</span>
+            <span class="text-xs text-white/40">기획자</span>
+          </div>
+          <span class="tag bg-emerald-900/50 text-emerald-400 border border-emerald-700/40">완료</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-sm font-medium">prd-generator</span>
+            <span class="text-xs text-white/40">PRD 생성</span>
+          </div>
+          <span class="tag bg-emerald-900/50 text-emerald-400 border border-emerald-700/40">완료</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-sm font-medium">prd-validator</span>
+            <span class="text-xs text-white/40">PRD 검증</span>
+          </div>
+          <span class="tag bg-emerald-900/50 text-emerald-400 border border-emerald-700/40">완료</span>
+        </div>
+
+        <!-- Architect -->
+        <div class="text-xs text-white/30 pt-2 pb-0.5 mono">— 설계 그룹</div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-sm font-medium">architect</span>
+            <span class="text-xs text-white/40">아키텍처 설계</span>
+          </div>
+          <span class="tag bg-emerald-900/50 text-emerald-400 border border-emerald-700/40">완료</span>
+        </div>
+
+        <!-- Dev Group -->
+        <div class="text-xs text-white/30 pt-2 pb-0.5 mono">— 개발 그룹</div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+            <span class="text-sm font-medium">frontend</span>
+            <span class="text-xs text-white/40">React/Next.js, E2E</span>
+          </div>
+          <span class="tag bg-blue-900/50 text-blue-400 border border-blue-700/40">M1 대기</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            <span class="text-sm font-medium">backend</span>
+            <span class="text-xs text-white/40">API, DB, 통합테스트</span>
+          </div>
+          <span class="tag bg-white/5 text-white/40 border border-white/10">M3 대기</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+            <span class="text-sm font-medium">app-developer</span>
+            <span class="text-xs text-white/40">Unity / 게임 개발</span>
+          </div>
+          <span class="tag bg-blue-900/50 text-blue-400 border border-blue-700/40">M1 착수</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+            <span class="text-sm font-medium">devops</span>
+            <span class="text-xs text-white/40">CI/CD, 인프라</span>
+          </div>
+          <span class="tag bg-blue-900/50 text-blue-400 border border-blue-700/40">CI 구성 중</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            <span class="text-sm font-medium">git-manager</span>
+            <span class="text-xs text-white/40">Git 관리</span>
+          </div>
+          <span class="tag bg-white/5 text-white/40 border border-white/10">대기</span>
+        </div>
+
+        <!-- QA & Review -->
+        <div class="text-xs text-white/30 pt-2 pb-0.5 mono">— 검증 그룹</div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-purple-400 pulse-dot"></span>
+            <span class="text-sm font-medium">pm</span>
+            <span class="text-xs text-white/40">프로젝트 매니저</span>
+          </div>
+          <span class="tag bg-purple-900/50 text-purple-400 border border-purple-700/40">활성</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            <span class="text-sm font-medium">code-reviewer</span>
+            <span class="text-xs text-white/40">코드 리뷰 (90점↑)</span>
+          </div>
+          <span class="tag bg-white/5 text-white/40 border border-white/10">M1 후 활성</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            <span class="text-sm font-medium">doc-writer</span>
+            <span class="text-xs text-white/40">기술 문서</span>
+          </div>
+          <span class="tag bg-white/5 text-white/40 border border-white/10">컨벤션 대기</span>
+        </div>
+        <div class="agent-card rounded-lg px-3 py-2 flex items-center justify-between transition-colors">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            <span class="text-sm font-medium">qa</span>
+            <span class="text-xs text-white/40">QA 엔지니어 (90점↑)</span>
+          </div>
+          <span class="tag bg-white/5 text-white/40 border border-white/10">M1 후 활성</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="glass rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Rules (.claude/rules/)</h3>
+      <div class="space-y-2">
+        <div class="rounded-lg bg-white/5 px-3 py-2.5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="mono text-xs text-blue-400">01-orchestrator.md</span>
+          </div>
+          <p class="text-xs text-white/40">비전 지휘 흐름 — 서브에이전트 위임 및 메일박스 통신</p>
+        </div>
+        <div class="rounded-lg bg-white/5 px-3 py-2.5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="mono text-xs text-purple-400">02-dev-methodology.md</span>
+          </div>
+          <p class="text-xs text-white/40">개발 방법론 강제 — 페르소나·마일스톤·PRD·WBS·FSD·MVP·TDD·칸반</p>
+        </div>
+        <div class="rounded-lg bg-white/5 px-3 py-2.5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="mono text-xs text-emerald-400">03-subagents.md</span>
+          </div>
+          <p class="text-xs text-white/40">서브에이전트 규칙 — 메일박스 비동기 보고 및 에이전트 간 토론</p>
+        </div>
+        <div class="rounded-lg bg-white/5 px-3 py-2.5">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="mono text-xs text-orange-400">04-workflow.md</span>
+          </div>
+          <p class="text-xs text-white/40">전체 워크플로우 — PRD 검증 → TDD → 코드 검증 → 테스트 → E2E</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="glass rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Skills</h3>
+      <div class="flex flex-wrap gap-2">
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-yellow-400 font-semibold">update-config</span>
+          <p class="text-white/30 text-xs mt-0.5">settings.json 자동화 행동 설정</p>
+        </div>
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-cyan-400 font-semibold">simplify</span>
+          <p class="text-white/30 text-xs mt-0.5">코드 품질·재사용성 리뷰 및 수정</p>
+        </div>
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-pink-400 font-semibold">loop</span>
+          <p class="text-white/30 text-xs mt-0.5">주기적 반복 실행 (기본 10분)</p>
+        </div>
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-green-400 font-semibold">schedule</span>
+          <p class="text-white/30 text-xs mt-0.5">cron 기반 원격 에이전트 스케줄</p>
+        </div>
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-violet-400 font-semibold">claude-api</span>
+          <p class="text-white/30 text-xs mt-0.5">Anthropic SDK 앱 개발</p>
+        </div>
+        <div class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs">
+          <span class="text-orange-400 font-semibold">git-manager</span>
+          <p class="text-white/30 text-xs mt-0.5">Git 저장소 관리 자동화</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== RIGHT COLUMN: 프로젝트 관리 패널 ===================== -->
+  <div class="col-span-12 lg:col-span-8 space-y-5">
+
+    <!-- Panel Header -->
+    <div class="flex items-center gap-2 mb-1">
+      <div class="w-1 h-5 rounded-full bg-emerald-500"></div>
+      <h2 class="text-sm font-bold text-white/80 uppercase tracking-widest">프로젝트 관리 패널</h2>
+    </div>
+
+    <!-- PRD Status + KPI Row -->
+    <div class="grid grid-cols-3 gap-4">
+      <!-- PRD -->
+      <div class="glass rounded-2xl p-4 glow-green col-span-1">
+        <div class="text-xs text-white/40 uppercase tracking-wider mb-2">PRD 승인 상태</div>
+        <div class="text-5xl font-black text-emerald-400 leading-none">93</div>
+        <div class="text-white/40 text-xs mt-1">/ 100점 · v1.1 승인</div>
+        <div class="mt-3 w-full bg-white/10 rounded-full h-1.5">
+          <div class="bar-fill bg-gradient-to-r from-emerald-500 to-emerald-400 h-1.5 rounded-full" style="width:93%"></div>
+        </div>
+        <div class="mt-3 text-xs text-emerald-400 font-semibold">승인 기준 90점 이상 통과</div>
+        <div class="text-xs text-white/30 mt-1">검증: prd-validator · 2026-04-05</div>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="glass rounded-2xl p-4 col-span-2">
+        <div class="text-xs text-white/40 uppercase tracking-wider mb-3">마일스톤 진행률</div>
+        <div class="space-y-2.5">
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/70">M0 — 사전 준비</span><span class="text-emerald-400 font-semibold">100%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-emerald-500 h-2 rounded-full" style="width:100%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/70">M1 — 코어 프로토타입</span><span class="text-blue-400 font-semibold">0%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-blue-500 h-2 rounded-full" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/50">M2 — MVP</span><span class="text-white/30 font-semibold">0%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-white/20 h-2 rounded-full" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/50">M3 — 네트워크 통합</span><span class="text-white/30 font-semibold">0%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-white/20 h-2 rounded-full" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/50">M4 — 콘텐츠 & 폴리시</span><span class="text-white/30 font-semibold">0%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-white/20 h-2 rounded-full" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-white/50">M5 — QA & 릴리즈</span><span class="text-white/30 font-semibold">0%</span></div>
+            <div class="w-full bg-white/10 rounded-full h-2"><div class="bar-fill bg-white/20 h-2 rounded-full" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Milestone Timeline -->
+    <div class="glass rounded-2xl p-5">
+      <div class="text-xs text-white/40 uppercase tracking-wider mb-4">마일스톤 타임라인 (20주, ~2026-08-23)</div>
+      <!-- Timeline Bar -->
+      <div class="relative mb-5">
+        <div class="flex h-6 rounded-lg overflow-hidden">
+          <div class="bg-emerald-600 flex items-center justify-center text-xs text-white font-semibold" style="width:10%" title="M0 완료">M0</div>
+          <div class="bg-blue-600 animate-pulse flex items-center justify-center text-xs text-white font-semibold" style="width:15%" title="M1 착수 대기">M1</div>
+          <div class="bg-white/10 flex items-center justify-center text-xs text-white/40 font-semibold" style="width:20%" title="M2 대기">M2</div>
+          <div class="bg-white/10 flex items-center justify-center text-xs text-white/40 font-semibold" style="width:20%" title="M3 대기">M3</div>
+          <div class="bg-white/10 flex items-center justify-center text-xs text-white/40 font-semibold" style="width:20%" title="M4 대기">M4</div>
+          <div class="bg-white/10 flex items-center justify-center text-xs text-white/40 font-semibold" style="width:15%" title="M5 대기">M5</div>
+        </div>
+        <div class="flex text-xs text-white/30 mt-1 justify-between">
+          <span>2026-04-05</span>
+          <span>2026-04-18</span>
+          <span>2026-05-09</span>
+          <span>2026-06-06</span>
+          <span>2026-07-04</span>
+          <span>2026-08-01</span>
+          <span>2026-08-23</span>
+        </div>
+      </div>
+      <!-- Milestone Details -->
+      <div class="grid grid-cols-3 gap-2 text-xs">
+        <div class="milestone-done rounded-lg p-2.5 bg-white/3">
+          <div class="font-semibold text-emerald-400">M0 완료</div>
+          <div class="text-white/40 mt-0.5">Week 1–2 / ~2026-04-18</div>
+          <div class="text-white/30 mt-1">기획 9종 + 아키텍처 5종 완료</div>
+        </div>
+        <div class="milestone-active rounded-lg p-2.5">
+          <div class="font-semibold text-blue-400">M1 착수 대기</div>
+          <div class="text-white/40 mt-0.5">Week 3–5 / ~2026-05-09</div>
+          <div class="text-white/30 mt-1">이동·사격·HP·충돌 구현</div>
+        </div>
+        <div class="milestone-wait rounded-lg p-2.5 bg-white/3">
+          <div class="font-semibold text-white/50">M2 — MVP</div>
+          <div class="text-white/40 mt-0.5">Week 6–9 / ~2026-06-06</div>
+          <div class="text-white/30 mt-1">로컬 4v4 대전 가능 상태</div>
+        </div>
+        <div class="milestone-wait rounded-lg p-2.5 bg-white/3">
+          <div class="font-semibold text-white/50">M3 — 네트워크</div>
+          <div class="text-white/40 mt-0.5">Week 10–13 / ~2026-07-04</div>
+          <div class="text-white/30 mt-1">UGS Relay 멀티플레이 동기화</div>
+        </div>
+        <div class="milestone-wait rounded-lg p-2.5 bg-white/3">
+          <div class="font-semibold text-white/50">M4 — 콘텐츠</div>
+          <div class="text-white/40 mt-0.5">Week 14–17 / ~2026-08-01</div>
+          <div class="text-white/30 mt-1">맵 2종, 무기 3종, 완성 UI</div>
+        </div>
+        <div class="milestone-wait rounded-lg p-2.5 bg-white/3">
+          <div class="font-semibold text-white/50">M5 — 릴리즈</div>
+          <div class="text-white/40 mt-0.5">Week 18–20 / ~2026-08-23</div>
+          <div class="text-white/30 mt-1">E2E 테스트 + 출시 빌드</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="glass rounded-2xl p-5">
+      <div class="text-xs text-white/40 uppercase tracking-wider mb-4">칸반보드</div>
+      <div class="grid grid-cols-4 gap-3">
+
+        <!-- Done -->
+        <div>
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-xs font-semibold text-emerald-400">완료</span>
+            <span class="ml-auto text-xs text-white/30 bg-emerald-900/30 rounded-full px-1.5">12</span>
+          </div>
+          <div class="space-y-1.5 scroll-panel pr-1">
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">페르소나 작성</div>
+              <div class="text-white/30 mt-0.5">planner</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">마일스톤 작성</div>
+              <div class="text-white/30 mt-0.5">planner</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">PRD 초안 작성</div>
+              <div class="text-white/30 mt-0.5">prd-generator</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">PRD 검증 (93/100)</div>
+              <div class="text-white/30 mt-0.5">prd-validator</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">WBS 작성</div>
+              <div class="text-white/30 mt-0.5">planner</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">FSD 기능 상세 설계</div>
+              <div class="text-white/30 mt-0.5">planner</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">MVP 범위 정의</div>
+              <div class="text-white/30 mt-0.5">planner</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">시스템 아키텍처 (C4)</div>
+              <div class="text-white/30 mt-0.5">architect</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">ERD 데이터 모델</div>
+              <div class="text-white/30 mt-0.5">architect</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">API 계약 정의</div>
+              <div class="text-white/30 mt-0.5">architect</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">ADR 아키텍처 결정</div>
+              <div class="text-white/30 mt-0.5">architect</div>
+            </div>
+            <div class="kanban-card border-emerald-600 bg-emerald-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">씬 구조 설계</div>
+              <div class="text-white/30 mt-0.5">architect</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- In Progress -->
+        <div>
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+            <span class="text-xs font-semibold text-blue-400">진행 중</span>
+            <span class="ml-auto text-xs text-white/30 bg-blue-900/30 rounded-full px-1.5">2</span>
+          </div>
+          <div class="space-y-1.5">
+            <div class="kanban-card border-blue-500 bg-blue-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">PM 현황 보고</div>
+              <div class="text-white/30 mt-0.5">pm</div>
+              <div class="mt-1.5 w-full bg-white/10 rounded-full h-1">
+                <div class="bar-fill bg-blue-400 h-1 rounded-full" style="width:85%"></div>
+              </div>
+            </div>
+            <div class="kanban-card border-blue-500 bg-blue-900/20 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/80">개발 환경 세팅</div>
+              <div class="text-white/30 mt-0.5">devops / app-developer</div>
+              <div class="mt-1.5 w-full bg-white/10 rounded-full h-1">
+                <div class="bar-fill bg-blue-400 h-1 rounded-full" style="width:10%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- To Do -->
+        <div>
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="w-2 h-2 rounded-full bg-white/30"></span>
+            <span class="text-xs font-semibold text-white/50">대기</span>
+            <span class="ml-auto text-xs text-white/30 bg-white/5 rounded-full px-1.5">8</span>
+          </div>
+          <div class="space-y-1.5 scroll-panel pr-1">
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">Unity 프로젝트 생성</div>
+              <div class="text-white/30 mt-0.5">app-developer</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">GitHub Actions CI</div>
+              <div class="text-white/30 mt-0.5">devops</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">PlayerMovement.cs</div>
+              <div class="text-white/30 mt-0.5">app-developer</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">BulletController.cs</div>
+              <div class="text-white/30 mt-0.5">app-developer</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">HealthSystem.cs</div>
+              <div class="text-white/30 mt-0.5">app-developer</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">Prototype_Map 씬</div>
+              <div class="text-white/30 mt-0.5">app-developer</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">단위 테스트 — 이동</div>
+              <div class="text-white/30 mt-0.5">qa</div>
+            </div>
+            <div class="kanban-card border-white/20 bg-white/5 rounded-lg p-2.5 text-xs">
+              <div class="font-medium text-white/60">코딩 컨벤션 문서</div>
+              <div class="text-white/30 mt-0.5">doc-writer</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blocked -->
+        <div>
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="w-2 h-2 rounded-full bg-red-400"></span>
+            <span class="text-xs font-semibold text-red-400">블로킹</span>
+            <span class="ml-auto text-xs text-white/30 bg-red-900/30 rounded-full px-1.5">0</span>
+          </div>
+          <div class="rounded-lg border border-dashed border-white/10 p-3 text-center text-xs text-white/20 mt-2">
+            현재 블로킹 없음<br/>
+            <span class="text-emerald-500/60">M1 착수 가능 상태</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Priority + Risk -->
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Next Priority -->
+      <div class="glass rounded-2xl p-4">
+        <div class="text-xs text-white/40 uppercase tracking-wider mb-3">다음 작업 우선순위 (M1)</div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-blue-400 w-5 text-center leading-none">1</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/80 truncate">Unity 2022 LTS 프로젝트 생성</div>
+              <div class="text-xs text-white/30">app-developer · 1h</div>
+            </div>
+            <span class="tag bg-blue-900/50 text-blue-400 border border-blue-700/40 shrink-0">즉시</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-blue-400 w-5 text-center leading-none">2</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/80 truncate">Git 브랜치 전략 + CI/CD 구성</div>
+              <div class="text-xs text-white/30">devops · 5h (병렬)</div>
+            </div>
+            <span class="tag bg-blue-900/50 text-blue-400 border border-blue-700/40 shrink-0">즉시</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-white/40 w-5 text-center leading-none">3</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 truncate">PlayerMovement.cs 구현</div>
+              <div class="text-xs text-white/30">app-developer · 6h</div>
+            </div>
+            <span class="tag bg-white/5 text-white/40 border border-white/10 shrink-0">순차</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-white/40 w-5 text-center leading-none">4</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 truncate">HP 시스템 + 사망 처리</div>
+              <div class="text-xs text-white/30">app-developer · 7h</div>
+            </div>
+            <span class="tag bg-white/5 text-white/40 border border-white/10 shrink-0">순차</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-white/40 w-5 text-center leading-none">5</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 truncate">BulletController + 발사 로직</div>
+              <div class="text-xs text-white/30">app-developer · 9h</div>
+            </div>
+            <span class="tag bg-white/5 text-white/40 border border-white/10 shrink-0">순차</span>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+            <span class="text-lg font-black text-white/40 w-5 text-center leading-none">6</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 truncate">단위 테스트 (이동·전투·HP)</div>
+              <div class="text-xs text-white/30">qa · 11h (병렬 가능)</div>
+            </div>
+            <span class="tag bg-white/5 text-white/40 border border-white/10 shrink-0">병렬</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Panel -->
+      <div class="glass rounded-2xl p-4">
+        <div class="text-xs text-white/40 uppercase tracking-wider mb-3">위험 요소 레이더</div>
+        <div class="space-y-2">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">네트워크 동기화 복잡도</span>
+              <span class="text-red-400 font-semibold">높음</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-red-500 h-1.5 rounded-full" style="width:85%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">WebGL 빌드 제약</span>
+              <span class="text-red-400 font-semibold">높음</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-red-500 h-1.5 rounded-full" style="width:75%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">멀티플레이 버그 재현</span>
+              <span class="text-yellow-400 font-semibold">중간</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-yellow-500 h-1.5 rounded-full" style="width:55%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">UGS 서비스 장애</span>
+              <span class="text-yellow-400 font-semibold">중간</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-yellow-500 h-1.5 rounded-full" style="width:45%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">요구사항 변경</span>
+              <span class="text-yellow-400 font-semibold">중간</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-yellow-500 h-1.5 rounded-full" style="width:40%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-white/60">Unity 버전 호환성</span>
+              <span class="text-emerald-400 font-semibold">낮음</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-1.5"><div class="bar-fill bg-emerald-500 h-1.5 rounded-full" style="width:15%"></div></div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-white/10">
+          <div class="text-xs text-white/40 mb-2">PRD 개선 권고 (차기 v1.2)</div>
+          <div class="space-y-1">
+            <div class="flex items-start gap-1.5 text-xs text-white/40">
+              <span class="text-yellow-500 mt-0.5 shrink-0">!</span>
+              <span>어시스트 계산 기준 미정의 — FR 추가 필요</span>
+            </div>
+            <div class="flex items-start gap-1.5 text-xs text-white/40">
+              <span class="text-yellow-500 mt-0.5 shrink-0">!</span>
+              <span>FR-012 팀 선택 vs FR-007 랜덤 배정 충돌 해소 필요</span>
+            </div>
+            <div class="flex items-start gap-1.5 text-xs text-white/40">
+              <span class="text-yellow-500 mt-0.5 shrink-0">!</span>
+              <span>재플레이율 KPI 측정 방법 구체화 (표본 10명↑)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom Bar -->
+<div class="border-t border-white/10 px-6 py-3 flex items-center justify-between text-xs text-white/30" style="background:rgba(15,17,23,0.95);">
+  <span>Unity 4v4 2D FPS · 비전 대시보드 v1.0 · pm 에이전트 생성</span>
+  <div class="flex gap-4">
+    <a href="../doc/reports/project-status.md" class="hover:text-white/60 transition-colors">텍스트 보고서</a>
+    <a href="../reports/project-status.html" class="hover:text-white/60 transition-colors">시각 보고서</a>
+    <span class="text-white/20">|</span>
+    <span>2026-04-05</span>
+  </div>
+</div>
+
+</body>
+</html>
