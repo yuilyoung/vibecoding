@@ -4,13 +4,14 @@
 
 - executor: ultron
 - status: completed
-- scope: Added sprite-sheet import path support, round-start countdown feedback, and generated audio playback for the active Phaser prototype.
+- scope: Added sprite-sheet import path support, round-start countdown, respawn pulse feedback, generated audio playback, roadmap reconciliation, and tuning notes for the active Phaser prototype.
 
 ## Changes
 
 - `work/2D-FPS-game/src/scenes/MainScene.ts`
   - added optional `actor-skins` spritesheet preloading with generated actor skin fallback
   - added a round-start countdown overlay that locks movement, firing, gate interaction, dummy movement, and hazard ticks
+  - added a short respawn pulse effect for player and dummy actors after round reset
   - added a vent hazard zone that damages player or dummy actors on a per-actor tick cooldown
   - added hazard HUD output and reset handling
   - added cover-point markers driven by `coverPointRadius`
@@ -40,6 +41,9 @@
 
 - `work/2D-FPS-game/docs/development/setup-guide.md`
   - refreshed setup/control/runtime notes for the current prototype
+
+- `work/2D-FPS-game/docs/development/tuning-notes.md`
+  - added cover, hazard, audio, and respawn tuning checks for local playtest follow-up
 
 - `work/2D-FPS-game/src/domain/combat/WeaponInventoryLogic.ts`
   - added pure slot-selection logic for weapon switching
@@ -80,6 +84,9 @@
 - `docs/development/active-workspace-baseline.md`
   - refreshed the active baseline to match the Phaser prototype status
 
+- `docs/development/roadmap-reconciliation.md`
+  - documented how the active Phaser baseline relates to the older Unity roadmap
+
 ## Verification
 
 - type-check: passed
@@ -94,4 +101,4 @@
 
 - Generated skins are prototype placeholders, not final art assets
 - Weapon, gate, hazard, and AI tuning are initial prototype values and should be playtested
-- Remaining future work is optional extension scope such as authored sprite assets, richer respawn animation, roadmap reconciliation, or balance notes after manual playtest
+- Remaining future work is optional extension scope such as authored sprite assets, manual browser playtest findings, and a product-track decision between Phaser production and Unity preproduction

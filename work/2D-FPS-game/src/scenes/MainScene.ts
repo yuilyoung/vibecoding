@@ -93,6 +93,7 @@ export class MainScene extends Phaser.Scene {
   private static readonly DUMMY_SPAWN_X = 760;
   private static readonly DUMMY_SPAWN_Y = 210;
   private static readonly RESPAWN_DELAY_MS = 1600;
+  private static readonly RESPAWN_FX_MS = 900;
 
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: {
@@ -135,6 +136,7 @@ export class MainScene extends Phaser.Scene {
   private lastCombatEvent: string;
   private roundResetAtMs: number | null;
   private roundStartUntilMs: number;
+  private respawnFxUntilMs: number;
   private matchConfirmAtMs: number | null;
   private matchConfirmReadyCueSent: boolean;
   private lastSoundCue: SoundCueKey | "NONE";
@@ -187,6 +189,7 @@ export class MainScene extends Phaser.Scene {
     this.lastCombatEvent = "READY";
     this.roundResetAtMs = null;
     this.roundStartUntilMs = 0;
+    this.respawnFxUntilMs = 0;
     this.matchConfirmAtMs = null;
     this.matchConfirmReadyCueSent = false;
     this.lastSoundCue = "NONE";
@@ -279,6 +282,7 @@ export class MainScene extends Phaser.Scene {
     this.playerLogic.reset(0, 0);
     this.dummyLogic.reset(MainScene.DUMMY_SPAWN_X - 120, MainScene.DUMMY_SPAWN_Y - 120);
     this.roundStartUntilMs = this.time.now + this.gameBalance.roundStartDelayMs;
+    this.respawnFxUntilMs = this.time.now + MainScene.RESPAWN_FX_MS;
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.moveKeys = {
@@ -359,7 +363,7 @@ export class MainScene extends Phaser.Scene {
     this.handleDummyFire(now);
     this.updateBullets(deltaSeconds);
     this.updatePlayerVisuals(now);
-    this.updateDummyVisuals();
+    this.updateDummyVisuals(now);
     this.updateCoverPointVisuals();
     this.updateMatchOverlay(now);
     this.statusText.setText([
@@ -370,6 +374,7 @@ export class MainScene extends Phaser.Scene {
       `STATE ${this.roundLogic.state.isMatchOver ? "MATCH LOCK" : this.playerLogic.isDead() ? "DOWN" : this.playerLogic.isStunned(now) ? "STUNNED" : "ACTIVE"}`,
       `ROUND RESET ${this.roundResetAtMs === null ? "READY" : Math.max(0, this.roundResetAtMs - now).toFixed(0)}`,
       `ROUND START ${this.getRoundStartStatus(now)}`,
+      `RESPAWN FX ${this.getRespawnFxStatus(now)}`,
       `MATCH CONFIRM ${this.getMatchConfirmStatus(now)}`,
       `STUN ${Math.max(0, this.playerLogic.state.stunUntilMs - now).toFixed(0)}`,
       `PICKUP ${this.getPickupStatus(now)}`,
@@ -653,7 +658,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private updateDummyVisuals(): void {
+  private updateDummyVisuals(now: number): void {
     const healthRatio = this.dummyLogic.state.health / this.dummyLogic.state.maxHealth;
     const fill = Phaser.Display.Color.Interpolate.ColorWithColor(
       Phaser.Display.Color.ValueToColor(0x4f1717),
@@ -664,14 +669,15 @@ export class MainScene extends Phaser.Scene {
 
     this.targetDummy.setTint(Phaser.Display.Color.GetColor(fill.r, fill.g, fill.b));
     this.targetDummy.setAlpha(this.dummyLogic.isDead() ? 0.35 : 1);
+    const respawnScale = this.getRespawnFxScale(now);
     this.targetDummy.setScale(
       this.dummyLogic.isDead()
         ? 0.82
         : this.lastDummyDecision === "flank"
-          ? 1.06
+          ? 1.06 * respawnScale
           : this.lastDummyDecision === "avoid-hazard"
-            ? 1.12
-            : 1
+            ? 1.12 * respawnScale
+            : respawnScale
     );
   }
 
@@ -702,8 +708,8 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.playerSprite.setTint(0xffffff);
-    this.playerSprite.setAlpha(1);
-    this.playerSprite.setScale(this.playerLogic.state.isSprinting ? 1.08 : 1);
+    this.playerSprite.setAlpha(this.getRespawnFxAlpha(now));
+    this.playerSprite.setScale((this.playerLogic.state.isSprinting ? 1.08 : 1) * this.getRespawnFxScale(now));
   }
 
   private updateDummyMovement(deltaSeconds: number, now: number): void {
@@ -915,6 +921,7 @@ export class MainScene extends Phaser.Scene {
     this.dummyWeaponLogic.reset();
     this.hazardZone.logic.reset();
     this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
+    this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
     this.matchConfirmReadyCueSent = false;
     this.clearBullets();
     this.playerSprite.setPosition(MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
@@ -1003,6 +1010,32 @@ export class MainScene extends Phaser.Scene {
 
   private isRoundStarting(now: number): boolean {
     return !this.roundLogic.state.isMatchOver && now < this.roundStartUntilMs;
+  }
+
+  private getRespawnFxStatus(now: number): string {
+    if (now >= this.respawnFxUntilMs) {
+      return "READY";
+    }
+
+    return Math.max(0, this.respawnFxUntilMs - now).toFixed(0);
+  }
+
+  private getRespawnFxAlpha(now: number): number {
+    if (now >= this.respawnFxUntilMs) {
+      return 1;
+    }
+
+    const progress = 1 - Math.max(0, this.respawnFxUntilMs - now) / MainScene.RESPAWN_FX_MS;
+    return 0.68 + progress * 0.32;
+  }
+
+  private getRespawnFxScale(now: number): number {
+    if (now >= this.respawnFxUntilMs) {
+      return 1;
+    }
+
+    const progress = 1 - Math.max(0, this.respawnFxUntilMs - now) / MainScene.RESPAWN_FX_MS;
+    return 1.18 - progress * 0.18;
   }
 
   private setOverlayVisible(visible: boolean): void {
