@@ -144,6 +144,30 @@ describe("DummyAiLogic", () => {
     expect(decision.shouldFire).toBe(false);
   });
 
+  it("prioritizes leaving hazard zones before combat movement", () => {
+    const ai = new DummyAiLogic({
+      engageRange: 260,
+      retreatRange: 80,
+      shootRange: 320,
+      lowHealthThreshold: 0.35
+    });
+
+    const decision = ai.evaluate({
+      dummyX: 105,
+      dummyY: 100,
+      playerX: 200,
+      playerY: 100,
+      tickMs: 0,
+      healthRatio: 1,
+      coverPoints: [],
+      hazardZones: [{ x: 90, y: 80, width: 40, height: 40, padding: 12 }]
+    });
+
+    expect(decision.mode).toBe("avoid-hazard");
+    expect(decision.moveX).toBeLessThan(0);
+    expect(decision.shouldFire).toBe(false);
+  });
+
   it("alternates strafe direction based on time", () => {
     const ai = new DummyAiLogic({
       engageRange: 260,

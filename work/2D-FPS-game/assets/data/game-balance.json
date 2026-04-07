@@ -21,5 +21,6 @@
   "dummyShootRange": 320,
   "dummyLowHealthThreshold": 0.35,
   "hazardDamage": 7,
-  "hazardTickMs": 900
+  "hazardTickMs": 900,
+  "coverPointRadius": 18
 }

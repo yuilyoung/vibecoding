@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
 import { createCenteredRect, intersectsRect, type Rect } from "../domain/collision/CollisionLogic";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
@@ -31,6 +32,7 @@ interface GameBalance {
   dummyLowHealthThreshold: number;
   hazardDamage: number;
   hazardTickMs: number;
+  coverPointRadius: number;
 }
 
 interface BulletView {
@@ -74,6 +76,11 @@ interface HazardZoneView {
   logic: HazardZoneLogic;
 }
 
+interface CoverPointView {
+  sprite: Phaser.GameObjects.Arc;
+  label: Phaser.GameObjects.Text;
+}
+
 export class MainScene extends Phaser.Scene {
   private static readonly PLAYER_SPAWN_X = 120;
   private static readonly PLAYER_SPAWN_Y = 120;
@@ -110,15 +117,19 @@ export class MainScene extends Phaser.Scene {
   private readonly dummyWeaponLogic: WeaponLogic;
   private readonly roundLogic: RoundLogic;
   private readonly dummyAiLogic: DummyAiLogic;
+  private readonly soundCueLogic: SoundCueLogic;
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
   private readonly obstacles: ObstacleView[];
   private gate!: GateView;
   private hazardZone!: HazardZoneView;
   private readonly dummyCoverPoints: CoverPoint[];
+  private readonly coverPointViews: CoverPointView[];
   private lastCombatEvent: string;
   private roundResetAtMs: number | null;
   private matchConfirmAtMs: number | null;
+  private matchConfirmReadyCueSent: boolean;
+  private lastSoundCue: SoundCueKey | "NONE";
   private lastDummyDecision: DummyAiDecision["mode"];
   private lastDummyShouldFire: boolean;
 
@@ -155,6 +166,7 @@ export class MainScene extends Phaser.Scene {
       shootRange: gameBalance.dummyShootRange,
       lowHealthThreshold: gameBalance.dummyLowHealthThreshold
     });
+    this.soundCueLogic = new SoundCueLogic();
     this.bullets = [];
     this.obstacles = [];
     this.dummyCoverPoints = [
@@ -162,9 +174,12 @@ export class MainScene extends Phaser.Scene {
       { x: 690, y: 390 },
       { x: 260, y: 330 }
     ];
+    this.coverPointViews = [];
     this.lastCombatEvent = "READY";
     this.roundResetAtMs = null;
     this.matchConfirmAtMs = null;
+    this.matchConfirmReadyCueSent = false;
+    this.lastSoundCue = "NONE";
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
   }
@@ -226,6 +241,7 @@ export class MainScene extends Phaser.Scene {
     this.addObstacle(710, 340, 160, 60, 0x204b7e);
     this.gate = this.addGate(482, 430, 96, 24, 0xf4a261);
     this.hazardZone = this.addHazardZone(510, 138, 170, 46);
+    this.addCoverPointMarkers();
     this.ammoPickup = {
       sprite: this.add.rectangle(160, 430, 22, 22, 0x7fd6ff, 1).setStrokeStyle(2, 0x173447, 1),
       available: true,
@@ -321,6 +337,7 @@ export class MainScene extends Phaser.Scene {
     this.updateBullets(deltaSeconds);
     this.updatePlayerVisuals(now);
     this.updateDummyVisuals();
+    this.updateCoverPointVisuals();
     this.updateMatchOverlay(now);
     this.statusText.setText([
       `POS ${this.playerLogic.state.positionX.toFixed(1)}, ${this.playerLogic.state.positionY.toFixed(1)}`,
@@ -335,6 +352,7 @@ export class MainScene extends Phaser.Scene {
       `MED ${this.getHealthPickupStatus(now)}`,
       `GATE ${this.gate.open ? "OPEN" : "CLOSED"}`,
       `HAZARD ${this.gameBalance.hazardDamage}/${this.gameBalance.hazardTickMs}ms`,
+      `COVER POINTS ${this.dummyCoverPoints.length}`,
       `DUMMY AI ${this.lastDummyDecision.toUpperCase()}`,
       `BLOCK ${playerBlocked ? "YES" : "NO"}`
     ]);
@@ -347,6 +365,7 @@ export class MainScene extends Phaser.Scene {
       `RELOAD ${activeWeapon.logic.getReloadRemaining(now).toFixed(0)} ms`,
       `DUMMY HP ${this.dummyLogic.state.health}/${this.dummyLogic.state.maxHealth}`,
       `EVENT ${this.lastCombatEvent}`,
+      `SOUND ${this.lastSoundCue}`,
       `ROUND RESULT ${this.roundLogic.state.lastResult}`,
       `MATCH ${this.roundLogic.state.matchWinner ?? "IN PROGRESS"}`
     ]);
@@ -404,6 +423,7 @@ export class MainScene extends Phaser.Scene {
 
     this.spawnPlayerProjectiles(activeWeapon, attempt.bulletSpeed, attempt.damage);
     this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
+    this.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : "carbine" });
 
     if (attempt.ammoInMagazine === 0) {
       this.lastCombatEvent = "MAG EMPTY";
@@ -461,6 +481,7 @@ export class MainScene extends Phaser.Scene {
       damage: attempt.damage,
       owner: "dummy"
     });
+    this.emitSoundCue({ kind: "fire", weaponId: "generic" });
   }
 
   private handleWeaponSwitch(): void {
@@ -503,6 +524,7 @@ export class MainScene extends Phaser.Scene {
     this.gate.sprite.setAlpha(this.gate.open ? 0.22 : 1);
     this.gate.sprite.setFillStyle(this.gate.open ? 0x6a7f91 : 0xf4a261, this.gate.open ? 0.22 : 1);
     this.lastCombatEvent = this.gate.open ? "GATE OPENED" : "GATE CLOSED";
+    this.emitSoundCue({ kind: "gate", action: this.gate.open ? "open" : "close" });
   }
 
   private handleHazardZone(now: number): void {
@@ -536,6 +558,7 @@ export class MainScene extends Phaser.Scene {
 
     actorLogic.takeDamage(tick.damage, Math.floor(this.gameBalance.hitStunMs / 2), now);
     this.lastCombatEvent = `${actorId.toUpperCase()} HAZARD -${tick.damage}`;
+    this.emitSoundCue({ kind: "hazard", source: "vent" });
 
     if (!actorLogic.isDead()) {
       return;
@@ -575,6 +598,7 @@ export class MainScene extends Phaser.Scene {
       if (hitDummy && bullet.owner === "player") {
         this.dummyLogic.takeDamage(bullet.damage);
         this.lastCombatEvent = this.dummyLogic.isDead() ? "TARGET DOWN" : `HIT ${bullet.damage}`;
+        this.emitSoundCue({ kind: "hit", target: "dummy" });
 
         if (this.dummyLogic.isDead()) {
           this.roundLogic.registerPlayerWin();
@@ -585,6 +609,7 @@ export class MainScene extends Phaser.Scene {
       if (hitPlayer && bullet.owner === "dummy") {
         this.playerLogic.takeDamage(bullet.damage, this.gameBalance.hitStunMs, this.time.now);
         this.lastCombatEvent = this.playerLogic.isDead() ? "PLAYER DOWN" : `STUNNED ${bullet.damage}`;
+        this.emitSoundCue({ kind: "hit", target: "player" });
 
         if (this.playerLogic.isDead()) {
           this.roundLogic.registerDummyWin();
@@ -614,7 +639,26 @@ export class MainScene extends Phaser.Scene {
 
     this.targetDummy.setTint(Phaser.Display.Color.GetColor(fill.r, fill.g, fill.b));
     this.targetDummy.setAlpha(this.dummyLogic.isDead() ? 0.35 : 1);
-    this.targetDummy.setScale(this.dummyLogic.isDead() ? 0.82 : this.lastDummyDecision === "flank" ? 1.06 : 1);
+    this.targetDummy.setScale(
+      this.dummyLogic.isDead()
+        ? 0.82
+        : this.lastDummyDecision === "flank"
+          ? 1.06
+          : this.lastDummyDecision === "avoid-hazard"
+            ? 1.12
+            : 1
+    );
+  }
+
+  private updateCoverPointVisuals(): void {
+    const highlightCover = this.lastDummyDecision === "cover" || this.lastDummyDecision === "reposition";
+
+    for (const view of this.coverPointViews) {
+      view.sprite.setFillStyle(highlightCover ? 0xfde68a : 0x38bdf8, highlightCover ? 0.34 : 0.18);
+      view.sprite.setStrokeStyle(1, highlightCover ? 0xfacc15 : 0x7dd3fc, highlightCover ? 0.95 : 0.65);
+      view.label.setColor(highlightCover ? "#fde68a" : "#7dd3fc");
+      view.label.setAlpha(highlightCover ? 0.95 : 0.7);
+    }
   }
 
   private updatePlayerVisuals(now: number): void {
@@ -653,7 +697,11 @@ export class MainScene extends Phaser.Scene {
       tickMs: now,
       healthRatio: this.dummyLogic.state.health / this.dummyLogic.state.maxHealth,
       coverPoints: this.dummyCoverPoints,
-      lineOfSightBlockers: this.getActiveObstacles().map((obstacle) => obstacle.bounds)
+      lineOfSightBlockers: this.getActiveObstacles().map((obstacle) => obstacle.bounds),
+      hazardZones: [{
+        ...this.hazardZone.bounds,
+        padding: 26
+      }]
     });
 
     this.lastDummyDecision = decision.mode;
@@ -713,11 +761,16 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
+    this.emitSoundCue({ kind: "match-confirm", action: "accept" });
     this.roundLogic.resetMatch();
     this.resetRoundState();
     this.matchConfirmAtMs = null;
     this.roundResetAtMs = null;
     this.lastCombatEvent = "NEW MATCH";
+  }
+
+  private emitSoundCue(event: SoundCueEvent): void {
+    this.lastSoundCue = this.soundCueLogic.resolveCue(event);
   }
 
   private updateMatchOverlay(now: number): void {
@@ -728,6 +781,12 @@ export class MainScene extends Phaser.Scene {
 
     const remainingMs = Math.max(0, this.matchConfirmAtMs - now).toFixed(0);
     const confirmText = now >= this.matchConfirmAtMs ? "Press ENTER to start the next match." : `Confirm unlock in ${remainingMs} ms`;
+
+    if (now >= this.matchConfirmAtMs && !this.matchConfirmReadyCueSent) {
+      this.emitSoundCue({ kind: "match-confirm", action: "ready" });
+      this.matchConfirmReadyCueSent = true;
+    }
+
     this.overlayTitle.setText(`${this.roundLogic.state.matchWinner ?? "MATCH"} VICTORY`);
     this.overlaySubtitle.setText(confirmText);
     this.setOverlayVisible(true);
@@ -762,6 +821,7 @@ export class MainScene extends Phaser.Scene {
     this.ammoPickup.respawnAtMs = now + this.gameBalance.ammoPickupRespawnMs;
     this.ammoPickup.sprite.setVisible(false);
     this.lastCombatEvent = `AMMO +${restoredAmmo}`;
+    this.emitSoundCue({ kind: "pickup", pickupId: "ammo" });
   }
 
   private handleHealthPickup(now: number): void {
@@ -793,6 +853,7 @@ export class MainScene extends Phaser.Scene {
     this.healthPickup.respawnAtMs = now + this.gameBalance.healthPickupRespawnMs;
     this.healthPickup.sprite.setVisible(false);
     this.lastCombatEvent = `HEAL +${restoredHealth}`;
+    this.emitSoundCue({ kind: "pickup", pickupId: "health" });
   }
 
   private scheduleResetAfterRound(now: number): void {
@@ -800,6 +861,7 @@ export class MainScene extends Phaser.Scene {
 
     if (this.roundLogic.state.isMatchOver) {
       this.matchConfirmAtMs = now + this.gameBalance.matchResetDelayMs;
+      this.matchConfirmReadyCueSent = false;
       this.roundResetAtMs = null;
       this.lastCombatEvent = `${this.roundLogic.state.matchWinner ?? "MATCH"} LOCKED`;
       return;
@@ -819,6 +881,7 @@ export class MainScene extends Phaser.Scene {
     this.weaponInventory.reset();
     this.dummyWeaponLogic.reset();
     this.hazardZone.logic.reset();
+    this.matchConfirmReadyCueSent = false;
     this.clearBullets();
     this.playerSprite.setPosition(MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
     this.playerSprite.setRotation(0);
@@ -941,6 +1004,24 @@ export class MainScene extends Phaser.Scene {
       bounds: createCenteredRect(x, y, width, height),
       logic: new HazardZoneLogic(this.gameBalance.hazardDamage, this.gameBalance.hazardTickMs)
     };
+  }
+
+  private addCoverPointMarkers(): void {
+    for (const coverPoint of this.dummyCoverPoints) {
+      const sprite = this.add
+        .circle(coverPoint.x, coverPoint.y, this.gameBalance.coverPointRadius, 0x38bdf8, 0.18)
+        .setStrokeStyle(1, 0x7dd3fc, 0.65);
+      const label = this.add
+        .text(coverPoint.x, coverPoint.y - this.gameBalance.coverPointRadius - 10, "COVER", {
+          color: "#7dd3fc",
+          fontFamily: "monospace",
+          fontSize: "10px"
+        })
+        .setOrigin(0.5)
+        .setAlpha(0.7);
+
+      this.coverPointViews.push({ sprite, label });
+    }
   }
 
   private createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {

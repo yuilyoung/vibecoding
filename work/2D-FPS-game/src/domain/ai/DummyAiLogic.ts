@@ -17,6 +17,14 @@ export interface LineOfSightBlocker {
   readonly height: number;
 }
 
+export interface HazardAvoidanceZone {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly padding: number;
+}
+
 export interface DummyAiInput {
   readonly dummyX: number;
   readonly dummyY: number;
@@ -26,13 +34,14 @@ export interface DummyAiInput {
   readonly healthRatio: number;
   readonly coverPoints: CoverPoint[];
   readonly lineOfSightBlockers?: readonly LineOfSightBlocker[];
+  readonly hazardZones?: readonly HazardAvoidanceZone[];
 }
 
 export interface DummyAiDecision {
   readonly moveX: number;
   readonly moveY: number;
   readonly shouldFire: boolean;
-  readonly mode: "chase" | "retreat" | "strafe" | "cover" | "flank" | "reposition";
+  readonly mode: "chase" | "retreat" | "strafe" | "cover" | "flank" | "reposition" | "avoid-hazard";
 }
 
 export class DummyAiLogic {
@@ -59,6 +68,22 @@ export class DummyAiLogic {
     const normalizedX = deltaX / distance;
     const normalizedY = deltaY / distance;
     const hasLineOfSight = this.hasLineOfSight(input);
+    const hazardZone = this.findActiveHazardZone(input);
+
+    if (hazardZone !== undefined) {
+      const hazardCenterX = hazardZone.x + hazardZone.width / 2;
+      const hazardCenterY = hazardZone.y + hazardZone.height / 2;
+      const hazardDeltaX = input.dummyX - hazardCenterX;
+      const hazardDeltaY = input.dummyY - hazardCenterY;
+      const hazardDistance = Math.hypot(hazardDeltaX, hazardDeltaY) || 1;
+
+      return {
+        moveX: hazardDeltaX / hazardDistance,
+        moveY: hazardDeltaY / hazardDistance,
+        shouldFire: false,
+        mode: "avoid-hazard"
+      };
+    }
 
     if (!hasLineOfSight && input.coverPoints.length > 0) {
       const targetCover = this.findBestCover(input);
@@ -134,6 +159,16 @@ export class DummyAiLogic {
     return !input.lineOfSightBlockers?.some((blocker) =>
       this.lineIntersectsRect(input.dummyX, input.dummyY, input.playerX, input.playerY, blocker)
     );
+  }
+
+  private findActiveHazardZone(input: DummyAiInput): HazardAvoidanceZone | undefined {
+    return input.hazardZones?.find((zone) => {
+      const left = zone.x - zone.padding;
+      const right = zone.x + zone.width + zone.padding;
+      const top = zone.y - zone.padding;
+      const bottom = zone.y + zone.height + zone.padding;
+      return this.pointInsideRect(input.dummyX, input.dummyY, left, right, top, bottom);
+    });
   }
 
   private lineIntersectsRect(
