@@ -4,6 +4,7 @@
 
 The active implementation baseline is the Phaser prototype in `work/2D-FPS-game`.
 The older Unity roadmap remains useful for long-term product intent, but it is not the current execution baseline.
+Phaser remains the active production-candidate track until a migration gate explicitly says otherwise.
 
 ## Source Of Truth
 
@@ -20,7 +21,7 @@ Before restarting Unity work, reconcile these prototype learnings:
 - Keep the current input, weapon, round, hazard, cover, and AI behavior as the behavioral baseline.
 - Preserve the local playtest checklist as the acceptance baseline.
 - Port only validated mechanics instead of reimplementing speculative roadmap items first.
-- Decide whether Phaser remains the production direction or becomes a preproduction testbed.
+- Treat Phaser as the production-candidate track unless the migration gate below is approved.
 
 ## Migration Gate
 

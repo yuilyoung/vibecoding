@@ -4,7 +4,7 @@
 
 - executor: ultron
 - status: completed
-- scope: Added sprite-sheet import path support, round-start countdown, respawn pulse feedback, generated audio playback, roadmap reconciliation, and tuning notes for the active Phaser prototype.
+- scope: Added authored prototype actor sprite-sheet activation, round-start countdown, respawn pulse feedback, generated audio playback, roadmap reconciliation, and tuning notes for the active Phaser prototype.
 
 ## Changes
 
@@ -44,6 +44,12 @@
 
 - `work/2D-FPS-game/docs/development/tuning-notes.md`
   - added cover, hazard, audio, and respawn tuning checks for local playtest follow-up
+
+- `work/2D-FPS-game/public/assets/sprites/actors.png`
+  - added a two-frame prototype actor sprite-sheet for player and dummy skins
+
+- `work/2D-FPS-game/docs/development/playtest-log.md`
+  - added an automated smoke log and noted that human browser balance findings are still required
 
 - `work/2D-FPS-game/src/domain/combat/WeaponInventoryLogic.ts`
   - added pure slot-selection logic for weapon switching
@@ -86,6 +92,7 @@
 
 - `docs/development/roadmap-reconciliation.md`
   - documented how the active Phaser baseline relates to the older Unity roadmap
+  - recorded Phaser as the production-candidate track unless the migration gate is explicitly approved
 
 ## Verification
 

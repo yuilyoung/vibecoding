@@ -40,3 +40,8 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 - If hazard feels too punishing, lower `hazardDamage` before lengthening `hazardTickMs`.
 - If audio feels noisy, lower generated cue gain before changing frequencies.
 - If respawn is too subtle, extend `RESPAWN_FX_MS` before increasing scale.
+
+## Current Playtest Status
+
+Automated smoke checks can confirm build and asset wiring.
+Human browser playtest is still required before changing the current balance values.
