@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Game UI Demo</title>
+  <style>
+    body { background: #111; color: white; font-family: Arial; }
+    .score { font-size: 14px; color: #fff; position: absolute; top: 5px; left: 5px; }
+    .btn { background: #ff0000; color: white; padding: 5px 10px; border: none; font-size: 12px; }
+    .btn:hover { background: #cc0000; }
+    .health-bar { width: 200px; height: 10px; background: red; }
+    .health-fill { width: 60%; height: 100%; background: green; }
+    .menu { position: absolute; top: 50%; left: 50%; }
+    .menu h1 { font-size: 24px; margin: 0; }
+    .menu-items { list-style: none; padding: 0; margin: 10px 0; }
+    .menu-items li { padding: 3px 0; cursor: pointer; }
+    .menu-items li:hover { color: yellow; }
+    .hud { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.5); padding: 5px; }
+  </style>
+</head>
+<body>
+  <div class="score">Score: 1250</div>
+
+  <div class="menu">
+    <h1>MY GAME</h1>
+    <ul class="menu-items">
+      <li>Start Game</li>
+      <li>Options</li>
+      <li>Quit</li>
+    </ul>
+  </div>
+
+  <div class="hud">
+    <div class="health-bar">
+      <div class="health-fill"></div>
+    </div>
+    <button class="btn">PAUSE</button>
+  </div>
+</body>
+</html>

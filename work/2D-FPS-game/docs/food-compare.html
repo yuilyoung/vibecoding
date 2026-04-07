@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impeccable — Before / After 비교</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: oklch(98% 0.005 75);
+      --surface: oklch(100% 0 0);
+      --border: oklch(90% 0.010 75);
+      --text: oklch(16% 0.008 75);
+      --muted: oklch(55% 0.012 75);
+      --before: oklch(55% 0.18 260);
+      --after: oklch(62% 0.20 60);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Instrument Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      z-index: 50;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .toolbar-logo {
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .logo-badge {
+      background: var(--text);
+      color: var(--bg);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .toolbar-title {
+      font-size: 13px;
+      color: var(--muted);
+      border-left: 1px solid var(--border);
+      padding-left: 12px;
+    }
+    .toolbar-center { display: flex; align-items: center; gap: 8px; }
+    .mode-btn {
+      background: none;
+      border: 1.5px solid var(--border);
+      padding: 6px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 150ms var(--ease);
+    }
+    .mode-btn.active {
+      background: var(--text);
+      border-color: var(--text);
+      color: var(--bg);
+    }
+    .mode-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .label-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .label-before { background: oklch(55% 0.18 260 / 0.1); color: var(--before); }
+    .label-after  { background: oklch(62% 0.20 60  / 0.1); color: var(--after);  }
+    .label-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .label-before .label-dot { background: var(--before); }
+    .label-after  .label-dot { background: var(--after);  }
+
+    /* ── SCORE BAR ── */
+    .score-bar {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+    .score-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; width: 80px; }
+    .score-track { flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 99px; transition: width 0.8s var(--ease); }
+    .score-fill.before { background: var(--before); }
+    .score-fill.after  { background: var(--after);  }
+    .score-num { font-size: 12px; font-weight: 600; width: 30px; text-align: right; }
+    .score-num.before { color: var(--before); }
+    .score-num.after  { color: var(--after);  }
+    .score-divider { width: 1px; height: 28px; background: var(--border); }
+
+    /* ── COMPARE STAGE ── */
+    .stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* SIDE BY SIDE mode */
+    .stage.mode-split { display: grid; grid-template-columns: 1fr 1fr; }
+    .stage.mode-split .pane { display: block; }
+    .stage.mode-split .slider-track { display: none; }
+    .stage.mode-split .pane-label { display: flex; }
+
+    /* SLIDER mode */
+    .stage.mode-slider { display: block; }
+    .stage.mode-slider .pane-before {
+      position: absolute; inset: 0;
+      width: var(--split, 50%);
+      overflow: hidden;
+    }
+    .stage.mode-slider .pane-before iframe { width: 100vw; }
+    .stage.mode-slider .pane-after {
+      position: absolute; inset: 0;
+      left: var(--split, 50%);
+    }
+    .stage.mode-slider .pane-after iframe { width: 100vw; transform: translateX(calc(-1 * var(--split, 50%))); }
+
+    /* SINGLE modes */
+    .stage.mode-before .pane-after,
+    .stage.mode-before .slider-track,
+    .stage.mode-after .pane-before,
+    .stage.mode-after .slider-track { display: none; }
+    .stage.mode-before .pane-before,
+    .stage.mode-after .pane-after { width: 100%; height: 100%; }
+
+    .pane {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+    .pane iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .pane-label {
+      display: none;
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      align-items: center;
+      gap: 6px;
+      background: oklch(100% 0 0 / 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+    }
+    .stage.mode-split .pane-label { display: flex; }
+    .stage.mode-slider .pane-label { display: flex; }
+    .pane-label-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .pane-before .pane-label-dot { background: var(--before); }
+    .pane-after  .pane-label-dot { background: var(--after);  }
+    .pane-before .pane-label { color: var(--before); }
+    .pane-after  .pane-label { color: var(--after);  }
+
+    /* SLIDER HANDLE */
+    .slider-track {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: var(--split, 50%);
+      transform: translateX(-50%);
+      width: 48px;
+      z-index: 20;
+      cursor: ew-resize;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .slider-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: oklch(100% 0 0);
+      transform: translateX(-50%);
+      box-shadow: 0 0 12px oklch(0% 0 0 / 0.3);
+    }
+    .slider-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px;
+      height: 44px;
+      background: oklch(100% 0 0);
+      border-radius: 50%;
+      box-shadow: 0 4px 20px oklch(0% 0 0 / 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: transform 150ms var(--ease), box-shadow 150ms var(--ease);
+    }
+    .slider-track:hover .slider-handle,
+    .slider-track.dragging .slider-handle {
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 6px 28px oklch(0% 0 0 / 0.30);
+    }
+    .slider-arrow {
+      width: 0; height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .arrow-left  { border-right:  7px solid var(--text); }
+    .arrow-right { border-left: 7px solid var(--text); }
+
+    /* SPLIT border */
+    .stage.mode-split .pane-before {
+      border-right: 1px solid var(--border);
+    }
+
+    /* ── DIFF PANEL ── */
+    .diff-panel {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+    }
+    .diff-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 140px;
+    }
+    .diff-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .diff-compare { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .diff-before { color: var(--before); text-decoration: line-through; opacity: 0.7; }
+    .diff-after  { color: var(--after); font-weight: 600; }
+    .diff-arrow  { color: var(--muted); font-size: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="toolbar-logo">
+        impeccable
+        <span class="logo-badge">skill demo</span>
+      </div>
+      <span class="toolbar-title">음식 주문 UI — /audit → /normalize → /colorize → /typeset → /adapt → /animate → /polish</span>
+    </div>
+    <div class="toolbar-center">
+      <button class="mode-btn" id="btn-before" onclick="setMode('before')">Before</button>
+      <button class="mode-btn active" id="btn-slider" onclick="setMode('slider')">슬라이더</button>
+      <button class="mode-btn" id="btn-split" onclick="setMode('split')">나란히</button>
+      <button class="mode-btn" id="btn-after" onclick="setMode('after')">After</button>
+    </div>
+    <div class="toolbar-right">
+      <div class="label-pill label-before"><span class="label-dot"></span>Before — AI Slop</div>
+      <div class="label-pill label-after"><span class="label-dot"></span>After — Impeccable</div>
+    </div>
+  </div>
+
+  <!-- SCORE BAR -->
+  <div class="score-bar">
+    <div class="score-item">
+      <div class="score-label">접근성</div>
+      <div class="score-track"><div class="score-fill before" style="width:0%"></div></div>
+      <div class="score-num before">0</div>
+      <div style="width:12px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:95%"></div></div>
+      <div class="score-num after">4</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">성능</div>
+      <div class="score-track"><div class="score-fill before" style="width:25%"></div></div>
+      <div class="score-num before">1</div>
+      <div style="width:12px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:90%"></div></div>
+      <div class="score-num after">4</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">반응형</div>
+      <div class="score-track"><div class="score-fill before" style="width:0%"></div></div>
+      <div class="score-num before">0</div>
+      <div style="width:12px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:95%"></div></div>
+      <div class="score-num after">4</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">테마</div>
+      <div class="score-track"><div class="score-fill before" style="width:0%"></div></div>
+      <div class="score-num before">0</div>
+      <div style="width:12px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:95%"></div></div>
+      <div class="score-num after">4</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">AI Slop</div>
+      <div class="score-track"><div class="score-fill before" style="width:25%"></div></div>
+      <div class="score-num before">1</div>
+      <div style="width:12px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:100%"></div></div>
+      <div class="score-num after">4</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label" style="color:var(--text);font-weight:700">합계</div>
+      <div class="score-track"><div class="score-fill before" style="width:10%"></div></div>
+      <div class="score-num before" style="font-size:14px;font-weight:700">2</div>
+      <div style="width:20px;text-align:center;color:var(--muted);font-size:11px">→</div>
+      <div class="score-track"><div class="score-fill after" style="width:100%"></div></div>
+      <div class="score-num after" style="font-size:14px;font-weight:700">20</div>
+    </div>
+  </div>
+
+  <!-- STAGE -->
+  <div class="stage mode-slider" id="stage" style="--split:50%">
+
+    <div class="pane pane-before" id="pane-before">
+      <div class="pane-label">
+        <span class="pane-label-dot"></span>
+        Before — 2/20 Critical
+      </div>
+      <iframe src="food-before.html" title="Before: AI Slop 디자인" loading="eager"></iframe>
+    </div>
+
+    <div class="pane pane-after" id="pane-after">
+      <div class="pane-label">
+        <span class="pane-label-dot"></span>
+        After — 20/20 Excellent
+      </div>
+      <iframe src="food-after.html" title="After: Impeccable 적용 디자인" loading="eager"></iframe>
+    </div>
+
+    <div class="slider-track" id="slider-track" role="slider" aria-label="Before/After 비교 슬라이더" aria-valuemin="10" aria-valuemax="90" aria-valuenow="50" tabindex="0">
+      <div class="slider-line"></div>
+      <div class="slider-handle">
+        <div class="slider-arrow arrow-left"></div>
+        <div class="slider-arrow arrow-right"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DIFF PANEL -->
+  <div class="diff-panel">
+    <div class="diff-item">
+      <div class="diff-label">폰트</div>
+      <div class="diff-compare">
+        <span class="diff-before">Inter (범용)</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">Fraunces + Instrument Sans</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">컬러 시스템</div>
+      <div class="diff-compare">
+        <span class="diff-before">#3B82F6 하드코딩</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">OKLCH 토큰 시스템</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">접근성</div>
+      <div class="diff-compare">
+        <span class="diff-before">ARIA 전무</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">WCAG AA 준수</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">인터랙션</div>
+      <div class="diff-compare">
+        <span class="diff-before">즉각 색상 변환</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">ease-out 트랜지션</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">레이아웃</div>
+      <div class="diff-compare">
+        <span class="diff-before">고정 px, 깨짐</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">반응형 Grid + clamp</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">시맨틱 HTML</div>
+      <div class="diff-compare">
+        <span class="diff-before">div 남용</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">article / nav / main / header</span>
+      </div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-label">Audit 점수</div>
+      <div class="diff-compare">
+        <span class="diff-before">2/20 Critical</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">20/20 Excellent</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── MODE SWITCHING ──────────────────────────────────
+    function setMode(mode) {
+      const stage = document.getElementById('stage');
+      stage.className = `stage mode-${mode}`;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`btn-${mode}`).classList.add('active');
+    }
+
+    // ── SLIDER DRAG ─────────────────────────────────────
+    const stage       = document.getElementById('stage');
+    const sliderTrack = document.getElementById('slider-track');
+    let isDragging    = false;
+
+    function setSliderPos(clientX) {
+      const rect = stage.getBoundingClientRect();
+      let pct = ((clientX - rect.left) / rect.width) * 100;
+      pct = Math.min(90, Math.max(10, pct));
+      stage.style.setProperty('--split', `${pct}%`);
+      sliderTrack.setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    sliderTrack.addEventListener('mousedown', e => {
+      isDragging = true;
+      sliderTrack.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    sliderTrack.addEventListener('touchstart', e => {
+      isDragging = true;
+      sliderTrack.classList.add('dragging');
+    }, { passive: true });
+
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      if (stage.classList.contains('mode-slider')) setSliderPos(e.clientX);
+    });
+
+    document.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      if (stage.classList.contains('mode-slider')) setSliderPos(e.touches[0].clientX);
+    }, { passive: true });
+
+    document.addEventListener('mouseup',  () => { isDragging = false; sliderTrack.classList.remove('dragging'); });
+    document.addEventListener('touchend', () => { isDragging = false; sliderTrack.classList.remove('dragging'); });
+
+    // Keyboard support
+    sliderTrack.addEventListener('keydown', e => {
+      const curr = parseFloat(stage.style.getPropertyValue('--split') || '50');
+      if (e.key === 'ArrowLeft')  stage.style.setProperty('--split', `${Math.max(10, curr - 5)}%`);
+      if (e.key === 'ArrowRight') stage.style.setProperty('--split', `${Math.min(90, curr + 5)}%`);
+    });
+  </script>
+</body>
+</html>

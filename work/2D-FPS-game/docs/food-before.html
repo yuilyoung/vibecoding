@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodOrder - 음식 주문</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f5f5f5; color: #333; }
+
+    /* NAVBAR */
+    .navbar {
+      background: #3B82F6;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar .logo { color: white; font-size: 22px; font-weight: 700; }
+    .navbar nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 14px; }
+    .cart-btn {
+      background: white;
+      color: #3B82F6;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      padding: 80px 30px;
+      text-align: center;
+      color: white;
+    }
+    .hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; }
+    .hero p { font-size: 18px; opacity: 0.9; margin-bottom: 32px; }
+    .search-bar {
+      display: flex;
+      max-width: 500px;
+      margin: 0 auto;
+      gap: 8px;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .search-bar button {
+      background: #F59E0B;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* CATEGORIES */
+    .categories {
+      padding: 40px 30px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .categories h2 { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+    .category-list {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .category-btn {
+      background: white;
+      border: 2px solid #e5e7eb;
+      padding: 8px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .category-btn.active {
+      background: #3B82F6;
+      border-color: #3B82F6;
+      color: white;
+    }
+
+    /* MENU GRID */
+    .menu-section {
+      padding: 20px 30px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .menu-section h2 { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .menu-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .menu-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background: #e5e7eb;
+    }
+    .card-img-placeholder {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+    .card-body { padding: 16px; }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .card-desc { font-size: 13px; color: #6b7280; margin-bottom: 12px; line-height: 1.4; }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .price { font-size: 18px; font-weight: 700; color: #3B82F6; }
+    .add-btn {
+      background: #3B82F6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .add-btn:hover { background: #2563EB; }
+
+    /* RATING */
+    .rating { font-size: 12px; color: #F59E0B; margin-bottom: 8px; }
+
+    /* FOOTER */
+    footer {
+      background: #1f2937;
+      color: #9ca3af;
+      text-align: center;
+      padding: 30px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="logo">🍔 FoodOrder</div>
+    <div>
+      <a href="#">홈</a>
+      <a href="#">메뉴</a>
+      <a href="#">주문내역</a>
+      <a href="#">마이페이지</a>
+    </div>
+    <button class="cart-btn">🛒 장바구니 (3)</button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>맛있는 음식을 빠르게 배달</h1>
+    <p>신선한 재료로 만든 다양한 음식을 지금 바로 주문하세요</p>
+    <div class="search-bar">
+      <input type="text" placeholder="음식 또는 레스토랑 검색...">
+      <button>검색</button>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section class="categories">
+    <h2>카테고리</h2>
+    <div class="category-list">
+      <button class="category-btn active">전체</button>
+      <button class="category-btn">🍕 피자</button>
+      <button class="category-btn">🍣 스시</button>
+      <button class="category-btn">🍜 라멘</button>
+      <button class="category-btn">🥗 샐러드</button>
+      <button class="category-btn">🍔 버거</button>
+      <button class="category-btn">🌮 타코</button>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="menu-section">
+    <h2>인기 메뉴</h2>
+    <div class="menu-grid">
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🍕</div>
+        <div class="card-body">
+          <div class="rating">★★★★★ 4.8 (128)</div>
+          <div class="card-title">마르게리타 피자</div>
+          <div class="card-desc">신선한 토마토 소스와 모짜렐라 치즈, 바질이 올라간 클래식 피자</div>
+          <div class="card-footer">
+            <span class="price">₩18,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🍣</div>
+        <div class="card-body">
+          <div class="rating">★★★★★ 4.9 (256)</div>
+          <div class="card-title">연어 스시 세트</div>
+          <div class="card-desc">신선한 노르웨이산 연어로 만든 8피스 스시 세트, 와사비 포함</div>
+          <div class="card-footer">
+            <span class="price">₩24,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🍜</div>
+        <div class="card-body">
+          <div class="rating">★★★★☆ 4.6 (89)</div>
+          <div class="card-title">돼지뼈 라멘</div>
+          <div class="card-desc">12시간 우린 진한 돼지뼈 육수에 차슈, 계란, 숙주나물 토핑</div>
+          <div class="card-footer">
+            <span class="price">₩14,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🥗</div>
+        <div class="card-body">
+          <div class="rating">★★★★★ 4.7 (64)</div>
+          <div class="card-title">그릭 샐러드</div>
+          <div class="card-desc">신선한 채소, 페타 치즈, 올리브, 레몬 드레싱의 건강한 조합</div>
+          <div class="card-footer">
+            <span class="price">₩12,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🍔</div>
+        <div class="card-body">
+          <div class="rating">★★★★☆ 4.5 (203)</div>
+          <div class="card-title">스모크 치즈버거</div>
+          <div class="card-desc">숯불 직화 패티에 스모크 체다 치즈, 베이컨, 특제 소스 버거</div>
+          <div class="card-footer">
+            <span class="price">₩16,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-card">
+        <div class="card-img-placeholder">🌮</div>
+        <div class="card-body">
+          <div class="rating">★★★★★ 4.8 (147)</div>
+          <div class="card-title">비프 타코 3종</div>
+          <div class="card-desc">부드러운 옥수수 토르티야에 간 소고기, 살사, 아보카도 크림</div>
+          <div class="card-footer">
+            <span class="price">₩15,000</span>
+            <button class="add-btn">담기</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 FoodOrder. All rights reserved. | 고객센터: 1588-0000</p>
+  </footer>
+
+</body>
+</html>

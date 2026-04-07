@@ -1,0 +1,149 @@
+export interface WeaponConfig {
+  readonly fireRateMs: number;
+  readonly bulletSpeed: number;
+  readonly damage: number;
+  readonly magazineSize: number;
+  readonly reloadTimeMs: number;
+  readonly reserveAmmo: number;
+}
+
+export interface FireAttempt {
+  readonly allowed: boolean;
+  readonly nextReadyAtMs: number;
+  readonly bulletSpeed: number;
+  readonly damage: number;
+  readonly ammoInMagazine: number;
+  readonly reserveAmmo: number;
+  readonly reloadUntilMs: number;
+  readonly reason: "ready" | "cooldown" | "reloading" | "empty" | "no-reserve";
+}
+
+export class WeaponLogic {
+  private readonly config: WeaponConfig;
+  private nextReadyAtMs: number;
+  private ammoInMagazine: number;
+  private reserveAmmo: number;
+  private reloadUntilMs: number;
+
+  public constructor(config: WeaponConfig) {
+    this.config = config;
+    this.nextReadyAtMs = 0;
+    this.ammoInMagazine = config.magazineSize;
+    this.reserveAmmo = config.reserveAmmo;
+    this.reloadUntilMs = 0;
+  }
+
+  public tryFire(atTimeMs: number): FireAttempt {
+    if (this.isReloading(atTimeMs)) {
+      return this.createAttempt(false, "reloading");
+    }
+
+    if (atTimeMs < this.nextReadyAtMs) {
+      return this.createAttempt(false, "cooldown");
+    }
+
+    if (this.ammoInMagazine === 0) {
+      return this.createAttempt(false, "empty");
+    }
+
+    this.nextReadyAtMs = atTimeMs + this.config.fireRateMs;
+    this.ammoInMagazine -= 1;
+
+    return this.createAttempt(true, "ready");
+  }
+
+  public getCooldownRemaining(atTimeMs: number): number {
+    return Math.max(0, this.nextReadyAtMs - atTimeMs);
+  }
+
+  public startReload(atTimeMs: number): boolean {
+    if (this.isReloading(atTimeMs) || this.ammoInMagazine === this.config.magazineSize) {
+      return false;
+    }
+
+    if (this.reserveAmmo === 0) {
+      return false;
+    }
+
+    this.reloadUntilMs = atTimeMs + this.config.reloadTimeMs;
+    return true;
+  }
+
+  public cancelReload(atTimeMs: number): boolean {
+    this.update(atTimeMs);
+
+    if (!this.isReloading(atTimeMs)) {
+      return false;
+    }
+
+    this.reloadUntilMs = 0;
+    return true;
+  }
+
+  public update(atTimeMs: number): void {
+    if (this.reloadUntilMs > 0 && atTimeMs >= this.reloadUntilMs) {
+      const missingRounds = this.config.magazineSize - this.ammoInMagazine;
+      const roundsToLoad = Math.min(missingRounds, this.reserveAmmo);
+      this.ammoInMagazine += roundsToLoad;
+      this.reserveAmmo -= roundsToLoad;
+      this.reloadUntilMs = 0;
+    }
+  }
+
+  public getAmmoInMagazine(atTimeMs: number): number {
+    this.update(atTimeMs);
+    return this.ammoInMagazine;
+  }
+
+  public getMagazineSize(): number {
+    return this.config.magazineSize;
+  }
+
+  public getReserveAmmo(atTimeMs: number): number {
+    this.update(atTimeMs);
+    return this.reserveAmmo;
+  }
+
+  public getMaxReserveAmmo(): number {
+    return this.config.reserveAmmo;
+  }
+
+  public addReserveAmmo(amount: number, atTimeMs: number): number {
+    this.update(atTimeMs);
+
+    const missingAmmo = this.config.reserveAmmo - this.reserveAmmo;
+    const restoredAmmo = Math.min(Math.max(amount, 0), missingAmmo);
+    this.reserveAmmo += restoredAmmo;
+    return restoredAmmo;
+  }
+
+  public isReloading(atTimeMs: number): boolean {
+    this.update(atTimeMs);
+    return this.reloadUntilMs > atTimeMs;
+  }
+
+  public getReloadRemaining(atTimeMs: number): number {
+    this.update(atTimeMs);
+    return Math.max(0, this.reloadUntilMs - atTimeMs);
+  }
+
+  public reset(): void {
+    this.nextReadyAtMs = 0;
+    this.ammoInMagazine = this.config.magazineSize;
+    this.reserveAmmo = this.config.reserveAmmo;
+    this.reloadUntilMs = 0;
+  }
+
+  private createAttempt(allowed: boolean, reason: FireAttempt["reason"]): FireAttempt {
+    return {
+      allowed,
+      nextReadyAtMs: this.nextReadyAtMs,
+      bulletSpeed: this.config.bulletSpeed,
+      damage: this.config.damage,
+      ammoInMagazine: this.ammoInMagazine,
+      reserveAmmo: this.reserveAmmo,
+      reloadUntilMs: this.reloadUntilMs,
+      reason
+    };
+  }
+}

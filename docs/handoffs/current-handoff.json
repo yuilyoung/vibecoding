@@ -1,0 +1,36 @@
+{
+  "owner": "vision",
+  "executor": "ultron",
+  "project": "work/2D-FPS-game",
+  "scope": "Implement the match-confirm slice for work/2D-FPS-game: explicit player-confirmed match reset, winner overlay confirmation feedback, and scene integration that replaces the old automatic match restart.",
+  "constraints": [
+    "Read AGENTS.md first",
+    "Use work/2D-FPS-game as the runtime baseline",
+    "Keep long-term Unity docs as roadmap reference only",
+    "Treat Vision as planner and Ultron as executor",
+    "Preserve the current Phaser/Vite/Vitest harness",
+    "Keep gameplay logic in src/domain and scene wiring in src/scenes",
+    "Prefer deterministic combat state that can be tested without Phaser runtime",
+    "Keep reload and ammo state in domain logic rather than the Phaser scene",
+    "Reuse the current combat and respawn helpers instead of replacing the scene loop",
+    "Round scoring and match-end rules should be deterministic and not depend on rendering timing",
+    "Match-end flow should remain deterministic and not auto-reset without player input",
+    "Finish with type-check, lint, test, and build passing"
+  ],
+  "files": [
+    "work/2D-FPS-game/src/scenes/MainScene.ts"
+  ],
+  "acceptance": [
+    "Match-end state no longer resets automatically",
+    "Winner overlay shows confirmation guidance for the next match",
+    "Pressing the confirm key returns the scene to a fresh match cycle",
+    "Verification commands pass",
+    "Execution report is updated",
+    "Execution status is synced for Vision review"
+  ],
+  "nextActions": [
+    "Run codex preflight",
+    "Implement the match-confirm slice",
+    "Run verification and write the execution report"
+  ]
+}

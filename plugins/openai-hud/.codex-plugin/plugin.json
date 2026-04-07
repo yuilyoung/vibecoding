@@ -1,0 +1,32 @@
+{
+  "name": "openai-hud",
+  "version": "0.1.0",
+  "description": "Project HUD plugin for context and status visibility.",
+  "author": {
+    "name": "Codex",
+    "email": "local@workspace.invalid",
+    "url": "https://openai.com/"
+  },
+  "homepage": "https://openai.com/",
+  "repository": "https://openai.com/",
+  "license": "MIT",
+  "keywords": ["hud", "status", "context", "project"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenAI HUD",
+    "shortDescription": "Shows current project context and status signals.",
+    "longDescription": "Repo-local plugin that guides status inspection and provides a small status collector script for this workspace.",
+    "developerName": "OpenAI",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read"],
+    "websiteURL": "https://openai.com/",
+    "privacyPolicyURL": "https://openai.com/policies/row-privacy-policy/",
+    "termsOfServiceURL": "https://openai.com/policies/row-terms-of-use/",
+    "defaultPrompt": [
+      "Show me the current project HUD.",
+      "Summarize harness readiness for this repo.",
+      "Collect the current game project status."
+    ],
+    "brandColor": "#10B981"
+  }
+}

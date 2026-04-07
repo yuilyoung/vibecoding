@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>프로젝트 현황 보고서 — 4v4 2D FPS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Noto Sans KR', sans-serif; }
+    .progress-bar { transition: width 0.8s ease; }
+    .badge-done { background: #d1fae5; color: #065f46; }
+    .badge-progress { background: #dbeafe; color: #1e40af; }
+    .badge-waiting { background: #f3f4f6; color: #374151; }
+    .badge-blocked { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-8 py-6 shadow-lg">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div>
+        <div class="text-xs uppercase tracking-widest text-slate-400 mb-1">PM 에이전트 보고 · 비전(오케스트레이터) 수신</div>
+        <h1 class="text-2xl font-bold">Unity 4v4 2D FPS — 프로젝트 현황 보고서</h1>
+        <p class="text-slate-400 text-sm mt-1">보고 일자: 2026-04-05 &nbsp;|&nbsp; 현재 단계: M0 완료 / M1 착수 가능</p>
+      </div>
+      <div class="text-right">
+        <div class="text-4xl font-black text-emerald-400">10%</div>
+        <div class="text-slate-400 text-xs mt-1">전체 진행률</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-8 py-10 space-y-10">
+
+    <!-- KPI Cards -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">핵심 지표</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-emerald-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">PRD 검증 점수</div>
+          <div class="text-3xl font-black text-emerald-600">93<span class="text-lg font-normal text-gray-400">/100</span></div>
+          <div class="text-xs text-emerald-600 mt-1">v1.1 승인 완료</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">완료 산출물</div>
+          <div class="text-3xl font-black text-blue-600">14<span class="text-lg font-normal text-gray-400">개</span></div>
+          <div class="text-xs text-blue-600 mt-1">기획 9 + 아키텍처 5</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-purple-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">전체 일정</div>
+          <div class="text-3xl font-black text-purple-600">20<span class="text-lg font-normal text-gray-400">주</span></div>
+          <div class="text-xs text-purple-600 mt-1">~2026-08-23 출시 목표</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-orange-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">총 태스크</div>
+          <div class="text-3xl font-black text-orange-600">111<span class="text-lg font-normal text-gray-400">개</span></div>
+          <div class="text-xs text-orange-600 mt-1">전체 약 379h 예상</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Milestone Timeline -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">마일스톤 타임라인</h2>
+      <div class="bg-white rounded-xl shadow p-6 space-y-4">
+        <!-- M0 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 1–2</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow ring-2 ring-emerald-300"></div>
+            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
+          </div>
+          <div class="flex-1 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-800">M0 — 사전 준비</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-0.5">환경 세팅, 기획 완료, 아키텍처 설계 / 완료일: 2026-04-18</p>
+            <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+              <div class="progress-bar bg-emerald-500 h-1.5 rounded-full" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+        <!-- M1 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 3–5</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow ring-2 ring-blue-300 animate-pulse"></div>
+            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
+          </div>
+          <div class="flex-1 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-800">M1 — 코어 프로토타입</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-progress font-medium">착수 대기</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-0.5">단일 씬 이동·사격·충돌 구현 / 예상 완료: 2026-05-09</p>
+            <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+              <div class="progress-bar bg-blue-400 h-1.5 rounded-full" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+        <!-- M2 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 6–9</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
+            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
+          </div>
+          <div class="flex-1 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-600">M2 — MVP</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
+            </div>
+            <p class="text-sm text-gray-400 mt-0.5">로컬 4v4 대전 가능 상태 / 예상 완료: 2026-06-06</p>
+          </div>
+        </div>
+        <!-- M3 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 10–13</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
+            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
+          </div>
+          <div class="flex-1 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-600">M3 — 네트워크 통합</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
+            </div>
+            <p class="text-sm text-gray-400 mt-0.5">UGS Relay 멀티플레이 동기화 / 예상 완료: 2026-07-04</p>
+          </div>
+        </div>
+        <!-- M4 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 14–17</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
+            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
+          </div>
+          <div class="flex-1 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-600">M4 — 콘텐츠 & 폴리시</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
+            </div>
+            <p class="text-sm text-gray-400 mt-0.5">맵 2종, 무기 3종, 사운드, 완성 UI / 예상 완료: 2026-08-01</p>
+          </div>
+        </div>
+        <!-- M5 -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-28 text-right">
+            <span class="text-xs font-semibold text-gray-400">Week 18–20</span>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-center">
+            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-600">M5 — QA & 릴리즈</span>
+              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
+            </div>
+            <p class="text-sm text-gray-400 mt-0.5">버그 수정, E2E 테스트, 출시 빌드 / 예상 완료: 2026-08-23</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRD + Artifacts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- PRD 검증 -->
+      <section>
+        <h2 class="text-lg font-semibold text-slate-700 mb-4">PRD 검증 상세 (v1.1)</h2>
+        <div class="bg-white rounded-xl shadow p-6 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">완전성</span>
+            <span class="text-sm font-semibold text-emerald-700">23/25</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:92%"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">명확성</span>
+            <span class="text-sm font-semibold text-emerald-700">23/25</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:92%"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">실현 가능성</span>
+            <span class="text-sm font-semibold text-emerald-700">19/20</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:95%"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">측정 가능성</span>
+            <span class="text-sm font-semibold text-yellow-600">14/15</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="progress-bar bg-yellow-400 h-2 rounded-full" style="width:93%"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">사용자 중심</span>
+            <span class="text-sm font-semibold text-yellow-600">14/15</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="progress-bar bg-yellow-400 h-2 rounded-full" style="width:93%"></div>
+          </div>
+          <div class="border-t pt-3 mt-3 flex justify-between items-center">
+            <span class="font-bold text-gray-700">총점</span>
+            <span class="text-xl font-black text-emerald-600">93 / 100 — 승인</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 완료 산출물 -->
+      <section>
+        <h2 class="text-lg font-semibold text-slate-700 mb-4">완료 산출물 목록</h2>
+        <div class="bg-white rounded-xl shadow p-6">
+          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">기획 (doc/planning/)</p>
+          <ul class="space-y-1 mb-4">
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> persona.md — 페르소나</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> milestone.md — 마일스톤</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> prd.md (v1.1) — PRD 승인</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> prd-validation.md — 검증 결과</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> wbs.md — 작업 분류 체계</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> fsd.md — 기능 상세 설계</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> mvp.md — MVP 범위 정의</li>
+          </ul>
+          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">아키텍처 (doc/architecture/)</p>
+          <ul class="space-y-1">
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> system-architecture.md — C4 모델</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> erd.md — 데이터 모델</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> api-contract.md — API 계약</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> adr.md — 아키텍처 결정 기록</li>
+            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> scene-structure.md — 씬 구조</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- Risk -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">위험 요소 현황</h2>
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-3 text-left">위험 요소</th>
+              <th class="px-4 py-3 text-center">영향도</th>
+              <th class="px-4 py-3 text-left">현황 및 대응</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">네트워크 동기화 복잡도</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-semibold">높음</span></td>
+              <td class="px-4 py-3 text-gray-500">M3 착수 전 NGO + UGS Relay PoC 필요</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">WebGL 빌드 네트워크 제약</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-semibold">높음</span></td>
+              <td class="px-4 py-3 text-gray-500">UGS Relay 사용으로 대응 방안 확정</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">멀티플레이 버그 재현 어려움</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
+              <td class="px-4 py-3 text-gray-500">자동화 테스트 환경 설계 예정</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">UGS 서비스 장애</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
+              <td class="px-4 py-3 text-gray-500">LAN 폴백 경로 설계 필요</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">요구사항 변경</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
+              <td class="px-4 py-3 text-gray-500">MVP 범위 고정, 추가 기능 M4 이후 반영</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">Unity 버전 호환성</td>
+              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-semibold">낮음</span></td>
+              <td class="px-4 py-3 text-gray-500">Unity 2022 LTS 버전 고정</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Next Tasks -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">다음 단계 — M1 착수 태스크 (우선순위 순)</h2>
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-3 text-center w-12">#</th>
+              <th class="px-4 py-3 text-left">태스크</th>
+              <th class="px-4 py-3 text-center">담당</th>
+              <th class="px-4 py-3 text-center">예상</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.1</td><td class="px-4 py-2">Unity 2022 LTS 프로젝트 생성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.2</td><td class="px-4 py-2">Git 저장소 초기화 및 브랜치 전략 정의</td><td class="px-4 py-2 text-center"><span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">devops</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.3</td><td class="px-4 py-2">GitHub Actions CI 파이프라인 구성</td><td class="px-4 py-2 text-center"><span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">devops</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.4</td><td class="px-4 py-2">Unity Test Runner 설정</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.1</td><td class="px-4 py-2">PlayerMovement 스크립트 작성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">6h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.2</td><td class="px-4 py-2">캐릭터 회전 (마우스 조준) 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">3h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.4</td><td class="px-4 py-2">HP 시스템 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.2.1</td><td class="px-4 py-2">BulletController 스크립트 작성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">5h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.2.2</td><td class="px-4 py-2">발사 로직 (WeaponController) 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="text-center text-xs text-gray-400 pt-4 pb-8 border-t border-gray-200">
+      보고서 생성: pm 에이전트 · 2026-04-05 · Unity 4v4 2D FPS 프로젝트
+    </footer>
+  </main>
+</body>
+</html>

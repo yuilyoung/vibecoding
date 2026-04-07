@@ -82,3 +82,6 @@ npm-debug.log*
 # Saves / runtime data
 saves/
 *.save
+
+# Dev cycle mailbox (agent working files)
+.dev-cycle/

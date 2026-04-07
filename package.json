@@ -1,0 +1,13 @@
+{
+  "name": "ai-project-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "workspace-status": "node scripts/workspace-status.mjs",
+    "project-status": "node scripts/project-status.mjs",
+    "next-tasks": "node scripts/next-tasks.mjs",
+    "codex-preflight": "node codex/hooks/preflight-check.mjs",
+    "codex-postflight": "node codex/hooks/postflight-sync.mjs"
+  }
+}

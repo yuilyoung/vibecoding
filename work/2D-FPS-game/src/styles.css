@@ -1,0 +1,119 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(62, 99, 221, 0.35), transparent 40%),
+    linear-gradient(180deg, #0a1221 0%, #04070d 100%);
+  color: #ecf3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.top-bar,
+.layout {
+  display: grid;
+  gap: 20px;
+}
+
+.top-bar {
+  align-items: center;
+  grid-template-columns: 1fr auto;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #7dc3ff;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.stage-panel,
+.hud-panel,
+.status-chip {
+  border: 1px solid rgba(148, 184, 255, 0.16);
+  background: rgba(7, 12, 24, 0.78);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+}
+
+.stage-panel {
+  padding: 14px;
+}
+
+.hud-panel {
+  padding: 20px;
+}
+
+.status-chip {
+  padding: 10px 14px;
+  color: #90f3c8;
+  font-size: 13px;
+}
+
+.game-root {
+  min-height: 540px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.meta-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+
+.meta-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.meta-list dt {
+  color: #93a5c4;
+}
+
+.meta-list dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hint {
+  line-height: 1.6;
+  color: #b0bfd8;
+}
+
+@media (max-width: 960px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .top-bar,
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
