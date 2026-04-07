@@ -11,6 +11,7 @@
   "reserveAmmo": 24,
   "matchScoreToWin": 3,
   "matchResetDelayMs": 2200,
+  "roundStartDelayMs": 900,
   "ammoPickupAmount": 8,
   "ammoPickupRespawnMs": 5000,
   "healthPickupAmount": 28,
@@ -22,5 +23,9 @@
   "dummyLowHealthThreshold": 0.35,
   "hazardDamage": 7,
   "hazardTickMs": 900,
-  "coverPointRadius": 18
+  "coverPointRadius": 18,
+  "actorSkinSource": "generated",
+  "actorSpritesheetPath": "/assets/sprites/actors.png",
+  "actorFrameWidth": 44,
+  "actorFrameHeight": 30
 }

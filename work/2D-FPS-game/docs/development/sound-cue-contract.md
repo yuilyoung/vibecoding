@@ -21,7 +21,7 @@ This document defines the cue names for the current Phaser prototype.
 
 - The gameplay scene translates in-game events into these cue names and exposes the latest cue in the HUD.
 - The `SoundCueLogic` helper keeps the mapping deterministic and testable.
-- No audio assets are required yet; these names are the contract for future hooks.
+- The prototype currently uses generated WebAudio tones for these cue names, so no external audio assets are required yet.
 
 ## Notes
 

@@ -1,10 +1,10 @@
 # Setup Guide
 
-## 목적
+## Purpose
 
-`work/2D-FPS-game`를 바로 실행, 빌드, 테스트할 수 있는 개발 하네스 안내입니다.
+Use this guide to run, verify, and iterate on the active Phaser prototype in `work/2D-FPS-game`.
 
-## 명령어
+## Commands
 
 ```bash
 npm install
@@ -15,19 +15,29 @@ npm test
 npm run build
 ```
 
-## 구성
+## Current Controls
 
-- `index.html`: Vite 엔트리
-- `src/main.ts`: 앱 셸 및 Phaser 부트스트랩
-- `src/scenes/MainScene.ts`: 최소 플레이 가능 씬
-- `src/domain/player/PlayerLogic.ts`: 엔진 비종속 순수 로직
-- `tests/PlayerLogic.test.ts`: 단위 테스트
-- `assets/data/game-balance.json`: 외부화된 수치 데이터
+- `WASD`: move
+- `SPACE`: sprint
+- Mouse: aim and fire
+- `R`: reload
+- `1` / `2`: switch between `Carbine` and `Scatter`
+- `E`: interact with the gate
+- `ENTER`: confirm the next match after the match overlay unlocks
 
-## 완료 기준
+## Runtime Notes
 
-1. `npm install` 성공
-2. `npm run type-check` 성공
-3. `npm run lint` 성공
-4. `npm test` 성공
-5. `npm run build` 성공
+- Actor skins default to generated placeholder textures.
+- Optional authored actor sprites can use the sprite-sheet path described in `sprite-asset-contract.md`.
+- Sound feedback currently uses generated WebAudio tones from cue names, not external audio files.
+- The round-start countdown briefly locks movement, firing, gate interaction, dummy movement, and hazard ticks before each round resumes.
+
+## Completion Check
+
+Before handing off a prototype change:
+
+1. Run `npm run type-check`.
+2. Run `npm run lint`.
+3. Run `npm test`.
+4. Run `npm run build`.
+5. If gameplay changed, run the manual browser smoke test.

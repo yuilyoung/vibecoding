@@ -20,12 +20,12 @@ This repository currently has two baselines:
 
 ## Current Prototype Status
 
-- Movement, mouse aim, HP, stun, death, shooting, ammo, reload, pickups, rounds, match confirmation, dummy AI, collision, generated actor skins, line-of-sight checks, weapon switching, an interactable gate, a hazard zone, cover-point visualization, AI hazard avoidance, and scene-level sound cue emission are implemented in the Phaser prototype.
+- Movement, mouse aim, HP, stun, death, shooting, ammo, reload, pickups, rounds, match confirmation, round-start countdown, dummy AI, collision, generated actor skins, optional sprite-sheet import path, line-of-sight checks, weapon switching, an interactable gate, a hazard zone, cover-point visualization, AI hazard avoidance, scene-level sound cue emission, and generated audio playback are implemented in the Phaser prototype.
 - Current verification baseline is `npm run type-check`, `npm run lint`, `npm test`, and `npm run build` from `work/2D-FPS-game`.
-- Latest local verification passed with 8 test files and 53 tests.
+- Latest local verification passed with 9 test files and 55 tests.
 
 ## Next Direction
 
 - Continue extending the Phaser prototype unless a deliberate migration decision is made.
-- Good next candidates are authored sprite assets, audio playback assets, round-start feedback, and local playtest balancing.
+- Good next candidates are authored sprite assets, richer respawn animation, Unity/Phaser roadmap reconciliation, and local playtest balancing.
 - If Unity work resumes later, reconcile the root roadmap with the Phaser prototype before implementation.

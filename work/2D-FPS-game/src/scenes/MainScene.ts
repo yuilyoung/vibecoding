@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { GeneratedAudioCuePlayer } from "../domain/audio/GeneratedAudioCuePlayer";
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
 import { createCenteredRect, intersectsRect, type Rect } from "../domain/collision/CollisionLogic";
@@ -21,6 +22,7 @@ interface GameBalance {
   reserveAmmo: number;
   matchScoreToWin: number;
   matchResetDelayMs: number;
+  roundStartDelayMs: number;
   ammoPickupAmount: number;
   ammoPickupRespawnMs: number;
   healthPickupAmount: number;
@@ -33,6 +35,10 @@ interface GameBalance {
   hazardDamage: number;
   hazardTickMs: number;
   coverPointRadius: number;
+  actorSkinSource: string;
+  actorSpritesheetPath: string;
+  actorFrameWidth: number;
+  actorFrameHeight: number;
 }
 
 interface BulletView {
@@ -118,6 +124,7 @@ export class MainScene extends Phaser.Scene {
   private readonly roundLogic: RoundLogic;
   private readonly dummyAiLogic: DummyAiLogic;
   private readonly soundCueLogic: SoundCueLogic;
+  private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
   private readonly obstacles: ObstacleView[];
@@ -127,6 +134,7 @@ export class MainScene extends Phaser.Scene {
   private readonly coverPointViews: CoverPointView[];
   private lastCombatEvent: string;
   private roundResetAtMs: number | null;
+  private roundStartUntilMs: number;
   private matchConfirmAtMs: number | null;
   private matchConfirmReadyCueSent: boolean;
   private lastSoundCue: SoundCueKey | "NONE";
@@ -167,6 +175,7 @@ export class MainScene extends Phaser.Scene {
       lowHealthThreshold: gameBalance.dummyLowHealthThreshold
     });
     this.soundCueLogic = new SoundCueLogic();
+    this.audioCuePlayer = new GeneratedAudioCuePlayer();
     this.bullets = [];
     this.obstacles = [];
     this.dummyCoverPoints = [
@@ -177,11 +186,23 @@ export class MainScene extends Phaser.Scene {
     this.coverPointViews = [];
     this.lastCombatEvent = "READY";
     this.roundResetAtMs = null;
+    this.roundStartUntilMs = 0;
     this.matchConfirmAtMs = null;
     this.matchConfirmReadyCueSent = false;
     this.lastSoundCue = "NONE";
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
+  }
+
+  public preload(): void {
+    if (this.gameBalance.actorSkinSource !== "spritesheet") {
+      return;
+    }
+
+    this.load.spritesheet("actor-skins", this.gameBalance.actorSpritesheetPath, {
+      frameWidth: this.gameBalance.actorFrameWidth,
+      frameHeight: this.gameBalance.actorFrameHeight
+    });
   }
 
   public create(): void {
@@ -253,10 +274,11 @@ export class MainScene extends Phaser.Scene {
       respawnAtMs: null
     };
 
-    this.playerSprite = this.add.image(MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y, "skin-player").setDepth(5);
-    this.targetDummy = this.add.image(MainScene.DUMMY_SPAWN_X, MainScene.DUMMY_SPAWN_Y, "skin-dummy").setDepth(5);
+    this.playerSprite = this.createActorImage("player", MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
+    this.targetDummy = this.createActorImage("dummy", MainScene.DUMMY_SPAWN_X, MainScene.DUMMY_SPAWN_Y);
     this.playerLogic.reset(0, 0);
     this.dummyLogic.reset(MainScene.DUMMY_SPAWN_X - 120, MainScene.DUMMY_SPAWN_Y - 120);
+    this.roundStartUntilMs = this.time.now + this.gameBalance.roundStartDelayMs;
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.moveKeys = {
@@ -280,7 +302,8 @@ export class MainScene extends Phaser.Scene {
 
     const now = this.time.now;
     const deltaSeconds = delta / 1000;
-    const inputLocked = this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
+    const roundStarting = this.isRoundStarting(now);
+    const inputLocked = roundStarting || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
     const horizontal = inputLocked
       ? 0
       : Number(this.moveKeys.right.isDown || this.cursors.right.isDown) -
@@ -346,6 +369,7 @@ export class MainScene extends Phaser.Scene {
       `HP ${this.playerLogic.state.health}/${this.playerLogic.state.maxHealth}`,
       `STATE ${this.roundLogic.state.isMatchOver ? "MATCH LOCK" : this.playerLogic.isDead() ? "DOWN" : this.playerLogic.isStunned(now) ? "STUNNED" : "ACTIVE"}`,
       `ROUND RESET ${this.roundResetAtMs === null ? "READY" : Math.max(0, this.roundResetAtMs - now).toFixed(0)}`,
+      `ROUND START ${this.getRoundStartStatus(now)}`,
       `MATCH CONFIRM ${this.getMatchConfirmStatus(now)}`,
       `STUN ${Math.max(0, this.playerLogic.state.stunUntilMs - now).toFixed(0)}`,
       `PICKUP ${this.getPickupStatus(now)}`,
@@ -372,7 +396,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleReload(now: number): void {
-    if (this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now)) {
+    if (this.isRoundStarting(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now)) {
       return;
     }
 
@@ -408,6 +432,7 @@ export class MainScene extends Phaser.Scene {
       this.dummyLogic.isDead() ||
       this.playerLogic.isDead() ||
       this.roundLogic.state.isMatchOver ||
+      this.isRoundStarting(now) ||
       this.playerLogic.isStunned(now)
     ) {
       return;
@@ -485,7 +510,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleWeaponSwitch(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(this.time.now)) {
       return;
     }
 
@@ -500,7 +525,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleGateInteraction(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(this.time.now)) {
       return;
     }
 
@@ -528,7 +553,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleHazardZone(now: number): void {
-    if (this.roundLogic.state.isMatchOver) {
+    if (this.roundLogic.state.isMatchOver || this.isRoundStarting(now)) {
       return;
     }
 
@@ -682,7 +707,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateDummyMovement(deltaSeconds: number, now: number): void {
-    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(now)) {
       this.dummyLogic.move({ x: 0, y: 0, sprint: false }, deltaSeconds, now);
       return;
     }
@@ -743,9 +768,9 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.resetRoundState();
+    this.resetRoundState(now);
     this.roundResetAtMs = null;
-    this.lastCombatEvent = "RESPAWNED";
+    this.lastCombatEvent = "ROUND STARTING";
   }
 
   private handleMatchConfirm(now: number): void {
@@ -763,7 +788,7 @@ export class MainScene extends Phaser.Scene {
 
     this.emitSoundCue({ kind: "match-confirm", action: "accept" });
     this.roundLogic.resetMatch();
-    this.resetRoundState();
+    this.resetRoundState(now);
     this.matchConfirmAtMs = null;
     this.roundResetAtMs = null;
     this.lastCombatEvent = "NEW MATCH";
@@ -771,9 +796,17 @@ export class MainScene extends Phaser.Scene {
 
   private emitSoundCue(event: SoundCueEvent): void {
     this.lastSoundCue = this.soundCueLogic.resolveCue(event);
+    this.audioCuePlayer.play(this.lastSoundCue);
   }
 
   private updateMatchOverlay(now: number): void {
+    if (!this.roundLogic.state.isMatchOver && this.isRoundStarting(now)) {
+      this.overlayTitle.setText(`ROUND ${this.roundLogic.state.roundNumber}`);
+      this.overlaySubtitle.setText(`Starts in ${this.getRoundStartStatus(now)} ms`);
+      this.setOverlayVisible(true);
+      return;
+    }
+
     if (!this.roundLogic.state.isMatchOver || this.matchConfirmAtMs === null) {
       this.setOverlayVisible(false);
       return;
@@ -872,7 +905,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private resetRoundState(): void {
+  private resetRoundState(now = this.time.now): void {
     this.playerLogic.reset(0, 0);
     this.dummyLogic.reset(MainScene.DUMMY_SPAWN_X - 120, MainScene.DUMMY_SPAWN_Y - 120);
     for (const slot of this.weaponSlots) {
@@ -881,6 +914,7 @@ export class MainScene extends Phaser.Scene {
     this.weaponInventory.reset();
     this.dummyWeaponLogic.reset();
     this.hazardZone.logic.reset();
+    this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
     this.matchConfirmReadyCueSent = false;
     this.clearBullets();
     this.playerSprite.setPosition(MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
@@ -957,6 +991,18 @@ export class MainScene extends Phaser.Scene {
     }
 
     return Math.max(0, this.matchConfirmAtMs - now).toFixed(0);
+  }
+
+  private getRoundStartStatus(now: number): string {
+    if (!this.isRoundStarting(now)) {
+      return "LIVE";
+    }
+
+    return Math.max(0, this.roundStartUntilMs - now).toFixed(0);
+  }
+
+  private isRoundStarting(now: number): boolean {
+    return !this.roundLogic.state.isMatchOver && now < this.roundStartUntilMs;
   }
 
   private setOverlayVisible(visible: boolean): void {
@@ -1090,6 +1136,14 @@ export class MainScene extends Phaser.Scene {
       accentColor: 0x7f1d1d,
       weaponColor: 0xff8b8b
     });
+  }
+
+  private createActorImage(actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
+    if (this.gameBalance.actorSkinSource === "spritesheet" && this.textures.exists("actor-skins")) {
+      return this.add.image(x, y, "actor-skins", actor === "player" ? 0 : 1).setDepth(5);
+    }
+
+    return this.add.image(x, y, actor === "player" ? "skin-player" : "skin-dummy").setDepth(5);
   }
 
   private createActorTexture(

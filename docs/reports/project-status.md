@@ -11,7 +11,7 @@ Active implementation baseline: `work/2D-FPS-game`
 | Active milestone | Web prototype gameplay expansion |
 | Runtime baseline | Phaser + TypeScript + Vite |
 | Verification | type-check, lint, test, build passing |
-| Latest test result | 8 files / 53 tests passing |
+| Latest test result | 9 files / 55 tests passing |
 | Development status | Continue prototype iteration |
 
 ## Completed Prototype Scope
@@ -19,10 +19,11 @@ Active implementation baseline: `work/2D-FPS-game`
 - Player movement, sprint, mouse aim, HP, stun, death, and round reset.
 - Player shooting, ammo, reload, pickups, two weapon slots, and weapon HUD.
 - Dummy AI chase, retreat, strafe, flank, cover, line-of-sight blocking, blocked-sight repositioning, and hazard avoidance.
-- Obstacles, interactable gate, projectile blocking, and map hazard zone.
+- Obstacles, interactable gate, projectile blocking, map hazard zone, and round-start countdown lock.
 - Cover-point visualization and `coverPointRadius` tuning value.
 - Generated placeholder actor skins and state visual feedback.
-- Sound cue contract, pure cue mapping helper, and scene-level cue emission for fire, hit, pickup, gate, hazard, and match confirm.
+- Sprite-sheet import path contract with generated actor skin fallback.
+- Sound cue contract, pure cue mapping helper, scene-level cue emission, and generated WebAudio playback for fire, hit, pickup, gate, hazard, and match confirm.
 - Local playtest checklist, browser smoke-test guide, and prototype Git tracking policy.
 - Match victory overlay with explicit `ENTER` confirmation.
 
@@ -30,11 +31,10 @@ Active implementation baseline: `work/2D-FPS-game`
 
 | Priority | ID | Task | Owner | Estimate |
 |----------|----|------|-------|----------|
-| 1 | P2.1 | Add authored sprite assets or sprite-sheet import path | ultron | 2h |
-| 2 | P2.4b | Add real or generated audio playback assets | ultron | 2h |
-| 3 | P2.5 | Add round-start countdown and clearer respawn feedback | ultron | 2h |
-| 4 | P2.9 | Reconcile long-term Unity roadmap with current Phaser prototype | vision + ultron | 2h |
-| 5 | P2.11 | Add cover/hazard tuning notes after manual playtest | ultron | 1h |
+| 1 | P2.1b | Add authored sprite-sheet art file for `/assets/sprites/actors.png` | ultron | 2h |
+| 2 | P2.5b | Add richer respawn animation beyond the countdown overlay | ultron | 2h |
+| 3 | P2.9 | Reconcile long-term Unity roadmap with current Phaser prototype | vision + ultron | 2h |
+| 4 | P2.11 | Add cover/hazard/audio tuning notes after manual playtest | ultron | 1h |
 
 ## Risks
 
