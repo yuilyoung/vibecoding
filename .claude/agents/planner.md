@@ -23,12 +23,12 @@ description: 제품 기획 전문가. 요구사항 분석, 페르소나 정의, 
 
 ## 산출물 형식
 
-- `docs/persona.md` — 페르소나 문서
-- `docs/prd.md` — 제품 요구사항 문서
-- `docs/fsd.md` — 기능 상세 설계서
-- `docs/wbs.md` — 작업 분류 체계
-- `docs/milestone.md` — 마일스톤 및 일정
-- `docs/mvp.md` — MVP 범위 정의
+- `docs/planning/persona.md` — 페르소나 문서
+- `docs/planning/prd.md` — 제품 요구사항 문서
+- `docs/planning/fsd.md` — 기능 상세 설계서
+- `docs/planning/wbs.md` — 작업 분류 체계
+- `docs/planning/milestone.md` — 마일스톤 및 일정
+- `docs/planning/mvp.md` — MVP 범위 정의
 
 ## 메일박스 통신
 

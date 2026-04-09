@@ -7,6 +7,12 @@ import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { WeaponLogic, type WeaponConfig } from "../domain/combat/WeaponLogic";
 import { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
 import { PlayerLogic } from "../domain/player/PlayerLogic";
+import {
+  MatchFlowLogic,
+  type SpawnAssignment,
+  type SpawnPoint,
+  type TeamId
+} from "../domain/round/MatchFlowLogic";
 import { RoundLogic } from "../domain/round/RoundLogic";
 
 interface GameBalance {
@@ -87,11 +93,31 @@ interface CoverPointView {
   label: Phaser.GameObjects.Text;
 }
 
+interface TeamSpawnTable {
+  BLUE: readonly SpawnPoint[];
+  RED: readonly SpawnPoint[];
+}
+
+interface MainSceneDebugSnapshot {
+  phase: string;
+  team: TeamId | "UNSET";
+  spawn: string;
+  activeWeapon: string;
+  weaponSlot: number;
+  ammoInMagazine: number;
+  reserveAmmo: number;
+  playerHealth: number;
+  dummyHealth: number;
+  gateOpen: boolean;
+  roundNumber: number;
+  playerScore: number;
+  dummyScore: number;
+  lastEvent: string;
+}
+
+type DebugTeamSelection = TeamId;
+
 export class MainScene extends Phaser.Scene {
-  private static readonly PLAYER_SPAWN_X = 120;
-  private static readonly PLAYER_SPAWN_Y = 120;
-  private static readonly DUMMY_SPAWN_X = 760;
-  private static readonly DUMMY_SPAWN_Y = 210;
   private static readonly RESPAWN_DELAY_MS = 1600;
   private static readonly RESPAWN_FX_MS = 900;
 
@@ -104,12 +130,17 @@ export class MainScene extends Phaser.Scene {
     sprint: Phaser.Input.Keyboard.Key;
     reload: Phaser.Input.Keyboard.Key;
     confirm: Phaser.Input.Keyboard.Key;
+    fire: Phaser.Input.Keyboard.Key;
+    swap: Phaser.Input.Keyboard.Key;
     weapon1: Phaser.Input.Keyboard.Key;
     weapon2: Phaser.Input.Keyboard.Key;
     interact: Phaser.Input.Keyboard.Key;
   };
   private playerSprite!: Phaser.GameObjects.Image;
   private targetDummy!: Phaser.GameObjects.Image;
+  private crosshairHorizontal!: Phaser.GameObjects.Rectangle;
+  private crosshairVertical!: Phaser.GameObjects.Rectangle;
+  private muzzleFlash!: Phaser.GameObjects.Arc;
   private ammoPickup!: PickupView;
   private healthPickup!: PickupView;
   private overlayPanel!: Phaser.GameObjects.Rectangle;
@@ -129,6 +160,8 @@ export class MainScene extends Phaser.Scene {
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
   private readonly obstacles: ObstacleView[];
+  private readonly matchFlow: MatchFlowLogic;
+  private readonly spawnTable: TeamSpawnTable;
   private gate!: GateView;
   private hazardZone!: HazardZoneView;
   private readonly dummyCoverPoints: CoverPoint[];
@@ -142,6 +175,8 @@ export class MainScene extends Phaser.Scene {
   private lastSoundCue: SoundCueKey | "NONE";
   private lastDummyDecision: DummyAiDecision["mode"];
   private lastDummyShouldFire: boolean;
+  private lastSpawnSummary: string;
+  private muzzleFlashUntilMs: number;
 
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
@@ -180,6 +215,19 @@ export class MainScene extends Phaser.Scene {
     this.audioCuePlayer = new GeneratedAudioCuePlayer();
     this.bullets = [];
     this.obstacles = [];
+    this.matchFlow = new MatchFlowLogic();
+    this.spawnTable = {
+      BLUE: [
+        { x: 120, y: 120, label: "BLUE ENTRY A" },
+        { x: 162, y: 428, label: "BLUE ENTRY B" },
+        { x: 286, y: 102, label: "BLUE ENTRY C" }
+      ],
+      RED: [
+        { x: 760, y: 210, label: "RED ENTRY A" },
+        { x: 846, y: 428, label: "RED ENTRY B" },
+        { x: 672, y: 116, label: "RED ENTRY C" }
+      ]
+    };
     this.dummyCoverPoints = [
       { x: 700, y: 160 },
       { x: 690, y: 390 },
@@ -195,6 +243,8 @@ export class MainScene extends Phaser.Scene {
     this.lastSoundCue = "NONE";
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
+    this.lastSpawnSummary = "WAITING";
+    this.muzzleFlashUntilMs = 0;
   }
 
   public preload(): void {
@@ -214,7 +264,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.add
-      .text(24, 18, "Harness Stage", {
+      .text(24, 18, "Arena Control", {
         color: "#c9e0ff",
         fontFamily: "monospace",
         fontSize: "20px"
@@ -222,7 +272,7 @@ export class MainScene extends Phaser.Scene {
       .setAlpha(0.85);
 
     this.add
-      .text(24, 46, "WASD move / SPACE sprint / MOUSE aim / R reload / 1-2 weapon / E gate / ENTER confirm", {
+      .text(24, 46, "ENTER stage / 1-2 team+weapon / WASD move / MOUSE or F fire / R reload / E gate", {
         color: "#7ba8de",
         fontFamily: "monospace",
         fontSize: "13px"
@@ -257,6 +307,9 @@ export class MainScene extends Phaser.Scene {
       align: "center"
     }).setOrigin(0.5);
     this.setOverlayVisible(false);
+    this.crosshairHorizontal = this.add.rectangle(0, 0, 18, 2, 0xd8f3ff, 0.85).setDepth(20);
+    this.crosshairVertical = this.add.rectangle(0, 0, 2, 18, 0xd8f3ff, 0.85).setDepth(20);
+    this.muzzleFlash = this.add.circle(0, 0, 8, 0xffd27a, 0.9).setDepth(8).setVisible(false);
 
     this.createActorSkins();
     this.add.rectangle(480, 270, 860, 420, 0x10213f, 0.9).setStrokeStyle(2, 0x2b5085, 0.9);
@@ -277,12 +330,12 @@ export class MainScene extends Phaser.Scene {
       respawnAtMs: null
     };
 
-    this.playerSprite = this.createActorImage("player", MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
-    this.targetDummy = this.createActorImage("dummy", MainScene.DUMMY_SPAWN_X, MainScene.DUMMY_SPAWN_Y);
+    this.playerSprite = this.createActorImage("player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
+    this.targetDummy = this.createActorImage("dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
     this.playerLogic.reset(0, 0);
-    this.dummyLogic.reset(MainScene.DUMMY_SPAWN_X - 120, MainScene.DUMMY_SPAWN_Y - 120);
-    this.roundStartUntilMs = this.time.now + this.gameBalance.roundStartDelayMs;
-    this.respawnFxUntilMs = this.time.now + MainScene.RESPAWN_FX_MS;
+    this.dummyLogic.reset(this.spawnTable.RED[0].x - 120, this.spawnTable.RED[0].y - 120);
+    this.roundStartUntilMs = 0;
+    this.respawnFxUntilMs = 0;
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.moveKeys = {
@@ -293,10 +346,13 @@ export class MainScene extends Phaser.Scene {
       sprint: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       reload: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
       confirm: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER),
+      fire: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F),
+      swap: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
       weapon1: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       weapon2: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
       interact: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
     };
+    this.lastCombatEvent = "PRESS ENTER TO ENTER STAGE";
   }
 
   public update(_: number, delta: number): void {
@@ -306,8 +362,10 @@ export class MainScene extends Phaser.Scene {
 
     const now = this.time.now;
     const deltaSeconds = delta / 1000;
+    this.handleStageFlow(now);
     const roundStarting = this.isRoundStarting(now);
-    const inputLocked = roundStarting || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
+    const combatLocked = !this.isCombatLive(now);
+    const inputLocked = combatLocked || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
     const horizontal = inputLocked
       ? 0
       : Number(this.moveKeys.right.isDown || this.cursors.right.isDown) -
@@ -344,7 +402,7 @@ export class MainScene extends Phaser.Scene {
     this.handleHazardZone(now);
     this.updateDummyMovement(deltaSeconds, now);
 
-    if (!this.roundLogic.state.isMatchOver) {
+    if (!this.roundLogic.state.isMatchOver && this.matchFlow.state.phase !== "stage-entry") {
       this.playerLogic.updateAim(this.input.activePointer.worldX - 120, this.input.activePointer.worldY - 120, now);
     }
 
@@ -365,43 +423,228 @@ export class MainScene extends Phaser.Scene {
     this.updatePlayerVisuals(now);
     this.updateDummyVisuals(now);
     this.updateCoverPointVisuals();
+    this.updateCrosshair(now);
     this.updateMatchOverlay(now);
     this.statusText.setText([
-      `POS ${this.playerLogic.state.positionX.toFixed(1)}, ${this.playerLogic.state.positionY.toFixed(1)}`,
-      `MODE ${this.playerLogic.state.isSprinting ? "SPRINT" : "WALK"} @ ${this.playerLogic.state.lastAppliedSpeed.toFixed(0)}`,
-      `AIM ${(Phaser.Math.RadToDeg(this.playerLogic.state.aimAngleRadians)).toFixed(1)} deg`,
-      `HP ${this.playerLogic.state.health}/${this.playerLogic.state.maxHealth}`,
-      `STATE ${this.roundLogic.state.isMatchOver ? "MATCH LOCK" : this.playerLogic.isDead() ? "DOWN" : this.playerLogic.isStunned(now) ? "STUNNED" : "ACTIVE"}`,
-      `ROUND RESET ${this.roundResetAtMs === null ? "READY" : Math.max(0, this.roundResetAtMs - now).toFixed(0)}`,
-      `ROUND START ${this.getRoundStartStatus(now)}`,
-      `RESPAWN FX ${this.getRespawnFxStatus(now)}`,
-      `MATCH CONFIRM ${this.getMatchConfirmStatus(now)}`,
-      `STUN ${Math.max(0, this.playerLogic.state.stunUntilMs - now).toFixed(0)}`,
-      `PICKUP ${this.getPickupStatus(now)}`,
-      `MED ${this.getHealthPickupStatus(now)}`,
-      `GATE ${this.gate.open ? "OPEN" : "CLOSED"}`,
-      `HAZARD ${this.gameBalance.hazardDamage}/${this.gameBalance.hazardTickMs}ms`,
-      `COVER POINTS ${this.dummyCoverPoints.length}`,
-      `DUMMY AI ${this.lastDummyDecision.toUpperCase()}`,
-      `BLOCK ${playerBlocked ? "YES" : "NO"}`
+      `Phase: ${this.getPhaseLabel(now)}`,
+      `Team: ${this.matchFlow.state.selectedTeam ?? "UNSET"}`,
+      `Spawn: ${this.lastSpawnSummary}`,
+      `Player Health: ${this.playerLogic.state.health}/${this.playerLogic.state.maxHealth}`,
+      `Dummy Health: ${this.dummyLogic.state.health}/${this.dummyLogic.state.maxHealth}`,
+      `Movement Mode: ${this.playerLogic.state.isSprinting ? "Sprint" : "Walk"} (${this.playerLogic.state.lastAppliedSpeed.toFixed(0)})`,
+      `Round Start Timer: ${this.getRoundStartStatus(now)}`,
+      `Round Reset Timer: ${this.roundResetAtMs === null ? "READY" : Math.max(0, this.roundResetAtMs - now).toFixed(0)}`,
+      `Gate State: ${this.gate.open ? "OPEN" : "CLOSED"}`,
+      `Hazard Damage: ${this.gameBalance.hazardDamage} / ${this.gameBalance.hazardTickMs} ms`,
+      `Ammo Pickup Timer: ${this.getPickupStatus(now)}`,
+      `Health Pickup Timer: ${this.getHealthPickupStatus(now)}`,
+      `Dummy AI Mode: ${this.lastDummyDecision.toUpperCase()}`,
+      `Movement Blocked: ${playerBlocked ? "YES" : "NO"}`
     ]);
     const activeWeapon = this.getActiveWeaponSlot();
     this.combatText.setText([
-      `ROUND ${this.roundLogic.state.roundNumber} | SCORE P ${this.roundLogic.state.playerScore} - D ${this.roundLogic.state.dummyScore} / ${this.roundLogic.state.scoreToWin}`,
-      `WEAPON ${this.weaponInventory.getActiveIndex() + 1}:${activeWeapon.label}`,
-      `FIRE ${activeWeapon.logic.getCooldownRemaining(now).toFixed(0)} ms`,
-      `AMMO ${activeWeapon.logic.getAmmoInMagazine(now)}/${activeWeapon.logic.getMagazineSize()} | RESERVE ${activeWeapon.logic.getReserveAmmo(now)}`,
-      `RELOAD ${activeWeapon.logic.getReloadRemaining(now).toFixed(0)} ms`,
-      `DUMMY HP ${this.dummyLogic.state.health}/${this.dummyLogic.state.maxHealth}`,
-      `EVENT ${this.lastCombatEvent}`,
-      `SOUND ${this.lastSoundCue}`,
-      `ROUND RESULT ${this.roundLogic.state.lastResult}`,
-      `MATCH ${this.roundLogic.state.matchWinner ?? "IN PROGRESS"}`
+      `Round Number: ${this.roundLogic.state.roundNumber}`,
+      `Score: Player ${this.roundLogic.state.playerScore} / Dummy ${this.roundLogic.state.dummyScore} / Target ${this.roundLogic.state.scoreToWin}`,
+      `Weapon Slot: ${this.weaponInventory.getActiveIndex() + 1}`,
+      `Weapon Name: ${activeWeapon.label}`,
+      `Magazine Ammo: ${activeWeapon.logic.getAmmoInMagazine(now)}/${activeWeapon.logic.getMagazineSize()}`,
+      `Reserve Ammo: ${activeWeapon.logic.getReserveAmmo(now)}`,
+      `Fire Cooldown: ${activeWeapon.logic.getCooldownRemaining(now).toFixed(0)} ms`,
+      `Reload Timer: ${activeWeapon.logic.getReloadRemaining(now).toFixed(0)} ms`,
+      `Combat Event: ${this.lastCombatEvent}`,
+      `Sound Cue: ${this.lastSoundCue}`,
+      `Round Result: ${this.roundLogic.state.lastResult}`,
+      `Match Result: ${this.roundLogic.state.matchWinner ?? "IN PROGRESS"}`
     ]);
   }
 
+  public getDebugSnapshot(): MainSceneDebugSnapshot {
+    const activeWeapon = this.getActiveWeaponSlot();
+
+    return {
+      phase: this.getPhaseLabel(this.time.now),
+      team: this.matchFlow.state.selectedTeam ?? "UNSET",
+      spawn: this.lastSpawnSummary,
+      activeWeapon: activeWeapon.label,
+      weaponSlot: this.weaponInventory.getActiveIndex() + 1,
+      ammoInMagazine: activeWeapon.logic.getAmmoInMagazine(this.time.now),
+      reserveAmmo: activeWeapon.logic.getReserveAmmo(this.time.now),
+      playerHealth: this.playerLogic.state.health,
+      dummyHealth: this.dummyLogic.state.health,
+      gateOpen: this.gate.open,
+      roundNumber: this.roundLogic.state.roundNumber,
+      playerScore: this.roundLogic.state.playerScore,
+      dummyScore: this.roundLogic.state.dummyScore,
+      lastEvent: this.lastCombatEvent
+    };
+  }
+
+  public debugEnterStage(): void {
+    if (this.matchFlow.state.phase !== "stage-entry") {
+      return;
+    }
+
+    this.matchFlow.enterStage();
+    this.matchFlow.previewTeam("BLUE");
+    this.lastCombatEvent = "SELECT TEAM: 1 BLUE / 2 RED";
+  }
+
+  public debugSelectTeam(team: DebugTeamSelection): void {
+    if (this.matchFlow.state.phase !== "team-select") {
+      return;
+    }
+
+    this.matchFlow.previewTeam(team);
+    this.lastCombatEvent = `TEAM PREVIEW ${team}`;
+  }
+
+  public debugConfirmTeamSelection(): void {
+    if (this.matchFlow.state.phase !== "team-select" || this.matchFlow.state.selectedTeam === null) {
+      return;
+    }
+
+    this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
+    this.roundStartUntilMs = this.time.now + this.gameBalance.roundStartDelayMs;
+    this.respawnFxUntilMs = this.time.now + MainScene.RESPAWN_FX_MS;
+    this.lastCombatEvent = `DEPLOYING ${this.matchFlow.state.selectedTeam}`;
+  }
+
+  public debugForceCombatLive(): void {
+    if (this.matchFlow.state.phase !== "deploying") {
+      return;
+    }
+
+    this.roundStartUntilMs = 0;
+    this.matchFlow.startCombat();
+    this.lastCombatEvent = "COMBAT LIVE";
+  }
+
+  public debugSwapWeapon(): void {
+    const nextIndex = (this.weaponInventory.getActiveIndex() + 1) % this.weaponSlots.length;
+
+    if (this.weaponInventory.selectSlot(nextIndex)) {
+      this.lastCombatEvent = `SWAPPED TO ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+    }
+  }
+
+  public debugFire(): void {
+    if (!this.isCombatLive(this.time.now) || this.dummyLogic.isDead() || this.playerLogic.isDead()) {
+      return;
+    }
+
+    const activeWeapon = this.getActiveWeaponSlot();
+    const attempt = activeWeapon.logic.tryFire(this.time.now);
+
+    if (!attempt.allowed) {
+      this.lastCombatEvent = attempt.reason.toUpperCase();
+      return;
+    }
+
+    this.spawnPlayerProjectiles(activeWeapon, attempt.bulletSpeed, attempt.damage);
+    this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
+  }
+
+  public debugMovePlayerTo(x: number, y: number): void {
+    this.playerLogic.state.positionX = x - 120;
+    this.playerLogic.state.positionY = y - 120;
+    this.playerSprite.setPosition(x, y);
+  }
+
+  public debugToggleGate(): void {
+    this.gate.open = !this.gate.open;
+    this.gate.sprite.setAlpha(this.gate.open ? 0.22 : 1);
+    this.gate.sprite.setFillStyle(this.gate.open ? 0x6a7f91 : 0xf4a261, this.gate.open ? 0.22 : 1);
+    this.lastCombatEvent = this.gate.open ? "GATE OPENED" : "GATE CLOSED";
+  }
+
+  private handleStageFlow(now: number): void {
+    if (this.moveKeys === undefined) {
+      return;
+    }
+
+    if (this.matchFlow.state.phase === "stage-entry") {
+      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm)) {
+        this.matchFlow.enterStage();
+        this.matchFlow.previewTeam("BLUE");
+        this.lastCombatEvent = "SELECT TEAM: 1 BLUE / 2 RED";
+      }
+
+      return;
+    }
+
+    if (this.matchFlow.state.phase === "team-select") {
+      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) || Phaser.Input.Keyboard.JustDown(this.cursors!.left)) {
+        this.matchFlow.previewTeam("BLUE");
+        this.lastCombatEvent = "TEAM PREVIEW BLUE";
+      }
+
+      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) || Phaser.Input.Keyboard.JustDown(this.cursors!.right)) {
+        this.matchFlow.previewTeam("RED");
+        this.lastCombatEvent = "TEAM PREVIEW RED";
+      }
+
+      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm) && this.matchFlow.state.selectedTeam !== null) {
+        this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
+        this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
+        this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
+        this.lastCombatEvent = `DEPLOYING ${this.matchFlow.state.selectedTeam}`;
+      }
+
+      return;
+    }
+
+    if (this.matchFlow.state.phase === "deploying" && !this.isRoundStarting(now)) {
+      this.matchFlow.startCombat();
+      this.lastCombatEvent = "COMBAT LIVE";
+    }
+  }
+
+  private isCombatLive(now: number): boolean {
+    return this.matchFlow.state.phase === "combat-live" && !this.isRoundStarting(now);
+  }
+
+  private getPhaseLabel(now: number): string {
+    if (this.roundLogic.state.isMatchOver) {
+      return "MATCH OVER";
+    }
+
+    if (this.matchFlow.state.phase === "combat-live" && this.isRoundStarting(now)) {
+      return "ROUND START";
+    }
+
+    switch (this.matchFlow.state.phase) {
+      case "stage-entry":
+        return "STAGE ENTRY";
+      case "team-select":
+        return "TEAM SELECT";
+      case "deploying":
+        return "DEPLOYING";
+      case "combat-live":
+        return "COMBAT LIVE";
+      case "match-over":
+        return "MATCH RESET";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  private applySpawnAssignment(assignment: SpawnAssignment): void {
+    this.playerLogic.reset(assignment.playerSpawn.x - 120, assignment.playerSpawn.y - 120);
+    this.dummyLogic.reset(assignment.dummySpawn.x - 120, assignment.dummySpawn.y - 120);
+    this.playerSprite.setPosition(assignment.playerSpawn.x, assignment.playerSpawn.y);
+    this.playerSprite.setRotation(0);
+    this.targetDummy.setPosition(assignment.dummySpawn.x, assignment.dummySpawn.y);
+    this.targetDummy.setRotation(Math.PI);
+    this.lastSpawnSummary = `${assignment.playerSpawn.label} vs ${assignment.dummySpawn.label}`;
+    this.clearBullets();
+    this.resetPickupState();
+    this.gate.open = false;
+    this.gate.sprite.setAlpha(1);
+    this.gate.sprite.setFillStyle(0xf4a261, 1);
+  }
+
   private handleReload(now: number): void {
-    if (this.isRoundStarting(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now)) {
+    if (!this.isCombatLive(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now)) {
       return;
     }
 
@@ -418,7 +661,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleReloadInterrupt(now: number): void {
-    if (this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.moveKeys === undefined) {
+    if (!this.isCombatLive(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.moveKeys === undefined) {
       return;
     }
 
@@ -432,12 +675,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleFire(now: number): void {
+    const firePressed = this.input.activePointer.leftButtonDown() || this.moveKeys?.fire.isDown === true;
+
     if (
-      !this.input.activePointer.isDown ||
+      !firePressed ||
       this.dummyLogic.isDead() ||
       this.playerLogic.isDead() ||
       this.roundLogic.state.isMatchOver ||
-      this.isRoundStarting(now) ||
+      !this.isCombatLive(now) ||
       this.playerLogic.isStunned(now)
     ) {
       return;
@@ -466,9 +711,11 @@ export class MainScene extends Phaser.Scene {
     for (let index = 0; index < activeWeapon.pelletCount; index += 1) {
       const spreadOffset = (pelletStart + index) * activeWeapon.spreadRadians;
       const angle = this.playerLogic.state.aimAngleRadians + spreadOffset;
+      const spawnX = this.playerSprite.x + Math.cos(angle) * 24;
+      const spawnY = this.playerSprite.y + Math.sin(angle) * 24;
       const bullet = this.add.rectangle(
-        this.playerSprite.x,
-        this.playerSprite.y,
+        spawnX,
+        spawnY,
         activeWeapon.bulletWidth,
         activeWeapon.bulletHeight,
         activeWeapon.bulletColor,
@@ -484,10 +731,18 @@ export class MainScene extends Phaser.Scene {
         owner: "player"
       });
     }
+
+    const muzzleAngle = this.playerLogic.state.aimAngleRadians;
+    this.muzzleFlash.setPosition(
+      this.playerSprite.x + Math.cos(muzzleAngle) * 28,
+      this.playerSprite.y + Math.sin(muzzleAngle) * 28
+    );
+    this.muzzleFlash.setVisible(true);
+    this.muzzleFlashUntilMs = this.time.now + 70;
   }
 
   private handleDummyFire(now: number): void {
-    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
       return;
     }
 
@@ -515,22 +770,34 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleWeaponSwitch(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(this.time.now)) {
+    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(this.time.now)) {
       return;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) && this.weaponInventory.selectSlot(0)) {
+      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
       this.lastCombatEvent = `EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
       return;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) && this.weaponInventory.selectSlot(1)) {
+      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
       this.lastCombatEvent = `EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+      return;
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.swap)) {
+      const nextIndex = (this.weaponInventory.getActiveIndex() + 1) % this.weaponSlots.length;
+
+      if (this.weaponInventory.selectSlot(nextIndex)) {
+        this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
+        this.lastCombatEvent = `SWAPPED TO ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+      }
     }
   }
 
   private handleGateInteraction(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(this.time.now)) {
+    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(this.time.now)) {
       return;
     }
 
@@ -558,7 +825,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleHazardZone(now: number): void {
-    if (this.roundLogic.state.isMatchOver || this.isRoundStarting(now)) {
+    if (this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
       return;
     }
 
@@ -709,11 +976,24 @@ export class MainScene extends Phaser.Scene {
 
     this.playerSprite.setTint(0xffffff);
     this.playerSprite.setAlpha(this.getRespawnFxAlpha(now));
-    this.playerSprite.setScale((this.playerLogic.state.isSprinting ? 1.08 : 1) * this.getRespawnFxScale(now));
+    const flashScale = now < this.muzzleFlashUntilMs ? 1.04 : 1;
+    this.playerSprite.setScale((this.playerLogic.state.isSprinting ? 1.08 : 1) * this.getRespawnFxScale(now) * flashScale);
+  }
+
+  private updateCrosshair(now: number): void {
+    const pointerX = Phaser.Math.Clamp(this.input.activePointer.worldX, 20, 940);
+    const pointerY = Phaser.Math.Clamp(this.input.activePointer.worldY, 20, 520);
+    const canFight = this.isCombatLive(now) && !this.playerLogic.isDead() && !this.playerLogic.isStunned(now);
+    const alpha = canFight ? 0.88 : 0.35;
+    const color = canFight ? 0xd8f3ff : 0x7a8899;
+
+    this.crosshairHorizontal.setPosition(pointerX, pointerY).setFillStyle(color, alpha);
+    this.crosshairVertical.setPosition(pointerX, pointerY).setFillStyle(color, alpha);
+    this.muzzleFlash.setVisible(now < this.muzzleFlashUntilMs);
   }
 
   private updateDummyMovement(deltaSeconds: number, now: number): void {
-    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.isRoundStarting(now)) {
+    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
       this.dummyLogic.move({ x: 0, y: 0, sprint: false }, deltaSeconds, now);
       return;
     }
@@ -776,7 +1056,7 @@ export class MainScene extends Phaser.Scene {
 
     this.resetRoundState(now);
     this.roundResetAtMs = null;
-    this.lastCombatEvent = "ROUND STARTING";
+    this.lastCombatEvent = "REDEPLOYED";
   }
 
   private handleMatchConfirm(now: number): void {
@@ -794,10 +1074,14 @@ export class MainScene extends Phaser.Scene {
 
     this.emitSoundCue({ kind: "match-confirm", action: "accept" });
     this.roundLogic.resetMatch();
-    this.resetRoundState(now);
+    this.matchFlow.prepareNextMatch();
+    this.lastSpawnSummary = "WAITING";
+    this.roundStartUntilMs = 0;
+    this.clearBullets();
+    this.resetPickupState();
     this.matchConfirmAtMs = null;
     this.roundResetAtMs = null;
-    this.lastCombatEvent = "NEW MATCH";
+    this.lastCombatEvent = "SELECT TEAM FOR NEXT MATCH";
   }
 
   private emitSoundCue(event: SoundCueEvent): void {
@@ -806,9 +1090,24 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateMatchOverlay(now: number): void {
+    if (this.matchFlow.state.phase === "stage-entry") {
+      this.overlayTitle.setText("ENTER STAGE");
+      this.overlaySubtitle.setText("Press ENTER to open team selection.");
+      this.setOverlayVisible(true);
+      return;
+    }
+
+    if (this.matchFlow.state.phase === "team-select") {
+      const selectedTeam = this.matchFlow.state.selectedTeam ?? "BLUE";
+      this.overlayTitle.setText(`TEAM ${selectedTeam}`);
+      this.overlaySubtitle.setText("Press 1 for BLUE or 2 for RED, then ENTER to deploy.");
+      this.setOverlayVisible(true);
+      return;
+    }
+
     if (!this.roundLogic.state.isMatchOver && this.isRoundStarting(now)) {
       this.overlayTitle.setText(`ROUND ${this.roundLogic.state.roundNumber}`);
-      this.overlaySubtitle.setText(`Starts in ${this.getRoundStartStatus(now)} ms`);
+      this.overlaySubtitle.setText(`Deploy complete. Combat starts in ${this.getRoundStartStatus(now)} ms.`);
       this.setOverlayVisible(true);
       return;
     }
@@ -824,10 +1123,11 @@ export class MainScene extends Phaser.Scene {
     if (now >= this.matchConfirmAtMs && !this.matchConfirmReadyCueSent) {
       this.emitSoundCue({ kind: "match-confirm", action: "ready" });
       this.matchConfirmReadyCueSent = true;
+      this.matchFlow.enterMatchOver();
     }
 
     this.overlayTitle.setText(`${this.roundLogic.state.matchWinner ?? "MATCH"} VICTORY`);
-    this.overlaySubtitle.setText(confirmText);
+    this.overlaySubtitle.setText(`${confirmText} Team selection will reopen for the next match.`);
     this.setOverlayVisible(true);
   }
 
@@ -838,7 +1138,7 @@ export class MainScene extends Phaser.Scene {
       this.ammoPickup.sprite.setVisible(true);
     }
 
-    if (!this.ammoPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (!this.ammoPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
       return;
     }
 
@@ -870,7 +1170,7 @@ export class MainScene extends Phaser.Scene {
       this.healthPickup.sprite.setVisible(true);
     }
 
-    if (!this.healthPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver) {
+    if (!this.healthPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
       return;
     }
 
@@ -912,31 +1212,24 @@ export class MainScene extends Phaser.Scene {
   }
 
   private resetRoundState(now = this.time.now): void {
-    this.playerLogic.reset(0, 0);
-    this.dummyLogic.reset(MainScene.DUMMY_SPAWN_X - 120, MainScene.DUMMY_SPAWN_Y - 120);
     for (const slot of this.weaponSlots) {
       slot.logic.reset();
     }
     this.weaponInventory.reset();
     this.dummyWeaponLogic.reset();
     this.hazardZone.logic.reset();
+    this.applySpawnAssignment(this.matchFlow.redeploy(this.spawnTable));
     this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
     this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
     this.matchConfirmReadyCueSent = false;
-    this.clearBullets();
-    this.playerSprite.setPosition(MainScene.PLAYER_SPAWN_X, MainScene.PLAYER_SPAWN_Y);
-    this.playerSprite.setRotation(0);
     this.playerSprite.setTint(0xffffff);
     this.playerSprite.setAlpha(1);
     this.playerSprite.setScale(1);
-    this.targetDummy.setPosition(MainScene.DUMMY_SPAWN_X, MainScene.DUMMY_SPAWN_Y);
-    this.targetDummy.setRotation(0);
     this.targetDummy.setTint(0xffffff);
     this.targetDummy.setAlpha(1);
     this.targetDummy.setScale(1);
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
-    this.resetPickupState();
   }
 
   private clearBullets(): void {

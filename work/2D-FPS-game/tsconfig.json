@@ -13,5 +13,5 @@
     "lib": ["ES2022", "DOM"],
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src", "tests", "vite.config.ts", "eslint.config.mjs"]
+  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts", "eslint.config.mjs"]
 }

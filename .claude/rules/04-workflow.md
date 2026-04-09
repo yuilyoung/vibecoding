@@ -10,9 +10,13 @@
   → 아키텍처 설계              [architect]
   → 개발 계획 수립 (로드맵)    [planner]
   → Task 작성                  [비전 → pm]
-  → TDD 방법론 코드 구현       [frontend / backend / app-developer / devops]
-  → 코드 검증                  [code-reviewer]
+  → 비전 handoff 작성          [pm → docs/handoffs/current-handoff.json]
+  → 울트론 preflight           [codex/hooks/preflight-check.mjs]
+  → TDD 방법론 코드 구현       [frontend / backend / app-developer / devops / 울트론]
+  → 코드 검증                  [code-reviewer / 울트론]
     → 검증 실패 시: 코드 수정 후 재검증 반복
+  → 울트론 execution report    [docs/handoffs/current-execution-report.md]
+  → 울트론 postflight sync     [codex/hooks/postflight-sync.mjs]
   → 개발 완료
   → 테스트 케이스 작성         [qa]
   → 단위 테스트                [qa]
@@ -26,11 +30,45 @@
 
 ---
 
+## 비전 Planning → 울트론 Execution (강제)
+
+모든 구현 착수 전 아래 흐름을 반드시 거친다.
+
+```
+비전 / PM
+  → docs/handoffs/current-handoff.json 갱신
+    → 울트론: npm run codex-preflight
+      → 구현 및 검증 수행
+        → docs/handoffs/current-execution-report.md 갱신
+          → 울트론: npm run codex-postflight
+            → 비전 / PM 검토 후 다음 단계 진행
+```
+
+### handoff 필수 필드
+
+| 필드 | 설명 |
+|------|------|
+| `scope` | 이번 구현 범위 |
+| `constraints` | 반드시 지켜야 할 제약 |
+| `files` | 예상 변경 파일 |
+| `acceptance` | 완료 판단 기준 |
+
+### execution report 필수 섹션
+
+| 섹션 | 설명 |
+|------|------|
+| Summary | 구현 요약 |
+| Changes | 변경 파일 및 의도 |
+| Verification | type-check, lint, test, build 결과 |
+| Risks | 잔여 리스크 |
+
+---
+
 ## PM 보고서 강제 규칙
 
 모든 개발 사이클 종료 시 **PM 에이전트는 반드시 두 가지 형식의 보고서를 생성**해야 한다.
 
-### 1. HTML 보고서 (`reports/project-status.html`)
+### 1. HTML 보고서 (`work/{프로젝트명}/reports/project-status.html`)
 
 사용자·관리자용 시각적 대시보드. 아래 섹션을 모두 포함해야 한다.
 
@@ -44,7 +82,7 @@
 | 블로킹 이슈 | 해결 필요 항목 (우선순위) |
 | 다음 작업 | 다음 단계 우선순위 목록 |
 
-### 2. MD 보고서 (`reports/project-status.md`)
+### 2. MD 보고서 (`work/{프로젝트명}/docs/reports/project-status.md`)
 
 비전(오케스트레이터)용 텍스트 보고서. 아래 섹션을 포함한다.
 
@@ -76,18 +114,18 @@ PM → 보고서 2종 생성 완료 → 비전에게 보고
 
 ## 문서 관리 강제 규칙
 
-**모든 MD 문서는 반드시 `doc/` 폴더 아래 분류별 하위 폴더에 저장한다. 루트 또는 임의 경로에 문서 생성 금지.**
+**모든 MD 문서는 반드시 `docs/` 폴더 아래 분류별 하위 폴더에 저장한다. 루트 또는 임의 경로에 문서 생성 금지.**
 
 | 폴더 | 저장 문서 | 담당 에이전트 |
 |------|-----------|---------------|
-| `doc/planning/` | 페르소나, 마일스톤, PRD, WBS, FSD, MVP | planner, prd-generator, prd-validator |
-| `doc/architecture/` | C4 모델, ERD, API 계약, ADR | architect |
-| `doc/development/` | 기술 스택, 코딩 컨벤션, 환경 설정 | backend, frontend, app-developer |
-| `doc/api/` | API 엔드포인트 명세, 요청/응답 예시 | doc-writer, backend |
-| `doc/test/` | 테스트 케이스, QA 보고서 | qa |
-| `doc/reports/` | PM 보고서 (project-status.md, 마일스톤 보고서) | pm |
-| `doc/changelog/` | 버전별 변경 이력 | doc-writer |
-| `doc/guides/` | 개발자 가이드, 배포 가이드, 사용자 매뉴얼 | doc-writer, devops |
+| `docs/planning/` | 페르소나, 마일스톤, PRD, WBS, FSD, MVP | planner, prd-generator, prd-validator |
+| `docs/architecture/` | C4 모델, ERD, API 계약, ADR | architect |
+| `docs/development/` | 기술 스택, 코딩 컨벤션, 환경 설정 | backend, frontend, app-developer |
+| `docs/api/` | API 엔드포인트 명세, 요청/응답 예시 | doc-writer, backend |
+| `docs/test/` | 테스트 케이스, QA 보고서 | qa |
+| `docs/reports/` | PM 보고서 (project-status.md, 마일스톤 보고서) | pm |
+| `docs/changelog/` | 버전별 변경 이력 | doc-writer |
+| `docs/guides/` | 개발자 가이드, 배포 가이드, 사용자 매뉴얼 | doc-writer, devops |
 
 > PM HTML 보고서(`reports/project-status.html`)와 대시보드(`dashboard/index.html`)는 별도 폴더에 유지한다.
 

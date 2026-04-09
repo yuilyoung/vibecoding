@@ -1,0 +1,20 @@
+{
+  "name": "local-project-plugins",
+  "interface": {
+    "displayName": "Local Project Plugins"
+  },
+  "plugins": [
+    {
+      "name": "openai-hud",
+      "source": {
+        "source": "local",
+        "path": "./plugins/openai-hud"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

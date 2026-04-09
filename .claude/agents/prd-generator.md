@@ -69,8 +69,8 @@ description: PRD 문서 전문 생성 에이전트. 기획자(planner)로부터 
 
 ## 산출물
 
-- `docs/prd.md` — 완성된 PRD 문서
-- `docs/prd-assumptions.md` — 가정 및 확인 필요 사항 목록
+- `docs/planning/prd.md` — 완성된 PRD 문서
+- `docs/planning/prd-assumptions.md` — 가정 및 확인 필요 사항 목록
 
 ## 메일박스 통신
 

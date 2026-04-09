@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "taskmaster-ai": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "task-master-ai@0.42.0"]
+    },
+    "context7": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "C:/Users/yuiy/Documents/Dev/ai-project"
+      ]
+    },
+    "shrimp-task-manager": {
+      "command": "node",
+      "args": ["C:/Users/yuiy/Documents/Dev/mcp-shrimp-task-manager/dist/index.js"],
+      "env": {
+        "DATA_DIR": "C:/Users/yuiy/Documents/Dev/ai-project/.shrimp-data"
+      }
+    }
+  }
+}
