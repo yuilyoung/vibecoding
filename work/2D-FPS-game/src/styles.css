@@ -95,6 +95,17 @@ p {
   align-items: start;
 }
 
+.stage-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.hud-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .stage-frame {
   position: relative;
   overflow: hidden;
@@ -135,10 +146,9 @@ p {
   inset: 14px;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr) minmax(0, 1fr);
-  grid-template-rows: auto 1fr auto;
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  place-items: center;
   pointer-events: none;
 }
 
@@ -151,25 +161,20 @@ p {
 }
 
 .player-card {
-  align-self: start;
   border-color: rgba(132, 240, 203, 0.3);
 }
 
 .enemy-card {
-  align-self: start;
   border-color: rgba(255, 133, 133, 0.3);
 }
 
 .support-card {
-  grid-column: 1 / -1;
-  align-self: end;
+  border-color: rgba(143, 233, 255, 0.22);
 }
 
 .banner-card {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
   text-align: center;
+  width: min(100%, 420px);
 }
 
 .banner-kicker,
@@ -225,6 +230,18 @@ p {
 
 .team-chip {
   color: var(--mint);
+}
+
+.team-chip--blue {
+  color: #8fe9ff;
+  background: rgba(77, 176, 255, 0.14);
+  border: 1px solid rgba(120, 201, 255, 0.35);
+}
+
+.team-chip--red {
+  color: #ff9d9d;
+  background: rgba(255, 95, 95, 0.12);
+  border: 1px solid rgba(255, 133, 133, 0.35);
 }
 
 .phase-chip {
@@ -332,6 +349,17 @@ p {
   text-align: right;
 }
 
+.ops-grid--guide div {
+  display: grid;
+  gap: 6px;
+}
+
+.ops-grid--guide dd {
+  text-align: left;
+  color: #d2dce5;
+  line-height: 1.5;
+}
+
 .is-hidden {
   opacity: 0;
   visibility: hidden;
@@ -352,14 +380,8 @@ p {
     grid-template-columns: 1fr;
   }
 
-  .hud-overlay {
+  .hud-strip {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
-  }
-
-  .banner-card {
-    grid-column: 1;
-    grid-row: auto;
   }
 
   .support-grid {

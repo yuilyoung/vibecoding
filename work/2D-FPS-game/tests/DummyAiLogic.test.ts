@@ -73,7 +73,7 @@ describe("DummyAiLogic", () => {
     expect(decision.shouldFire).toBe(true);
   });
 
-  it("holds fire when a wall blocks line of sight", () => {
+  it("reroutes and holds fire when a wall blocks line of sight", () => {
     const ai = new DummyAiLogic({
       engageRange: 260,
       retreatRange: 80,
@@ -92,8 +92,9 @@ describe("DummyAiLogic", () => {
       lineOfSightBlockers: [{ x: 100, y: 0, width: 24, height: 100 }]
     });
 
-    expect(decision.mode).toBe("flank");
+    expect(decision.mode).toBe("reposition");
     expect(decision.shouldFire).toBe(false);
+    expect(Math.abs(decision.moveY)).toBeGreaterThan(0.7);
   });
 
   it("fires when blockers do not intersect line of sight", () => {
@@ -139,9 +140,33 @@ describe("DummyAiLogic", () => {
     });
 
     expect(decision.mode).toBe("reposition");
-    expect(decision.moveX).toBeGreaterThan(0);
-    expect(decision.moveY).toBeGreaterThan(0);
     expect(decision.shouldFire).toBe(false);
+    expect(Math.abs(decision.moveY)).toBeGreaterThan(0.7);
+  });
+
+  it("sidesteps around a blocking obstacle instead of pushing straight into it", () => {
+    const ai = new DummyAiLogic({
+      engageRange: 220,
+      retreatRange: 80,
+      shootRange: 320,
+      lowHealthThreshold: 0.35
+    });
+
+    const decision = ai.evaluate({
+      dummyX: 0,
+      dummyY: 0,
+      playerX: 320,
+      playerY: 0,
+      tickMs: 0,
+      healthRatio: 1,
+      coverPoints: [],
+      lineOfSightBlockers: [{ x: 120, y: -60, width: 60, height: 120 }]
+    });
+
+    expect(decision.mode).toBe("reposition");
+    expect(decision.shouldFire).toBe(false);
+    expect(decision.moveX).toBeGreaterThan(0);
+    expect(Math.abs(decision.moveY)).toBeGreaterThan(0.7);
   });
 
   it("prioritizes leaving hazard zones before combat movement", () => {

@@ -80,8 +80,15 @@ interface BulletView {
 interface ImpactFxView {
   flash: Phaser.GameObjects.Arc;
   ring: Phaser.GameObjects.Arc;
+  rays: Phaser.GameObjects.Line[];
   expiresAtMs: number;
   durationMs: number;
+}
+
+interface ActorCollisionResolution {
+  blocked: boolean;
+  centerX: number;
+  centerY: number;
 }
 
 interface ObstacleView {
@@ -91,6 +98,7 @@ interface ObstacleView {
 
 interface PickupView {
   sprite: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
   available: boolean;
   respawnAtMs: number | null;
 }
@@ -177,6 +185,7 @@ export class MainScene extends Phaser.Scene {
   private static readonly RESPAWN_DELAY_MS = 1600;
   private static readonly RESPAWN_FX_MS = 900;
   private static readonly ACTOR_HALF_SIZE = 120;
+  private static readonly ACTOR_MIN_SEPARATION = 44;
 
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: {
@@ -228,6 +237,9 @@ export class MainScene extends Phaser.Scene {
   private lastSoundCue: SoundCueKey | "NONE";
   private lastDummyDecision: DummyAiDecision["mode"];
   private lastDummyShouldFire: boolean;
+  private lastDummySteerX: number;
+  private lastDummySteerY: number;
+  private dummySteerLockUntilMs: number;
   private lastSpawnSummary: string;
   private muzzleFlashUntilMs: number;
   private overlayState: {
@@ -302,6 +314,9 @@ export class MainScene extends Phaser.Scene {
     this.lastSoundCue = "NONE";
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
+    this.lastDummySteerX = 1;
+    this.lastDummySteerY = 0;
+    this.dummySteerLockUntilMs = 0;
     this.lastSpawnSummary = "WAITING";
     this.muzzleFlashUntilMs = 0;
     this.overlayState = {
@@ -341,11 +356,21 @@ export class MainScene extends Phaser.Scene {
     this.addCoverPointMarkers();
     this.ammoPickup = {
       sprite: this.add.rectangle(160, 430, 22, 22, 0x7fd6ff, 1).setStrokeStyle(2, 0x173447, 1),
+      label: this.add.text(160, 404, "AMMO", {
+        color: "#9adfff",
+        fontFamily: "monospace",
+        fontSize: "10px"
+      }).setOrigin(0.5).setAlpha(0.8),
       available: true,
       respawnAtMs: null
     };
     this.healthPickup = {
       sprite: this.add.rectangle(870, 430, 22, 22, 0x8df0c3, 1).setStrokeStyle(2, 0x173322, 1),
+      label: this.add.text(870, 404, "MED", {
+        color: "#aaf5d6",
+        fontFamily: "monospace",
+        fontSize: "10px"
+      }).setOrigin(0.5).setAlpha(0.8),
       available: true,
       respawnAtMs: null
     };
@@ -426,12 +451,10 @@ export class MainScene extends Phaser.Scene {
       this.playerLogic.updateAim(this.input.activePointer.worldX - MainScene.ACTOR_HALF_SIZE, this.input.activePointer.worldY - MainScene.ACTOR_HALF_SIZE, now);
     }
 
-    const playerBlocked = this.resolvePlayerObstacleCollision(playerCenterX, playerCenterY, previousX, previousY);
-
-    if (playerBlocked) {
-      playerCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
-      playerCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
-    }
+    const playerCollision = this.resolvePlayerObstacleCollision(playerCenterX, playerCenterY, previousX, previousY);
+    const playerBlocked = playerCollision.blocked;
+    playerCenterX = playerCollision.centerX;
+    playerCenterY = playerCollision.centerY;
 
     this.playerSprite.setPosition(playerCenterX, playerCenterY);
     this.playerSprite.setRotation(this.playerLogic.state.aimAngleRadians);
@@ -440,6 +463,7 @@ export class MainScene extends Phaser.Scene {
     this.handleFire(now);
     this.handleDummyFire(now);
     this.updateBullets(deltaSeconds);
+    this.resolveActorSeparation();
     this.updateImpactEffects(now);
     this.updatePlayerVisuals(now);
     this.updateDummyVisuals(now);
@@ -600,6 +624,7 @@ export class MainScene extends Phaser.Scene {
     const deployment = createDeploymentViewState(assignment);
     this.playerLogic.reset(assignment.playerSpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.playerSpawn.y - MainScene.ACTOR_HALF_SIZE);
     this.dummyLogic.reset(assignment.dummySpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.dummySpawn.y - MainScene.ACTOR_HALF_SIZE);
+    this.applyTeamVisuals(assignment.playerTeam, assignment.dummyTeam);
     this.playerSprite.setPosition(deployment.playerPositionX, deployment.playerPositionY);
     this.playerSprite.setRotation(deployment.playerRotation);
     this.targetDummy.setPosition(deployment.dummyPositionX, deployment.dummyPositionY);
@@ -938,19 +963,33 @@ export class MainScene extends Phaser.Scene {
 
   private spawnImpactEffect(x: number, y: number, profile: "carbine" | "scatter" | "dummy"): void {
     const fxProfile = profile === "scatter"
-      ? { flashRadius: 9, ringRadius: 15, flashColor: 0xffb86c, ringColor: 0xffd7ad, durationMs: 150 }
+      ? { flashRadius: 10, ringRadius: 18, flashColor: 0xffb86c, ringColor: 0xffd7ad, durationMs: 160, rayLength: 16 }
       : profile === "dummy"
-        ? { flashRadius: 6, ringRadius: 10, flashColor: 0xff9c9c, ringColor: 0xffd1d1, durationMs: 110 }
-        : { flashRadius: 6, ringRadius: 10, flashColor: 0xffd27a, ringColor: 0xfff0b3, durationMs: 110 };
+        ? { flashRadius: 6, ringRadius: 10, flashColor: 0xff9c9c, ringColor: 0xffd1d1, durationMs: 110, rayLength: 10 }
+        : { flashRadius: 6, ringRadius: 10, flashColor: 0xffd27a, ringColor: 0xfff0b3, durationMs: 110, rayLength: 12 };
     const flash = this.add.circle(x, y, fxProfile.flashRadius, fxProfile.flashColor, 0.85).setDepth(9);
     const ring = this.add
       .circle(x, y, fxProfile.ringRadius, fxProfile.ringColor, 0)
       .setDepth(9)
       .setStrokeStyle(profile === "scatter" ? 3 : 2, fxProfile.ringColor, 0.9);
+    const rays = [0, 1, 2, 3].map((index) => {
+      const angle = Phaser.Math.DegToRad(index * 45 + (profile === "scatter" ? 12 : 0));
+      return this.add.line(
+        x,
+        y,
+        Math.cos(angle) * 3,
+        Math.sin(angle) * 3,
+        Math.cos(angle) * fxProfile.rayLength,
+        Math.sin(angle) * fxProfile.rayLength,
+        fxProfile.ringColor,
+        0.95
+      ).setDepth(9).setLineWidth(profile === "scatter" ? 3 : 2);
+    });
 
     this.impactEffects.push({
       flash,
       ring,
+      rays,
       expiresAtMs: this.time.now + fxProfile.durationMs,
       durationMs: fxProfile.durationMs
     });
@@ -964,6 +1003,9 @@ export class MainScene extends Phaser.Scene {
       if (remainingMs <= 0) {
         effect.flash.destroy();
         effect.ring.destroy();
+        for (const ray of effect.rays) {
+          ray.destroy();
+        }
         this.impactEffects.splice(index, 1);
         continue;
       }
@@ -973,7 +1015,44 @@ export class MainScene extends Phaser.Scene {
       effect.flash.setScale(1 + progress * 0.45);
       effect.ring.setAlpha(0.95 - progress * 0.8);
       effect.ring.setScale(0.75 + progress * 0.8);
+      for (const ray of effect.rays) {
+        ray.setAlpha(0.92 - progress * 0.8);
+        ray.setScale(0.9 + progress * 0.5);
+      }
     }
+  }
+
+  private resolveActorSeparation(): void {
+    const deltaX = this.targetDummy.x - this.playerSprite.x;
+    const deltaY = this.targetDummy.y - this.playerSprite.y;
+    const rawDistance = Math.hypot(deltaX, deltaY);
+
+    if (rawDistance >= MainScene.ACTOR_MIN_SEPARATION) {
+      return;
+    }
+
+    const distance = rawDistance === 0 ? 1 : rawDistance;
+    const fallbackAngle = this.playerLogic.state.aimAngleRadians;
+    const normalX = rawDistance === 0 ? Math.cos(fallbackAngle) : deltaX / distance;
+    const normalY = rawDistance === 0 ? Math.sin(fallbackAngle) : deltaY / distance;
+    const overlap = MainScene.ACTOR_MIN_SEPARATION - rawDistance;
+    const pushX = normalX * overlap * 0.5;
+    const pushY = normalY * overlap * 0.5;
+    const playerCenter = this.resolveStaticActorCenter(
+      this.playerSprite,
+      this.playerLogic,
+      this.playerSprite.x - pushX,
+      this.playerSprite.y - pushY
+    );
+    const dummyCenter = this.resolveStaticActorCenter(
+      this.targetDummy,
+      this.dummyLogic,
+      this.targetDummy.x + pushX,
+      this.targetDummy.y + pushY
+    );
+
+    this.playerSprite.setPosition(playerCenter.x, playerCenter.y);
+    this.targetDummy.setPosition(dummyCenter.x, dummyCenter.y);
   }
 
   private updateDummyVisuals(now: number): void {
@@ -1048,13 +1127,19 @@ export class MainScene extends Phaser.Scene {
         padding: 26
       }]
     });
+    const desiredSteer = now < this.dummySteerLockUntilMs
+      ? {
+          moveX: this.lastDummySteerX,
+          moveY: this.lastDummySteerY
+        }
+      : this.stabilizeDummySteer(decision.moveX, decision.moveY);
 
     this.lastDummyDecision = decision.mode;
     this.lastDummyShouldFire = decision.shouldFire;
     this.dummyLogic.move(
       {
-        x: decision.moveX,
-        y: decision.moveY,
+        x: desiredSteer.moveX,
+        y: desiredSteer.moveY,
         sprint: false
       },
       deltaSeconds,
@@ -1064,7 +1149,7 @@ export class MainScene extends Phaser.Scene {
 
     let dummyCenterX = Phaser.Math.Clamp(this.dummyLogic.state.positionX + MainScene.ACTOR_HALF_SIZE, 40, 920);
     let dummyCenterY = Phaser.Math.Clamp(this.dummyLogic.state.positionY + MainScene.ACTOR_HALF_SIZE, 40, 500);
-    const blocked = this.resolveActorObstacleCollision(
+    const collision = this.resolveActorObstacleCollision(
       dummyCenterX,
       dummyCenterY,
       previousX,
@@ -1072,8 +1157,15 @@ export class MainScene extends Phaser.Scene {
       this.targetDummy,
       this.dummyLogic
     );
+    const blocked = collision.blocked;
+    dummyCenterX = collision.centerX;
+    dummyCenterY = collision.centerY;
 
     if (blocked) {
+      const blockedSteer = this.createDummyBlockedSteer();
+      this.lastDummySteerX = blockedSteer.moveX;
+      this.lastDummySteerY = blockedSteer.moveY;
+      this.dummySteerLockUntilMs = now + 220;
       dummyCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
       dummyCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
       this.lastDummyDecision = "strafe";
@@ -1186,6 +1278,7 @@ export class MainScene extends Phaser.Scene {
       this.ammoPickup.available = true;
       this.ammoPickup.respawnAtMs = null;
       this.ammoPickup.sprite.setVisible(true);
+      this.ammoPickup.label.setVisible(true);
     }
 
     if (!this.ammoPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
@@ -1209,6 +1302,7 @@ export class MainScene extends Phaser.Scene {
     this.ammoPickup.available = false;
     this.ammoPickup.respawnAtMs = now + this.gameBalance.ammoPickupRespawnMs;
     this.ammoPickup.sprite.setVisible(false);
+    this.ammoPickup.label.setVisible(false);
     this.lastCombatEvent = `AMMO +${restoredAmmo}`;
     this.emitSoundCue({ kind: "pickup", pickupId: "ammo" });
   }
@@ -1218,6 +1312,7 @@ export class MainScene extends Phaser.Scene {
       this.healthPickup.available = true;
       this.healthPickup.respawnAtMs = null;
       this.healthPickup.sprite.setVisible(true);
+      this.healthPickup.label.setVisible(true);
     }
 
     if (!this.healthPickup.available || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
@@ -1241,6 +1336,7 @@ export class MainScene extends Phaser.Scene {
     this.healthPickup.available = false;
     this.healthPickup.respawnAtMs = now + this.gameBalance.healthPickupRespawnMs;
     this.healthPickup.sprite.setVisible(false);
+    this.healthPickup.label.setVisible(false);
     this.lastCombatEvent = `HEAL +${restoredHealth}`;
     this.emitSoundCue({ kind: "pickup", pickupId: "health" });
   }
@@ -1291,6 +1387,9 @@ export class MainScene extends Phaser.Scene {
     this.targetDummy.setScale(1);
     this.lastDummyDecision = "chase";
     this.lastDummyShouldFire = false;
+    this.lastDummySteerX = 1;
+    this.lastDummySteerY = 0;
+    this.dummySteerLockUntilMs = 0;
   }
 
   private clearBullets(): void {
@@ -1303,6 +1402,9 @@ export class MainScene extends Phaser.Scene {
     for (const effect of this.impactEffects) {
       effect.flash.destroy();
       effect.ring.destroy();
+      for (const ray of effect.rays) {
+        ray.destroy();
+      }
     }
 
     this.impactEffects.length = 0;
@@ -1312,9 +1414,11 @@ export class MainScene extends Phaser.Scene {
     this.ammoPickup.available = true;
     this.ammoPickup.respawnAtMs = null;
     this.ammoPickup.sprite.setVisible(true);
+    this.ammoPickup.label.setVisible(true);
     this.healthPickup.available = true;
     this.healthPickup.respawnAtMs = null;
     this.healthPickup.sprite.setVisible(true);
+    this.healthPickup.label.setVisible(true);
   }
 
   private getActiveWeaponSlot(): PlayerWeaponSlot {
@@ -1347,6 +1451,36 @@ export class MainScene extends Phaser.Scene {
     }
 
     return Math.max(0, this.healthPickup.respawnAtMs - now).toFixed(0);
+  }
+
+  private stabilizeDummySteer(moveX: number, moveY: number): { moveX: number; moveY: number } {
+    const blend = 0.28;
+    const blendedX = Phaser.Math.Linear(this.lastDummySteerX, moveX, blend);
+    const blendedY = Phaser.Math.Linear(this.lastDummySteerY, moveY, blend);
+    const length = Math.hypot(blendedX, blendedY) || 1;
+
+    this.lastDummySteerX = blendedX / length;
+    this.lastDummySteerY = blendedY / length;
+    this.dummySteerLockUntilMs = 0;
+
+    return {
+      moveX: this.lastDummySteerX,
+      moveY: this.lastDummySteerY
+    };
+  }
+
+  private createDummyBlockedSteer(): { moveX: number; moveY: number } {
+    const deltaX = this.playerSprite.x - this.targetDummy.x;
+    const deltaY = this.playerSprite.y - this.targetDummy.y;
+    const distance = Math.hypot(deltaX, deltaY) || 1;
+    const directionX = deltaX / distance;
+    const directionY = deltaY / distance;
+    const side = Math.floor(this.time.now / 900) % 2 === 0 ? 1 : -1;
+
+    return {
+      moveX: -directionY * side,
+      moveY: directionX * side
+    };
   }
 
   private getMatchConfirmStatus(now: number): string {
@@ -1498,13 +1632,25 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createActorSkins(): void {
-    this.createActorTexture("skin-player", {
-      bodyColor: 0x5ee7b7,
-      headColor: 0xc9ffe8,
-      accentColor: 0x1b6f5b,
+    this.createActorTexture("skin-player-blue", {
+      bodyColor: 0x5cc8ff,
+      headColor: 0xd8f3ff,
+      accentColor: 0x174f82,
       weaponColor: 0xfff27a
     });
-    this.createActorTexture("skin-dummy", {
+    this.createActorTexture("skin-player-red", {
+      bodyColor: 0xff8787,
+      headColor: 0xffd2d2,
+      accentColor: 0x7f1d1d,
+      weaponColor: 0xffd27a
+    });
+    this.createActorTexture("skin-dummy-blue", {
+      bodyColor: 0x6bcfff,
+      headColor: 0xe3f7ff,
+      accentColor: 0x14507c,
+      weaponColor: 0xa8eeff
+    });
+    this.createActorTexture("skin-dummy-red", {
       bodyColor: 0xff6b6b,
       headColor: 0xffc2c2,
       accentColor: 0x7f1d1d,
@@ -1517,7 +1663,18 @@ export class MainScene extends Phaser.Scene {
       return this.add.image(x, y, "actor-skins", actor === "player" ? 0 : 1).setDepth(5);
     }
 
-    return this.add.image(x, y, actor === "player" ? "skin-player" : "skin-dummy").setDepth(5);
+    return this.add.image(x, y, actor === "player" ? "skin-player-blue" : "skin-dummy-red").setDepth(5);
+  }
+
+  private applyTeamVisuals(playerTeam: TeamId, dummyTeam: TeamId): void {
+    if (this.gameBalance.actorSkinSource === "spritesheet" && this.textures.exists("actor-skins")) {
+      this.playerSprite.setFrame(playerTeam === "BLUE" ? 0 : 1);
+      this.targetDummy.setFrame(dummyTeam === "BLUE" ? 0 : 1);
+      return;
+    }
+
+    this.playerSprite.setTexture(playerTeam === "BLUE" ? "skin-player-blue" : "skin-player-red");
+    this.targetDummy.setTexture(dummyTeam === "BLUE" ? "skin-dummy-blue" : "skin-dummy-red");
   }
 
   private createActorTexture(
@@ -1555,7 +1712,7 @@ export class MainScene extends Phaser.Scene {
     centerY: number,
     previousX: number,
     previousY: number
-  ): boolean {
+  ): ActorCollisionResolution {
     return this.resolveActorObstacleCollision(
       centerX,
       centerY,
@@ -1573,12 +1730,40 @@ export class MainScene extends Phaser.Scene {
     previousY: number,
     sprite: Phaser.GameObjects.Image,
     actorLogic: PlayerLogic
-  ): boolean {
-    const playerBounds = createCenteredRect(centerX, centerY, sprite.width, sprite.height);
-    const blocked = this.getActiveObstacles().some((obstacle) => intersectsRect(playerBounds, obstacle.bounds));
+  ): ActorCollisionResolution {
+    const attemptedBounds = createCenteredRect(centerX, centerY, sprite.width, sprite.height);
 
-    if (!blocked) {
-      return false;
+    if (!this.getActiveObstacles().some((obstacle) => intersectsRect(attemptedBounds, obstacle.bounds))) {
+      return {
+        blocked: false,
+        centerX,
+        centerY
+      };
+    }
+
+    const xOnlyBounds = createCenteredRect(centerX, previousY + MainScene.ACTOR_HALF_SIZE, sprite.width, sprite.height);
+    const yOnlyBounds = createCenteredRect(previousX + MainScene.ACTOR_HALF_SIZE, centerY, sprite.width, sprite.height);
+    const canKeepX = !this.getActiveObstacles().some((obstacle) => intersectsRect(xOnlyBounds, obstacle.bounds));
+    const canKeepY = !this.getActiveObstacles().some((obstacle) => intersectsRect(yOnlyBounds, obstacle.bounds));
+
+    if (canKeepX) {
+      actorLogic.state.positionX = centerX - MainScene.ACTOR_HALF_SIZE;
+      actorLogic.state.positionY = previousY;
+      return {
+        blocked: false,
+        centerX,
+        centerY: previousY + MainScene.ACTOR_HALF_SIZE
+      };
+    }
+
+    if (canKeepY) {
+      actorLogic.state.positionX = previousX;
+      actorLogic.state.positionY = centerY - MainScene.ACTOR_HALF_SIZE;
+      return {
+        blocked: false,
+        centerX: previousX + MainScene.ACTOR_HALF_SIZE,
+        centerY
+      };
     }
 
     actorLogic.state.positionX = previousX;
@@ -1588,6 +1773,36 @@ export class MainScene extends Phaser.Scene {
       this.lastCombatEvent = "MOVE BLOCKED";
     }
 
-    return true;
+    return {
+      blocked: true,
+      centerX: previousX + MainScene.ACTOR_HALF_SIZE,
+      centerY: previousY + MainScene.ACTOR_HALF_SIZE
+    };
+  }
+
+  private resolveStaticActorCenter(
+    sprite: Phaser.GameObjects.Image,
+    actorLogic: PlayerLogic,
+    targetCenterX: number,
+    targetCenterY: number
+  ): { x: number; y: number } {
+    const clampedCenterX = Phaser.Math.Clamp(targetCenterX, 40, 920);
+    const clampedCenterY = Phaser.Math.Clamp(targetCenterY, 40, 500);
+    const targetBounds = createCenteredRect(clampedCenterX, clampedCenterY, sprite.width, sprite.height);
+
+    if (this.getActiveObstacles().some((obstacle) => intersectsRect(targetBounds, obstacle.bounds))) {
+      return {
+        x: sprite.x,
+        y: sprite.y
+      };
+    }
+
+    actorLogic.state.positionX = clampedCenterX - MainScene.ACTOR_HALF_SIZE;
+    actorLogic.state.positionY = clampedCenterY - MainScene.ACTOR_HALF_SIZE;
+
+    return {
+      x: clampedCenterX,
+      y: clampedCenterY
+    };
   }
 }

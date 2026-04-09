@@ -68,6 +68,7 @@ export class DummyAiLogic {
     const normalizedX = deltaX / distance;
     const normalizedY = deltaY / distance;
     const hasLineOfSight = this.hasLineOfSight(input);
+    const blockingObstacle = this.findBlockingObstacle(input);
     const hazardZone = this.findActiveHazardZone(input);
 
     if (hazardZone !== undefined) {
@@ -82,6 +83,17 @@ export class DummyAiLogic {
         moveY: hazardDeltaY / hazardDistance,
         shouldFire: false,
         mode: "avoid-hazard"
+      };
+    }
+
+    if (!hasLineOfSight && blockingObstacle !== undefined) {
+      const reroute = this.createObstacleBypass(input, normalizedX, normalizedY, blockingObstacle);
+
+      return {
+        moveX: reroute.moveX,
+        moveY: reroute.moveY,
+        shouldFire: false,
+        mode: "reposition"
       };
     }
 
@@ -161,6 +173,32 @@ export class DummyAiLogic {
     );
   }
 
+  private findBlockingObstacle(input: DummyAiInput): LineOfSightBlocker | undefined {
+    if (input.lineOfSightBlockers === undefined) {
+      return undefined;
+    }
+
+    let bestBlocker: LineOfSightBlocker | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const blocker of input.lineOfSightBlockers) {
+      if (!this.lineIntersectsRect(input.dummyX, input.dummyY, input.playerX, input.playerY, blocker)) {
+        continue;
+      }
+
+      const blockerCenterX = blocker.x + blocker.width / 2;
+      const blockerCenterY = blocker.y + blocker.height / 2;
+      const distanceToDummy = Math.hypot(blockerCenterX - input.dummyX, blockerCenterY - input.dummyY);
+
+      if (distanceToDummy < bestDistance) {
+        bestBlocker = blocker;
+        bestDistance = distanceToDummy;
+      }
+    }
+
+    return bestBlocker;
+  }
+
   private findActiveHazardZone(input: DummyAiInput): HazardAvoidanceZone | undefined {
     return input.hazardZones?.find((zone) => {
       const left = zone.x - zone.padding;
@@ -221,6 +259,32 @@ export class DummyAiLogic {
     const scalarB = numeratorB / denominator;
 
     return scalarA >= 0 && scalarA <= 1 && scalarB >= 0 && scalarB <= 1;
+  }
+
+  private createObstacleBypass(
+    input: DummyAiInput,
+    normalizedX: number,
+    normalizedY: number,
+    blocker: LineOfSightBlocker
+  ): { moveX: number; moveY: number } {
+    const blockerCenterX = blocker.x + blocker.width / 2;
+    const blockerCenterY = blocker.y + blocker.height / 2;
+    const blockerDeltaX = blockerCenterX - input.dummyX;
+    const blockerDeltaY = blockerCenterY - input.dummyY;
+    const cross = normalizedX * blockerDeltaY - normalizedY * blockerDeltaX;
+    const side = Math.abs(cross) < 0.001
+      ? (Math.floor(input.tickMs / 900) % 2 === 0 ? 1 : -1)
+      : (cross > 0 ? -1 : 1);
+    const lateralX = -normalizedY * side;
+    const lateralY = normalizedX * side;
+    const blendedX = lateralX * 0.82 + normalizedX * 0.28;
+    const blendedY = lateralY * 0.82 + normalizedY * 0.28;
+    const length = Math.hypot(blendedX, blendedY) || 1;
+
+    return {
+      moveX: blendedX / length,
+      moveY: blendedY / length
+    };
   }
 
   private findBestCover(input: DummyAiInput): CoverPoint {

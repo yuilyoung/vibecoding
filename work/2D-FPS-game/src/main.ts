@@ -27,78 +27,80 @@ appRoot.innerHTML = `
     </header>
     <main class="shell-main">
       <section class="stage-panel">
+        <div class="hud-strip hud-strip--top">
+          <section class="hud-card player-card">
+            <p class="hud-label">Operator</p>
+            <div class="hud-statline">
+              <span id="team-chip" class="team-chip">UNSET</span>
+              <span id="phase-chip" class="phase-chip">STAGE ENTRY</span>
+            </div>
+            <div>
+              <div class="meter-copy">
+                <span>Health</span>
+                <span id="player-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
+              </div>
+              <div class="meter-track"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
+            </div>
+            <div class="weapon-strip">
+              <div>
+                <p class="micro-label">Weapon</p>
+                <strong id="weapon-name">Carbine</strong>
+              </div>
+              <div>
+                <p class="micro-label">Ammo</p>
+                <strong id="ammo-count">${gameBalance.magazineSize}/${gameBalance.reserveAmmo}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="hud-card enemy-card">
+            <p class="hud-label">Engagement</p>
+            <div class="scoreline">
+              <span id="score-text">0 : 0</span>
+              <span id="round-text">Round 1</span>
+            </div>
+            <div>
+              <div class="meter-copy">
+                <span>Enemy</span>
+                <span id="dummy-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
+              </div>
+              <div class="meter-track"><div id="dummy-health-fill" class="meter-fill enemy-fill"></div></div>
+            </div>
+            <p id="spawn-text" class="support-text">Awaiting deployment</p>
+          </section>
+        </div>
+
         <div class="stage-frame">
           <div id="game-root" class="game-root"></div>
           <div class="hud-overlay" aria-live="polite">
-            <section class="hud-card player-card">
-              <p class="hud-label">Operator</p>
-              <div class="hud-statline">
-                <span id="team-chip" class="team-chip">UNSET</span>
-                <span id="phase-chip" class="phase-chip">STAGE ENTRY</span>
-              </div>
-              <div>
-                <div class="meter-copy">
-                  <span>Health</span>
-                  <span id="player-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
-                </div>
-                <div class="meter-track"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
-              </div>
-              <div class="weapon-strip">
-                <div>
-                  <p class="micro-label">Weapon</p>
-                  <strong id="weapon-name">Carbine</strong>
-                </div>
-                <div>
-                  <p class="micro-label">Ammo</p>
-                  <strong id="ammo-count">${gameBalance.magazineSize}/${gameBalance.reserveAmmo}</strong>
-                </div>
-              </div>
-            </section>
-
             <section id="banner-card" class="banner-card">
               <p id="banner-kicker" class="banner-kicker">MATCH FLOW</p>
               <h2 id="banner-title">ENTER STAGE</h2>
               <p id="banner-subtitle">Press ENTER to open team selection.</p>
             </section>
-
-            <section class="hud-card enemy-card">
-              <p class="hud-label">Engagement</p>
-              <div class="scoreline">
-                <span id="score-text">0 : 0</span>
-                <span id="round-text">Round 1</span>
-              </div>
-              <div>
-                <div class="meter-copy">
-                  <span>Enemy</span>
-                  <span id="dummy-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
-                </div>
-                <div class="meter-track"><div id="dummy-health-fill" class="meter-fill enemy-fill"></div></div>
-              </div>
-              <p id="spawn-text" class="support-text">Awaiting deployment</p>
-            </section>
-
-            <section class="hud-card support-card">
-              <div class="support-grid">
-                <div>
-                  <p class="micro-label">Last Event</p>
-                  <strong id="event-text">PRESS ENTER TO ENTER STAGE</strong>
-                </div>
-                <div>
-                  <p class="micro-label">Movement</p>
-                  <strong id="movement-text">Walk</strong>
-                </div>
-                <div>
-                  <p class="micro-label">Gate</p>
-                  <strong id="gate-text">Closed</strong>
-                </div>
-                <div>
-                  <p class="micro-label">Round Start</p>
-                  <strong id="round-start-text">LIVE</strong>
-                </div>
-              </div>
-            </section>
           </div>
         </div>
+
+        <section class="hud-card support-card">
+          <div class="support-grid">
+            <div>
+              <p class="micro-label">Last Event</p>
+              <strong id="event-text">PRESS ENTER TO ENTER STAGE</strong>
+            </div>
+            <div>
+              <p class="micro-label">Movement</p>
+              <strong id="movement-text">Walk</strong>
+            </div>
+            <div>
+              <p class="micro-label">Gate</p>
+              <strong id="gate-text">Closed</strong>
+            </div>
+            <div>
+              <p class="micro-label">Round Start</p>
+              <strong id="round-start-text">LIVE</strong>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section class="ops-panel">
@@ -126,6 +128,28 @@ appRoot.innerHTML = `
             <div>
               <dt>Debug Note</dt>
               <dd id="debug-text">Movement clear</dd>
+            </div>
+          </dl>
+        </article>
+        <article class="ops-card">
+          <p class="panel-kicker">Arena Reads</p>
+          <h2>Zone Guide</h2>
+          <dl class="ops-grid ops-grid--guide">
+            <div>
+              <dt>Cover</dt>
+              <dd>Blue cover markers show positions the dummy uses to break line of sight and recover.</dd>
+            </div>
+            <div>
+              <dt>Vent</dt>
+              <dd>The purple vent lane deals periodic damage while an actor remains inside it.</dd>
+            </div>
+            <div>
+              <dt>Ammo</dt>
+              <dd>Blue pickup refills reserve ammo, then disappears until its respawn timer finishes.</dd>
+            </div>
+            <div>
+              <dt>Med</dt>
+              <dd>Green pickup restores health and then enters cooldown before returning.</dd>
             </div>
           </dl>
         </article>
@@ -194,6 +218,8 @@ window.addEventListener("beforeunload", () => {
 
 function renderHud(snapshot: HudSnapshot): void {
   hudElements.teamChip.textContent = snapshot.team;
+  hudElements.teamChip.classList.toggle("team-chip--blue", snapshot.team === "BLUE");
+  hudElements.teamChip.classList.toggle("team-chip--red", snapshot.team === "RED");
   hudElements.phaseChip.textContent = snapshot.phase;
   hudElements.playerHealthText.textContent = `${snapshot.playerHealth}/${snapshot.playerMaxHealth}`;
   hudElements.weaponName.textContent = snapshot.activeWeapon;
