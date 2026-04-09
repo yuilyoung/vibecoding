@@ -117,6 +117,18 @@ export class WeaponLogic {
     return restoredAmmo;
   }
 
+  public refundRound(atTimeMs: number): void {
+    this.update(atTimeMs);
+    this.ammoInMagazine = Math.min(this.config.magazineSize, this.ammoInMagazine + 1);
+  }
+
+  public restockAllAmmo(atTimeMs: number): void {
+    this.update(atTimeMs);
+    this.ammoInMagazine = this.config.magazineSize;
+    this.reserveAmmo = this.config.reserveAmmo;
+    this.reloadUntilMs = 0;
+  }
+
   public isReloading(atTimeMs: number): boolean {
     this.update(atTimeMs);
     return this.reloadUntilMs > atTimeMs;
@@ -125,6 +137,10 @@ export class WeaponLogic {
   public getReloadRemaining(atTimeMs: number): number {
     this.update(atTimeMs);
     return Math.max(0, this.reloadUntilMs - atTimeMs);
+  }
+
+  public getReloadDuration(): number {
+    return this.config.reloadTimeMs;
   }
 
   public reset(): void {

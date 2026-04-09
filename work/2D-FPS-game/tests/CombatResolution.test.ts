@@ -9,6 +9,7 @@ describe("CombatResolution", () => {
       hitObstacle: false,
       outOfBounds: false,
       damage: 14,
+      appliedDamage: 14,
       targetDied: false
     });
 
@@ -27,6 +28,7 @@ describe("CombatResolution", () => {
       hitObstacle: false,
       outOfBounds: false,
       damage: 12,
+      appliedDamage: 12,
       targetDied: true
     });
 
@@ -45,6 +47,7 @@ describe("CombatResolution", () => {
       hitObstacle: true,
       outOfBounds: true,
       damage: 10,
+      appliedDamage: 10,
       targetDied: false
     });
 
@@ -61,6 +64,7 @@ describe("CombatResolution", () => {
       hitObstacle: false,
       outOfBounds: true,
       damage: 10,
+      appliedDamage: 10,
       targetDied: false
     });
 
@@ -91,5 +95,43 @@ describe("CombatResolution", () => {
 
     expect(result.combatEvent).toBe("DUMMY HAZARD -8");
     expect(result.roundWinner).toBe("PLAYER");
+  });
+
+  it("reports shield ricochet when the dummy blocks a hit in shield cover", () => {
+    const result = resolveBulletCollision({
+      owner: "player",
+      hitDummy: true,
+      hitPlayer: false,
+      hitObstacle: false,
+      outOfBounds: false,
+      damage: 14,
+      appliedDamage: 0,
+      targetDied: false,
+      coverProtected: true
+    });
+
+    expect(result.combatEvent).toBe("SHIELD RICOCHET");
+    expect(result.soundTarget).toBeNull();
+    expect(result.roundWinner).toBeNull();
+  });
+
+  it("keeps shield ricochet semantics even if a blocked hit carried damage data", () => {
+    const result = resolveBulletCollision({
+      owner: "player",
+      hitDummy: true,
+      hitPlayer: false,
+      hitObstacle: false,
+      outOfBounds: false,
+      damage: 14,
+      appliedDamage: 9,
+      targetDied: false,
+      coverProtected: true
+    });
+
+    expect(result.destroyBullet).toBe(true);
+    expect(result.damagedActor).toBe("dummy");
+    expect(result.combatEvent).toBe("SHIELD RICOCHET");
+    expect(result.soundTarget).toBeNull();
+    expect(result.roundWinner).toBeNull();
   });
 });

@@ -198,6 +198,30 @@ describe("WeaponLogic", () => {
     expect(weapon.getReserveAmmo(0)).toBe(6);
   });
 
+  it("caps repeated reserve refills during overdrive-style pickup loops", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 3,
+      reloadTimeMs: 500,
+      reserveAmmo: 9
+    });
+
+    weapon.tryFire(0);
+    weapon.tryFire(20);
+    weapon.tryFire(40);
+    weapon.startReload(80);
+
+    expect(weapon.getAmmoInMagazine(700)).toBe(3);
+    expect(weapon.getReserveAmmo(700)).toBe(6);
+    expect(weapon.addReserveAmmo(2, 700)).toBe(2);
+    expect(weapon.getReserveAmmo(700)).toBe(8);
+    expect(weapon.addReserveAmmo(5, 700)).toBe(1);
+    expect(weapon.getReserveAmmo(700)).toBe(9);
+    expect(weapon.addReserveAmmo(3, 700)).toBe(0);
+  });
+
   it("resets cooldown, magazine, and reserve ammo to config defaults", () => {
     const weapon = new WeaponLogic({
       fireRateMs: 10,
@@ -216,5 +240,42 @@ describe("WeaponLogic", () => {
     expect(weapon.getReserveAmmo(0)).toBe(4);
     expect(weapon.getCooldownRemaining(0)).toBe(0);
     expect(weapon.getReloadRemaining(0)).toBe(0);
+  });
+
+  it("refunds a spent round without exceeding magazine capacity", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 2,
+      reloadTimeMs: 500,
+      reserveAmmo: 4
+    });
+
+    weapon.tryFire(0);
+    weapon.refundRound(20);
+    weapon.refundRound(30);
+
+    expect(weapon.getAmmoInMagazine(30)).toBe(2);
+  });
+
+  it("restocks the weapon to full magazine and reserve ammo", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 2,
+      reloadTimeMs: 500,
+      reserveAmmo: 4
+    });
+
+    weapon.tryFire(0);
+    weapon.tryFire(20);
+    weapon.startReload(30);
+    weapon.restockAllAmmo(60);
+
+    expect(weapon.getAmmoInMagazine(60)).toBe(2);
+    expect(weapon.getReserveAmmo(60)).toBe(4);
+    expect(weapon.isReloading(60)).toBe(false);
   });
 });

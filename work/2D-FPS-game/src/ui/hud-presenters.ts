@@ -9,6 +9,8 @@ export interface HudCombatPresenterState {
   readonly weaponSlot: number;
   readonly ammoInMagazine: number;
   readonly reserveAmmo: number;
+  readonly isReloading: boolean;
+  readonly reloadProgress: number;
   readonly playerHealth: number;
   readonly playerMaxHealth: number;
   readonly dummyHealth: number;
@@ -21,6 +23,10 @@ export interface HudCombatPresenterState {
   readonly roundStartLabel: string;
   readonly ammoPickupLabel: string;
   readonly healthPickupLabel: string;
+  readonly coverVisionActive: boolean;
+  readonly coverVisionX: number;
+  readonly coverVisionY: number;
+  readonly coverVisionRadius: number;
 }
 
 export interface HudPresenterInput {
@@ -162,6 +168,8 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     weaponSlot: input.combat.weaponSlot,
     ammoInMagazine: input.combat.ammoInMagazine,
     reserveAmmo: input.combat.reserveAmmo,
+    isReloading: input.combat.isReloading,
+    reloadProgress: input.combat.reloadProgress,
     playerHealth: input.combat.playerHealth,
     playerMaxHealth: input.combat.playerMaxHealth,
     dummyHealth: input.combat.dummyHealth,
@@ -178,6 +186,10 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     roundStartLabel: input.combat.roundStartLabel,
     ammoPickupLabel: input.combat.ammoPickupLabel,
     healthPickupLabel: input.combat.healthPickupLabel,
+    coverVisionActive: input.combat.coverVisionActive,
+    coverVisionX: input.combat.coverVisionX,
+    coverVisionY: input.combat.coverVisionY,
+    coverVisionRadius: input.combat.coverVisionRadius,
     overlay: {
       ...overlay,
       subtitle: overlay.subtitle || getPromptText(input)

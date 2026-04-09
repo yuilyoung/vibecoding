@@ -8,7 +8,9 @@ export interface BulletResolutionInput {
   readonly hitObstacle: boolean;
   readonly outOfBounds: boolean;
   readonly damage: number;
+  readonly appliedDamage: number;
   readonly targetDied: boolean;
+  readonly coverProtected?: boolean;
 }
 
 export interface BulletResolutionResult {
@@ -36,8 +38,8 @@ export function resolveBulletCollision(input: BulletResolutionInput): BulletReso
     return {
       destroyBullet: true,
       damagedActor: "dummy",
-      combatEvent: input.targetDied ? "TARGET DOWN" : `HIT ${input.damage}`,
-      soundTarget: "dummy",
+      combatEvent: input.targetDied ? "TARGET DOWN" : input.coverProtected ? "SHIELD RICOCHET" : `HIT ${input.appliedDamage}`,
+      soundTarget: input.coverProtected ? null : "dummy",
       roundWinner: input.targetDied ? "PLAYER" : null
     };
   }
@@ -46,7 +48,7 @@ export function resolveBulletCollision(input: BulletResolutionInput): BulletReso
     return {
       destroyBullet: true,
       damagedActor: "player",
-      combatEvent: input.targetDied ? "PLAYER DOWN" : `STUNNED ${input.damage}`,
+      combatEvent: input.targetDied ? "PLAYER DOWN" : `STUNNED ${input.appliedDamage}`,
       soundTarget: "player",
       roundWinner: input.targetDied ? "DUMMY" : null
     };

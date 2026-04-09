@@ -251,4 +251,57 @@ describe("DummyAiLogic", () => {
     expect(decision.moveX).toBeGreaterThan(0);
     expect(decision.shouldFire).toBe(false);
   });
+
+  it("starts preferring cover once health drops to 80 or lower", () => {
+    const ai = new DummyAiLogic({
+      engageRange: 260,
+      retreatRange: 120,
+      shootRange: 320,
+      lowHealthThreshold: 0.35
+    });
+
+    const decision = ai.evaluate({
+      dummyX: 600,
+      dummyY: 200,
+      playerX: 300,
+      playerY: 200,
+      tickMs: 0,
+      currentHealth: 80,
+      healthRatio: 0.8,
+      coverPoints: [
+        { x: 700, y: 220 },
+        { x: 500, y: 280 }
+      ]
+    });
+
+    expect(decision.mode).toBe("cover");
+    expect(decision.shouldFire).toBe(false);
+  });
+
+  it("re-engages from cover when its health recovers or the player gets weak", () => {
+    const ai = new DummyAiLogic({
+      engageRange: 260,
+      retreatRange: 120,
+      shootRange: 320,
+      lowHealthThreshold: 0.35
+    });
+
+    const decision = ai.evaluate({
+      dummyX: 700,
+      dummyY: 220,
+      playerX: 460,
+      playerY: 220,
+      tickMs: 0,
+      currentHealth: 94,
+      playerHealthRatio: 0.4,
+      healthRatio: 0.94,
+      coverPoints: [
+        { x: 700, y: 220 },
+        { x: 500, y: 280 }
+      ]
+    });
+
+    expect(decision.mode).toBe("flank");
+    expect(decision.shouldFire).toBe(true);
+  });
 });

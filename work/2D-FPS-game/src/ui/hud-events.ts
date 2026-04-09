@@ -14,6 +14,8 @@ export interface HudSnapshot {
   readonly weaponSlot: number;
   readonly ammoInMagazine: number;
   readonly reserveAmmo: number;
+  readonly isReloading: boolean;
+  readonly reloadProgress: number;
   readonly playerHealth: number;
   readonly playerMaxHealth: number;
   readonly dummyHealth: number;
@@ -30,5 +32,9 @@ export interface HudSnapshot {
   readonly roundStartLabel: string;
   readonly ammoPickupLabel: string;
   readonly healthPickupLabel: string;
+  readonly coverVisionActive: boolean;
+  readonly coverVisionX: number;
+  readonly coverVisionY: number;
+  readonly coverVisionRadius: number;
   readonly overlay: HudOverlayState;
 }

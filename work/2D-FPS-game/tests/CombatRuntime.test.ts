@@ -31,6 +31,16 @@ describe("CombatRuntime", () => {
     expect(canInterruptReload({ ...baseAvailability, isCombatLive: false })).toBe(false);
   });
 
+  it("blocks player fire and reload while stunned without freezing shared combat systems", () => {
+    const stunnedAvailability = { ...baseAvailability, isPlayerStunned: true };
+
+    expect(canPlayerFire(stunnedAvailability)).toBe(false);
+    expect(canPlayerReload(stunnedAvailability)).toBe(false);
+    expect(canDummyFire(stunnedAvailability)).toBe(true);
+    expect(canPlayerUseCombatInteraction(stunnedAvailability)).toBe(true);
+    expect(canInterruptReload(stunnedAvailability)).toBe(true);
+  });
+
   it("uses shared combat gating for dummy fire, interactions, and hazards", () => {
     expect(canDummyFire(baseAvailability)).toBe(true);
     expect(canPlayerUseCombatInteraction(baseAvailability)).toBe(true);

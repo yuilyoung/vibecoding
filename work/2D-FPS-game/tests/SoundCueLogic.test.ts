@@ -20,6 +20,7 @@ describe("SoundCueLogic", () => {
     expect(logic.resolveCue({ kind: "hazard", source: "vent" })).toBe("hazard.tick");
     expect(logic.resolveCue({ kind: "match-confirm", action: "ready" })).toBe("match.confirm.ready");
     expect(logic.resolveCue({ kind: "match-confirm", action: "accept" })).toBe("match.confirm.accept");
+    expect(logic.resolveCue({ kind: "match-start" })).toBe("match.start");
   });
 
   it("preserves cue order when resolving batches", () => {

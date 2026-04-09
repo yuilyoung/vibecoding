@@ -15,7 +15,8 @@ describe("GeneratedAudioCuePlayer", () => {
       "gate.close",
       "hazard.tick",
       "match.confirm.ready",
-      "match.confirm.accept"
+      "match.confirm.accept",
+      "match.start"
     ];
 
     for (const cue of cues) {

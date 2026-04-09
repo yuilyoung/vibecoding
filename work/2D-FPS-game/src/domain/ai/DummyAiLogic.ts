@@ -31,6 +31,8 @@ export interface DummyAiInput {
   readonly playerX: number;
   readonly playerY: number;
   readonly tickMs: number;
+  readonly currentHealth?: number;
+  readonly playerHealthRatio?: number;
   readonly healthRatio: number;
   readonly coverPoints: CoverPoint[];
   readonly lineOfSightBlockers?: readonly LineOfSightBlocker[];
@@ -45,6 +47,11 @@ export interface DummyAiDecision {
 }
 
 export class DummyAiLogic {
+  private static readonly COVER_REENGAGE_PEEK_MS = 800;
+  private static readonly COVER_REENGAGE_RESET_MS = 1400;
+  private static readonly COVER_HOLD_PEEK_MS = 260;
+  private static readonly COVER_HOLD_FIRE_MS = 520;
+  private static readonly COVER_HOLD_RESET_MS = 1500;
   private readonly config: DummyAiConfig;
 
   public constructor(config: DummyAiConfig) {
@@ -70,6 +77,8 @@ export class DummyAiLogic {
     const hasLineOfSight = this.hasLineOfSight(input);
     const blockingObstacle = this.findBlockingObstacle(input);
     const hazardZone = this.findActiveHazardZone(input);
+    const shouldPlayTactical = (input.currentHealth ?? Number.POSITIVE_INFINITY) <= 80;
+    const shouldReengage = shouldPlayTactical && ((input.currentHealth ?? 0) >= 92 || (input.playerHealthRatio ?? 1) <= 0.45);
 
     if (hazardZone !== undefined) {
       const hazardCenterX = hazardZone.x + hazardZone.width / 2;
@@ -111,16 +120,39 @@ export class DummyAiLogic {
       };
     }
 
-    if (input.healthRatio <= this.config.lowHealthThreshold && input.coverPoints.length > 0) {
+    if ((shouldPlayTactical || input.healthRatio <= this.config.lowHealthThreshold) && input.coverPoints.length > 0) {
       const targetCover = this.findBestCover(input);
       const coverDeltaX = targetCover.x - input.dummyX;
       const coverDeltaY = targetCover.y - input.dummyY;
       const coverDistance = Math.hypot(coverDeltaX, coverDeltaY) || 1;
+      const alreadyInCover = distanceToPoint(input.dummyX, input.dummyY, targetCover.x, targetCover.y) <= 28;
+
+      if (alreadyInCover) {
+        if (shouldReengage) {
+          if (distance > this.config.shootRange * 0.72) {
+            return {
+              moveX: normalizedX,
+              moveY: normalizedY,
+              shouldFire: false,
+              mode: "chase"
+            };
+          }
+
+          return this.createCoverReengageDecision(input.tickMs, normalizedX, normalizedY, hasLineOfSight);
+        }
+
+        return this.createCoverHoldDecision(
+          input.tickMs,
+          normalizedX,
+          normalizedY,
+          hasLineOfSight && distance <= this.config.shootRange
+        );
+      }
 
       return {
         moveX: coverDeltaX / coverDistance,
         moveY: coverDeltaY / coverDistance,
-        shouldFire: hasLineOfSight && distance <= this.config.shootRange * 0.65,
+        shouldFire: false,
         mode: "cover"
       };
     }
@@ -287,6 +319,98 @@ export class DummyAiLogic {
     };
   }
 
+  private createCoverReengageDecision(
+    tickMs: number,
+    normalizedX: number,
+    normalizedY: number,
+    hasLineOfSight: boolean
+  ): DummyAiDecision {
+    const cycleMs = tickMs % DummyAiLogic.COVER_REENGAGE_RESET_MS;
+
+    if (!hasLineOfSight) {
+      return {
+        moveX: normalizedX,
+        moveY: normalizedY,
+        shouldFire: false,
+        mode: "chase"
+      };
+    }
+
+    if (cycleMs < DummyAiLogic.COVER_REENGAGE_PEEK_MS) {
+      return this.createFlankDecision(normalizedX, normalizedY, tickMs, true);
+    }
+
+    return {
+      moveX: 0,
+      moveY: 0,
+      shouldFire: false,
+      mode: "cover"
+    };
+  }
+
+  private createCoverHoldDecision(
+    tickMs: number,
+    normalizedX: number,
+    normalizedY: number,
+    canFireFromCover: boolean
+  ): DummyAiDecision {
+    if (!canFireFromCover) {
+      return {
+        moveX: 0,
+        moveY: 0,
+        shouldFire: false,
+        mode: "cover"
+      };
+    }
+
+    const cycleMs = tickMs % DummyAiLogic.COVER_HOLD_RESET_MS;
+
+    if (cycleMs < DummyAiLogic.COVER_HOLD_PEEK_MS) {
+      const strafeDirection = Math.floor(tickMs / 850) % 2 === 0 ? 1 : -1;
+      return {
+        moveX: -normalizedY * 0.34 * strafeDirection,
+        moveY: normalizedX * 0.34 * strafeDirection,
+        shouldFire: true,
+        mode: "cover"
+      };
+    }
+
+    if (cycleMs < DummyAiLogic.COVER_HOLD_FIRE_MS) {
+      return {
+        moveX: 0,
+        moveY: 0,
+        shouldFire: true,
+        mode: "cover"
+      };
+    }
+
+    return {
+      moveX: 0,
+      moveY: 0,
+      shouldFire: false,
+      mode: "cover"
+    };
+  }
+
+  private createFlankDecision(
+    normalizedX: number,
+    normalizedY: number,
+    tickMs: number,
+    shouldFire: boolean
+  ): DummyAiDecision {
+    const flankDirection = Math.floor(tickMs / 900) % 2 === 0 ? 1 : -1;
+    const flankVectorX = normalizedX + (-normalizedY * flankDirection);
+    const flankVectorY = normalizedY + (normalizedX * flankDirection);
+    const flankLength = Math.hypot(flankVectorX, flankVectorY) || 1;
+
+    return {
+      moveX: flankVectorX / flankLength,
+      moveY: flankVectorY / flankLength,
+      shouldFire,
+      mode: "flank"
+    };
+  }
+
   private findBestCover(input: DummyAiInput): CoverPoint {
     let bestPoint = input.coverPoints[0];
     let bestScore = Number.POSITIVE_INFINITY;
@@ -304,4 +428,8 @@ export class DummyAiLogic {
 
     return bestPoint;
   }
+}
+
+function distanceToPoint(fromX: number, fromY: number, toX: number, toY: number): number {
+  return Math.hypot(toX - fromX, toY - fromY);
 }
