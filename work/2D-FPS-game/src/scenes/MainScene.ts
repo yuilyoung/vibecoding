@@ -3,8 +3,19 @@ import { GeneratedAudioCuePlayer } from "../domain/audio/GeneratedAudioCuePlayer
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
 import { createCenteredRect, intersectsRect, type Rect } from "../domain/collision/CollisionLogic";
+import { resolveBulletCollision, resolveHazardOutcome } from "../domain/combat/CombatResolution";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { WeaponLogic, type WeaponConfig } from "../domain/combat/WeaponLogic";
+import {
+  canApplyHazard,
+  canDummyFire,
+  canInterruptReload,
+  canPlayerFire,
+  canPlayerReload,
+  canPlayerUseCombatInteraction,
+  evaluateProjectileFrame,
+  isGateInteractionAllowed
+} from "../domain/combat/CombatRuntime";
 import { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
 import { PlayerLogic } from "../domain/player/PlayerLogic";
 import {
@@ -13,7 +24,17 @@ import {
   type SpawnPoint,
   type TeamId
 } from "../domain/round/MatchFlowLogic";
+import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
+import { planRoundReset, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
 import { RoundLogic } from "../domain/round/RoundLogic";
+import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "../ui/hud-events";
+import {
+  buildHudSnapshot,
+  buildMatchOverlayState,
+  getPhaseLabel,
+  type HudPresenterInput
+} from "../ui/hud-presenters";
+import { getDummyVisualState, getPlayerVisualState, getRespawnFxState } from "../ui/scene-visuals";
 
 interface GameBalance {
   movementSpeed: number;
@@ -53,6 +74,14 @@ interface BulletView {
   velocityY: number;
   damage: number;
   owner: "player" | "dummy";
+  effectProfile: "carbine" | "scatter" | "dummy";
+}
+
+interface ImpactFxView {
+  flash: Phaser.GameObjects.Arc;
+  ring: Phaser.GameObjects.Arc;
+  expiresAtMs: number;
+  durationMs: number;
 }
 
 interface ObstacleView {
@@ -115,11 +144,39 @@ interface MainSceneDebugSnapshot {
   lastEvent: string;
 }
 
+export interface MainSceneHudSnapshot {
+  readonly phase: string;
+  readonly team: TeamId | "UNSET";
+  readonly spawn: string;
+  readonly health: number;
+  readonly maxHealth: number;
+  readonly dummyHealth: number;
+  readonly dummyMaxHealth: number;
+  readonly weaponName: string;
+  readonly weaponSlot: number;
+  readonly ammoInMagazine: number;
+  readonly magazineSize: number;
+  readonly reserveAmmo: number;
+  readonly playerScore: number;
+  readonly dummyScore: number;
+  readonly scoreToWin: number;
+  readonly roundNumber: number;
+  readonly gateOpen: boolean;
+  readonly combatEvent: string;
+  readonly roundResult: string;
+  readonly matchResult: string;
+  readonly prompt: string;
+  readonly overlayVisible: boolean;
+  readonly overlayTitle: string;
+  readonly overlaySubtitle: string;
+}
+
 type DebugTeamSelection = TeamId;
 
 export class MainScene extends Phaser.Scene {
   private static readonly RESPAWN_DELAY_MS = 1600;
   private static readonly RESPAWN_FX_MS = 900;
+  private static readonly ACTOR_HALF_SIZE = 120;
 
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: {
@@ -143,11 +200,6 @@ export class MainScene extends Phaser.Scene {
   private muzzleFlash!: Phaser.GameObjects.Arc;
   private ammoPickup!: PickupView;
   private healthPickup!: PickupView;
-  private overlayPanel!: Phaser.GameObjects.Rectangle;
-  private overlayTitle!: Phaser.GameObjects.Text;
-  private overlaySubtitle!: Phaser.GameObjects.Text;
-  private statusText!: Phaser.GameObjects.Text;
-  private combatText!: Phaser.GameObjects.Text;
   private readonly playerLogic: PlayerLogic;
   private readonly dummyLogic: PlayerLogic;
   private readonly weaponSlots: PlayerWeaponSlot[];
@@ -159,6 +211,7 @@ export class MainScene extends Phaser.Scene {
   private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
+  private readonly impactEffects: ImpactFxView[];
   private readonly obstacles: ObstacleView[];
   private readonly matchFlow: MatchFlowLogic;
   private readonly spawnTable: TeamSpawnTable;
@@ -177,6 +230,11 @@ export class MainScene extends Phaser.Scene {
   private lastDummyShouldFire: boolean;
   private lastSpawnSummary: string;
   private muzzleFlashUntilMs: number;
+  private overlayState: {
+    visible: boolean;
+    title: string;
+    subtitle: string;
+  };
 
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
@@ -214,13 +272,14 @@ export class MainScene extends Phaser.Scene {
     this.soundCueLogic = new SoundCueLogic();
     this.audioCuePlayer = new GeneratedAudioCuePlayer();
     this.bullets = [];
+    this.impactEffects = [];
     this.obstacles = [];
     this.matchFlow = new MatchFlowLogic();
     this.spawnTable = {
       BLUE: [
         { x: 120, y: 120, label: "BLUE ENTRY A" },
         { x: 162, y: 428, label: "BLUE ENTRY B" },
-        { x: 286, y: 102, label: "BLUE ENTRY C" }
+        { x: 338, y: 96, label: "BLUE ENTRY C" }
       ],
       RED: [
         { x: 760, y: 210, label: "RED ENTRY A" },
@@ -245,6 +304,11 @@ export class MainScene extends Phaser.Scene {
     this.lastDummyShouldFire = false;
     this.lastSpawnSummary = "WAITING";
     this.muzzleFlashUntilMs = 0;
+    this.overlayState = {
+      visible: false,
+      title: "",
+      subtitle: ""
+    };
   }
 
   public preload(): void {
@@ -263,50 +327,6 @@ export class MainScene extends Phaser.Scene {
       throw new Error("Keyboard input is unavailable in MainScene.");
     }
 
-    this.add
-      .text(24, 18, "Arena Control", {
-        color: "#c9e0ff",
-        fontFamily: "monospace",
-        fontSize: "20px"
-      })
-      .setAlpha(0.85);
-
-    this.add
-      .text(24, 46, "ENTER stage / 1-2 team+weapon / WASD move / MOUSE or F fire / R reload / E gate", {
-        color: "#7ba8de",
-        fontFamily: "monospace",
-        fontSize: "13px"
-      })
-      .setAlpha(0.9);
-
-    this.statusText = this.add
-      .text(24, 78, "", {
-        color: "#90f3c8",
-        fontFamily: "monospace",
-        fontSize: "13px"
-      })
-      .setAlpha(0.95);
-
-    this.combatText = this.add
-      .text(24, 140, "", {
-        color: "#ffb873",
-        fontFamily: "monospace",
-        fontSize: "13px"
-      })
-      .setAlpha(0.95);
-    this.overlayPanel = this.add.rectangle(480, 270, 430, 180, 0x050b14, 0.86).setStrokeStyle(2, 0x7ba8de, 0.9);
-    this.overlayTitle = this.add.text(480, 232, "", {
-      color: "#f6f8ff",
-      fontFamily: "monospace",
-      fontSize: "28px"
-    }).setOrigin(0.5);
-    this.overlaySubtitle = this.add.text(480, 290, "", {
-      color: "#9bc2ef",
-      fontFamily: "monospace",
-      fontSize: "16px",
-      align: "center"
-    }).setOrigin(0.5);
-    this.setOverlayVisible(false);
     this.crosshairHorizontal = this.add.rectangle(0, 0, 18, 2, 0xd8f3ff, 0.85).setDepth(20);
     this.crosshairVertical = this.add.rectangle(0, 0, 2, 18, 0xd8f3ff, 0.85).setDepth(20);
     this.muzzleFlash = this.add.circle(0, 0, 8, 0xffd27a, 0.9).setDepth(8).setVisible(false);
@@ -333,7 +353,7 @@ export class MainScene extends Phaser.Scene {
     this.playerSprite = this.createActorImage("player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
     this.targetDummy = this.createActorImage("dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
     this.playerLogic.reset(0, 0);
-    this.dummyLogic.reset(this.spawnTable.RED[0].x - 120, this.spawnTable.RED[0].y - 120);
+    this.dummyLogic.reset(this.spawnTable.RED[0].x - MainScene.ACTOR_HALF_SIZE, this.spawnTable.RED[0].y - MainScene.ACTOR_HALF_SIZE);
     this.roundStartUntilMs = 0;
     this.respawnFxUntilMs = 0;
 
@@ -387,8 +407,8 @@ export class MainScene extends Phaser.Scene {
       now
     );
 
-    let playerCenterX = Phaser.Math.Clamp(this.playerLogic.state.positionX + 120, 40, 920);
-    let playerCenterY = Phaser.Math.Clamp(this.playerLogic.state.positionY + 120, 40, 500);
+    let playerCenterX = Phaser.Math.Clamp(this.playerLogic.state.positionX + MainScene.ACTOR_HALF_SIZE, 40, 920);
+    let playerCenterY = Phaser.Math.Clamp(this.playerLogic.state.positionY + MainScene.ACTOR_HALF_SIZE, 40, 500);
     for (const slot of this.weaponSlots) {
       slot.logic.update(now);
     }
@@ -403,14 +423,14 @@ export class MainScene extends Phaser.Scene {
     this.updateDummyMovement(deltaSeconds, now);
 
     if (!this.roundLogic.state.isMatchOver && this.matchFlow.state.phase !== "stage-entry") {
-      this.playerLogic.updateAim(this.input.activePointer.worldX - 120, this.input.activePointer.worldY - 120, now);
+      this.playerLogic.updateAim(this.input.activePointer.worldX - MainScene.ACTOR_HALF_SIZE, this.input.activePointer.worldY - MainScene.ACTOR_HALF_SIZE, now);
     }
 
     const playerBlocked = this.resolvePlayerObstacleCollision(playerCenterX, playerCenterY, previousX, previousY);
 
     if (playerBlocked) {
-      playerCenterX = previousX + 120;
-      playerCenterY = previousY + 120;
+      playerCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
+      playerCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
     }
 
     this.playerSprite.setPosition(playerCenterX, playerCenterY);
@@ -420,49 +440,20 @@ export class MainScene extends Phaser.Scene {
     this.handleFire(now);
     this.handleDummyFire(now);
     this.updateBullets(deltaSeconds);
+    this.updateImpactEffects(now);
     this.updatePlayerVisuals(now);
     this.updateDummyVisuals(now);
     this.updateCoverPointVisuals();
     this.updateCrosshair(now);
     this.updateMatchOverlay(now);
-    this.statusText.setText([
-      `Phase: ${this.getPhaseLabel(now)}`,
-      `Team: ${this.matchFlow.state.selectedTeam ?? "UNSET"}`,
-      `Spawn: ${this.lastSpawnSummary}`,
-      `Player Health: ${this.playerLogic.state.health}/${this.playerLogic.state.maxHealth}`,
-      `Dummy Health: ${this.dummyLogic.state.health}/${this.dummyLogic.state.maxHealth}`,
-      `Movement Mode: ${this.playerLogic.state.isSprinting ? "Sprint" : "Walk"} (${this.playerLogic.state.lastAppliedSpeed.toFixed(0)})`,
-      `Round Start Timer: ${this.getRoundStartStatus(now)}`,
-      `Round Reset Timer: ${this.roundResetAtMs === null ? "READY" : Math.max(0, this.roundResetAtMs - now).toFixed(0)}`,
-      `Gate State: ${this.gate.open ? "OPEN" : "CLOSED"}`,
-      `Hazard Damage: ${this.gameBalance.hazardDamage} / ${this.gameBalance.hazardTickMs} ms`,
-      `Ammo Pickup Timer: ${this.getPickupStatus(now)}`,
-      `Health Pickup Timer: ${this.getHealthPickupStatus(now)}`,
-      `Dummy AI Mode: ${this.lastDummyDecision.toUpperCase()}`,
-      `Movement Blocked: ${playerBlocked ? "YES" : "NO"}`
-    ]);
-    const activeWeapon = this.getActiveWeaponSlot();
-    this.combatText.setText([
-      `Round Number: ${this.roundLogic.state.roundNumber}`,
-      `Score: Player ${this.roundLogic.state.playerScore} / Dummy ${this.roundLogic.state.dummyScore} / Target ${this.roundLogic.state.scoreToWin}`,
-      `Weapon Slot: ${this.weaponInventory.getActiveIndex() + 1}`,
-      `Weapon Name: ${activeWeapon.label}`,
-      `Magazine Ammo: ${activeWeapon.logic.getAmmoInMagazine(now)}/${activeWeapon.logic.getMagazineSize()}`,
-      `Reserve Ammo: ${activeWeapon.logic.getReserveAmmo(now)}`,
-      `Fire Cooldown: ${activeWeapon.logic.getCooldownRemaining(now).toFixed(0)} ms`,
-      `Reload Timer: ${activeWeapon.logic.getReloadRemaining(now).toFixed(0)} ms`,
-      `Combat Event: ${this.lastCombatEvent}`,
-      `Sound Cue: ${this.lastSoundCue}`,
-      `Round Result: ${this.roundLogic.state.lastResult}`,
-      `Match Result: ${this.roundLogic.state.matchWinner ?? "IN PROGRESS"}`
-    ]);
+    this.publishHudSnapshot(now, playerBlocked);
   }
 
   public getDebugSnapshot(): MainSceneDebugSnapshot {
     const activeWeapon = this.getActiveWeaponSlot();
 
     return {
-      phase: this.getPhaseLabel(this.time.now),
+      phase: getPhaseLabel(this.matchFlow.state.phase, this.roundLogic.state.isMatchOver, this.isRoundStarting(this.time.now)),
       team: this.matchFlow.state.selectedTeam ?? "UNSET",
       spawn: this.lastSpawnSummary,
       activeWeapon: activeWeapon.label,
@@ -477,6 +468,16 @@ export class MainScene extends Phaser.Scene {
       dummyScore: this.roundLogic.state.dummyScore,
       lastEvent: this.lastCombatEvent
     };
+  }
+
+  public getHudSnapshot(now = this.time.now, movementBlocked = false): HudSnapshot {
+    return buildHudSnapshot(this.createHudPresenterInput(now, movementBlocked), this.overlayState);
+  }
+
+  private publishHudSnapshot(now: number, movementBlocked: boolean): void {
+    window.dispatchEvent(new CustomEvent<HudSnapshot>(HUD_SNAPSHOT_EVENT, {
+      detail: this.getHudSnapshot(now, movementBlocked)
+    }));
   }
 
   public debugEnterStage(): void {
@@ -545,16 +546,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   public debugMovePlayerTo(x: number, y: number): void {
-    this.playerLogic.state.positionX = x - 120;
-    this.playerLogic.state.positionY = y - 120;
+    this.playerLogic.state.positionX = x - MainScene.ACTOR_HALF_SIZE;
+    this.playerLogic.state.positionY = y - MainScene.ACTOR_HALF_SIZE;
     this.playerSprite.setPosition(x, y);
   }
 
   public debugToggleGate(): void {
-    this.gate.open = !this.gate.open;
-    this.gate.sprite.setAlpha(this.gate.open ? 0.22 : 1);
-    this.gate.sprite.setFillStyle(this.gate.open ? 0x6a7f91 : 0xf4a261, this.gate.open ? 0.22 : 1);
-    this.lastCombatEvent = this.gate.open ? "GATE OPENED" : "GATE CLOSED";
+    this.applyGateToggle();
   }
 
   private handleStageFlow(now: number): void {
@@ -562,40 +560,35 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (this.matchFlow.state.phase === "stage-entry") {
-      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm)) {
-        this.matchFlow.enterStage();
-        this.matchFlow.previewTeam("BLUE");
-        this.lastCombatEvent = "SELECT TEAM: 1 BLUE / 2 RED";
-      }
+    const decision = resolveStageFlow({
+      phase: this.matchFlow.state.phase,
+      selectedTeam: this.matchFlow.state.selectedTeam,
+      confirmPressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm),
+      selectBluePressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) || Phaser.Input.Keyboard.JustDown(this.cursors!.left),
+      selectRedPressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) || Phaser.Input.Keyboard.JustDown(this.cursors!.right),
+      roundStarting: this.isRoundStarting(now)
+    });
 
-      return;
+    if (decision.enterStage) {
+      this.matchFlow.enterStage();
     }
 
-    if (this.matchFlow.state.phase === "team-select") {
-      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) || Phaser.Input.Keyboard.JustDown(this.cursors!.left)) {
-        this.matchFlow.previewTeam("BLUE");
-        this.lastCombatEvent = "TEAM PREVIEW BLUE";
-      }
-
-      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) || Phaser.Input.Keyboard.JustDown(this.cursors!.right)) {
-        this.matchFlow.previewTeam("RED");
-        this.lastCombatEvent = "TEAM PREVIEW RED";
-      }
-
-      if (Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm) && this.matchFlow.state.selectedTeam !== null) {
-        this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
-        this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
-        this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
-        this.lastCombatEvent = `DEPLOYING ${this.matchFlow.state.selectedTeam}`;
-      }
-
-      return;
+    if (decision.previewTeam !== null) {
+      this.matchFlow.previewTeam(decision.previewTeam);
     }
 
-    if (this.matchFlow.state.phase === "deploying" && !this.isRoundStarting(now)) {
+    if (decision.confirmDeployment) {
+      this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
+      this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
+      this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
+    }
+
+    if (decision.startCombat) {
       this.matchFlow.startCombat();
-      this.lastCombatEvent = "COMBAT LIVE";
+    }
+
+    if (decision.combatEvent !== null) {
+      this.lastCombatEvent = decision.combatEvent;
     }
   }
 
@@ -603,48 +596,24 @@ export class MainScene extends Phaser.Scene {
     return this.matchFlow.state.phase === "combat-live" && !this.isRoundStarting(now);
   }
 
-  private getPhaseLabel(now: number): string {
-    if (this.roundLogic.state.isMatchOver) {
-      return "MATCH OVER";
-    }
-
-    if (this.matchFlow.state.phase === "combat-live" && this.isRoundStarting(now)) {
-      return "ROUND START";
-    }
-
-    switch (this.matchFlow.state.phase) {
-      case "stage-entry":
-        return "STAGE ENTRY";
-      case "team-select":
-        return "TEAM SELECT";
-      case "deploying":
-        return "DEPLOYING";
-      case "combat-live":
-        return "COMBAT LIVE";
-      case "match-over":
-        return "MATCH RESET";
-      default:
-        return "UNKNOWN";
-    }
-  }
-
   private applySpawnAssignment(assignment: SpawnAssignment): void {
-    this.playerLogic.reset(assignment.playerSpawn.x - 120, assignment.playerSpawn.y - 120);
-    this.dummyLogic.reset(assignment.dummySpawn.x - 120, assignment.dummySpawn.y - 120);
-    this.playerSprite.setPosition(assignment.playerSpawn.x, assignment.playerSpawn.y);
-    this.playerSprite.setRotation(0);
-    this.targetDummy.setPosition(assignment.dummySpawn.x, assignment.dummySpawn.y);
-    this.targetDummy.setRotation(Math.PI);
-    this.lastSpawnSummary = `${assignment.playerSpawn.label} vs ${assignment.dummySpawn.label}`;
+    const deployment = createDeploymentViewState(assignment);
+    this.playerLogic.reset(assignment.playerSpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.playerSpawn.y - MainScene.ACTOR_HALF_SIZE);
+    this.dummyLogic.reset(assignment.dummySpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.dummySpawn.y - MainScene.ACTOR_HALF_SIZE);
+    this.playerSprite.setPosition(deployment.playerPositionX, deployment.playerPositionY);
+    this.playerSprite.setRotation(deployment.playerRotation);
+    this.targetDummy.setPosition(deployment.dummyPositionX, deployment.dummyPositionY);
+    this.targetDummy.setRotation(deployment.dummyRotation);
+    this.lastSpawnSummary = deployment.spawnSummary;
     this.clearBullets();
     this.resetPickupState();
-    this.gate.open = false;
+    this.gate.open = deployment.gateOpen;
     this.gate.sprite.setAlpha(1);
     this.gate.sprite.setFillStyle(0xf4a261, 1);
   }
 
   private handleReload(now: number): void {
-    if (!this.isCombatLive(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now)) {
+    if (!canPlayerReload(this.getCombatAvailability(now))) {
       return;
     }
 
@@ -661,7 +630,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleReloadInterrupt(now: number): void {
-    if (!this.isCombatLive(now) || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.moveKeys === undefined) {
+    if (!canInterruptReload(this.getCombatAvailability(now)) || this.moveKeys === undefined) {
       return;
     }
 
@@ -677,14 +646,7 @@ export class MainScene extends Phaser.Scene {
   private handleFire(now: number): void {
     const firePressed = this.input.activePointer.leftButtonDown() || this.moveKeys?.fire.isDown === true;
 
-    if (
-      !firePressed ||
-      this.dummyLogic.isDead() ||
-      this.playerLogic.isDead() ||
-      this.roundLogic.state.isMatchOver ||
-      !this.isCombatLive(now) ||
-      this.playerLogic.isStunned(now)
-    ) {
+    if (!firePressed || !canPlayerFire(this.getCombatAvailability(now))) {
       return;
     }
 
@@ -728,21 +690,30 @@ export class MainScene extends Phaser.Scene {
         velocityX: Math.cos(angle) * bulletSpeed,
         velocityY: Math.sin(angle) * bulletSpeed,
         damage,
-        owner: "player"
+        owner: "player",
+        effectProfile: activeWeapon.id === "scatter" ? "scatter" : "carbine"
       });
     }
 
     const muzzleAngle = this.playerLogic.state.aimAngleRadians;
+    const muzzleProfile = activeWeapon.id === "scatter"
+      ? { radius: 14, color: 0xffb86c, durationMs: 110 }
+      : { radius: 8, color: 0xfff27a, durationMs: 70 };
+
+    this.muzzleFlash
+      .setRadius(muzzleProfile.radius)
+      .setFillStyle(muzzleProfile.color, 0.92)
+      .setScale(1);
     this.muzzleFlash.setPosition(
       this.playerSprite.x + Math.cos(muzzleAngle) * 28,
       this.playerSprite.y + Math.sin(muzzleAngle) * 28
     );
     this.muzzleFlash.setVisible(true);
-    this.muzzleFlashUntilMs = this.time.now + 70;
+    this.muzzleFlashUntilMs = this.time.now + muzzleProfile.durationMs;
   }
 
   private handleDummyFire(now: number): void {
-    if (this.dummyLogic.isDead() || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
+    if (!canDummyFire(this.getCombatAvailability(now))) {
       return;
     }
 
@@ -764,40 +735,42 @@ export class MainScene extends Phaser.Scene {
       velocityX: Math.cos(this.dummyLogic.state.aimAngleRadians) * attempt.bulletSpeed,
       velocityY: Math.sin(this.dummyLogic.state.aimAngleRadians) * attempt.bulletSpeed,
       damage: attempt.damage,
-      owner: "dummy"
+      owner: "dummy",
+      effectProfile: "dummy"
     });
     this.emitSoundCue({ kind: "fire", weaponId: "generic" });
   }
 
   private handleWeaponSwitch(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(this.time.now)) {
+    if (this.moveKeys === undefined || !canPlayerUseCombatInteraction(this.getCombatAvailability(this.time.now))) {
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) && this.weaponInventory.selectSlot(0)) {
-      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
-      this.lastCombatEvent = `EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1)) {
+      this.tryEquipSlot(0, "EQUIPPED");
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) && this.weaponInventory.selectSlot(1)) {
-      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
-      this.lastCombatEvent = `EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2)) {
+      this.tryEquipSlot(1, "EQUIPPED");
       return;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.moveKeys.swap)) {
       const nextIndex = (this.weaponInventory.getActiveIndex() + 1) % this.weaponSlots.length;
+      this.tryEquipSlot(nextIndex, "SWAPPED TO");
+    }
+  }
 
-      if (this.weaponInventory.selectSlot(nextIndex)) {
-        this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
-        this.lastCombatEvent = `SWAPPED TO ${this.getActiveWeaponSlot().label.toUpperCase()}`;
-      }
+  private tryEquipSlot(slotIndex: number, eventPrefix: string): void {
+    if (this.weaponInventory.selectSlot(slotIndex)) {
+      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
+      this.lastCombatEvent = `${eventPrefix} ${this.getActiveWeaponSlot().label.toUpperCase()}`;
     }
   }
 
   private handleGateInteraction(): void {
-    if (this.moveKeys === undefined || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || !this.isCombatLive(this.time.now)) {
+    if (this.moveKeys === undefined || !canPlayerUseCombatInteraction(this.getCombatAvailability(this.time.now))) {
       return;
     }
 
@@ -812,20 +785,24 @@ export class MainScene extends Phaser.Scene {
       this.gate.bounds.y + this.gate.bounds.height / 2
     );
 
-    if (distanceToGate > 92) {
+    if (!isGateInteractionAllowed(distanceToGate, 92)) {
       this.lastCombatEvent = "GATE TOO FAR";
       return;
     }
 
+    this.applyGateToggle();
+    this.emitSoundCue({ kind: "gate", action: this.gate.open ? "open" : "close" });
+  }
+
+  private applyGateToggle(): void {
     this.gate.open = !this.gate.open;
     this.gate.sprite.setAlpha(this.gate.open ? 0.22 : 1);
     this.gate.sprite.setFillStyle(this.gate.open ? 0x6a7f91 : 0xf4a261, this.gate.open ? 0.22 : 1);
     this.lastCombatEvent = this.gate.open ? "GATE OPENED" : "GATE CLOSED";
-    this.emitSoundCue({ kind: "gate", action: this.gate.open ? "open" : "close" });
   }
 
   private handleHazardZone(now: number): void {
-    if (this.roundLogic.state.isMatchOver || !this.isCombatLive(now)) {
+    if (!canApplyHazard(this.getCombatAvailability(now))) {
       return;
     }
 
@@ -854,14 +831,24 @@ export class MainScene extends Phaser.Scene {
     }
 
     actorLogic.takeDamage(tick.damage, Math.floor(this.gameBalance.hitStunMs / 2), now);
-    this.lastCombatEvent = `${actorId.toUpperCase()} HAZARD -${tick.damage}`;
+    const hazardResolution = resolveHazardOutcome({
+      actorId,
+      triggered: tick.triggered,
+      damage: tick.damage,
+      actorDied: actorLogic.isDead()
+    });
+
+    if (hazardResolution.combatEvent !== null) {
+      this.lastCombatEvent = hazardResolution.combatEvent;
+    }
+
     this.emitSoundCue({ kind: "hazard", source: "vent" });
 
-    if (!actorLogic.isDead()) {
+    if (hazardResolution.roundWinner === null) {
       return;
     }
 
-    if (actorId === "player") {
+    if (hazardResolution.roundWinner === "DUMMY") {
       this.roundLogic.registerDummyWin();
     } else {
       this.roundLogic.registerPlayerWin();
@@ -871,81 +858,135 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateBullets(deltaSeconds: number): void {
+    const activeObstacles = this.getActiveObstacles();
+    const dummyAlive = !this.dummyLogic.isDead();
+    const playerAlive = !this.playerLogic.isDead();
+    const dummyBounds = dummyAlive ? this.targetDummy.getBounds() : null;
+    const playerBounds = playerAlive ? this.playerSprite.getBounds() : null;
+
     for (let index = this.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.bullets[index];
-      bullet.sprite.x += bullet.velocityX * deltaSeconds;
-      bullet.sprite.y += bullet.velocityY * deltaSeconds;
+      const frame = evaluateProjectileFrame({
+        projectile: {
+          x: bullet.sprite.x,
+          y: bullet.sprite.y,
+          width: bullet.sprite.width,
+          height: bullet.sprite.height,
+          velocityX: bullet.velocityX,
+          velocityY: bullet.velocityY,
+          owner: bullet.owner
+        },
+        deltaSeconds,
+        arenaWidth: 960,
+        arenaHeight: 540,
+        obstacles: activeObstacles.map((obstacle) => obstacle.bounds),
+        playerBounds: playerBounds === null
+          ? null
+          : createCenteredRect(playerBounds.centerX, playerBounds.centerY, playerBounds.width, playerBounds.height),
+        dummyBounds: dummyBounds === null
+          ? null
+          : createCenteredRect(dummyBounds.centerX, dummyBounds.centerY, dummyBounds.width, dummyBounds.height)
+      });
 
-      const outOfBounds = bullet.sprite.x < 0 || bullet.sprite.x > 960 || bullet.sprite.y < 0 || bullet.sprite.y > 540;
-      const hitObstacle = this.getActiveObstacles().some((obstacle) =>
-        intersectsRect(
-          createCenteredRect(bullet.sprite.x, bullet.sprite.y, bullet.sprite.width, bullet.sprite.height),
-          obstacle.bounds
-        )
-      );
-      const hitDummy = !this.dummyLogic.isDead() && Phaser.Geom.Intersects.RectangleToRectangle(
-        bullet.sprite.getBounds(),
-        this.targetDummy.getBounds()
-      );
-      const hitPlayer = !this.playerLogic.isDead() && Phaser.Geom.Intersects.RectangleToRectangle(
-        bullet.sprite.getBounds(),
-        this.playerSprite.getBounds()
-      );
+      bullet.sprite.x = frame.nextX;
+      bullet.sprite.y = frame.nextY;
 
-      if (hitDummy && bullet.owner === "player") {
+      if (frame.hitDummy && bullet.owner === "player") {
         this.dummyLogic.takeDamage(bullet.damage);
-        this.lastCombatEvent = this.dummyLogic.isDead() ? "TARGET DOWN" : `HIT ${bullet.damage}`;
-        this.emitSoundCue({ kind: "hit", target: "dummy" });
-
-        if (this.dummyLogic.isDead()) {
-          this.roundLogic.registerPlayerWin();
-          this.scheduleResetAfterRound(this.time.now);
-        }
       }
 
-      if (hitPlayer && bullet.owner === "dummy") {
+      if (frame.hitPlayer && bullet.owner === "dummy") {
         this.playerLogic.takeDamage(bullet.damage, this.gameBalance.hitStunMs, this.time.now);
-        this.lastCombatEvent = this.playerLogic.isDead() ? "PLAYER DOWN" : `STUNNED ${bullet.damage}`;
-        this.emitSoundCue({ kind: "hit", target: "player" });
-
-        if (this.playerLogic.isDead()) {
-          this.roundLogic.registerDummyWin();
-          this.scheduleResetAfterRound(this.time.now);
-        }
       }
 
-      if (hitObstacle) {
-        this.lastCombatEvent = "SHOT BLOCKED";
+      const bulletResolution = resolveBulletCollision({
+        owner: bullet.owner,
+        hitDummy: frame.hitDummy,
+        hitPlayer: frame.hitPlayer,
+        hitObstacle: frame.hitObstacle,
+        outOfBounds: frame.outOfBounds,
+        damage: bullet.damage,
+        targetDied: bullet.owner === "player" ? this.dummyLogic.isDead() : this.playerLogic.isDead()
+      });
+
+      if (bulletResolution.combatEvent !== null) {
+        this.lastCombatEvent = bulletResolution.combatEvent;
       }
 
-      if (outOfBounds || hitDummy || hitPlayer || hitObstacle) {
+      if (bulletResolution.soundTarget !== null) {
+        this.emitSoundCue({ kind: "hit", target: bulletResolution.soundTarget });
+      }
+
+      if (bulletResolution.roundWinner === "PLAYER") {
+        this.roundLogic.registerPlayerWin();
+        this.scheduleResetAfterRound(this.time.now);
+      } else if (bulletResolution.roundWinner === "DUMMY") {
+        this.roundLogic.registerDummyWin();
+        this.scheduleResetAfterRound(this.time.now);
+      }
+
+      if (frame.hitObstacle) {
+        this.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
+      }
+
+      if (bulletResolution.destroyBullet) {
         bullet.sprite.destroy();
         this.bullets.splice(index, 1);
       }
     }
   }
 
-  private updateDummyVisuals(now: number): void {
-    const healthRatio = this.dummyLogic.state.health / this.dummyLogic.state.maxHealth;
-    const fill = Phaser.Display.Color.Interpolate.ColorWithColor(
-      Phaser.Display.Color.ValueToColor(0x4f1717),
-      Phaser.Display.Color.ValueToColor(0xffffff),
-      100,
-      Math.round(healthRatio * 100)
-    );
+  private spawnImpactEffect(x: number, y: number, profile: "carbine" | "scatter" | "dummy"): void {
+    const fxProfile = profile === "scatter"
+      ? { flashRadius: 9, ringRadius: 15, flashColor: 0xffb86c, ringColor: 0xffd7ad, durationMs: 150 }
+      : profile === "dummy"
+        ? { flashRadius: 6, ringRadius: 10, flashColor: 0xff9c9c, ringColor: 0xffd1d1, durationMs: 110 }
+        : { flashRadius: 6, ringRadius: 10, flashColor: 0xffd27a, ringColor: 0xfff0b3, durationMs: 110 };
+    const flash = this.add.circle(x, y, fxProfile.flashRadius, fxProfile.flashColor, 0.85).setDepth(9);
+    const ring = this.add
+      .circle(x, y, fxProfile.ringRadius, fxProfile.ringColor, 0)
+      .setDepth(9)
+      .setStrokeStyle(profile === "scatter" ? 3 : 2, fxProfile.ringColor, 0.9);
 
-    this.targetDummy.setTint(Phaser.Display.Color.GetColor(fill.r, fill.g, fill.b));
-    this.targetDummy.setAlpha(this.dummyLogic.isDead() ? 0.35 : 1);
-    const respawnScale = this.getRespawnFxScale(now);
-    this.targetDummy.setScale(
-      this.dummyLogic.isDead()
-        ? 0.82
-        : this.lastDummyDecision === "flank"
-          ? 1.06 * respawnScale
-          : this.lastDummyDecision === "avoid-hazard"
-            ? 1.12 * respawnScale
-            : respawnScale
-    );
+    this.impactEffects.push({
+      flash,
+      ring,
+      expiresAtMs: this.time.now + fxProfile.durationMs,
+      durationMs: fxProfile.durationMs
+    });
+  }
+
+  private updateImpactEffects(now: number): void {
+    for (let index = this.impactEffects.length - 1; index >= 0; index -= 1) {
+      const effect = this.impactEffects[index];
+      const remainingMs = effect.expiresAtMs - now;
+
+      if (remainingMs <= 0) {
+        effect.flash.destroy();
+        effect.ring.destroy();
+        this.impactEffects.splice(index, 1);
+        continue;
+      }
+
+      const progress = 1 - remainingMs / effect.durationMs;
+      effect.flash.setAlpha(0.85 - progress * 0.75);
+      effect.flash.setScale(1 + progress * 0.45);
+      effect.ring.setAlpha(0.95 - progress * 0.8);
+      effect.ring.setScale(0.75 + progress * 0.8);
+    }
+  }
+
+  private updateDummyVisuals(now: number): void {
+    const visual = getDummyVisualState({
+      isDead: this.dummyLogic.isDead(),
+      healthRatio: this.dummyLogic.state.health / this.dummyLogic.state.maxHealth,
+      decision: this.lastDummyDecision === "avoid-hazard" ? "avoid-hazard" : this.lastDummyDecision,
+      respawnFxScale: this.getRespawnFxState(now).scale
+    });
+
+    this.targetDummy.setTint(visual.tint);
+    this.targetDummy.setAlpha(visual.alpha);
+    this.targetDummy.setScale(visual.scale);
   }
 
   private updateCoverPointVisuals(): void {
@@ -960,24 +1001,17 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updatePlayerVisuals(now: number): void {
-    if (this.playerLogic.isDead()) {
-      this.playerSprite.setTint(0x5a6a75);
-      this.playerSprite.setAlpha(0.35);
-      this.playerSprite.setScale(0.82);
-      return;
-    }
+    const visual = getPlayerVisualState({
+      isDead: this.playerLogic.isDead(),
+      isStunned: this.playerLogic.isStunned(now),
+      isSprinting: this.playerLogic.state.isSprinting,
+      muzzleFlashActive: now < this.muzzleFlashUntilMs,
+      respawnFx: this.getRespawnFxState(now)
+    });
 
-    if (this.playerLogic.isStunned(now)) {
-      this.playerSprite.setTint(0xfff27a);
-      this.playerSprite.setAlpha(1);
-      this.playerSprite.setScale(0.94);
-      return;
-    }
-
-    this.playerSprite.setTint(0xffffff);
-    this.playerSprite.setAlpha(this.getRespawnFxAlpha(now));
-    const flashScale = now < this.muzzleFlashUntilMs ? 1.04 : 1;
-    this.playerSprite.setScale((this.playerLogic.state.isSprinting ? 1.08 : 1) * this.getRespawnFxScale(now) * flashScale);
+    this.playerSprite.setTint(visual.tint);
+    this.playerSprite.setAlpha(visual.alpha);
+    this.playerSprite.setScale(visual.scale);
   }
 
   private updateCrosshair(now: number): void {
@@ -1026,10 +1060,10 @@ export class MainScene extends Phaser.Scene {
       deltaSeconds,
       now
     );
-    this.dummyLogic.updateAim(this.playerSprite.x - 120, this.playerSprite.y - 120, now);
+    this.dummyLogic.updateAim(this.playerSprite.x - MainScene.ACTOR_HALF_SIZE, this.playerSprite.y - MainScene.ACTOR_HALF_SIZE, now);
 
-    let dummyCenterX = Phaser.Math.Clamp(this.dummyLogic.state.positionX + 120, 40, 920);
-    let dummyCenterY = Phaser.Math.Clamp(this.dummyLogic.state.positionY + 120, 40, 500);
+    let dummyCenterX = Phaser.Math.Clamp(this.dummyLogic.state.positionX + MainScene.ACTOR_HALF_SIZE, 40, 920);
+    let dummyCenterY = Phaser.Math.Clamp(this.dummyLogic.state.positionY + MainScene.ACTOR_HALF_SIZE, 40, 500);
     const blocked = this.resolveActorObstacleCollision(
       dummyCenterX,
       dummyCenterY,
@@ -1040,8 +1074,8 @@ export class MainScene extends Phaser.Scene {
     );
 
     if (blocked) {
-      dummyCenterX = previousX + 120;
-      dummyCenterY = previousY + 120;
+      dummyCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
+      dummyCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
       this.lastDummyDecision = "strafe";
     }
 
@@ -1090,45 +1124,61 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateMatchOverlay(now: number): void {
-    if (this.matchFlow.state.phase === "stage-entry") {
-      this.overlayTitle.setText("ENTER STAGE");
-      this.overlaySubtitle.setText("Press ENTER to open team selection.");
-      this.setOverlayVisible(true);
-      return;
-    }
+    const overlayResult = buildMatchOverlayState(this.createHudPresenterInput(now, false));
 
-    if (this.matchFlow.state.phase === "team-select") {
-      const selectedTeam = this.matchFlow.state.selectedTeam ?? "BLUE";
-      this.overlayTitle.setText(`TEAM ${selectedTeam}`);
-      this.overlaySubtitle.setText("Press 1 for BLUE or 2 for RED, then ENTER to deploy.");
-      this.setOverlayVisible(true);
-      return;
-    }
-
-    if (!this.roundLogic.state.isMatchOver && this.isRoundStarting(now)) {
-      this.overlayTitle.setText(`ROUND ${this.roundLogic.state.roundNumber}`);
-      this.overlaySubtitle.setText(`Deploy complete. Combat starts in ${this.getRoundStartStatus(now)} ms.`);
-      this.setOverlayVisible(true);
-      return;
-    }
-
-    if (!this.roundLogic.state.isMatchOver || this.matchConfirmAtMs === null) {
-      this.setOverlayVisible(false);
-      return;
-    }
-
-    const remainingMs = Math.max(0, this.matchConfirmAtMs - now).toFixed(0);
-    const confirmText = now >= this.matchConfirmAtMs ? "Press ENTER to start the next match." : `Confirm unlock in ${remainingMs} ms`;
-
-    if (now >= this.matchConfirmAtMs && !this.matchConfirmReadyCueSent) {
+    if (overlayResult.shouldEmitMatchConfirmReadyCue) {
       this.emitSoundCue({ kind: "match-confirm", action: "ready" });
       this.matchConfirmReadyCueSent = true;
+    }
+
+    if (overlayResult.shouldEnterMatchOver) {
       this.matchFlow.enterMatchOver();
     }
 
-    this.overlayTitle.setText(`${this.roundLogic.state.matchWinner ?? "MATCH"} VICTORY`);
-    this.overlaySubtitle.setText(`${confirmText} Team selection will reopen for the next match.`);
-    this.setOverlayVisible(true);
+    this.overlayState = overlayResult.overlay;
+  }
+
+  private createHudPresenterInput(now: number, movementBlocked: boolean): HudPresenterInput {
+    const activeWeapon = this.getActiveWeaponSlot();
+
+    return {
+      now,
+      matchFlow: this.matchFlow.state,
+      round: this.roundLogic.state,
+      combat: {
+        selectedTeam: this.matchFlow.state.selectedTeam,
+        spawnSummary: this.lastSpawnSummary,
+        activeWeapon: activeWeapon.label,
+        weaponSlot: this.weaponInventory.getActiveIndex() + 1,
+        ammoInMagazine: activeWeapon.logic.getAmmoInMagazine(now),
+        reserveAmmo: activeWeapon.logic.getReserveAmmo(now),
+        playerHealth: this.playerLogic.state.health,
+        playerMaxHealth: this.playerLogic.state.maxHealth,
+        dummyHealth: this.dummyLogic.state.health,
+        dummyMaxHealth: this.dummyLogic.state.maxHealth,
+        gateOpen: this.gate.open,
+        lastEvent: this.lastCombatEvent,
+        lastSoundCue: this.lastSoundCue,
+        movementMode: this.playerLogic.state.isSprinting ? "Sprint" : "Walk",
+        movementBlocked,
+        roundStartLabel: this.getRoundStartStatus(now),
+        ammoPickupLabel: this.getPickupStatus(now),
+        healthPickupLabel: this.getHealthPickupStatus(now)
+      },
+      isRoundStarting: this.isRoundStarting(now),
+      matchConfirmAtMs: this.matchConfirmAtMs,
+      matchConfirmReadyCueSent: this.matchConfirmReadyCueSent
+    };
+  }
+
+  private getCombatAvailability(now: number) {
+    return {
+      isCombatLive: this.isCombatLive(now),
+      isPlayerDead: this.playerLogic.isDead(),
+      isDummyDead: this.dummyLogic.isDead(),
+      isMatchOver: this.roundLogic.state.isMatchOver,
+      isPlayerStunned: this.playerLogic.isStunned(now)
+    };
   }
 
   private handleAmmoPickup(now: number): void {
@@ -1196,18 +1246,29 @@ export class MainScene extends Phaser.Scene {
   }
 
   private scheduleResetAfterRound(now: number): void {
-    this.clearBullets();
+    const plan = planRoundReset({
+      isMatchOver: this.roundLogic.state.isMatchOver,
+      matchWinner: this.roundLogic.state.matchWinner,
+      now,
+      matchResetDelayMs: this.gameBalance.matchResetDelayMs,
+      respawnDelayMs: MainScene.RESPAWN_DELAY_MS
+    });
 
-    if (this.roundLogic.state.isMatchOver) {
-      this.matchConfirmAtMs = now + this.gameBalance.matchResetDelayMs;
-      this.matchConfirmReadyCueSent = false;
-      this.roundResetAtMs = null;
-      this.lastCombatEvent = `${this.roundLogic.state.matchWinner ?? "MATCH"} LOCKED`;
-      return;
+    if (plan.clearBullets) {
+      this.clearBullets();
     }
 
-    if (this.roundResetAtMs === null) {
-      this.roundResetAtMs = now + MainScene.RESPAWN_DELAY_MS;
+    this.matchConfirmReadyCueSent = plan.matchConfirmReadyCueSent;
+    this.matchConfirmAtMs = plan.matchConfirmAtMs;
+
+    if (plan.roundResetAtMs !== null && this.roundResetAtMs === null) {
+      this.roundResetAtMs = plan.roundResetAtMs;
+    } else if (plan.roundResetAtMs === null) {
+      this.roundResetAtMs = null;
+    }
+
+    if (plan.combatEvent !== null) {
+      this.lastCombatEvent = plan.combatEvent;
     }
   }
 
@@ -1238,6 +1299,13 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.bullets.length = 0;
+
+    for (const effect of this.impactEffects) {
+      effect.flash.destroy();
+      effect.ring.destroy();
+    }
+
+    this.impactEffects.length = 0;
   }
 
   private resetPickupState(): void {
@@ -1313,28 +1381,8 @@ export class MainScene extends Phaser.Scene {
     return Math.max(0, this.respawnFxUntilMs - now).toFixed(0);
   }
 
-  private getRespawnFxAlpha(now: number): number {
-    if (now >= this.respawnFxUntilMs) {
-      return 1;
-    }
-
-    const progress = 1 - Math.max(0, this.respawnFxUntilMs - now) / MainScene.RESPAWN_FX_MS;
-    return 0.68 + progress * 0.32;
-  }
-
-  private getRespawnFxScale(now: number): number {
-    if (now >= this.respawnFxUntilMs) {
-      return 1;
-    }
-
-    const progress = 1 - Math.max(0, this.respawnFxUntilMs - now) / MainScene.RESPAWN_FX_MS;
-    return 1.18 - progress * 0.18;
-  }
-
-  private setOverlayVisible(visible: boolean): void {
-    this.overlayPanel.setVisible(visible);
-    this.overlayTitle.setVisible(visible);
-    this.overlaySubtitle.setVisible(visible);
+  private getRespawnFxState(now: number) {
+    return getRespawnFxState(now, this.respawnFxUntilMs, MainScene.RESPAWN_FX_MS);
   }
 
   private addObstacle(x: number, y: number, width: number, height: number, color: number): void {

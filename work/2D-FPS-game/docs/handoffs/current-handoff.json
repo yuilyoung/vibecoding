@@ -1,0 +1,47 @@
+{
+  "id": "visual-upgrade-direction",
+  "timestamp": "2026-04-09",
+  "from": "vision",
+  "to": "ultron",
+  "status": "pending-after-refactor",
+  "scope": "FPS 게임 비주얼 업그레이드 방향성 — 리팩토링 완료 후 적용",
+  "constraints": [
+    "현재 게임 방식(탑다운, 실시간, 팀전) 유지 — 턴제 전환 아님",
+    "벤치마크: 브롤스타즈 (실시간 팀전 슈터), 비주얼 품질: 웜즈/포트리스급",
+    "현재 모든 비주얼이 코드 생성 도형(rectangle/circle 14개) — 이미지 에셋 0개",
+    "Phaser 엔진(2D) 유지, 3D 전환 없음",
+    "무료 에셋 사용 (CC0/CC-BY 라이선스, Kenney.nl / itch.io / OpenGameArt)"
+  ],
+  "files": [
+    "work/2D-FPS-game/src/scenes/MainScene.ts — 도형 → 스프라이트 교체 대상",
+    "work/2D-FPS-game/assets/ — 에셋 디렉토리 (현재 비어있음)",
+    "work/2D-FPS-game/assets/data/game-balance.json — actorSkinSource/spritesheet 설정"
+  ],
+  "acceptance": [
+    "코드 생성 도형(rectangle/circle)이 실제 이미지 스프라이트로 교체됨",
+    "캐릭터, 무기/탄환, 맵 타일, 이펙트, UI가 게임다운 비주얼을 가짐",
+    "기존 게임 로직(이동, 전투, 라운드, 매치플로우)이 정상 동작"
+  ],
+  "assetPlan": {
+    "priority1_critical": [
+      "캐릭터 스프라이트시트 (플레이어/적 — 이동, 조준, 피격, 사망 애니메이션)",
+      "무기/탄환 스프라이트 + 머즐 플래시 이펙트",
+      "맵 타일셋 (바닥, 벽, 장애물)"
+    ],
+    "priority2_high": [
+      "이펙트 파티클 (폭발, 피격, 리스폰, 해저드)",
+      "UI 요소 (HP바, 탄약 아이콘, 팀 표시, 스코어보드)"
+    ],
+    "priority3_medium": [
+      "아레나 배경 (레이어드)",
+      "픽업 아이템 아이콘 (탄약, 체력)",
+      "게이트 개폐 애니메이션"
+    ],
+    "recommendedSources": [
+      "Kenney.nl — Topdown Shooter, Topdown Tanks, Particle Pack, UI Pack (CC0)",
+      "itch.io — 'top down shooter sprites' 검색 (무료 번들 다수)",
+      "OpenGameArt.org — 2D 탑다운 슈터 에셋 (CC0/CC-BY)"
+    ]
+  },
+  "notes": "울트론 리팩토링 완료 후 이 방향성을 기반으로 에셋 조사 → 에셋 교체 개발 착수. 사용자는 현재 도형만 있는 상태에서 흥미가 떨어진다고 피드백함. 비주얼 품질 개선이 최우선 과제."
+}

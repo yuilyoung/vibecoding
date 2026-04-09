@@ -53,13 +53,7 @@ export class MatchFlowLogic {
   }
 
   public confirmTeamSelection(spawns: SpawnTable, rng = Math.random): SpawnAssignment {
-    if (this.state.selectedTeam === null) {
-      throw new Error("MatchFlowLogic requires a selected team before deployment.");
-    }
-
-    this.state.phase = "deploying";
-    this.state.deploymentCount += 1;
-    return this.createAssignment(this.state.selectedTeam, spawns, rng);
+    return this.deployToSpawns(spawns, rng, "MatchFlowLogic requires a selected team before deployment.");
   }
 
   public startCombat(): boolean {
@@ -82,8 +76,12 @@ export class MatchFlowLogic {
   }
 
   public redeploy(spawns: SpawnTable, rng = Math.random): SpawnAssignment {
+    return this.deployToSpawns(spawns, rng, "MatchFlowLogic cannot redeploy without a selected team.");
+  }
+
+  private deployToSpawns(spawns: SpawnTable, rng: () => number, errorMessage: string): SpawnAssignment {
     if (this.state.selectedTeam === null) {
-      throw new Error("MatchFlowLogic cannot redeploy without a selected team.");
+      throw new Error(errorMessage);
     }
 
     this.state.phase = "deploying";

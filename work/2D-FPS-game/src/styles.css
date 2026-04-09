@@ -1,10 +1,23 @@
 :root {
   color-scheme: dark;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Bahnschrift", "Segoe UI", sans-serif;
+  --bg-top: #071119;
+  --bg-bottom: #02060a;
+  --panel: rgba(6, 14, 22, 0.84);
+  --panel-strong: rgba(7, 12, 19, 0.92);
+  --line: rgba(132, 190, 236, 0.18);
+  --line-strong: rgba(132, 190, 236, 0.32);
+  --text: #f3f7fa;
+  --muted: #8fa5b6;
+  --cyan: #8fe9ff;
+  --mint: #84f0cb;
+  --amber: #ffc96a;
+  --danger: #ff8585;
   background:
-    radial-gradient(circle at top, rgba(62, 99, 221, 0.35), transparent 40%),
-    linear-gradient(180deg, #0a1221 0%, #04070d 100%);
-  color: #ecf3ff;
+    radial-gradient(circle at top, rgba(80, 168, 255, 0.2), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(86, 255, 195, 0.12), transparent 20%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  color: var(--text);
 }
 
 * {
@@ -16,104 +29,340 @@ body {
   min-height: 100vh;
 }
 
-.app-shell {
-  min-height: 100vh;
-  padding: 24px;
-}
-
-.top-bar,
-.layout {
-  display: grid;
-  gap: 20px;
-}
-
-.top-bar {
-  align-items: center;
-  grid-template-columns: 1fr auto;
-  margin-bottom: 20px;
-}
-
-.eyebrow {
-  margin: 0 0 4px;
-  color: #7dc3ff;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-}
-
 h1,
 h2,
 p {
   margin: 0;
 }
 
-.layout {
-  grid-template-columns: minmax(0, 1fr) 320px;
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
 }
 
-.stage-panel,
-.hud-panel,
-.status-chip {
-  border: 1px solid rgba(148, 184, 255, 0.16);
-  background: rgba(7, 12, 24, 0.78);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
+.shell-header,
+.shell-main {
+  display: grid;
+  gap: 20px;
 }
 
-.stage-panel {
+.shell-header {
+  align-items: end;
+  grid-template-columns: 1fr auto;
+  margin-bottom: 20px;
+}
+
+.eyebrow,
+.panel-kicker,
+.hud-label,
+.micro-label,
+.meter-copy span:first-child,
+.ops-grid dt {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.shell-header h1 {
+  margin-top: 6px;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header-chip,
+.stage-frame,
+.ops-card,
+.hud-card,
+.banner-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+}
+
+.header-chip {
+  padding: 12px 16px;
+  border-radius: 16px;
+  color: var(--mint);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.shell-main {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 340px);
+  align-items: start;
+}
+
+.stage-frame {
+  position: relative;
+  overflow: hidden;
   padding: 14px;
+  border-radius: 24px;
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-.hud-panel {
-  padding: 20px;
-}
-
-.status-chip {
-  padding: 10px 14px;
-  color: #90f3c8;
-  font-size: 13px;
+.stage-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(143, 233, 255, 0.08), transparent 24%),
+    linear-gradient(315deg, rgba(255, 201, 106, 0.05), transparent 28%);
+  pointer-events: none;
 }
 
 .game-root {
+  position: relative;
+  z-index: 1;
   min-height: 540px;
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
 }
 
-.meta-list {
-  display: grid;
-  gap: 12px;
-  margin: 16px 0 20px;
+.game-root canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
 }
 
-.meta-list div {
+.hud-overlay {
+  position: absolute;
+  inset: 14px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  pointer-events: none;
+}
+
+.hud-card,
+.banner-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--panel-strong);
+  border-color: var(--line-strong);
+}
+
+.player-card {
+  align-self: start;
+  border-color: rgba(132, 240, 203, 0.3);
+}
+
+.enemy-card {
+  align-self: start;
+  border-color: rgba(255, 133, 133, 0.3);
+}
+
+.support-card {
+  grid-column: 1 / -1;
+  align-self: end;
+}
+
+.banner-card {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  text-align: center;
+}
+
+.banner-kicker,
+.team-chip,
+.phase-chip {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.banner-kicker {
+  color: var(--amber);
+}
+
+.banner-card h2 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.banner-card p:last-child {
+  color: #d4e0ea;
+  line-height: 1.55;
+}
+
+.hud-statline,
+.weapon-strip,
+.scoreline,
+.support-grid,
+.ops-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.hud-statline,
+.weapon-strip,
+.scoreline {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+
+.team-chip,
+.phase-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.team-chip {
+  color: var(--mint);
+}
+
+.phase-chip {
+  color: var(--cyan);
+}
+
+.meter-copy,
+.ops-grid div {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.meter-copy {
+  margin: 14px 0 8px;
+}
+
+.meter-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 120ms ease-out;
+}
+
+.player-fill {
+  width: 100%;
+  background: linear-gradient(90deg, #2fdca8 0%, #abffe0 100%);
+}
+
+.enemy-fill {
+  width: 100%;
+  background: linear-gradient(90deg, #ff7e7e 0%, #ffc4c4 100%);
+}
+
+.weapon-strip {
+  margin-top: 16px;
+}
+
+.weapon-strip strong,
+.scoreline span:first-child,
+.support-grid strong,
+.ops-grid dd {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+.scoreline span:first-child {
+  color: var(--amber);
+}
+
+.scoreline span:last-child,
+.support-text,
+.ops-copy {
+  color: #d2dce5;
+}
+
+.support-text {
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+.support-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ops-panel {
+  display: grid;
   gap: 16px;
+}
+
+.ops-card {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.ops-card h2 {
+  margin-top: 8px;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ops-copy {
+  margin-top: 12px;
+  line-height: 1.65;
+}
+
+.ops-grid {
+  margin-top: 16px;
+}
+
+.ops-grid div {
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.meta-list dt {
-  color: #93a5c4;
-}
-
-.meta-list dd {
+.ops-grid dd {
   margin: 0;
-  font-weight: 600;
+  text-align: right;
 }
 
-.hint {
-  line-height: 1.6;
-  color: #b0bfd8;
+.is-hidden {
+  opacity: 0;
+  visibility: hidden;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1200px) {
+  .shell-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
   .app-shell {
     padding: 16px;
   }
 
-  .top-bar,
-  .layout {
+  .shell-header {
     grid-template-columns: 1fr;
+  }
+
+  .hud-overlay {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .banner-card {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .support-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
