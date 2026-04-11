@@ -22,6 +22,42 @@ describe("WeaponLogic", () => {
     expect(attempt.reason).toBe("ready");
   });
 
+  it("exposes projectile config while preserving the linear fallback", () => {
+    const fallbackWeapon = new WeaponLogic({
+      fireRateMs: 100,
+      bulletSpeed: 300,
+      damage: 10,
+      magazineSize: 1,
+      reloadTimeMs: 500,
+      reserveAmmo: 0
+    });
+    const arcWeapon = new WeaponLogic({
+      fireRateMs: 100,
+      bulletSpeed: 300,
+      damage: 10,
+      magazineSize: 1,
+      reloadTimeMs: 500,
+      reserveAmmo: 0,
+      projectile: {
+        trajectory: "arc",
+        speed: 260,
+        gravity: 300,
+        blastRadius: 60
+      }
+    });
+
+    expect(fallbackWeapon.getProjectileConfig()).toEqual({
+      trajectory: "linear",
+      speed: 300
+    });
+    expect(arcWeapon.getProjectileConfig()).toMatchObject({
+      trajectory: "arc",
+      speed: 260,
+      gravity: 300,
+      blastRadius: 60
+    });
+  });
+
   it("blocks firing while the cooldown window is active", () => {
     const weapon = new WeaponLogic({
       fireRateMs: 180,

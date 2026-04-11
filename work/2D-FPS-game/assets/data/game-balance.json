@@ -27,5 +27,96 @@
   "actorSkinSource": "spritesheet",
   "actorSpritesheetPath": "/assets/sprites/actors.png",
   "actorFrameWidth": 44,
-  "actorFrameHeight": 30
+  "actorFrameHeight": 30,
+  "weapons": {
+    "carbine": {
+      "label": "Carbine",
+      "fireRateMs": 180,
+      "damage": 20,
+      "magazineSize": 6,
+      "reloadTimeMs": 1200,
+      "reserveAmmo": 24,
+      "projectile": {
+        "trajectory": "linear",
+        "speed": 540
+      }
+    },
+    "scatter": {
+      "label": "Scatter",
+      "fireRateMs": 560,
+      "damage": 12,
+      "magazineSize": 3,
+      "reloadTimeMs": 1500,
+      "reserveAmmo": 12,
+      "pelletCount": 3,
+      "spreadRadians": 0.18,
+      "projectile": {
+        "trajectory": "linear",
+        "speed": 480
+      }
+    },
+    "bazooka": {
+      "label": "Bazooka",
+      "fireRateMs": 1100,
+      "damage": 45,
+      "magazineSize": 1,
+      "reloadTimeMs": 1800,
+      "reserveAmmo": 5,
+      "projectile": {
+        "trajectory": "arc",
+        "speed": 360,
+        "gravity": 300,
+        "blastRadius": 60,
+        "knockback": 90,
+        "windMultiplier": 0.35
+      }
+    },
+    "grenade": {
+      "label": "Grenade",
+      "fireRateMs": 900,
+      "damage": 35,
+      "magazineSize": 2,
+      "reloadTimeMs": 1600,
+      "reserveAmmo": 6,
+      "projectile": {
+        "trajectory": "bounce",
+        "speed": 300,
+        "gravity": 420,
+        "bounceCount": 2,
+        "blastRadius": 50,
+        "knockback": 70,
+        "windMultiplier": 0.2
+      }
+    },
+    "sniper": {
+      "label": "Sniper",
+      "fireRateMs": 2000,
+      "damage": 55,
+      "magazineSize": 1,
+      "reloadTimeMs": 1700,
+      "reserveAmmo": 5,
+      "projectile": {
+        "trajectory": "beam",
+        "speed": 0,
+        "beamRange": 900
+      }
+    },
+    "airStrike": {
+      "label": "Air Strike",
+      "fireRateMs": 15000,
+      "damage": 30,
+      "magazineSize": 1,
+      "reloadTimeMs": 2500,
+      "reserveAmmo": 2,
+      "projectile": {
+        "trajectory": "aoe-call",
+        "speed": 0,
+        "blastRadius": 44,
+        "knockback": 45,
+        "aoeCount": 5,
+        "aoeIntervalMs": 180,
+        "aoeSpreadRadius": 56
+      }
+    }
+  }
 }

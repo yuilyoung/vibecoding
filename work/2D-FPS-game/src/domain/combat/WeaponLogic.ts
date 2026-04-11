@@ -1,3 +1,5 @@
+import type { ProjectileConfig } from "./ProjectileRuntime";
+
 export interface WeaponConfig {
   readonly fireRateMs: number;
   readonly bulletSpeed: number;
@@ -5,6 +7,7 @@ export interface WeaponConfig {
   readonly magazineSize: number;
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;
+  readonly projectile?: ProjectileConfig;
 }
 
 export interface FireAttempt {
@@ -141,6 +144,13 @@ export class WeaponLogic {
 
   public getReloadDuration(): number {
     return this.config.reloadTimeMs;
+  }
+
+  public getProjectileConfig(): ProjectileConfig {
+    return this.config.projectile ?? {
+      trajectory: "linear",
+      speed: this.config.bulletSpeed
+    };
   }
 
   public reset(): void {

@@ -206,7 +206,6 @@ export interface MainSceneHudSnapshot {
 }
 
 type DebugTeamSelection = TeamId;
-type ObstacleVisualKind = "tower" | "core" | "barrier";
 
 export class MainScene extends Phaser.Scene {
   private static readonly RESPAWN_DELAY_MS = 1600;
@@ -221,6 +220,7 @@ export class MainScene extends Phaser.Scene {
   private static readonly MAX_IMPACT_EFFECTS = 72;
   private static readonly MAX_SHOT_TRAILS = 72;
   private static readonly MAX_MOVEMENT_EFFECTS = 56;
+  private static readonly MAX_FRAME_DELTA_MS = 50;
   private static readonly OBSTACLE_CONTACT_EPSILON = 1.0;
   private static readonly ACTOR_BODY_SCALE = 0.42;
   private static readonly ACTOR_ROTATION_OFFSET = Math.PI / 2;
@@ -577,11 +577,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     const now = this.time.now;
-    const deltaSeconds = delta / 1000;
+    const deltaSeconds = this.getStableDeltaSeconds(delta);
 
     // === INPUT === (gather all input state; no mutations)
     this.handleStageFlow(now);
-    const roundStarting = this.isRoundStarting(now);
     const combatLocked = !this.isCombatLive(now);
     const inputLocked = combatLocked || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
     const moveInputX = inputLocked
@@ -695,6 +694,14 @@ export class MainScene extends Phaser.Scene {
     this.publishHudSnapshot(now, playerBlocked);
   }
 
+  private getStableDeltaSeconds(deltaMs: number): number {
+    if (!Number.isFinite(deltaMs) || deltaMs <= 0) {
+      return 0;
+    }
+
+    return Math.min(deltaMs, MainScene.MAX_FRAME_DELTA_MS) / 1000;
+  }
+
   public getDebugSnapshot(): MainSceneDebugSnapshot {
     const activeWeapon = this.getActiveWeaponSlot();
 
@@ -716,6 +723,20 @@ export class MainScene extends Phaser.Scene {
       playerX: this.playerSprite.x,
       playerY: this.playerSprite.y,
       playerHullAngle: this.playerBodyAngle
+    };
+  }
+
+  public debugGetRuntimeStats(): {
+    bullets: number;
+    impactEffects: number;
+    shotTrails: number;
+    movementEffects: number;
+  } {
+    return {
+      bullets: this.bullets.length,
+      impactEffects: this.impactEffects.length,
+      shotTrails: this.shotTrails.length,
+      movementEffects: this.movementEffects.length
     };
   }
 
