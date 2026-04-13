@@ -30,8 +30,8 @@
   "actorFrameHeight": 30,
   "weapons": {
     "carbine": {
+      "label": "Carbine",
       "fireRateMs": 180,
-      "bulletSpeed": 540,
       "damage": 20,
       "magazineSize": 6,
       "reloadTimeMs": 1200,
@@ -42,84 +42,80 @@
       }
     },
     "scatter": {
-      "fireRateMs": 620,
-      "bulletSpeed": 443,
+      "label": "Scatter",
+      "fireRateMs": 560,
       "damage": 12,
-      "magazineSize": 2,
-      "reloadTimeMs": 1450,
+      "magazineSize": 3,
+      "reloadTimeMs": 1500,
       "reserveAmmo": 12,
       "pelletCount": 3,
-      "spreadRadians": 0.1221730476,
+      "spreadRadians": 0.18,
       "projectile": {
         "trajectory": "linear",
-        "speed": 443,
-        "pelletCount": 3,
-        "spreadRadians": 0.1221730476
+        "speed": 480
       }
     },
     "bazooka": {
-      "fireRateMs": 1250,
-      "bulletSpeed": 292,
+      "label": "Bazooka",
+      "fireRateMs": 1100,
       "damage": 45,
       "magazineSize": 1,
-      "reloadTimeMs": 1700,
+      "reloadTimeMs": 1800,
       "reserveAmmo": 5,
-      "blastRadius": 60,
-      "knockback": 120,
       "projectile": {
         "trajectory": "arc",
-        "speed": 292,
+        "speed": 360,
         "gravity": 300,
         "blastRadius": 60,
-        "blastDamage": 45,
-        "knockback": 120
+        "knockback": 90,
+        "windMultiplier": 0.35
       }
     },
     "grenade": {
-      "fireRateMs": 1100,
-      "bulletSpeed": 360,
+      "label": "Grenade",
+      "fireRateMs": 900,
       "damage": 35,
-      "magazineSize": 1,
-      "reloadTimeMs": 1500,
+      "magazineSize": 2,
+      "reloadTimeMs": 1600,
       "reserveAmmo": 6,
-      "blastRadius": 50,
-      "knockback": 90,
       "projectile": {
         "trajectory": "bounce",
-        "speed": 360,
+        "speed": 300,
+        "gravity": 420,
         "bounceCount": 2,
         "blastRadius": 50,
-        "blastDamage": 35,
-        "knockback": 90
+        "knockback": 70,
+        "windMultiplier": 0.2
       }
     },
     "sniper": {
+      "label": "Sniper",
       "fireRateMs": 2000,
-      "bulletSpeed": 0,
       "damage": 55,
       "magazineSize": 1,
-      "reloadTimeMs": 1900,
-      "reserveAmmo": 8,
+      "reloadTimeMs": 1700,
+      "reserveAmmo": 5,
       "projectile": {
         "trajectory": "beam",
         "speed": 0,
-        "blastDamage": 55
+        "beamRange": 900
       }
     },
     "airStrike": {
+      "label": "Air Strike",
       "fireRateMs": 15000,
-      "bulletSpeed": 0,
       "damage": 30,
       "magazineSize": 1,
-      "reloadTimeMs": 0,
-      "reserveAmmo": 3,
-      "salvoCount": 5,
+      "reloadTimeMs": 2500,
+      "reserveAmmo": 2,
       "projectile": {
         "trajectory": "aoe-call",
         "speed": 0,
-        "blastRadius": 128,
-        "blastDamage": 30,
-        "knockback": 160
+        "blastRadius": 44,
+        "knockback": 45,
+        "aoeCount": 5,
+        "aoeIntervalMs": 180,
+        "aoeSpreadRadius": 56
       }
     }
   }

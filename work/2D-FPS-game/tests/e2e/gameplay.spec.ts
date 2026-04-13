@@ -24,6 +24,12 @@ interface DebugSnapshot {
 
 interface DebugScene {
   getDebugSnapshot(): DebugSnapshot;
+  debugGetRuntimeStats(): {
+    bullets: number;
+    impactEffects: number;
+    shotTrails: number;
+    movementEffects: number;
+  };
   debugEnterStage(): void;
   debugSelectTeam(team: "BLUE" | "RED"): void;
   debugConfirmTeamSelection(): void;
@@ -34,6 +40,7 @@ interface DebugScene {
   debugSetPlayerHullAngle(angleRadians: number): void;
   debugToggleGate(): void;
   debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void;
+  update(time: number, delta: number): void;
 }
 
 const withScene = async <T>(page: Page, action: (scene: DebugScene) => T): Promise<T> => {
@@ -179,4 +186,33 @@ test("allows enter to restart after match over", async ({ page }) => {
   expect(snapshot.roundNumber).toBe(1);
   expect(snapshot.spawn).toBe("WAITING");
   expect(snapshot.lastEvent).toBe("SELECT TEAM FOR NEXT MATCH");
+});
+
+test("survives oversized combat frame deltas without overflowing runtime pools", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await enterCombat(page, "BLUE");
+  await page.mouse.move(740, 260);
+
+  for (let index = 0; index < 80; index += 1) {
+    await withScene(page, (scene: DebugScene) => {
+      scene.debugFire();
+      scene.update(0, 240);
+    });
+  }
+
+  const snapshot = await readSnapshot(page);
+  const stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
+
+  expect(pageErrors).toEqual([]);
+  expect(snapshot.phase).toBe("COMBAT LIVE");
+  expect(snapshot.playerX).toBeGreaterThanOrEqual(28);
+  expect(snapshot.playerX).toBeLessThanOrEqual(932);
+  expect(snapshot.playerY).toBeGreaterThanOrEqual(24);
+  expect(snapshot.playerY).toBeLessThanOrEqual(516);
+  expect(stats.bullets).toBeLessThanOrEqual(96);
+  expect(stats.impactEffects).toBeLessThanOrEqual(72);
+  expect(stats.shotTrails).toBeLessThanOrEqual(72);
+  expect(stats.movementEffects).toBeLessThanOrEqual(56);
 });

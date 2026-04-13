@@ -8,185 +8,292 @@ export interface ProjectileConfig {
   readonly gravity?: number;
   readonly bounceCount?: number;
   readonly homingStrength?: number;
+  readonly blastRadius?: number;
+  readonly knockback?: number;
   readonly windMultiplier?: number;
+  readonly beamRange?: number;
+  readonly aoeCount?: number;
+  readonly aoeIntervalMs?: number;
+  readonly aoeSpreadRadius?: number;
 }
 
-export interface ProjectileMotionState {
+export interface ProjectileRuntimeState {
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
   readonly velocityX: number;
   readonly velocityY: number;
-  readonly bouncesRemaining?: number;
+  readonly trajectory: ProjectileTrajectory;
+  readonly bouncesRemaining: number;
 }
 
-export interface ProjectileTarget {
-  readonly x: number;
-  readonly y: number;
-}
-
-export interface ProjectileRuntimeInput {
-  readonly projectile: ProjectileMotionState;
+export interface ProjectileStepInput {
+  readonly projectile: ProjectileRuntimeState;
   readonly config: ProjectileConfig;
   readonly deltaSeconds: number;
-  readonly arenaWidth: number;
-  readonly arenaHeight: number;
-  readonly obstacles?: readonly Rect[];
-  readonly target?: ProjectileTarget | null;
+  readonly obstacles: readonly Rect[];
+  readonly arenaBounds: Rect;
+  readonly target?: {
+    readonly x: number;
+    readonly y: number;
+  };
   readonly windX?: number;
 }
 
-export interface ProjectileRuntimeResult {
-  readonly projectile: ProjectileMotionState;
+export interface ProjectileStepResult {
+  readonly projectile: ProjectileRuntimeState;
   readonly hitObstacle: boolean;
-  readonly bounced: boolean;
-  readonly expired: boolean;
+  readonly outOfBounds: boolean;
+  readonly shouldExplode: boolean;
 }
 
-export function advanceProjectile(input: ProjectileRuntimeInput): ProjectileRuntimeResult {
-  if (input.config.trajectory === "beam" || input.config.trajectory === "aoe-call") {
-    return {
-      projectile: input.projectile,
-      hitObstacle: false,
-      bounced: false,
-      expired: true
-    };
-  }
-
-  const steeredVelocity = getSteeredVelocity(input);
-  const nextVelocity = applyArcForces(input, steeredVelocity);
-  const nextX = input.projectile.x + nextVelocity.velocityX * input.deltaSeconds;
-  const nextY = input.projectile.y + nextVelocity.velocityY * input.deltaSeconds;
-  const nextState = {
-    ...input.projectile,
-    x: nextX,
-    y: nextY,
-    velocityX: nextVelocity.velocityX,
-    velocityY: nextVelocity.velocityY,
-    bouncesRemaining: getBouncesRemaining(input.projectile, input.config)
-  };
-
-  if (input.config.trajectory !== "bounce") {
-    return {
-      projectile: nextState,
-      hitObstacle: didHitObstacle(nextState, input.obstacles ?? []),
-      bounced: false,
-      expired: isOutOfArena(nextState, input.arenaWidth, input.arenaHeight)
-    };
-  }
-
-  return resolveBounce(nextState, input);
+export interface BeamTarget {
+  readonly id: string;
+  readonly bounds: Rect;
 }
 
-function getSteeredVelocity(input: ProjectileRuntimeInput): Pick<ProjectileMotionState, "velocityX" | "velocityY"> {
-  if (input.config.trajectory !== "homing" || input.target === null || input.target === undefined) {
-    return {
-      velocityX: input.projectile.velocityX,
-      velocityY: input.projectile.velocityY
-    };
-  }
+export interface BeamCastInput {
+  readonly originX: number;
+  readonly originY: number;
+  readonly angleRadians: number;
+  readonly range: number;
+  readonly obstacles: readonly Rect[];
+  readonly targets: readonly BeamTarget[];
+}
 
-  const currentSpeed = Math.hypot(input.projectile.velocityX, input.projectile.velocityY) || input.config.speed;
-  const desiredAngle = Math.atan2(input.target.y - input.projectile.y, input.target.x - input.projectile.x);
-  const currentAngle = Math.atan2(input.projectile.velocityY, input.projectile.velocityX);
-  const turnRatio = clamp01((input.config.homingStrength ?? 0) * input.deltaSeconds);
-  const nextAngle = currentAngle + wrapRadians(desiredAngle - currentAngle) * turnRatio;
+export interface BeamCastResult {
+  readonly hitType: "target" | "obstacle" | "none";
+  readonly targetId: string | null;
+  readonly x: number;
+  readonly y: number;
+  readonly distance: number;
+}
 
+export interface AoeCallImpact {
+  readonly x: number;
+  readonly y: number;
+  readonly triggerAtMs: number;
+}
+
+export function createProjectileRuntimeState(input: {
+  readonly x: number;
+  readonly y: number;
+  readonly angleRadians: number;
+  readonly width: number;
+  readonly height: number;
+  readonly config: ProjectileConfig;
+}): ProjectileRuntimeState {
   return {
-    velocityX: Math.cos(nextAngle) * currentSpeed,
-    velocityY: Math.sin(nextAngle) * currentSpeed
+    x: input.x,
+    y: input.y,
+    width: input.width,
+    height: input.height,
+    velocityX: Math.cos(input.angleRadians) * input.config.speed,
+    velocityY: Math.sin(input.angleRadians) * input.config.speed,
+    trajectory: input.config.trajectory,
+    bouncesRemaining: input.config.bounceCount ?? 0
   };
 }
 
-function applyArcForces(
-  input: ProjectileRuntimeInput,
-  velocity: Pick<ProjectileMotionState, "velocityX" | "velocityY">
-): Pick<ProjectileMotionState, "velocityX" | "velocityY"> {
-  if (input.config.trajectory !== "arc") {
-    return velocity;
-  }
+export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult {
+  const deltaSeconds = Number.isFinite(input.deltaSeconds) && input.deltaSeconds > 0 ? input.deltaSeconds : 0;
+  const velocity = resolveVelocity(input.projectile, input.config, deltaSeconds, input.target, input.windX ?? 0);
+  const nextX = input.projectile.x + velocity.x * deltaSeconds;
+  const nextY = input.projectile.y + velocity.y * deltaSeconds;
+  const nextBounds = createCenteredRect(nextX, nextY, input.projectile.width, input.projectile.height);
+  const hitObstacle = input.obstacles.some((obstacle) => intersectsRect(nextBounds, obstacle));
+  const outOfBounds = !intersectsRect(nextBounds, input.arenaBounds);
 
-  return {
-    velocityX: velocity.velocityX + (input.windX ?? 0) * (input.config.windMultiplier ?? 0) * input.deltaSeconds,
-    velocityY: velocity.velocityY + (input.config.gravity ?? 0) * input.deltaSeconds
-  };
-}
-
-function resolveBounce(state: ProjectileMotionState, input: ProjectileRuntimeInput): ProjectileRuntimeResult {
-  const bouncesRemaining = getBouncesRemaining(input.projectile, input.config);
-  const arenaBounceX = state.x < 0 || state.x > input.arenaWidth;
-  const arenaBounceY = state.y < 0 || state.y > input.arenaHeight;
-  const hitObstacle = didHitObstacle(state, input.obstacles ?? []);
-  const bounced = arenaBounceX || arenaBounceY || hitObstacle;
-
-  if (!bounced) {
+  if (input.projectile.trajectory === "bounce" && hitObstacle && input.projectile.bouncesRemaining > 0) {
+    const bouncedVelocity = reflectVelocity(input.projectile, nextBounds, input.obstacles);
     return {
-      projectile: state,
-      hitObstacle: false,
-      bounced: false,
-      expired: false
+      projectile: {
+        ...input.projectile,
+        velocityX: bouncedVelocity.x,
+        velocityY: bouncedVelocity.y,
+        bouncesRemaining: input.projectile.bouncesRemaining - 1
+      },
+      hitObstacle: true,
+      outOfBounds,
+      shouldExplode: false
     };
   }
-
-  if (bouncesRemaining <= 0) {
-    return {
-      projectile: state,
-      hitObstacle,
-      bounced: false,
-      expired: true
-    };
-  }
-
-  const reflectedX = arenaBounceX || hitObstacle ? -state.velocityX : state.velocityX;
-  const reflectedY = arenaBounceY ? -state.velocityY : state.velocityY;
 
   return {
     projectile: {
-      ...state,
-      x: clamp(state.x, 0, input.arenaWidth),
-      y: clamp(state.y, 0, input.arenaHeight),
-      velocityX: reflectedX,
-      velocityY: reflectedY,
-      bouncesRemaining: bouncesRemaining - 1
+      ...input.projectile,
+      x: nextX,
+      y: nextY,
+      velocityX: velocity.x,
+      velocityY: velocity.y
     },
     hitObstacle,
-    bounced: true,
-    expired: false
+    outOfBounds,
+    shouldExplode: hitObstacle || outOfBounds
   };
 }
 
-function didHitObstacle(projectile: ProjectileMotionState, obstacles: readonly Rect[]): boolean {
-  const bounds = createCenteredRect(projectile.x, projectile.y, projectile.width, projectile.height);
-  return obstacles.some((obstacle) => intersectsRect(bounds, obstacle));
-}
+export function castBeam(input: BeamCastInput): BeamCastResult {
+  const directionX = Math.cos(input.angleRadians);
+  const directionY = Math.sin(input.angleRadians);
+  let best: BeamCastResult = {
+    hitType: "none",
+    targetId: null,
+    x: input.originX + directionX * input.range,
+    y: input.originY + directionY * input.range,
+    distance: input.range
+  };
 
-function isOutOfArena(projectile: ProjectileMotionState, arenaWidth: number, arenaHeight: number): boolean {
-  return projectile.x < 0 || projectile.x > arenaWidth || projectile.y < 0 || projectile.y > arenaHeight;
-}
-
-function getBouncesRemaining(projectile: ProjectileMotionState, config: ProjectileConfig): number {
-  return projectile.bouncesRemaining ?? config.bounceCount ?? 0;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function clamp01(value: number): number {
-  return clamp(value, 0, 1);
-}
-
-function wrapRadians(angle: number): number {
-  let nextAngle = angle;
-
-  while (nextAngle > Math.PI) {
-    nextAngle -= Math.PI * 2;
+  for (const obstacle of input.obstacles) {
+    const distance = intersectRayWithRect(input.originX, input.originY, directionX, directionY, obstacle, input.range);
+    if (distance !== null && distance < best.distance) {
+      best = {
+        hitType: "obstacle",
+        targetId: null,
+        x: input.originX + directionX * distance,
+        y: input.originY + directionY * distance,
+        distance
+      };
+    }
   }
 
-  while (nextAngle < -Math.PI) {
-    nextAngle += Math.PI * 2;
+  for (const target of input.targets) {
+    const distance = intersectRayWithRect(input.originX, input.originY, directionX, directionY, target.bounds, input.range);
+    if (distance !== null && distance < best.distance) {
+      best = {
+        hitType: "target",
+        targetId: target.id,
+        x: input.originX + directionX * distance,
+        y: input.originY + directionY * distance,
+        distance
+      };
+    }
   }
 
-  return nextAngle;
+  return best;
+}
+
+export function planAoeCall(input: {
+  readonly targetX: number;
+  readonly targetY: number;
+  readonly startAtMs: number;
+  readonly config: ProjectileConfig;
+}): readonly AoeCallImpact[] {
+  const count = input.config.aoeCount ?? 1;
+  const intervalMs = input.config.aoeIntervalMs ?? 0;
+  const spreadRadius = input.config.aoeSpreadRadius ?? 0;
+
+  return Array.from({ length: count }, (_, index) => {
+    if (count === 1 || spreadRadius === 0) {
+      return {
+        x: input.targetX,
+        y: input.targetY,
+        triggerAtMs: input.startAtMs + index * intervalMs
+      };
+    }
+
+    const angle = (Math.PI * 2 * index) / count;
+    const radius = index === 0 ? 0 : spreadRadius;
+    return {
+      x: input.targetX + Math.cos(angle) * radius,
+      y: input.targetY + Math.sin(angle) * radius,
+      triggerAtMs: input.startAtMs + index * intervalMs
+    };
+  });
+}
+
+function resolveVelocity(
+  projectile: ProjectileRuntimeState,
+  config: ProjectileConfig,
+  deltaSeconds: number,
+  target: ProjectileStepInput["target"],
+  windX: number
+): { x: number; y: number } {
+  if (projectile.trajectory === "arc") {
+    return {
+      x: projectile.velocityX + windX * (config.windMultiplier ?? 0) * deltaSeconds,
+      y: projectile.velocityY + (config.gravity ?? 0) * deltaSeconds
+    };
+  }
+
+  if (projectile.trajectory === "homing" && target !== undefined) {
+    const desiredX = target.x - projectile.x;
+    const desiredY = target.y - projectile.y;
+    const desiredLength = Math.hypot(desiredX, desiredY) || 1;
+    const currentSpeed = Math.hypot(projectile.velocityX, projectile.velocityY) || config.speed;
+    const blend = Math.min(1, Math.max(0, config.homingStrength ?? 0) * deltaSeconds);
+    const targetVelocityX = (desiredX / desiredLength) * currentSpeed;
+    const targetVelocityY = (desiredY / desiredLength) * currentSpeed;
+
+    return {
+      x: projectile.velocityX + (targetVelocityX - projectile.velocityX) * blend,
+      y: projectile.velocityY + (targetVelocityY - projectile.velocityY) * blend
+    };
+  }
+
+  return {
+    x: projectile.velocityX,
+    y: projectile.velocityY
+  };
+}
+
+function reflectVelocity(
+  projectile: ProjectileRuntimeState,
+  nextBounds: Rect,
+  obstacles: readonly Rect[]
+): { x: number; y: number } {
+  const obstacle = obstacles.find((candidate) => intersectsRect(nextBounds, candidate));
+
+  if (obstacle === undefined) {
+    return {
+      x: -projectile.velocityX,
+      y: -projectile.velocityY
+    };
+  }
+
+  const previousBounds = createCenteredRect(projectile.x, projectile.y, projectile.width, projectile.height);
+  const wasClearHorizontally = previousBounds.x + previousBounds.width <= obstacle.x || previousBounds.x >= obstacle.x + obstacle.width;
+  const wasClearVertically = previousBounds.y + previousBounds.height <= obstacle.y || previousBounds.y >= obstacle.y + obstacle.height;
+
+  if (wasClearHorizontally && !wasClearVertically) {
+    return {
+      x: -projectile.velocityX,
+      y: projectile.velocityY
+    };
+  }
+
+  if (wasClearVertically && !wasClearHorizontally) {
+    return {
+      x: projectile.velocityX,
+      y: -projectile.velocityY
+    };
+  }
+
+  return {
+    x: -projectile.velocityX,
+    y: -projectile.velocityY
+  };
+}
+
+function intersectRayWithRect(
+  originX: number,
+  originY: number,
+  directionX: number,
+  directionY: number,
+  rect: Rect,
+  maxDistance: number
+): number | null {
+  const tx1 = directionX === 0 ? -Infinity : (rect.x - originX) / directionX;
+  const tx2 = directionX === 0 ? Infinity : (rect.x + rect.width - originX) / directionX;
+  const ty1 = directionY === 0 ? -Infinity : (rect.y - originY) / directionY;
+  const ty2 = directionY === 0 ? Infinity : (rect.y + rect.height - originY) / directionY;
+  const entry = Math.max(Math.min(tx1, tx2), Math.min(ty1, ty2));
+  const exit = Math.min(Math.max(tx1, tx2), Math.max(ty1, ty2));
+
+  if (exit < 0 || entry > exit || entry > maxDistance) {
+    return null;
+  }
+
+  return Math.max(0, entry);
 }

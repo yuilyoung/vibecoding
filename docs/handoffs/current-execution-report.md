@@ -4,9 +4,47 @@
 
 - executor: ultron
 - status: completed
-- scope: Added authored prototype actor sprite-sheet activation, round-start countdown, respawn pulse feedback, generated audio playback, roadmap reconciliation, and tuning notes for the active Phaser prototype.
+- scope: Completed browser balance playtest evidence and started Hybrid FPS Phase 1 domain implementation for projectile and explosion systems.
 
 ## Changes
+
+- `work/2D-FPS-game/src/domain/combat/ProjectileRuntime.ts`
+  - added deterministic projectile stepping for `linear`, `arc`, `bounce`, and `homing`
+  - added beam raycast resolution against targets and obstacles
+  - added deterministic `aoe-call` impact planning
+
+- `work/2D-FPS-game/src/domain/combat/ExplosionLogic.ts`
+  - added distance falloff damage and mass-aware knockback
+  - added bounded chain-explosion resolution for future map object work
+
+- `work/2D-FPS-game/src/domain/combat/WeaponLogic.ts`
+  - added optional projectile config support while preserving existing linear fallback behavior
+
+- `work/2D-FPS-game/assets/data/game-balance.json`
+  - added Phase 1 six-weapon data for Carbine, Scatter, Bazooka, Grenade, Sniper, and Air Strike
+
+- `work/2D-FPS-game/tests/ProjectileRuntime.test.ts`
+  - added coverage for linear, arc, bounce, homing, beam, and aoe-call behavior
+
+- `work/2D-FPS-game/tests/ExplosionLogic.test.ts`
+  - added coverage for falloff damage, knockback, invalid blast settings, and chain depth
+
+- `work/2D-FPS-game/tests/GameBalanceWeapons.test.ts`
+  - added coverage for the six-weapon balance roster and WeaponLogic hydration
+
+- `work/2D-FPS-game/tests/e2e/balance-playtest.spec.ts`
+  - added browser-backed cover, hazard, and audio cue balance checks
+
+- `docs/reports/project-status.md`
+  - added phase completion status and moved immediate next tasks to Phase 1 scene integration
+
+- `work/2D-FPS-game/docs/development/playtest-log.md`
+  - recorded the 2026-04-11 browser balance findings
+
+- `work/2D-FPS-game/docs/development/tuning-notes.md`
+  - noted vision-jam feedback and audio loudness follow-up
+
+## Previous Changes
 
 - `work/2D-FPS-game/src/scenes/MainScene.ts`
   - added optional `actor-skins` spritesheet preloading with generated actor skin fallback
@@ -158,8 +196,8 @@
 
 - type-check: passed
 - lint: passed
-- test: passed (115 tests)
-- browser e2e: passed (6 tests)
+- test: passed (106 tests)
+- e2e: passed (7 tests)
 - workspace next-tasks: passed
 - workspace project-status: passed
 - build: passed
@@ -168,8 +206,6 @@
 ## Risks
 
 - Generated skins are prototype placeholders, not final art assets
-- Weapon, gate, hazard, and AI tuning values have browser-probe coverage but still need headed human feel checks
-- Subjective audio gain, cue fatigue, and cover-marker readability cannot be fully judged from headless automation
-- BeamLogic, AirStrikeLogic, and ExplosionLogic are currently domain-level foundations and still need Phaser scene integration for full weapon gameplay
-- Bazooka arc movement is scene-integrated, but Bazooka/Grenade blast damage and knockback still require P1.03 scene wiring
-- Remaining future work is optional extension scope such as authored sprite assets, headed human review findings, and a product-track decision between Phaser production and Unity preproduction
+- Phase 1 projectile/explosion logic is domain-tested but not yet wired into the Phaser scene
+- Generated audio cue loudness still needs a real speaker/headphone pass before changing tone gains
+- Remaining future work includes Phase 1 scene integration, authored sprite assets, and the documented Phaser/Unity product-track decision

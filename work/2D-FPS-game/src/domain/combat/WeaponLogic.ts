@@ -1,18 +1,4 @@
-export type ProjectileTrajectory = "linear" | "arc" | "bounce" | "homing" | "aoe-call" | "beam";
-
-export interface ProjectileConfig {
-  readonly trajectory: ProjectileTrajectory;
-  readonly speed: number;
-  readonly gravity?: number;
-  readonly bounceCount?: number;
-  readonly homingStrength?: number;
-  readonly blastRadius?: number;
-  readonly blastDamage?: number;
-  readonly knockback?: number;
-  readonly pelletCount?: number;
-  readonly spreadRadians?: number;
-  readonly windMultiplier?: number;
-}
+import type { ProjectileConfig } from "./ProjectileRuntime";
 
 export interface WeaponConfig {
   readonly fireRateMs: number;
@@ -22,11 +8,6 @@ export interface WeaponConfig {
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;
   readonly projectile?: ProjectileConfig;
-  readonly blastRadius?: number;
-  readonly blastDamage?: number;
-  readonly knockback?: number;
-  readonly pelletCount?: number;
-  readonly spreadRadians?: number;
 }
 
 export interface FireAttempt {
@@ -166,6 +147,13 @@ export class WeaponLogic {
 
   public getReloadDuration(): number {
     return this.config.reloadTimeMs;
+  }
+
+  public getProjectileConfig(): ProjectileConfig {
+    return this.config.projectile ?? {
+      trajectory: "linear",
+      speed: this.config.bulletSpeed
+    };
   }
 
   public reset(): void {

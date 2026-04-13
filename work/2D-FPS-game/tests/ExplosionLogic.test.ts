@@ -1,62 +1,75 @@
-import { resolveExplosion } from "../src/domain/combat/ExplosionLogic";
+import { resolveChainExplosion, resolveExplosion } from "../src/domain/combat/ExplosionLogic";
 
 describe("ExplosionLogic", () => {
-  it("applies full damage and upward knockback at the blast center", () => {
-    const [result] = resolveExplosion({
+  it("applies distance falloff damage and outward knockback", () => {
+    const hits = resolveExplosion({
       centerX: 100,
       centerY: 100,
-      radius: 60,
-      damage: 45,
-      knockback: 120,
-      actors: [{ id: "dummy", x: 100, y: 100 }]
-    });
-
-    expect(result.id).toBe("dummy");
-    expect(result.damage).toBe(45);
-    expect(result.knockbackX).toBe(0);
-    expect(result.knockbackY).toBe(-120);
-  });
-
-  it("falls off damage and knockback by distance", () => {
-    const [result] = resolveExplosion({
-      centerX: 100,
-      centerY: 100,
-      radius: 100,
-      damage: 40,
-      knockback: 80,
-      actors: [{ id: "player", x: 150, y: 100 }]
-    });
-
-    expect(result.distance).toBe(50);
-    expect(result.damage).toBe(20);
-    expect(result.knockbackX).toBe(40);
-    expect(result.knockbackY).toBe(0);
-  });
-
-  it("ignores actors outside the blast radius", () => {
-    const results = resolveExplosion({
-      centerX: 100,
-      centerY: 100,
-      radius: 50,
-      damage: 40,
-      knockback: 80,
-      actors: [
-        { id: "near", x: 125, y: 100 },
-        { id: "far", x: 170, y: 100 }
+      baseDamage: 50,
+      blastRadius: 100,
+      knockback: 40,
+      targets: [
+        { id: "direct", x: 100, y: 100 },
+        { id: "edge", x: 150, y: 100 },
+        { id: "outside", x: 210, y: 100 }
       ]
     });
 
-    expect(results.map((result) => result.id)).toEqual(["near"]);
+    expect(hits).toHaveLength(2);
+    expect(hits[0]).toMatchObject({
+      id: "direct",
+      distance: 0,
+      damage: 50,
+      knockbackX: 40,
+      knockbackY: 0
+    });
+    expect(hits[1]).toMatchObject({
+      id: "edge",
+      distance: 50,
+      damage: 25,
+      knockbackX: 20,
+      knockbackY: 0
+    });
   });
 
-  it("returns no effects for zero-radius blasts", () => {
+  it("reduces knockback by target mass", () => {
+    const [hit] = resolveExplosion({
+      centerX: 0,
+      centerY: 0,
+      baseDamage: 30,
+      blastRadius: 100,
+      knockback: 60,
+      targets: [{ id: "heavy", x: 50, y: 0, mass: 3 }]
+    });
+
+    expect(hit.damage).toBe(15);
+    expect(hit.knockbackX).toBe(10);
+    expect(hit.knockbackY).toBe(0);
+  });
+
+  it("returns no hits for invalid blast settings", () => {
     expect(resolveExplosion({
       centerX: 0,
       centerY: 0,
-      radius: 0,
-      damage: 40,
-      knockback: 80,
-      actors: [{ id: "target", x: 0, y: 0 }]
+      baseDamage: 0,
+      blastRadius: 100,
+      knockback: 10,
+      targets: [{ id: "dummy", x: 0, y: 0 }]
     })).toEqual([]);
+  });
+
+  it("resolves chain explosions up to the configured depth", () => {
+    const triggered = resolveChainExplosion({
+      originId: "a",
+      maxDepth: 2,
+      objects: [
+        { id: "a", x: 0, y: 0, triggerRadius: 60 },
+        { id: "b", x: 50, y: 0, triggerRadius: 60 },
+        { id: "c", x: 105, y: 0, triggerRadius: 60 },
+        { id: "d", x: 170, y: 0, triggerRadius: 60 }
+      ]
+    });
+
+    expect(triggered).toEqual(["a", "b", "c"]);
   });
 });

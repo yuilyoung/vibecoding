@@ -60,51 +60,39 @@ describe("WeaponLogic", () => {
     expect(attempt.reason).toBe("ready");
   });
 
-  it("merges projectile metadata into fire attempts", () => {
-    const weapon = new WeaponLogic({
-      fireRateMs: 700,
-      bulletSpeed: 360,
-      damage: 35,
+  it("exposes projectile config while preserving the linear fallback", () => {
+    const fallbackWeapon = new WeaponLogic({
+      fireRateMs: 100,
+      bulletSpeed: 300,
+      damage: 10,
       magazineSize: 1,
-      reloadTimeMs: 1500,
-      reserveAmmo: 6,
-      blastRadius: 50,
-      blastDamage: 35,
-      knockback: 90,
+      reloadTimeMs: 500,
+      reserveAmmo: 0
+    });
+    const arcWeapon = new WeaponLogic({
+      fireRateMs: 100,
+      bulletSpeed: 300,
+      damage: 10,
+      magazineSize: 1,
+      reloadTimeMs: 500,
+      reserveAmmo: 0,
       projectile: {
-        trajectory: "bounce",
-        speed: 360,
-        bounceCount: 2
+        trajectory: "arc",
+        speed: 260,
+        gravity: 300,
+        blastRadius: 60
       }
     });
 
-    const attempt = weapon.tryFire(0);
-
-    expect(attempt.projectile).toEqual({
-      trajectory: "bounce",
-      speed: 360,
-      bounceCount: 2,
-      blastRadius: 50,
-      blastDamage: 35,
-      knockback: 90
-    });
-  });
-
-  it("falls back to a linear projectile when no explicit projectile config is provided", () => {
-    const weapon = new WeaponLogic({
-      fireRateMs: 180,
-      bulletSpeed: 540,
-      damage: 20,
-      magazineSize: 6,
-      reloadTimeMs: 1200,
-      reserveAmmo: 24
-    });
-
-    const attempt = weapon.tryFire(0);
-
-    expect(attempt.projectile).toEqual({
+    expect(fallbackWeapon.getProjectileConfig()).toEqual({
       trajectory: "linear",
-      speed: 540
+      speed: 300
+    });
+    expect(arcWeapon.getProjectileConfig()).toMatchObject({
+      trajectory: "arc",
+      speed: 260,
+      gravity: 300,
+      blastRadius: 60
     });
   });
 

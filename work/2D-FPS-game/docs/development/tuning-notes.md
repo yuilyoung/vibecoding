@@ -37,19 +37,13 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 ## First Adjustment Candidates
 
 - If cover is unclear, increase `coverPointRadius` slightly before moving cover positions.
+- If vision-jam feedback is unclear, tune `COVER_VISION_RADIUS` separately or externalize it before changing cover placement.
 - If hazard feels too punishing, lower `hazardDamage` before lengthening `hazardTickMs`.
 - If audio feels noisy, lower generated cue gain before changing frequencies.
 - If respawn is too subtle, extend `RESPAWN_FX_MS` before increasing scale.
 
 ## Current Playtest Status
 
-Automated smoke checks confirm build and asset wiring.
-The 2026-04-13 browser probe confirms the current cover, hazard, cue-emission, and match-confirm wiring in Chromium with no console errors.
-Keep current cover and hazard values for now; a headed human pass is still required before changing subjective audio gain, cue fatigue, or cover-marker readability.
-
-## M1 Phase 1 Status
-
-- Phase 1 is active on the Phaser baseline.
-- `ProjectileRuntime` now covers linear, arc, bounce, homing, beam, and aoe-call trajectory semantics as pure domain logic.
-- `ExplosionLogic` now covers radius falloff and knockback vectors as pure domain logic.
-- Next tuning work should wait until Bazooka/Grenade scene integration creates real blast playtest data.
+Automated smoke checks can confirm build and asset wiring.
+The 2026-04-11 browser balance pass confirmed current hazard pacing and generated cue routing.
+Manual speaker/headphone review is still required before changing generated tone gains.
