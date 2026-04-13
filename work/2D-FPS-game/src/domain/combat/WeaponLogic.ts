@@ -1,3 +1,19 @@
+export type ProjectileTrajectory = "linear" | "arc" | "bounce" | "homing" | "aoe-call" | "beam";
+
+export interface ProjectileConfig {
+  readonly trajectory: ProjectileTrajectory;
+  readonly speed: number;
+  readonly gravity?: number;
+  readonly bounceCount?: number;
+  readonly homingStrength?: number;
+  readonly blastRadius?: number;
+  readonly blastDamage?: number;
+  readonly knockback?: number;
+  readonly pelletCount?: number;
+  readonly spreadRadians?: number;
+  readonly windMultiplier?: number;
+}
+
 export interface WeaponConfig {
   readonly fireRateMs: number;
   readonly bulletSpeed: number;
@@ -5,6 +21,12 @@ export interface WeaponConfig {
   readonly magazineSize: number;
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;
+  readonly projectile?: ProjectileConfig;
+  readonly blastRadius?: number;
+  readonly blastDamage?: number;
+  readonly knockback?: number;
+  readonly pelletCount?: number;
+  readonly spreadRadians?: number;
 }
 
 export interface FireAttempt {
@@ -15,11 +37,13 @@ export interface FireAttempt {
   readonly ammoInMagazine: number;
   readonly reserveAmmo: number;
   readonly reloadUntilMs: number;
+  readonly projectile: ProjectileConfig;
   readonly reason: "ready" | "cooldown" | "reloading" | "empty" | "no-reserve";
 }
 
 export class WeaponLogic {
   private readonly config: WeaponConfig;
+  private readonly projectileConfig: ProjectileConfig;
   private nextReadyAtMs: number;
   private ammoInMagazine: number;
   private reserveAmmo: number;
@@ -27,6 +51,7 @@ export class WeaponLogic {
 
   public constructor(config: WeaponConfig) {
     this.config = config;
+    this.projectileConfig = this.resolveProjectileConfig(config);
     this.nextReadyAtMs = 0;
     this.ammoInMagazine = config.magazineSize;
     this.reserveAmmo = config.reserveAmmo;
@@ -159,7 +184,25 @@ export class WeaponLogic {
       ammoInMagazine: this.ammoInMagazine,
       reserveAmmo: this.reserveAmmo,
       reloadUntilMs: this.reloadUntilMs,
+      projectile: this.projectileConfig,
       reason
+    };
+  }
+
+  private resolveProjectileConfig(config: WeaponConfig): ProjectileConfig {
+    const projectile: Partial<ProjectileConfig> = config.projectile ?? {};
+    return {
+      trajectory: projectile?.trajectory ?? "linear",
+      speed: projectile?.speed ?? config.bulletSpeed,
+      ...(projectile?.gravity !== undefined ? { gravity: projectile.gravity } : {}),
+      ...(projectile?.bounceCount !== undefined ? { bounceCount: projectile.bounceCount } : {}),
+      ...(projectile?.homingStrength !== undefined ? { homingStrength: projectile.homingStrength } : {}),
+      ...(projectile?.blastRadius !== undefined ? { blastRadius: projectile.blastRadius } : config.blastRadius !== undefined ? { blastRadius: config.blastRadius } : {}),
+      ...(projectile?.blastDamage !== undefined ? { blastDamage: projectile.blastDamage } : config.blastDamage !== undefined ? { blastDamage: config.blastDamage } : {}),
+      ...(projectile?.knockback !== undefined ? { knockback: projectile.knockback } : config.knockback !== undefined ? { knockback: config.knockback } : {}),
+      ...(projectile?.pelletCount !== undefined ? { pelletCount: projectile.pelletCount } : config.pelletCount !== undefined ? { pelletCount: config.pelletCount } : {}),
+      ...(projectile?.spreadRadians !== undefined ? { spreadRadians: projectile.spreadRadians } : config.spreadRadians !== undefined ? { spreadRadians: config.spreadRadians } : {}),
+      ...(projectile?.windMultiplier !== undefined ? { windMultiplier: projectile.windMultiplier } : {})
     };
   }
 }

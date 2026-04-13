@@ -21,11 +21,17 @@ This repository currently has two baselines:
 ## Current Prototype Status
 
 - Movement, mouse aim, HP, stun, death, shooting, ammo, reload, pickups, rounds, match confirmation, round-start countdown, respawn pulse feedback, dummy AI, collision, authored prototype actor sprites with generated fallback, line-of-sight checks, weapon switching, an interactable gate, a hazard zone, cover-point visualization, AI hazard avoidance, scene-level sound cue emission, and generated audio playback are implemented in the Phaser prototype.
-- Current verification baseline is `npm run type-check`, `npm run lint`, `npm test`, and `npm run build` from `work/2D-FPS-game`.
-- Latest local verification passed with 9 test files and 55 tests.
+- Current verification baseline is `npm run type-check`, `npm run lint`, `npm test`, `npm run build`, and browser e2e from `work/2D-FPS-game`.
+- Latest local verification passed with 115 unit tests and 6 browser e2e tests.
+- JARVIS/dashboard roadmap alignment is M0 complete and M1 Phase 1 started on the Phaser baseline.
+- Phase 1 domain foundation now includes `ProjectileRuntime` trajectory handling and `ExplosionLogic` falloff/knockback resolution.
+- Scene bullet movement now routes through `ProjectileRuntime`, and the player weapon cycle includes a Bazooka arc projectile config.
+- `phase1-tasks.json` is synced with T1-T6 completed and T7 in progress.
+- Phase 1 pure combat contracts now include `BeamLogic` and `AirStrikeLogic`.
 
 ## Next Direction
 
 - Continue extending the Phaser prototype unless a deliberate migration decision is made.
-- Good next candidates are browser playtest-driven balance adjustments and final art direction decisions.
+- Next implementation candidate is T7/P1.03: Grenade bounce plus ExplosionLogic scene damage/knockback.
+- Browser playtest-driven balance adjustments and final art direction decisions remain follow-up work after headed review.
 - If Unity work resumes later, reconcile the root roadmap with the Phaser prototype before implementation.

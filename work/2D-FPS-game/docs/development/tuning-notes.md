@@ -43,5 +43,13 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 
 ## Current Playtest Status
 
-Automated smoke checks can confirm build and asset wiring.
-Human browser playtest is still required before changing the current balance values.
+Automated smoke checks confirm build and asset wiring.
+The 2026-04-13 browser probe confirms the current cover, hazard, cue-emission, and match-confirm wiring in Chromium with no console errors.
+Keep current cover and hazard values for now; a headed human pass is still required before changing subjective audio gain, cue fatigue, or cover-marker readability.
+
+## M1 Phase 1 Status
+
+- Phase 1 is active on the Phaser baseline.
+- `ProjectileRuntime` now covers linear, arc, bounce, homing, beam, and aoe-call trajectory semantics as pure domain logic.
+- `ExplosionLogic` now covers radius falloff and knockback vectors as pure domain logic.
+- Next tuning work should wait until Bazooka/Grenade scene integration creates real blast playtest data.

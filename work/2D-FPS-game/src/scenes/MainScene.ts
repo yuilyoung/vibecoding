@@ -6,6 +6,7 @@ import { createCenteredRect, intersectsRect, type Rect } from "../domain/collisi
 import { resolveBulletCollision, resolveHazardOutcome } from "../domain/combat/CombatResolution";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { WeaponLogic, type WeaponConfig } from "../domain/combat/WeaponLogic";
+import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import {
   canApplyHazard,
   canDummyFire,
@@ -13,7 +14,6 @@ import {
   canPlayerFire,
   canPlayerReload,
   canPlayerUseCombatInteraction,
-  evaluateProjectileFrame,
   isGateInteractionAllowed
 } from "../domain/combat/CombatRuntime";
 import { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
@@ -74,7 +74,9 @@ interface BulletView {
   velocityY: number;
   damage: number;
   owner: "player" | "dummy";
-  effectProfile: "carbine" | "scatter" | "dummy";
+  effectProfile: "carbine" | "scatter" | "bazooka" | "dummy";
+  projectileConfig: ProjectileConfig;
+  bouncesRemaining?: number;
 }
 
 interface ImpactFxView {
@@ -126,6 +128,7 @@ interface PlayerWeaponSlot {
   readonly bulletHeight: number;
   readonly pelletCount: number;
   readonly spreadRadians: number;
+  readonly projectileConfig: ProjectileConfig;
 }
 
 interface GateView extends ObstacleView {
@@ -206,7 +209,6 @@ export interface MainSceneHudSnapshot {
 }
 
 type DebugTeamSelection = TeamId;
-type ObstacleVisualKind = "tower" | "core" | "barrier";
 
 export class MainScene extends Phaser.Scene {
   private static readonly RESPAWN_DELAY_MS = 1600;
@@ -581,7 +583,6 @@ export class MainScene extends Phaser.Scene {
 
     // === INPUT === (gather all input state; no mutations)
     this.handleStageFlow(now);
-    const roundStarting = this.isRoundStarting(now);
     const combatLocked = !this.isCombatLive(now);
     const inputLocked = combatLocked || this.playerLogic.isDead() || this.roundLogic.state.isMatchOver || this.playerLogic.isStunned(now);
     const moveInputX = inputLocked
@@ -946,7 +947,7 @@ export class MainScene extends Phaser.Scene {
       activeWeapon.logic.refundRound(now);
     }
     this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
-    this.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : "carbine" });
+    this.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : activeWeapon.id === "carbine" ? "carbine" : "generic" });
 
     if (attempt.ammoInMagazine === 0) {
       this.lastCombatEvent = "MAG EMPTY";
@@ -978,7 +979,9 @@ export class MainScene extends Phaser.Scene {
       velocityY: Math.sin(angle) * bulletSpeed,
       damage,
       owner: "player",
-      effectProfile: activeWeapon.id === "scatter" ? "scatter" : "carbine"
+      effectProfile: activeWeapon.id === "bazooka" ? "bazooka" : activeWeapon.id === "scatter" ? "scatter" : "carbine",
+      projectileConfig: activeWeapon.projectileConfig,
+      bouncesRemaining: activeWeapon.projectileConfig.bounceCount
     });
       this.trimBulletPool();
 
@@ -1051,7 +1054,9 @@ export class MainScene extends Phaser.Scene {
         velocityY: Math.sin(angle) * attempt.bulletSpeed,
         damage: attempt.damage,
         owner: "dummy",
-        effectProfile: activeWeapon.id === "scatter" ? "scatter" : "dummy"
+        effectProfile: activeWeapon.id === "scatter" ? "scatter" : "dummy",
+        projectileConfig: activeWeapon.projectileConfig,
+        bouncesRemaining: activeWeapon.projectileConfig.bounceCount
       });
       this.trimBulletPool();
 
@@ -1065,7 +1070,7 @@ export class MainScene extends Phaser.Scene {
       );
     }
 
-    this.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : "carbine" });
+    this.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : activeWeapon.id === "carbine" ? "carbine" : "generic" });
   }
 
   private handleWeaponSwitch(): void {
@@ -1195,7 +1200,7 @@ export class MainScene extends Phaser.Scene {
 
     for (let index = this.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.bullets[index];
-      const frame = evaluateProjectileFrame({
+      const runtimeFrame = advanceProjectile({
         projectile: {
           x: bullet.sprite.x,
           y: bullet.sprite.y,
@@ -1203,18 +1208,34 @@ export class MainScene extends Phaser.Scene {
           height: bullet.sprite.height,
           velocityX: bullet.velocityX,
           velocityY: bullet.velocityY,
-          owner: bullet.owner
+          bouncesRemaining: bullet.bouncesRemaining
         },
+        config: bullet.projectileConfig,
         deltaSeconds,
         arenaWidth: 960,
         arenaHeight: 540,
-        obstacles: activeObstacles.map((obstacle) => obstacle.bounds),
-        playerBounds,
-        dummyBounds
+        obstacles: activeObstacles.map((obstacle) => obstacle.bounds)
       });
+      const projectileBounds = createCenteredRect(
+        runtimeFrame.projectile.x,
+        runtimeFrame.projectile.y,
+        runtimeFrame.projectile.width,
+        runtimeFrame.projectile.height
+      );
+      const frame = {
+        nextX: runtimeFrame.projectile.x,
+        nextY: runtimeFrame.projectile.y,
+        outOfBounds: runtimeFrame.expired,
+        hitObstacle: runtimeFrame.hitObstacle,
+        hitPlayer: playerBounds !== null && intersectsRect(projectileBounds, playerBounds),
+        hitDummy: dummyBounds !== null && intersectsRect(projectileBounds, dummyBounds)
+      };
 
       bullet.sprite.x = frame.nextX;
       bullet.sprite.y = frame.nextY;
+      bullet.velocityX = runtimeFrame.projectile.velocityX;
+      bullet.velocityY = runtimeFrame.projectile.velocityY;
+      bullet.bouncesRemaining = runtimeFrame.projectile.bouncesRemaining;
 
       const dummyCoverProtected = frame.hitDummy && bullet.owner === "player" && this.hasDummyCoverProtection(this.time.now);
       const appliedDamage = frame.hitDummy && bullet.owner === "player"
@@ -1288,9 +1309,11 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private spawnImpactEffect(x: number, y: number, profile: "carbine" | "scatter" | "dummy" | "pickup-ammo" | "pickup-health"): void {
+  private spawnImpactEffect(x: number, y: number, profile: "carbine" | "scatter" | "bazooka" | "dummy" | "pickup-ammo" | "pickup-health"): void {
     const fxProfile = profile === "scatter"
       ? { flashRadius: 12, ringRadius: 20, flashColor: 0xffa44b, ringColor: 0xffe0aa, durationMs: 170, rayLength: 18 }
+      : profile === "bazooka"
+        ? { flashRadius: 18, ringRadius: 30, flashColor: 0xff7a3d, ringColor: 0xffd08a, durationMs: 220, rayLength: 26 }
       : profile === "pickup-ammo"
         ? { flashRadius: 15, ringRadius: 28, flashColor: 0x6ce5ff, ringColor: 0xbaf4ff, durationMs: 260, rayLength: 22 }
         : profile === "pickup-health"
@@ -1302,9 +1325,9 @@ export class MainScene extends Phaser.Scene {
     const ring = this.add
       .circle(x, y, fxProfile.ringRadius, fxProfile.ringColor, 0)
       .setDepth(9)
-      .setStrokeStyle(profile === "scatter" || profile.startsWith("pickup-") ? 3 : 2, fxProfile.ringColor, 0.9);
+      .setStrokeStyle(profile === "scatter" || profile === "bazooka" || profile.startsWith("pickup-") ? 3 : 2, fxProfile.ringColor, 0.9);
     const rays = [0, 1, 2, 3].map((index) => {
-      const angle = Phaser.Math.DegToRad(index * 45 + (profile === "scatter" ? 12 : profile.startsWith("pickup-") ? 8 : 0));
+      const angle = Phaser.Math.DegToRad(index * 45 + (profile === "scatter" || profile === "bazooka" ? 12 : profile.startsWith("pickup-") ? 8 : 0));
       return this.add.line(
         x,
         y,
@@ -1314,7 +1337,7 @@ export class MainScene extends Phaser.Scene {
         Math.sin(angle) * fxProfile.rayLength,
         fxProfile.ringColor,
         0.95
-      ).setDepth(9).setLineWidth(profile === "scatter" || profile.startsWith("pickup-") ? 3 : 2);
+      ).setDepth(9).setLineWidth(profile === "scatter" || profile === "bazooka" || profile.startsWith("pickup-") ? 3 : 2);
     });
 
     this.impactEffects.push({
@@ -2521,6 +2544,28 @@ export class MainScene extends Phaser.Scene {
         bulletHeight: 4,
         pelletCount: 3,
         spreadRadians: Phaser.Math.DegToRad(7)
+      }, {
+        trajectory: "linear",
+        speed: gameBalance.bulletSpeed * 0.82
+      }),
+      this.createWeaponSlot("bazooka", "Bazooka", {
+        fireRateMs: 1250,
+        bulletSpeed: gameBalance.bulletSpeed * 0.54,
+        damage: 45,
+        magazineSize: 1,
+        reloadTimeMs: 1700,
+        reserveAmmo: 5
+      }, {
+        bulletColor: 0xff8f3f,
+        bulletWidth: 16,
+        bulletHeight: 8,
+        pelletCount: 1,
+        spreadRadians: 0
+      }, {
+        trajectory: "arc",
+        speed: gameBalance.bulletSpeed * 0.54,
+        gravity: 280,
+        windMultiplier: 0
       })
     ];
   }
@@ -2540,6 +2585,9 @@ export class MainScene extends Phaser.Scene {
         bulletHeight: 4,
         pelletCount: 1,
         spreadRadians: 0
+      }, {
+        trajectory: "linear",
+        speed: gameBalance.bulletSpeed * 0.75
       }),
       this.createWeaponSlot("scatter", "Dummy Scatter", {
         fireRateMs: 1100,
@@ -2554,6 +2602,9 @@ export class MainScene extends Phaser.Scene {
         bulletHeight: 4,
         pelletCount: 3,
         spreadRadians: Phaser.Math.DegToRad(8)
+      }, {
+        trajectory: "linear",
+        speed: gameBalance.bulletSpeed * 0.68
       })
     ];
   }
@@ -2568,12 +2619,17 @@ export class MainScene extends Phaser.Scene {
       readonly bulletHeight: number;
       readonly pelletCount: number;
       readonly spreadRadians: number;
+    },
+    projectileConfig: ProjectileConfig = {
+      trajectory: "linear",
+      speed: config.bulletSpeed
     }
   ): PlayerWeaponSlot {
     return {
       id,
       label,
       logic: new WeaponLogic(config),
+      projectileConfig,
       ...view
     };
   }

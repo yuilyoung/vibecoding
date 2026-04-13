@@ -1,98 +1,73 @@
 {
-  "id": "hybrid-fps-development",
-  "timestamp": "2026-04-10",
+  "id": "phase-1-weapon-physics",
+  "timestamp": "2026-04-14",
   "from": "vision",
   "to": "ultron",
   "status": "ready",
-  "scope": "브롤스타즈 + 웜즈 하이브리드 FPS 게임 개발 — 5 Phase 로드맵",
+  "scope": "Phase 1 — 물리 엔진 + 무기 시스템 (6종 무기, Phaser Physics 연동, 밸런스 데이터 외부화)",
   "constraints": [
-    "탑다운 시점, 실시간 팀전 유지 (턴제 전환 아님)",
-    "Phaser 3 엔진 유지, 3D 전환 없음",
     "게임 로직은 src/domain/ (순수 TS), Phaser 의존은 src/scenes/ 분리",
-    "모든 수치는 assets/data/*.json 외부화",
+    "모든 수치는 assets/data/game-balance.json 외부화",
     "TDD: 새 로직은 반드시 테스트 동반 (tests/*.test.ts)",
     "기존 매치 플로우(MatchFlowLogic) 정상 동작 유지",
-    "무료 에셋만 사용 (CC0/CC-BY)"
+    "기존 ProjectileRuntime, ExplosionLogic 인터페이스 호환 유지",
+    "npm run type-check && npm run lint && npm test && npm run build 전부 통과"
   ],
-  "phases": [
-    {
-      "id": "phase-1",
-      "name": "물리 엔진 + 무기 시스템",
-      "priority": "최우선",
-      "spec": "docs/development/weapon-systems.md",
-      "deliverables": [
-        "Phaser Arcade Physics 활성화",
-        "ProjectileRuntime (6종 탄도: linear, arc, bounce, homing, aoe-call, beam)",
-        "ExplosionLogic (범위 폭발 + 넉백 + 거리 감쇠)",
-        "무기 6종 구현 (Carbine, Scatter, Bazooka, Grenade, Sniper, Air Strike)",
-        "game-balance.json weapons 섹션 확장",
-        "단위 테스트: ProjectileRuntime, ExplosionLogic"
-      ]
-    },
-    {
-      "id": "phase-2",
-      "name": "맵 오브젝트 + 폭발 체인",
-      "priority": "높음",
-      "spec": "docs/development/environment-systems.md#phase-2",
-      "deliverables": [
-        "MapObjectLogic (드럼통, 지뢰, 보급상자, 파괴형 엄폐물, 바운스벽, 텔레포터)",
-        "체인 폭발 로직 (최대 깊이 5)",
-        "map-objects.json 맵 배치 데이터",
-        "단위 테스트: MapObjectLogic"
-      ]
-    },
-    {
-      "id": "phase-3",
-      "name": "환경 시스템: 바람·날씨",
-      "priority": "높음",
-      "spec": "docs/development/environment-systems.md#phase-3",
-      "deliverables": [
-        "WindLogic (방향/세기, 투사체 영향)",
-        "WeatherLogic (5종: 맑음, 비, 안개, 사막풍, 폭풍)",
-        "라운드별 환경 변화 로직",
-        "HUD 바람 표시 + 날씨 시각 효과",
-        "단위 테스트: WindLogic, WeatherLogic"
-      ]
-    },
-    {
-      "id": "phase-4",
-      "name": "비주얼 에셋 교체",
-      "priority": "중간",
-      "deliverables": [
-        "캐릭터 스프라이트시트 (이동/조준/피격/사망)",
-        "무기/탄환/폭발 스프라이트 + 파티클",
-        "맵 타일셋 (바닥, 벽, 장애물, 오브젝트)",
-        "UI (HP바, 탄약, 팀 표시, 바람 화살표, 날씨 아이콘)",
-        "코드 도형 → 스프라이트 교체"
-      ]
-    },
-    {
-      "id": "phase-5",
-      "name": "탈것 시스템 + 확장 무기",
-      "priority": "후순위",
-      "spec": "docs/development/environment-systems.md#phase-5",
-      "deliverables": [
-        "탈것 3종 (탱크, 바이크, 포탑)",
-        "탑승/하차/파괴 로직",
-        "확장 무기 5종 (Mortar, Guided Missile, Napalm, Bouncer, EMP)"
-      ]
-    }
-  ],
-  "files": [
-    "docs/development/game-direction.md — 전체 방향성 문서",
-    "docs/development/weapon-systems.md — 무기 시스템 상세 스펙",
-    "docs/development/environment-systems.md — 환경·오브젝트 상세 스펙",
-    "src/domain/combat/ — 무기·폭발·투사체 로직",
-    "src/domain/map/ — 맵 오브젝트 로직",
-    "src/domain/environment/ — 바람·날씨 로직 (신규 디렉토리)",
-    "src/scenes/MainScene.ts — 물리 엔진·렌더링 통합",
-    "assets/data/game-balance.json — 게임 수치 확장"
-  ],
+  "currentState": {
+    "implemented": [
+      "ProjectileRuntime.ts — 6종 탄도(linear/arc/bounce/homing/aoe-call/beam) 물리 연산 완료",
+      "ExplosionLogic.ts — 범위 데미지 감쇠 + 넉백 벡터 완료",
+      "WeaponLogic.ts — 발사율/탄약/재장전 관리 (단일 무기 기준)",
+      "WeaponInventoryLogic.ts — 슬롯 기반 무기 전환 (id/label만)",
+      "CombatRuntime.ts — 구 evaluateProjectileFrame (linear 전용) + 신 advanceProjectile 공존",
+      "tests/ — ProjectileRuntime.test.ts, ExplosionLogic.test.ts 존재"
+    ],
+    "missing": [
+      "WeaponConfig ↔ ProjectileConfig 연동 없음",
+      "game-balance.json에 weapons 섹션 없음 (단일 플랫 구조)",
+      "6종 무기 정의(Carbine/Scatter/Bazooka/Grenade/Sniper/Air Strike) 미완성",
+      "WeaponInventoryLogic이 WeaponLogic 인스턴스를 관리하지 않음",
+      "beam 히트스캔 레이캐스트 MainScene 연동 없음",
+      "aoe-call 지연 폭격 시퀀스 MainScene 연동 없음",
+      "폭발 이펙트(ExplosionLogic) MainScene 연동 없음",
+      "넉백 impulse MainScene 적용 없음",
+      "Phaser Arcade Physics 미활성화",
+      "무기 전환 입력(넘버키 1~6) 없음",
+      "HUD 무기 슬롯/폭발 범위 표시 없음",
+      "CombatRuntime 내 구 evaluateProjectileFrame → advanceProjectile 마이그레이션 미완료"
+    ]
+  },
+  "files": {
+    "modify": [
+      "src/domain/combat/WeaponLogic.ts — WeaponConfig에 ProjectileConfig 연동",
+      "src/domain/combat/WeaponInventoryLogic.ts — WeaponLogic[] 인스턴스 관리로 확장",
+      "src/domain/combat/CombatRuntime.ts — evaluateProjectileFrame 제거, advanceProjectile 통합",
+      "src/domain/combat/CombatResolution.ts — 폭발 히트 처리 추가",
+      "src/scenes/MainScene.ts — Physics 활성화, 6종 무기 발사/전환/폭발/넉백 연동",
+      "src/ui/hud-presenters.ts — 무기 슬롯 HUD 데이터",
+      "src/ui/hud-events.ts — 무기 전환 이벤트",
+      "assets/data/game-balance.json — weapons 섹션 추가",
+      "tests/WeaponLogic.test.ts — ProjectileConfig 연동 테스트 추가",
+      "tests/WeaponInventoryLogic.test.ts — 다중 무기 관리 테스트 추가",
+      "tests/CombatRuntime.test.ts — advanceProjectile 통합 테스트"
+    ],
+    "create": [
+      "src/domain/combat/BeamLogic.ts — 히트스캔 레이캐스트 순수 로직",
+      "src/domain/combat/AirStrikeLogic.ts — AOE-call 지연 폭격 시퀀스 순수 로직",
+      "tests/BeamLogic.test.ts",
+      "tests/AirStrikeLogic.test.ts"
+    ]
+  },
   "acceptance": [
-    "Phase별 deliverables 전부 구현 및 테스트 통과",
-    "기존 매치 플로우(stage-entry → combat-live) 정상 동작",
+    "6종 무기(Carbine/Scatter/Bazooka/Grenade/Sniper/Air Strike)가 게임 내 전환 및 발사 가능",
+    "arc 탄도 — 중력 포물선 + 바람 영향 동작",
+    "bounce 탄도 — 벽/장애물 반사 후 bounceCount 소진 시 폭발",
+    "beam 탄도 — 즉발 히트스캔, 첫 충돌 지점 데미지",
+    "aoe-call 탄도 — 지정 좌표에 지연 후 순차 폭발",
+    "폭발 — 범위 데미지 감쇠 + 넉백 impulse 적용",
+    "무기 전환 — 넘버키(1~6) 또는 마우스 휠로 전환, HUD 반영",
+    "game-balance.json weapons 섹션에 6종 수치 외부화",
     "npm run type-check && npm run lint && npm test && npm run build 전부 통과",
-    "Vercel 자동 배포 후 브라우저에서 플레이 가능"
-  ],
-  "notes": "Phase 1부터 순차 진행. 각 Phase 완료 시 execution-report 작성 후 비전 검토. Phase 4(비주얼)는 Phase 1~3과 병렬 진행 가능."
+    "기존 매치 플로우(stage-entry → combat-live) 정상 동작 유지"
+  ]
 }

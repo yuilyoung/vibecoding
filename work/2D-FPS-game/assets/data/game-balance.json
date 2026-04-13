@@ -27,5 +27,100 @@
   "actorSkinSource": "spritesheet",
   "actorSpritesheetPath": "/assets/sprites/actors.png",
   "actorFrameWidth": 44,
-  "actorFrameHeight": 30
+  "actorFrameHeight": 30,
+  "weapons": {
+    "carbine": {
+      "fireRateMs": 180,
+      "bulletSpeed": 540,
+      "damage": 20,
+      "magazineSize": 6,
+      "reloadTimeMs": 1200,
+      "reserveAmmo": 24,
+      "projectile": {
+        "trajectory": "linear",
+        "speed": 540
+      }
+    },
+    "scatter": {
+      "fireRateMs": 620,
+      "bulletSpeed": 443,
+      "damage": 12,
+      "magazineSize": 2,
+      "reloadTimeMs": 1450,
+      "reserveAmmo": 12,
+      "pelletCount": 3,
+      "spreadRadians": 0.1221730476,
+      "projectile": {
+        "trajectory": "linear",
+        "speed": 443,
+        "pelletCount": 3,
+        "spreadRadians": 0.1221730476
+      }
+    },
+    "bazooka": {
+      "fireRateMs": 1250,
+      "bulletSpeed": 292,
+      "damage": 45,
+      "magazineSize": 1,
+      "reloadTimeMs": 1700,
+      "reserveAmmo": 5,
+      "blastRadius": 60,
+      "knockback": 120,
+      "projectile": {
+        "trajectory": "arc",
+        "speed": 292,
+        "gravity": 300,
+        "blastRadius": 60,
+        "blastDamage": 45,
+        "knockback": 120
+      }
+    },
+    "grenade": {
+      "fireRateMs": 1100,
+      "bulletSpeed": 360,
+      "damage": 35,
+      "magazineSize": 1,
+      "reloadTimeMs": 1500,
+      "reserveAmmo": 6,
+      "blastRadius": 50,
+      "knockback": 90,
+      "projectile": {
+        "trajectory": "bounce",
+        "speed": 360,
+        "bounceCount": 2,
+        "blastRadius": 50,
+        "blastDamage": 35,
+        "knockback": 90
+      }
+    },
+    "sniper": {
+      "fireRateMs": 2000,
+      "bulletSpeed": 0,
+      "damage": 55,
+      "magazineSize": 1,
+      "reloadTimeMs": 1900,
+      "reserveAmmo": 8,
+      "projectile": {
+        "trajectory": "beam",
+        "speed": 0,
+        "blastDamage": 55
+      }
+    },
+    "airStrike": {
+      "fireRateMs": 15000,
+      "bulletSpeed": 0,
+      "damage": 30,
+      "magazineSize": 1,
+      "reloadTimeMs": 0,
+      "reserveAmmo": 3,
+      "salvoCount": 5,
+      "projectile": {
+        "trajectory": "aoe-call",
+        "speed": 0,
+        "blastRadius": 128,
+        "blastDamage": 30,
+        "knockback": 160
+      }
+    }
+  }
 }

@@ -20,3 +20,26 @@ Follow-up:
 
 - Run `npm run dev` and use the local browser checklist before changing balance values.
 - Record actual cover/hazard/audio findings in this file after manual input and visual/audio checks.
+
+## 2026-04-13 Browser Playtest Probe
+
+Scope:
+
+- Ran the local Vite dev server at `http://127.0.0.1:5173`.
+- Added and ran `tests/e2e/playtest-balance.spec.ts` against the dev server in Chromium.
+- Covered movement mode changes, weapon swap/fire feedback, gate toggle fallback, vent hazard tick, vision-jam cover HUD state, match-confirm reset, and browser console errors.
+
+Findings:
+
+- No browser console or page runtime errors were reported during the probe.
+- Walk and sprint HUD state changed correctly under browser keyboard input.
+- Weapon switching reached the Scatter slot and emitted the `weapon.swap` cue.
+- Firing remained playable during the probe, but rapid combat events can overwrite the transient fire cue before the HUD snapshot reads it.
+- The vent hazard reduced player HP after overlap and emitted the `hazard.tick` cue. Current `hazardDamage: 7` and `hazardTickMs: 900` feel mechanically conservative in automation because the hazard did not immediately decide the match.
+- The vision-jam cover state activated when the dummy occupied the first cover point. The current `coverPointRadius: 18` is enough for deterministic cover detection, but still needs a human visual readability pass at normal play speed.
+- Match victory overlay waited for explicit `ENTER` confirmation and reset back to team selection with scores and round number cleared.
+
+Follow-up:
+
+- Run one headed human pass to judge subjective audio volume, cue fatigue, and cover-marker readability. Headless automation confirms cue emission, not perceived loudness.
+- Keep current hazard and cover values until that human pass produces a stronger balance reason to tune them.

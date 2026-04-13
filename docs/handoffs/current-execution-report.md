@@ -94,11 +94,72 @@
   - documented how the active Phaser baseline relates to the older Unity roadmap
   - recorded Phaser as the production-candidate track unless the migration gate is explicitly approved
 
+- `work/2D-FPS-game/tests/e2e/playtest-balance.spec.ts`
+  - added a browser playtest probe for movement mode, weapon feedback, gate state, hazard tick, vision-jam cover state, match-confirm reset, and console-error checks
+
+- `work/2D-FPS-game/docs/development/playtest-log.md`
+  - recorded 2026-04-13 browser probe findings for cover, hazard, cue emission, and match confirmation
+
+- `work/2D-FPS-game/docs/development/tuning-notes.md`
+  - updated current playtest status to keep hazard and cover values stable pending headed subjective review
+
+- `docs/reports/project-status.md`
+  - moved P2.11b into completed browser-probe scope and added P2.11c for headed human audio/readability review
+
+- `work/2D-FPS-game/src/domain/combat/ProjectileRuntime.ts`
+  - added M1 Phase 1 pure projectile trajectory handling for linear, arc, bounce, homing, beam, and aoe-call semantics
+
+- `work/2D-FPS-game/src/domain/combat/ExplosionLogic.ts`
+  - added M1 Phase 1 pure blast falloff and knockback resolution
+
+- `work/2D-FPS-game/tests/ProjectileRuntime.test.ts`
+  - added trajectory coverage for linear, arc, bounce, homing, and immediate-effect projectiles
+
+- `work/2D-FPS-game/tests/ExplosionLogic.test.ts`
+  - added radius falloff, knockback, out-of-radius, and zero-radius coverage
+
+- `docs/reports/project-status.md`
+  - synced JARVIS/dashboard roadmap alignment to M0 complete and M1 Phase 1 started
+  - set next implementation tasks to ProjectileRuntime scene wiring and Bazooka/Grenade expansion
+
+- `work/2D-FPS-game/src/scenes/MainScene.ts`
+  - routed scene bullet movement through `ProjectileRuntime`
+  - added Bazooka as a player weapon-cycle arc projectile config
+  - kept blast damage out of scope for the next P1.03 ExplosionLogic scene wiring task
+
+- `dashboard/index.html`
+  - synced JARVIS dashboard copy to M1 Phase 1 in progress and Phaser Phase 1 next tasks
+
+- `work/2D-FPS-game/dashboard/index.html`
+  - mirrored the root dashboard roadmap sync for the active workspace copy
+
+- `work/2D-FPS-game/assets/data/game-balance.json`
+  - added six-weapon Phase 1 `weapons` config data for Carbine, Scatter, Bazooka, Grenade, Sniper, and Air Strike
+
+- `work/2D-FPS-game/src/domain/combat/WeaponLogic.ts`
+  - added projectile metadata to weapon config and fire attempts while keeping existing firing/reload behavior compatible
+
+- `work/2D-FPS-game/src/domain/combat/WeaponInventoryLogic.ts`
+  - added config-backed `WeaponLogic` instance construction, active weapon access, and reload cancellation on slot switch
+
+- `work/2D-FPS-game/src/domain/combat/BeamLogic.ts`
+  - added pure beam raycast logic for nearest actor/obstacle hit detection
+
+- `work/2D-FPS-game/src/domain/combat/AirStrikeLogic.ts`
+  - added pure staggered aoe-call scheduling for deterministic multi-blast strikes
+
+- `work/2D-FPS-game/src/domain/combat/CombatRuntime.ts`
+  - removed the old `evaluateProjectileFrame` path after scene bullet movement moved to `ProjectileRuntime`
+
+- `work/2D-FPS-game/docs/planning/phase1-tasks.json`
+  - synced T1-T6 to completed and T7 to in_progress after specialist-agent work
+
 ## Verification
 
 - type-check: passed
 - lint: passed
-- test: passed (55 tests)
+- test: passed (115 tests)
+- browser e2e: passed (6 tests)
 - workspace next-tasks: passed
 - workspace project-status: passed
 - build: passed
@@ -107,5 +168,8 @@
 ## Risks
 
 - Generated skins are prototype placeholders, not final art assets
-- Weapon, gate, hazard, and AI tuning are initial prototype values and should be playtested
-- Remaining future work is optional extension scope such as authored sprite assets, manual browser playtest findings, and a product-track decision between Phaser production and Unity preproduction
+- Weapon, gate, hazard, and AI tuning values have browser-probe coverage but still need headed human feel checks
+- Subjective audio gain, cue fatigue, and cover-marker readability cannot be fully judged from headless automation
+- BeamLogic, AirStrikeLogic, and ExplosionLogic are currently domain-level foundations and still need Phaser scene integration for full weapon gameplay
+- Bazooka arc movement is scene-integrated, but Bazooka/Grenade blast damage and knockback still require P1.03 scene wiring
+- Remaining future work is optional extension scope such as authored sprite assets, headed human review findings, and a product-track decision between Phaser production and Unity preproduction

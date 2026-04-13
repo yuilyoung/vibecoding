@@ -1,6 +1,36 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { WeaponLogic } from "../src/domain/combat/WeaponLogic";
 
 describe("WeaponLogic", () => {
+  it("loads the Phase 1 weapon balance section without dropping flat compatibility keys", () => {
+    const balancePath = fileURLToPath(new URL("../assets/data/game-balance.json", import.meta.url));
+    const balance = JSON.parse(readFileSync(balancePath, "utf8")) as {
+      bulletSpeed: number;
+      fireRateMs: number;
+      bulletDamage: number;
+      magazineSize: number;
+      reloadTimeMs: number;
+      reserveAmmo: number;
+      weapons: Record<string, unknown>;
+    };
+
+    expect(balance.bulletSpeed).toBe(540);
+    expect(balance.fireRateMs).toBe(180);
+    expect(balance.bulletDamage).toBe(20);
+    expect(balance.magazineSize).toBe(6);
+    expect(balance.reloadTimeMs).toBe(1200);
+    expect(balance.reserveAmmo).toBe(24);
+    expect(Object.keys(balance.weapons)).toEqual([
+      "carbine",
+      "scatter",
+      "bazooka",
+      "grenade",
+      "sniper",
+      "airStrike"
+    ]);
+  });
+
   it("allows an initial fire attempt and schedules the next ready time", () => {
     const weapon = new WeaponLogic({
       fireRateMs: 200,
@@ -8,7 +38,11 @@ describe("WeaponLogic", () => {
       damage: 25,
       magazineSize: 6,
       reloadTimeMs: 1200,
-      reserveAmmo: 24
+      reserveAmmo: 24,
+      projectile: {
+        trajectory: "linear",
+        speed: 500
+      }
     });
 
     const attempt = weapon.tryFire(1000);
@@ -19,7 +53,59 @@ describe("WeaponLogic", () => {
     expect(attempt.damage).toBe(25);
     expect(attempt.ammoInMagazine).toBe(5);
     expect(attempt.reserveAmmo).toBe(24);
+    expect(attempt.projectile).toEqual({
+      trajectory: "linear",
+      speed: 500
+    });
     expect(attempt.reason).toBe("ready");
+  });
+
+  it("merges projectile metadata into fire attempts", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 700,
+      bulletSpeed: 360,
+      damage: 35,
+      magazineSize: 1,
+      reloadTimeMs: 1500,
+      reserveAmmo: 6,
+      blastRadius: 50,
+      blastDamage: 35,
+      knockback: 90,
+      projectile: {
+        trajectory: "bounce",
+        speed: 360,
+        bounceCount: 2
+      }
+    });
+
+    const attempt = weapon.tryFire(0);
+
+    expect(attempt.projectile).toEqual({
+      trajectory: "bounce",
+      speed: 360,
+      bounceCount: 2,
+      blastRadius: 50,
+      blastDamage: 35,
+      knockback: 90
+    });
+  });
+
+  it("falls back to a linear projectile when no explicit projectile config is provided", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 180,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 6,
+      reloadTimeMs: 1200,
+      reserveAmmo: 24
+    });
+
+    const attempt = weapon.tryFire(0);
+
+    expect(attempt.projectile).toEqual({
+      trajectory: "linear",
+      speed: 540
+    });
   });
 
   it("blocks firing while the cooldown window is active", () => {
