@@ -190,14 +190,19 @@
   - removed the old `evaluateProjectileFrame` path after scene bullet movement moved to `ProjectileRuntime`
 
 - `work/2D-FPS-game/docs/planning/phase1-tasks.json`
-  - synced T1-T6 to completed and T7 to in_progress after specialist-agent work
+  - synced T1-T7 to completed after MainScene six-weapon integration
+
+- `work/2D-FPS-game/src/scenes/MainScene.ts`
+  - wired six player weapon slots to `game-balance.json`
+  - added 1-6 weapon selection, Grenade bounce projectile flow, Sniper beam hits, Air Strike scheduling, and explosion damage hooks
+  - fixed gate interaction to use the visible gate position and avoid pointer-fire sound overwrites
 
 ## Verification
 
 - type-check: passed
 - lint: passed
-- test: passed (106 tests)
-- e2e: passed (7 tests)
+- test: passed (117 tests)
+- e2e: passed (8 tests)
 - workspace next-tasks: passed
 - workspace project-status: passed
 - build: passed
@@ -206,6 +211,6 @@
 ## Risks
 
 - Generated skins are prototype placeholders, not final art assets
-- Phase 1 projectile/explosion logic is domain-tested but not yet wired into the Phaser scene
+- Full weapon HUD slot-strip work remains for T8
 - Generated audio cue loudness still needs a real speaker/headphone pass before changing tone gains
-- Remaining future work includes Phase 1 scene integration, authored sprite assets, and the documented Phaser/Unity product-track decision
+- Remaining future work includes Phase 1 HUD expansion, authored sprite assets, and the documented Phaser/Unity product-track decision

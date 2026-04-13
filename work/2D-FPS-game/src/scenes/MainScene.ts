@@ -7,6 +7,9 @@ import { resolveBulletCollision, resolveHazardOutcome } from "../domain/combat/C
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { WeaponLogic, type WeaponConfig } from "../domain/combat/WeaponLogic";
 import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
+import { resolveExplosion } from "../domain/combat/ExplosionLogic";
+import { castBeam } from "../domain/combat/BeamLogic";
+import { advanceAirStrike, createAirStrike, type AirStrikeState } from "../domain/combat/AirStrikeLogic";
 import {
   canApplyHazard,
   canDummyFire,
@@ -66,7 +69,13 @@ interface GameBalance {
   actorSpritesheetPath: string;
   actorFrameWidth: number;
   actorFrameHeight: number;
+  weapons?: Record<string, unknown>;
 }
+
+type BalanceWeaponConfig = Partial<WeaponConfig> & {
+  readonly label?: string;
+  readonly salvoCount?: number;
+};
 
 interface BulletView {
   sprite: Phaser.GameObjects.Rectangle;
@@ -74,9 +83,16 @@ interface BulletView {
   velocityY: number;
   damage: number;
   owner: "player" | "dummy";
-  effectProfile: "carbine" | "scatter" | "bazooka" | "dummy";
+  effectProfile: ImpactProfile;
   projectileConfig: ProjectileConfig;
   bouncesRemaining?: number;
+}
+
+type ImpactProfile = "carbine" | "scatter" | "bazooka" | "grenade" | "sniper" | "airStrike" | "dummy" | "pickup-ammo" | "pickup-health";
+
+interface ActiveAirStrikeView {
+  state: AirStrikeState;
+  owner: "player" | "dummy";
 }
 
 interface ImpactFxView {
@@ -268,6 +284,10 @@ export class MainScene extends Phaser.Scene {
     swap: Phaser.Input.Keyboard.Key;
     weapon1: Phaser.Input.Keyboard.Key;
     weapon2: Phaser.Input.Keyboard.Key;
+    weapon3: Phaser.Input.Keyboard.Key;
+    weapon4: Phaser.Input.Keyboard.Key;
+    weapon5: Phaser.Input.Keyboard.Key;
+    weapon6: Phaser.Input.Keyboard.Key;
     interact: Phaser.Input.Keyboard.Key;
   };
   private playerSprite!: Phaser.GameObjects.Image;
@@ -290,6 +310,7 @@ export class MainScene extends Phaser.Scene {
   private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
+  private readonly activeAirStrikes: ActiveAirStrikeView[];
   private readonly impactEffects: ImpactFxView[];
   private readonly shotTrails: ShotTrailView[];
   private readonly movementEffects: MovementFxView[];
@@ -335,6 +356,8 @@ export class MainScene extends Phaser.Scene {
   };
   private playerConsecutiveBlockedFrames: number;
   private dummyConsecutiveBlockedFrames: number;
+  private suppressPointerFireUntilMs: number;
+  private nextGateInteractionAtMs: number;
   private static readonly STUCK_ESCAPE_THRESHOLD = 3;
   private static readonly SPIRAL_SCAN_MAX_STEPS = 24;
   private static readonly SPIRAL_SCAN_STEP_SIZE = 8;
@@ -368,6 +391,7 @@ export class MainScene extends Phaser.Scene {
     this.soundCueLogic = new SoundCueLogic();
     this.audioCuePlayer = new GeneratedAudioCuePlayer();
     this.bullets = [];
+    this.activeAirStrikes = [];
     this.impactEffects = [];
     this.shotTrails = [];
     this.movementEffects = [];
@@ -421,6 +445,8 @@ export class MainScene extends Phaser.Scene {
     this.lastActiveWeaponReloading = false;
     this.playerConsecutiveBlockedFrames = 0;
     this.dummyConsecutiveBlockedFrames = 0;
+    this.suppressPointerFireUntilMs = 0;
+    this.nextGateInteractionAtMs = 0;
     this.overlayState = {
       visible: false,
       title: "",
@@ -528,14 +554,20 @@ export class MainScene extends Phaser.Scene {
       swap: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
       weapon1: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       weapon2: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+      weapon3: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
+      weapon4: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
+      weapon5: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
+      weapon6: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX),
       interact: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
     };
     this.lastCombatEvent = "PRESS ENTER TO ENTER STAGE";
 
+    this.input.on("pointerdown", this.handlePointerDown, this);
     this.events.on("shutdown", this.onSceneShutdown, this);
   }
 
   private onSceneShutdown(): void {
+    this.input.off("pointerdown", this.handlePointerDown, this);
     const resetSnapshot: HudSnapshot = {
       phase: "STAGE ENTRY",
       team: "UNSET",
@@ -572,6 +604,28 @@ export class MainScene extends Phaser.Scene {
     window.dispatchEvent(
       new CustomEvent<HudSnapshot>(HUD_SNAPSHOT_EVENT, { detail: resetSnapshot })
     );
+  }
+
+  private handlePointerDown(): void {
+    if (!canPlayerUseCombatInteraction(this.getCombatAvailability(this.time.now))) {
+      return;
+    }
+
+    const playerDistanceToGate = Phaser.Math.Distance.Between(
+      this.playerSprite.x,
+      this.playerSprite.y,
+      this.gate.sprite.x,
+      this.gate.sprite.y
+    );
+
+    if (this.time.now < this.nextGateInteractionAtMs || !isGateInteractionAllowed(playerDistanceToGate, 92)) {
+      return;
+    }
+
+    this.applyGateToggle();
+    this.nextGateInteractionAtMs = this.time.now + 500;
+    this.suppressPointerFireUntilMs = this.time.now + 1000;
+    this.emitSoundCue({ kind: "gate", action: this.gate.open ? "open" : "close" });
   }
 
   public update(_: number, delta: number): void {
@@ -653,6 +707,7 @@ export class MainScene extends Phaser.Scene {
     // This prevents newly fired bullets from getting a double-update on their
     // spawn frame (move on fire + move on updateBullets in the same tick).
     this.updateBullets(deltaSeconds);
+    this.updateAirStrikes(delta);
 
     // -- Fire: spawn new bullets (will be advanced next frame) --
     this.handleFire(now);
@@ -816,7 +871,7 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.spawnPlayerProjectiles(activeWeapon, attempt.bulletSpeed, attempt.damage);
+    this.resolvePlayerWeaponFire(activeWeapon, attempt.projectile, attempt.bulletSpeed, attempt.damage);
     this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
   }
 
@@ -951,7 +1006,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleFire(now: number): void {
-    const firePressed = this.input.activePointer.leftButtonDown() || this.moveKeys?.fire.isDown === true;
+    const pointerFirePressed = now >= this.suppressPointerFireUntilMs && this.input.activePointer.leftButtonDown();
+    const firePressed = pointerFirePressed || this.moveKeys?.fire.isDown === true;
 
     if (!firePressed || !canPlayerFire(this.getCombatAvailability(now))) {
       return;
@@ -965,7 +1021,7 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.spawnPlayerProjectiles(activeWeapon, attempt.bulletSpeed, attempt.damage);
+    this.resolvePlayerWeaponFire(activeWeapon, attempt.projectile, attempt.bulletSpeed, attempt.damage);
     if (this.isAmmoOverdriveActive(now)) {
       activeWeapon.logic.refundRound(now);
     }
@@ -977,12 +1033,28 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private spawnPlayerProjectiles(activeWeapon: PlayerWeaponSlot, bulletSpeed: number, damage: number): void {
-    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
-    const pelletStart = -(activeWeapon.pelletCount - 1) / 2;
+  private resolvePlayerWeaponFire(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, bulletSpeed: number, damage: number): void {
+    if (projectileConfig.trajectory === "beam") {
+      this.firePlayerBeam(activeWeapon, projectileConfig, damage);
+      return;
+    }
 
-    for (let index = 0; index < activeWeapon.pelletCount; index += 1) {
-      const spreadOffset = (pelletStart + index) * activeWeapon.spreadRadians;
+    if (projectileConfig.trajectory === "aoe-call") {
+      this.callPlayerAirStrike(projectileConfig);
+      return;
+    }
+
+    this.spawnPlayerProjectiles(activeWeapon, projectileConfig, bulletSpeed, damage);
+  }
+
+  private spawnPlayerProjectiles(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, bulletSpeed: number, damage: number): void {
+    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
+    const pelletCount = projectileConfig.pelletCount ?? activeWeapon.pelletCount;
+    const spreadRadians = projectileConfig.spreadRadians ?? activeWeapon.spreadRadians;
+    const pelletStart = -(pelletCount - 1) / 2;
+
+    for (let index = 0; index < pelletCount; index += 1) {
+      const spreadOffset = (pelletStart + index) * spreadRadians;
       const angle = this.playerLogic.state.aimAngleRadians + spreadOffset;
       const spawnX = this.playerSprite.x + Math.cos(angle) * 24;
       const spawnY = this.playerSprite.y + Math.sin(angle) * 24;
@@ -1002,9 +1074,9 @@ export class MainScene extends Phaser.Scene {
       velocityY: Math.sin(angle) * bulletSpeed,
       damage,
       owner: "player",
-      effectProfile: activeWeapon.id === "bazooka" ? "bazooka" : activeWeapon.id === "scatter" ? "scatter" : "carbine",
-      projectileConfig: activeWeapon.projectileConfig,
-      bouncesRemaining: activeWeapon.projectileConfig.bounceCount
+      effectProfile: this.getImpactProfile(activeWeapon.id),
+      projectileConfig,
+      bouncesRemaining: projectileConfig.bounceCount
     });
       this.trimBulletPool();
 
@@ -1033,6 +1105,84 @@ export class MainScene extends Phaser.Scene {
     );
     this.muzzleFlash.setVisible(true);
     this.muzzleFlashUntilMs = this.time.now + muzzleProfile.durationMs;
+  }
+
+  private firePlayerBeam(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, damage: number): void {
+    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
+    const angle = this.playerLogic.state.aimAngleRadians;
+    const origin = {
+      x: this.playerSprite.x + Math.cos(angle) * 24,
+      y: this.playerSprite.y + Math.sin(angle) * 24
+    };
+    const hit = castBeam(
+      origin,
+      angle,
+      projectileConfig.beamRange ?? 820,
+      this.getActiveObstacles().map((obstacle) => obstacle.bounds),
+      this.dummyLogic.isDead()
+        ? []
+        : [{
+            ...this.getActorCollisionBounds(this.targetDummy.x, this.targetDummy.y),
+            id: "dummy"
+          }]
+    );
+
+    this.spawnShotTrail(origin.x, origin.y, angle, hit.distance, 0xdff8ff, 140);
+    this.spawnImpactEffect(hit.hitPoint.x, hit.hitPoint.y, "sniper");
+
+    if (hit.kind === "actor" && hit.targetId === "dummy" && !this.hasDummyCoverProtection(this.time.now)) {
+      this.dummyLogic.takeDamage(projectileConfig.blastDamage ?? damage);
+      this.emitSoundCue({ kind: "hit", target: "dummy" });
+      this.lastCombatEvent = this.dummyLogic.isDead() ? "DUMMY DOWN" : "DUMMY HIT";
+
+      if (this.dummyLogic.isDead()) {
+        this.roundLogic.registerPlayerWin();
+        this.scheduleResetAfterRound(this.time.now);
+      }
+      return;
+    }
+
+    if (hit.kind === "actor") {
+      this.emitSoundCue({ kind: "deflect", mode: "shield" });
+      this.lastCombatEvent = "COVER BLOCKED";
+    }
+  }
+
+  private callPlayerAirStrike(projectileConfig: ProjectileConfig): void {
+    const targetX = Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
+    const targetY = Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+
+    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, "airStrike"));
+    this.activeAirStrikes.push({
+      owner: "player",
+      state: createAirStrike(targetX, targetY, {
+        blastCount: projectileConfig.aoeCount ?? 5,
+        blastDelayMs: projectileConfig.aoeIntervalMs ?? 320,
+        spreadRadius: projectileConfig.aoeSpreadRadius ?? 48,
+        blastRadius: projectileConfig.blastRadius ?? 96,
+        damage: projectileConfig.blastDamage ?? 30,
+        knockback: projectileConfig.knockback ?? 120
+      })
+    });
+    this.spawnImpactEffect(targetX, targetY, "airStrike");
+    this.lastCombatEvent = "AIR STRIKE CALLED";
+  }
+
+  private updateAirStrikes(deltaMs: number): void {
+    for (let index = this.activeAirStrikes.length - 1; index >= 0; index -= 1) {
+      const airStrike = this.activeAirStrikes[index];
+      const result = advanceAirStrike(airStrike.state, deltaMs);
+      airStrike.state = result.state;
+
+      for (const blast of result.blasts) {
+        this.spawnImpactEffect(blast.x, blast.y, "airStrike");
+        this.applyExplosionDamage(blast.x, blast.y, blast.radius, blast.damage, blast.knockback, airStrike.owner);
+      }
+
+      if (airStrike.state.completed) {
+        this.activeAirStrikes.splice(index, 1);
+      }
+    }
   }
 
   private handleDummyFire(now: number): void {
@@ -1101,14 +1251,20 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1)) {
-      this.tryEquipSlot(0, "EQUIPPED");
-      return;
-    }
+    const numberKeySlots = [
+      this.moveKeys.weapon1,
+      this.moveKeys.weapon2,
+      this.moveKeys.weapon3,
+      this.moveKeys.weapon4,
+      this.moveKeys.weapon5,
+      this.moveKeys.weapon6
+    ];
 
-    if (Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2)) {
-      this.tryEquipSlot(1, "EQUIPPED");
-      return;
+    for (const [slotIndex, key] of numberKeySlots.entries()) {
+      if (Phaser.Input.Keyboard.JustDown(key)) {
+        this.tryEquipSlot(slotIndex, "EQUIPPED");
+        return;
+      }
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.moveKeys.swap)) {
@@ -1131,23 +1287,33 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (!Phaser.Input.Keyboard.JustDown(this.moveKeys.interact)) {
-      return;
-    }
-
     const distanceToGate = Phaser.Math.Distance.Between(
       this.playerSprite.x,
       this.playerSprite.y,
-      this.gate.bounds.x + this.gate.bounds.width / 2,
-      this.gate.bounds.y + this.gate.bounds.height / 2
+      this.gate.sprite.x,
+      this.gate.sprite.y
     );
+    const pointerDistanceToGate = Phaser.Math.Distance.Between(
+      this.input.activePointer.worldX,
+      this.input.activePointer.worldY,
+      this.gate.sprite.x,
+      this.gate.sprite.y
+    );
+    const interactionPressed = Phaser.Input.Keyboard.JustDown(this.moveKeys.interact) || this.moveKeys.interact.isDown;
+    const pointerPressedGate = this.input.activePointer.leftButtonDown() && pointerDistanceToGate <= 36;
 
-    if (!isGateInteractionAllowed(distanceToGate, 92)) {
+    if (this.time.now < this.nextGateInteractionAtMs || (!interactionPressed && !pointerPressedGate)) {
+      return;
+    }
+
+    if (!pointerPressedGate && !isGateInteractionAllowed(distanceToGate, 92)) {
       this.lastCombatEvent = "GATE TOO FAR";
       return;
     }
 
     this.applyGateToggle();
+    this.nextGateInteractionAtMs = this.time.now + 500;
+    this.suppressPointerFireUntilMs = this.time.now + 1000;
     this.emitSoundCue({ kind: "gate", action: this.gate.open ? "open" : "close" });
   }
 
@@ -1325,6 +1491,18 @@ export class MainScene extends Phaser.Scene {
         this.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
       }
 
+      if ((frame.hitObstacle || frame.hitDummy || frame.hitPlayer || frame.outOfBounds) && bullet.projectileConfig.blastRadius !== undefined) {
+        this.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
+        this.applyExplosionDamage(
+          frame.nextX,
+          frame.nextY,
+          bullet.projectileConfig.blastRadius,
+          bullet.projectileConfig.blastDamage ?? bullet.damage,
+          bullet.projectileConfig.knockback ?? 0,
+          bullet.owner
+        );
+      }
+
       if (bulletResolution.destroyBullet) {
         bullet.sprite.destroy();
         this.bullets.splice(index, 1);
@@ -1332,11 +1510,58 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private spawnImpactEffect(x: number, y: number, profile: "carbine" | "scatter" | "bazooka" | "dummy" | "pickup-ammo" | "pickup-health"): void {
+  private applyExplosionDamage(
+    centerX: number,
+    centerY: number,
+    radius: number,
+    damage: number,
+    knockback: number,
+    owner: "player" | "dummy"
+  ): void {
+    const playerWasDead = this.playerLogic.isDead();
+    const dummyWasDead = this.dummyLogic.isDead();
+    const results = resolveExplosion({
+      centerX,
+      centerY,
+      blastRadius: radius,
+      baseDamage: damage,
+      knockback,
+      targets: [
+        { id: "player", x: this.playerSprite.x, y: this.playerSprite.y },
+        { id: "dummy", x: this.targetDummy.x, y: this.targetDummy.y }
+      ]
+    });
+
+    for (const result of results) {
+      if (owner === "player" && result.id === "dummy" && !this.dummyLogic.isDead()) {
+        this.dummyLogic.takeDamage(this.hasDummyCoverProtection(this.time.now) ? 0 : result.damage);
+      }
+
+      if (owner === "dummy" && result.id === "player" && !this.playerLogic.isDead()) {
+        this.playerLogic.takeDamage(result.damage, this.gameBalance.hitStunMs, this.time.now);
+      }
+    }
+
+    if (!dummyWasDead && this.dummyLogic.isDead() && !this.roundLogic.state.isMatchOver) {
+      this.roundLogic.registerPlayerWin();
+      this.scheduleResetAfterRound(this.time.now);
+    } else if (!playerWasDead && this.playerLogic.isDead() && !this.roundLogic.state.isMatchOver) {
+      this.roundLogic.registerDummyWin();
+      this.scheduleResetAfterRound(this.time.now);
+    }
+  }
+
+  private spawnImpactEffect(x: number, y: number, profile: ImpactProfile): void {
     const fxProfile = profile === "scatter"
       ? { flashRadius: 12, ringRadius: 20, flashColor: 0xffa44b, ringColor: 0xffe0aa, durationMs: 170, rayLength: 18 }
       : profile === "bazooka"
         ? { flashRadius: 18, ringRadius: 30, flashColor: 0xff7a3d, ringColor: 0xffd08a, durationMs: 220, rayLength: 26 }
+      : profile === "grenade"
+        ? { flashRadius: 16, ringRadius: 27, flashColor: 0x7cff8a, ringColor: 0xd5ffb0, durationMs: 210, rayLength: 22 }
+      : profile === "sniper"
+        ? { flashRadius: 10, ringRadius: 18, flashColor: 0xdff8ff, ringColor: 0x83eaff, durationMs: 160, rayLength: 28 }
+      : profile === "airStrike"
+        ? { flashRadius: 24, ringRadius: 42, flashColor: 0xfff06a, ringColor: 0xff6f4a, durationMs: 260, rayLength: 34 }
       : profile === "pickup-ammo"
         ? { flashRadius: 15, ringRadius: 28, flashColor: 0x6ce5ff, ringColor: 0xbaf4ff, durationMs: 260, rayLength: 22 }
         : profile === "pickup-health"
@@ -2205,6 +2430,14 @@ export class MainScene extends Phaser.Scene {
     return this.dummyWeaponSlots.find((slot) => slot.id === preferredWeaponId) ?? this.dummyWeaponSlots[0];
   }
 
+  private getImpactProfile(weaponId: string): ImpactProfile {
+    if (weaponId === "scatter" || weaponId === "bazooka" || weaponId === "grenade" || weaponId === "sniper" || weaponId === "airStrike") {
+      return weaponId;
+    }
+
+    return "carbine";
+  }
+
   private getActiveObstacles(): ObstacleView[] {
     if (this.gate === undefined) {
       return this.obstacles;
@@ -2539,56 +2772,91 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {
+    const weapons = (gameBalance.weapons ?? {}) as Record<string, BalanceWeaponConfig>;
     return [
-      this.createWeaponSlot("carbine", "Carbine", {
+      this.createWeaponSlot("carbine", "Carbine", this.mergeWeaponConfig({
         fireRateMs: gameBalance.fireRateMs,
         bulletSpeed: gameBalance.bulletSpeed,
         damage: gameBalance.bulletDamage,
         magazineSize: gameBalance.magazineSize,
         reloadTimeMs: gameBalance.reloadTimeMs,
         reserveAmmo: gameBalance.reserveAmmo
-      }, {
+      }, weapons.carbine), {
         bulletColor: 0xfff27a,
         bulletWidth: 10,
         bulletHeight: 4,
         pelletCount: 1,
         spreadRadians: 0
       }),
-      this.createWeaponSlot("scatter", "Scatter", {
+      this.createWeaponSlot("scatter", "Scatter", this.mergeWeaponConfig({
         fireRateMs: 620,
         bulletSpeed: gameBalance.bulletSpeed * 0.82,
         damage: 12,
         magazineSize: 2,
         reloadTimeMs: 1450,
         reserveAmmo: 12
-      }, {
+      }, weapons.scatter), {
         bulletColor: 0xffb86c,
         bulletWidth: 8,
         bulletHeight: 4,
         pelletCount: 3,
         spreadRadians: Phaser.Math.DegToRad(7)
-      }, {
-        trajectory: "linear",
-        speed: gameBalance.bulletSpeed * 0.82
       }),
-      this.createWeaponSlot("bazooka", "Bazooka", {
+      this.createWeaponSlot("bazooka", "Bazooka", this.mergeWeaponConfig({
         fireRateMs: 1250,
         bulletSpeed: gameBalance.bulletSpeed * 0.54,
         damage: 45,
         magazineSize: 1,
         reloadTimeMs: 1700,
         reserveAmmo: 5
-      }, {
+      }, weapons.bazooka), {
         bulletColor: 0xff8f3f,
         bulletWidth: 16,
         bulletHeight: 8,
         pelletCount: 1,
         spreadRadians: 0
-      }, {
-        trajectory: "arc",
-        speed: gameBalance.bulletSpeed * 0.54,
-        gravity: 280,
-        windMultiplier: 0
+      }),
+      this.createWeaponSlot("grenade", "Grenade", this.mergeWeaponConfig({
+        fireRateMs: 1100,
+        bulletSpeed: gameBalance.bulletSpeed * 0.66,
+        damage: 35,
+        magazineSize: 1,
+        reloadTimeMs: 1500,
+        reserveAmmo: 6
+      }, weapons.grenade), {
+        bulletColor: 0x7cff8a,
+        bulletWidth: 12,
+        bulletHeight: 12,
+        pelletCount: 1,
+        spreadRadians: 0
+      }),
+      this.createWeaponSlot("sniper", "Sniper", this.mergeWeaponConfig({
+        fireRateMs: 2000,
+        bulletSpeed: 0,
+        damage: 55,
+        magazineSize: 1,
+        reloadTimeMs: 1900,
+        reserveAmmo: 8
+      }, weapons.sniper), {
+        bulletColor: 0xdff8ff,
+        bulletWidth: 14,
+        bulletHeight: 3,
+        pelletCount: 1,
+        spreadRadians: 0
+      }),
+      this.createWeaponSlot("airStrike", "Air Strike", this.mergeWeaponConfig({
+        fireRateMs: 15000,
+        bulletSpeed: 0,
+        damage: 30,
+        magazineSize: 1,
+        reloadTimeMs: 0,
+        reserveAmmo: 3
+      }, weapons.airStrike), {
+        bulletColor: 0xfff06a,
+        bulletWidth: 18,
+        bulletHeight: 18,
+        pelletCount: 1,
+        spreadRadians: 0
       })
     ];
   }
@@ -2632,6 +2900,14 @@ export class MainScene extends Phaser.Scene {
     ];
   }
 
+  private mergeWeaponConfig(defaultConfig: WeaponConfig, balanceConfig: BalanceWeaponConfig | undefined): WeaponConfig {
+    return {
+      ...defaultConfig,
+      ...balanceConfig,
+      bulletSpeed: balanceConfig?.bulletSpeed ?? balanceConfig?.projectile?.speed ?? defaultConfig.bulletSpeed
+    };
+  }
+
   private createWeaponSlot(
     id: string,
     label: string,
@@ -2652,7 +2928,7 @@ export class MainScene extends Phaser.Scene {
       id,
       label,
       logic: new WeaponLogic(config),
-      projectileConfig,
+      projectileConfig: config.projectile ?? projectileConfig,
       ...view
     };
   }

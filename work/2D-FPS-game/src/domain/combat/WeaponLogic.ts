@@ -8,6 +8,11 @@ export interface WeaponConfig {
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;
   readonly projectile?: ProjectileConfig;
+  readonly blastRadius?: number;
+  readonly blastDamage?: number;
+  readonly knockback?: number;
+  readonly pelletCount?: number;
+  readonly spreadRadians?: number;
 }
 
 export interface FireAttempt {

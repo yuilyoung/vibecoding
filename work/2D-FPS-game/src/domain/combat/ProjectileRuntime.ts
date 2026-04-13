@@ -9,7 +9,10 @@ export interface ProjectileConfig {
   readonly bounceCount?: number;
   readonly homingStrength?: number;
   readonly blastRadius?: number;
+  readonly blastDamage?: number;
   readonly knockback?: number;
+  readonly pelletCount?: number;
+  readonly spreadRadians?: number;
   readonly windMultiplier?: number;
   readonly beamRange?: number;
   readonly aoeCount?: number;
@@ -131,6 +134,75 @@ export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult
     hitObstacle,
     outOfBounds,
     shouldExplode: hitObstacle || outOfBounds
+  };
+}
+
+export interface ProjectileMotionState {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly velocityX: number;
+  readonly velocityY: number;
+  readonly bouncesRemaining?: number;
+}
+
+export interface ProjectileRuntimeInput {
+  readonly projectile: ProjectileMotionState;
+  readonly config: ProjectileConfig;
+  readonly deltaSeconds: number;
+  readonly arenaWidth: number;
+  readonly arenaHeight: number;
+  readonly obstacles?: readonly Rect[];
+  readonly target?: { readonly x: number; readonly y: number } | null;
+  readonly windX?: number;
+}
+
+export interface ProjectileRuntimeResult {
+  readonly projectile: ProjectileMotionState;
+  readonly hitObstacle: boolean;
+  readonly bounced: boolean;
+  readonly expired: boolean;
+}
+
+export function advanceProjectile(input: ProjectileRuntimeInput): ProjectileRuntimeResult {
+  if (input.config.trajectory === "beam" || input.config.trajectory === "aoe-call") {
+    return {
+      projectile: input.projectile,
+      hitObstacle: false,
+      bounced: false,
+      expired: true
+    };
+  }
+
+  const result = stepProjectile({
+    projectile: {
+      ...input.projectile,
+      trajectory: input.config.trajectory,
+      bouncesRemaining: input.projectile.bouncesRemaining ?? input.config.bounceCount ?? 0
+    },
+    config: input.config,
+    deltaSeconds: input.deltaSeconds,
+    obstacles: input.obstacles ?? [],
+    arenaBounds: { x: 0, y: 0, width: input.arenaWidth, height: input.arenaHeight },
+    target: input.target ?? undefined,
+    windX: input.windX
+  });
+  const bounced = result.projectile.bouncesRemaining < (input.projectile.bouncesRemaining ?? input.config.bounceCount ?? 0);
+
+  return {
+    projectile: {
+      x: result.projectile.x,
+      y: result.projectile.y,
+      width: result.projectile.width,
+      height: result.projectile.height,
+      velocityX: result.projectile.velocityX,
+      velocityY: result.projectile.velocityY,
+      bouncesRemaining: result.projectile.bouncesRemaining
+    },
+    hitObstacle: result.hitObstacle,
+    bounced,
+    expired: result.outOfBounds || result.shouldExplode
   };
 }
 

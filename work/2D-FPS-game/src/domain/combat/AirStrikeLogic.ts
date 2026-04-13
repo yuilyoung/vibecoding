@@ -96,10 +96,10 @@ export function advanceAirStrike(state: AirStrikeState, deltaMs: number): AirStr
       impacts: resolveExplosion({
         centerX: blastX,
         centerY: blastY,
-        radius: state.config.blastRadius,
-        damage: state.config.damage,
+        blastRadius: state.config.blastRadius,
+        baseDamage: state.config.damage,
         knockback: state.config.knockback,
-        actors: []
+        targets: []
       })
     });
   }

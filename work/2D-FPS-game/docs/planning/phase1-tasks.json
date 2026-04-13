@@ -92,7 +92,7 @@
       "id": "T7",
       "subject": "MainScene 물리 엔진 활성화 + 6종 무기 발사 연동",
       "assignee": "ultron/app-developer",
-      "status": "in_progress",
+      "status": "completed",
       "blockedBy": ["T1", "T2", "T3", "T4", "T5", "T6"],
       "description": "Phaser Arcade Physics 활성화. game-balance.json weapons에서 6종 로드. 무기 전환(넘버키 1~6, 마우스 휠). 탄도별 발사: linear(기존), arc(포물선+gravity), bounce(반사), beam(BeamLogic 즉발), aoe-call(AirStrikeLogic 시퀀스). Scatter 3펠릿 확산. 폭발 시 ExplosionLogic → 범위 데미지 + 넉백 impulse.",
       "files": [
