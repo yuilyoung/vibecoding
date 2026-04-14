@@ -28,6 +28,20 @@
   "actorSpritesheetPath": "/assets/sprites/actors.png",
   "actorFrameWidth": 44,
   "actorFrameHeight": 30,
+  "progression": {
+    "xpPerKill": 25,
+    "xpPerRoundClear": 80,
+    "levelCurve": [100, 150, 200, 260]
+  },
+  "unlocks": {
+    "defaultWeaponIds": ["carbine", "scatter"],
+    "weaponRules": [
+      { "weaponId": "bazooka", "requiredLevel": 2 },
+      { "weaponId": "grenade", "requiredLevel": 3 },
+      { "weaponId": "sniper", "requiredLevel": 4 },
+      { "weaponId": "airStrike", "requiredLevel": 5 }
+    ]
+  },
   "weapons": {
     "carbine": {
       "label": "Carbine",
@@ -118,5 +132,63 @@
         "aoeSpreadRadius": 56
       }
     }
-  }
+  },
+  "stages": [
+    {
+      "id": "foundry",
+      "label": "Foundry",
+      "weight": 1,
+      "blueSpawns": [
+        { "x": 120, "y": 120, "label": "BLUE ENTRY A" },
+        { "x": 162, "y": 428, "label": "BLUE ENTRY B" },
+        { "x": 338, "y": 96, "label": "BLUE ENTRY C" }
+      ],
+      "redSpawns": [
+        { "x": 760, "y": 210, "label": "RED ENTRY A" },
+        { "x": 846, "y": 428, "label": "RED ENTRY B" },
+        { "x": 672, "y": 116, "label": "RED ENTRY C" }
+      ],
+      "obstacles": [
+        { "id": "core", "x": 480, "y": 270, "width": 120, "height": 120 },
+        { "id": "tower", "x": 260, "y": 180, "width": 80, "height": 180 },
+        { "id": "barrier", "x": 710, "y": 340, "width": 160, "height": 60 }
+      ]
+    },
+    {
+      "id": "relay-yard",
+      "label": "Relay Yard",
+      "weight": 1,
+      "blueSpawns": [
+        { "x": 96, "y": 96, "label": "BLUE RELAY A" },
+        { "x": 180, "y": 440, "label": "BLUE RELAY B" }
+      ],
+      "redSpawns": [
+        { "x": 840, "y": 96, "label": "RED RELAY A" },
+        { "x": 780, "y": 440, "label": "RED RELAY B" }
+      ],
+      "obstacles": [
+        { "id": "north-relay", "x": 480, "y": 150, "width": 180, "height": 50 },
+        { "id": "south-relay", "x": 480, "y": 390, "width": 180, "height": 50 },
+        { "id": "mid-crate", "x": 480, "y": 270, "width": 70, "height": 90 }
+      ]
+    },
+    {
+      "id": "storm-drain",
+      "label": "Storm Drain",
+      "weight": 1,
+      "blueSpawns": [
+        { "x": 120, "y": 270, "label": "BLUE DRAIN A" },
+        { "x": 230, "y": 96, "label": "BLUE DRAIN B" }
+      ],
+      "redSpawns": [
+        { "x": 840, "y": 270, "label": "RED DRAIN A" },
+        { "x": 730, "y": 444, "label": "RED DRAIN B" }
+      ],
+      "obstacles": [
+        { "id": "upper-lock", "x": 380, "y": 165, "width": 140, "height": 52 },
+        { "id": "lower-lock", "x": 580, "y": 375, "width": 140, "height": 52 },
+        { "id": "drain-core", "x": 480, "y": 270, "width": 90, "height": 90 }
+      ]
+    }
+  ]
 }

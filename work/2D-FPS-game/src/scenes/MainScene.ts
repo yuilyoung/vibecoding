@@ -20,17 +20,42 @@ import {
   isGateInteractionAllowed
 } from "../domain/combat/CombatRuntime";
 import { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
+import { createStageRotationState, selectNextStage, type StageRotationState } from "../domain/map/StageRotationLogic";
 import { PlayerLogic } from "../domain/player/PlayerLogic";
+import {
+  awardKillXp,
+  awardRoundClearXp,
+  createProgressionState,
+  getXpRequiredForNextLevel,
+  type ProgressionState
+} from "../domain/progression/ProgressionLogic";
+import { createProgressionStorage, type ProgressionStorageAdapter } from "../domain/progression/ProgressionStorage";
+import {
+  createUnlockState,
+  getNewlyUnlockedWeaponIds,
+  isWeaponUnlocked,
+  type UnlockState,
+  type WeaponUnlockRule
+} from "../domain/progression/UnlockLogic";
 import {
   MatchFlowLogic,
   type SpawnAssignment,
   type SpawnPoint,
   type TeamId
 } from "../domain/round/MatchFlowLogic";
+import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
 import { planRoundReset, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
 import { RoundLogic } from "../domain/round/RoundLogic";
-import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "../ui/hud-events";
+import {
+  HUD_SNAPSHOT_EVENT,
+  type HudAreaPreviewSnapshot,
+  type HudBlastPreviewSnapshot,
+  type HudProgressionSnapshot,
+  type HudSnapshot,
+  type HudWeaponSlotSnapshot,
+  type HudWeaponUnlockSnapshot
+} from "../ui/hud-events";
 import {
   buildHudSnapshot,
   buildMatchOverlayState,
@@ -69,6 +94,16 @@ interface GameBalance {
   actorSpritesheetPath: string;
   actorFrameWidth: number;
   actorFrameHeight: number;
+  progression: {
+    xpPerKill: number;
+    xpPerRoundClear: number;
+    levelCurve: readonly number[];
+  };
+  unlocks: {
+    defaultWeaponIds: readonly string[];
+    weaponRules: readonly WeaponUnlockRule[];
+  };
+  stages: readonly StageDefinition[];
   weapons?: Record<string, unknown>;
 }
 
@@ -126,6 +161,7 @@ interface ActorCollisionResolution {
 interface ObstacleView {
   sprite: Phaser.GameObjects.Rectangle;
   bounds: Rect;
+  visuals?: readonly Phaser.GameObjects.GameObject[];
 }
 
 interface PickupView {
@@ -180,6 +216,8 @@ interface TeamSpawnTable {
 interface MainSceneDebugSnapshot {
   phase: string;
   team: TeamId | "UNSET";
+  stage: string;
+  stageLabel: string;
   spawn: string;
   activeWeapon: string;
   weaponSlot: number;
@@ -191,6 +229,9 @@ interface MainSceneDebugSnapshot {
   roundNumber: number;
   playerScore: number;
   dummyScore: number;
+  progressionLevel: number;
+  progressionXp: number;
+  unlockedWeaponIds: readonly string[];
   lastEvent: string;
   playerX: number;
   playerY: number;
@@ -270,6 +311,7 @@ export class MainScene extends Phaser.Scene {
   private static readonly VENT_PANEL_KEY = "arena-vent-panel";
   private static readonly PICKUP_AMMO_KEY = "arena-pickup-ammo";
   private static readonly PICKUP_HEALTH_KEY = "arena-pickup-health";
+  private static readonly UNLOCK_NOTICE_DURATION_MS = 3200;
 
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: {
@@ -315,8 +357,19 @@ export class MainScene extends Phaser.Scene {
   private readonly shotTrails: ShotTrailView[];
   private readonly movementEffects: MovementFxView[];
   private readonly obstacles: ObstacleView[];
+  private readonly stageObstacleViews: ObstacleView[];
   private readonly matchFlow: MatchFlowLogic;
-  private readonly spawnTable: TeamSpawnTable;
+  private readonly stageDefinitions: readonly StageDefinition[];
+  private readonly progressionStorage: ProgressionStorageAdapter;
+  private readonly unlockRules: readonly WeaponUnlockRule[];
+  private readonly defaultWeaponIds: readonly string[];
+  private stageRotationState: StageRotationState;
+  private progressionState: ProgressionState;
+  private unlockState: UnlockState;
+  private newlyUnlockedWeaponIds: readonly string[];
+  private unlockNoticeUntilMs: number;
+  private currentStage: StageDefinition;
+  private spawnTable: TeamSpawnTable;
   private gate!: GateView;
   private hazardZone!: HazardZoneView;
   private readonly dummyCoverPoints: CoverPoint[];
@@ -396,19 +449,21 @@ export class MainScene extends Phaser.Scene {
     this.shotTrails = [];
     this.movementEffects = [];
     this.obstacles = [];
+    this.stageObstacleViews = [];
     this.matchFlow = new MatchFlowLogic();
-    this.spawnTable = {
-      BLUE: [
-        { x: 120, y: 120, label: "BLUE ENTRY A" },
-        { x: 162, y: 428, label: "BLUE ENTRY B" },
-        { x: 338, y: 96, label: "BLUE ENTRY C" }
-      ],
-      RED: [
-        { x: 760, y: 210, label: "RED ENTRY A" },
-        { x: 846, y: 428, label: "RED ENTRY B" },
-        { x: 672, y: 116, label: "RED ENTRY C" }
-      ]
-    };
+    this.stageDefinitions = gameBalance.stages;
+    this.stageRotationState = createStageRotationState();
+    const initialStage = selectNextStage(this.stageDefinitions, this.stageRotationState);
+    this.stageRotationState = initialStage.state;
+    this.currentStage = initialStage.stage;
+    this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
+    this.progressionStorage = createProgressionStorage(this.createProgressionStorageBackend());
+    this.progressionState = this.progressionStorage.load() ?? createProgressionState();
+    this.unlockRules = gameBalance.unlocks.weaponRules;
+    this.defaultWeaponIds = gameBalance.unlocks.defaultWeaponIds;
+    this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
+    this.newlyUnlockedWeaponIds = [];
+    this.unlockNoticeUntilMs = 0;
     this.dummyCoverPoints = [
       { x: 700, y: 160 },
       { x: 690, y: 390 },
@@ -454,6 +509,52 @@ export class MainScene extends Phaser.Scene {
     };
   }
 
+  private createSpawnTableFromStage(stage: StageDefinition): TeamSpawnTable {
+    return {
+      BLUE: stage.blueSpawns,
+      RED: stage.redSpawns
+    };
+  }
+
+  private createProgressionStorageBackend(): Storage {
+    return window.localStorage;
+  }
+
+  private rotateStageForNextMatch(): void {
+    const result = selectNextStage(this.stageDefinitions, this.stageRotationState);
+    this.stageRotationState = result.state;
+    this.currentStage = result.stage;
+    this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
+    this.applyStageGeometry();
+  }
+
+  private registerPlayerRoundWin(now: number): void {
+    const previousPlayerScore = this.roundLogic.state.playerScore;
+    const previousUnlockState = this.unlockState;
+
+    this.roundLogic.registerPlayerWin();
+
+    if (this.roundLogic.state.playerScore === previousPlayerScore) {
+      return;
+    }
+
+    const killGain = awardKillXp(this.progressionState, this.gameBalance.progression);
+    const clearGain = awardRoundClearXp(killGain.state, this.gameBalance.progression);
+    this.progressionState = clearGain.state;
+    this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
+    this.newlyUnlockedWeaponIds = getNewlyUnlockedWeaponIds(previousUnlockState, this.unlockState);
+
+    if (killGain.leveledUp || clearGain.leveledUp || this.newlyUnlockedWeaponIds.length > 0) {
+      this.unlockNoticeUntilMs = now + MainScene.UNLOCK_NOTICE_DURATION_MS;
+    }
+
+    this.progressionStorage.save(this.progressionState);
+  }
+
+  private registerDummyRoundWin(): void {
+    this.roundLogic.registerDummyWin();
+  }
+
   public preload(): void {
     this.load.image(MainScene.WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
     this.load.image(MainScene.WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
@@ -497,9 +598,7 @@ export class MainScene extends Phaser.Scene {
     this.createActorSkins();
     this.createTurretAnimations();
     this.addArenaBackdrop();
-    this.addObstacle(480, 270, 120, 120, 0xe0a54f, { x: 792, y: 64, width: 64, height: 64 });
-    this.addObstacle(260, 180, 80, 180, 0x6bb6ff, { x: 448, y: 0, width: 96, height: 256 });
-    this.addObstacle(710, 340, 160, 60, 0x7fd174, { x: 768, y: 320, width: 96, height: 96 });
+    this.applyStageGeometry();
     this.gate = this.addGate(482, 430, 96, 24, 0xffc15d, { x: 448, y: 0, width: 96, height: 256 });
     this.hazardZone = this.addHazardZone(510, 138, 170, 46);
     this.addCoverPointMarkers();
@@ -574,6 +673,7 @@ export class MainScene extends Phaser.Scene {
       spawn: "Awaiting deployment",
       activeWeapon: "Carbine",
       weaponSlot: 1,
+      weaponSlots: this.createWeaponHudSlots(0),
       ammoInMagazine: this.gameBalance.magazineSize,
       reserveAmmo: this.gameBalance.reserveAmmo,
       isReloading: false,
@@ -598,6 +698,8 @@ export class MainScene extends Phaser.Scene {
       coverVisionX: 480,
       coverVisionY: 270,
       coverVisionRadius: 72,
+      cooldownRemainingMs: 0,
+      cooldownDurationMs: 0,
       overlay: { visible: false, title: "", subtitle: "" }
     };
 
@@ -766,6 +868,8 @@ export class MainScene extends Phaser.Scene {
     return {
       phase: getPhaseLabel(this.matchFlow.state.phase, this.roundLogic.state.isMatchOver, this.isRoundStarting(this.time.now)),
       team: this.matchFlow.state.selectedTeam ?? "UNSET",
+      stage: this.currentStage.id,
+      stageLabel: this.currentStage.label,
       spawn: this.lastSpawnSummary,
       activeWeapon: activeWeapon.label,
       weaponSlot: this.weaponInventory.getActiveIndex() + 1,
@@ -777,6 +881,9 @@ export class MainScene extends Phaser.Scene {
       roundNumber: this.roundLogic.state.roundNumber,
       playerScore: this.roundLogic.state.playerScore,
       dummyScore: this.roundLogic.state.dummyScore,
+      progressionLevel: this.progressionState.level,
+      progressionXp: this.progressionState.xp,
+      unlockedWeaponIds: this.unlockState.unlockedWeaponIds,
       lastEvent: this.lastCombatEvent,
       playerX: this.playerSprite.x,
       playerY: this.playerSprite.y,
@@ -786,12 +893,14 @@ export class MainScene extends Phaser.Scene {
 
   public debugGetRuntimeStats(): {
     bullets: number;
+    activeAirStrikes: number;
     impactEffects: number;
     shotTrails: number;
     movementEffects: number;
   } {
     return {
       bullets: this.bullets.length,
+      activeAirStrikes: this.activeAirStrikes.length,
       impactEffects: this.impactEffects.length,
       shotTrails: this.shotTrails.length,
       movementEffects: this.movementEffects.length
@@ -855,6 +964,20 @@ export class MainScene extends Phaser.Scene {
     this.tryEquipSlot(nextIndex, "SWAPPED TO");
   }
 
+  public debugSelectWeaponSlot(slotNumber: number): void {
+    const slotIndex = slotNumber - 1;
+
+    if (slotIndex < 0 || slotIndex >= this.weaponSlots.length) {
+      return;
+    }
+
+    if (this.weaponInventory.selectSlot(slotIndex)) {
+      this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
+      this.lastActiveWeaponReloading = false;
+      this.lastCombatEvent = `DEBUG EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
+    }
+  }
+
   public debugFire(): void {
     if (!this.isCombatLive(this.time.now) || this.dummyLogic.isDead() || this.playerLogic.isDead()) {
       return;
@@ -875,6 +998,33 @@ export class MainScene extends Phaser.Scene {
     this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
   }
 
+  public debugFireAt(targetX: number, targetY: number): void {
+    if (!this.isCombatLive(this.time.now) || this.dummyLogic.isDead() || this.playerLogic.isDead()) {
+      return;
+    }
+
+    this.playerLogic.state.aimAngleRadians = Phaser.Math.Angle.Between(
+      this.playerSprite.x,
+      this.playerSprite.y,
+      targetX,
+      targetY
+    );
+    const activeWeapon = this.getActiveWeaponSlot();
+    const attempt = activeWeapon.logic.tryFire(this.time.now);
+
+    if (!attempt.allowed) {
+      this.lastCombatEvent = attempt.reason.toUpperCase();
+      return;
+    }
+
+    if (attempt.projectile.trajectory === "aoe-call") {
+      this.callPlayerAirStrikeAt(attempt.projectile, targetX, targetY);
+    } else {
+      this.resolvePlayerWeaponFire(activeWeapon, attempt.projectile, attempt.bulletSpeed, attempt.damage);
+    }
+    this.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
+  }
+
   public debugMovePlayerTo(x: number, y: number): void {
     this.playerLogic.state.positionX = x - MainScene.ACTOR_HALF_SIZE;
     this.playerLogic.state.positionY = y - MainScene.ACTOR_HALF_SIZE;
@@ -884,6 +1034,16 @@ export class MainScene extends Phaser.Scene {
   public debugSetPlayerHullAngle(angleRadians: number): void {
     this.playerBodyAngle = Phaser.Math.Angle.Wrap(angleRadians);
     this.playerSprite.setRotation(this.getActorRotation(this.playerBodyAngle));
+  }
+
+  public debugSetPlayerAimAngle(angleRadians: number): void {
+    this.playerLogic.state.aimAngleRadians = Phaser.Math.Angle.Wrap(angleRadians);
+  }
+
+  public debugMoveDummyTo(x: number, y: number): void {
+    this.dummyLogic.state.positionX = x - MainScene.ACTOR_HALF_SIZE;
+    this.dummyLogic.state.positionY = y - MainScene.ACTOR_HALF_SIZE;
+    this.targetDummy.setPosition(x, y);
   }
 
   public debugToggleGate(): void {
@@ -1136,7 +1296,7 @@ export class MainScene extends Phaser.Scene {
       this.lastCombatEvent = this.dummyLogic.isDead() ? "DUMMY DOWN" : "DUMMY HIT";
 
       if (this.dummyLogic.isDead()) {
-        this.roundLogic.registerPlayerWin();
+        this.registerPlayerRoundWin(this.time.now);
         this.scheduleResetAfterRound(this.time.now);
       }
       return;
@@ -1152,10 +1312,17 @@ export class MainScene extends Phaser.Scene {
     const targetX = Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
     const targetY = Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
 
+    this.callPlayerAirStrikeAt(projectileConfig, targetX, targetY);
+  }
+
+  private callPlayerAirStrikeAt(projectileConfig: ProjectileConfig, targetX: number, targetY: number): void {
+    const clampedTargetX = Phaser.Math.Clamp(targetX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
+    const clampedTargetY = Phaser.Math.Clamp(targetY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+
     this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, "airStrike"));
     this.activeAirStrikes.push({
       owner: "player",
-      state: createAirStrike(targetX, targetY, {
+      state: createAirStrike(clampedTargetX, clampedTargetY, {
         blastCount: projectileConfig.aoeCount ?? 5,
         blastDelayMs: projectileConfig.aoeIntervalMs ?? 320,
         spreadRadius: projectileConfig.aoeSpreadRadius ?? 48,
@@ -1164,7 +1331,7 @@ export class MainScene extends Phaser.Scene {
         knockback: projectileConfig.knockback ?? 120
       })
     });
-    this.spawnImpactEffect(targetX, targetY, "airStrike");
+    this.spawnImpactEffect(clampedTargetX, clampedTargetY, "airStrike");
     this.lastCombatEvent = "AIR STRIKE CALLED";
   }
 
@@ -1274,12 +1441,98 @@ export class MainScene extends Phaser.Scene {
   }
 
   private tryEquipSlot(slotIndex: number, eventPrefix: string): void {
+    const slot = this.weaponSlots[slotIndex];
+
+    if (slot === undefined) {
+      return;
+    }
+
+    if (!isWeaponUnlocked(slot.id, this.progressionState, this.unlockRules, this.defaultWeaponIds)) {
+      this.lastCombatEvent = `WEAPON LOCKED ${slot.label.toUpperCase()}`;
+      return;
+    }
+
     if (this.weaponInventory.selectSlot(slotIndex)) {
       this.getActiveWeaponSlot().logic.cancelReload(this.time.now);
       this.lastActiveWeaponReloading = false;
       this.lastCombatEvent = `${eventPrefix} ${this.getActiveWeaponSlot().label.toUpperCase()}`;
       this.emitSoundCue({ kind: "weapon-state", action: "swap" });
     }
+  }
+
+  private createWeaponHudSlots(activeIndex: number, now = this.time.now): readonly HudWeaponSlotSnapshot[] {
+    return this.weaponSlots.map((slot, index) => ({
+      slot: index + 1,
+      id: slot.id,
+      label: slot.label,
+      ammoInMagazine: slot.logic.getAmmoInMagazine(now),
+      reserveAmmo: slot.logic.getReserveAmmo(now),
+      isActive: index === activeIndex,
+      isReloading: slot.logic.isReloading(now)
+    }));
+  }
+
+  private createHudProgressionSnapshot(): HudProgressionSnapshot {
+    return {
+      visible: true,
+      level: this.progressionState.level,
+      xp: this.progressionState.xp,
+      totalXp: this.progressionState.totalXp,
+      xpToNextLevel: getXpRequiredForNextLevel(this.progressionState, this.gameBalance.progression)
+    };
+  }
+
+  private createHudWeaponUnlockSnapshot(now: number): HudWeaponUnlockSnapshot {
+    const unlockedIds = new Set(this.unlockState.unlockedWeaponIds);
+    const nextRule = [...this.unlockRules]
+      .filter((rule) => !unlockedIds.has(rule.weaponId))
+      .sort((left, right) => left.requiredLevel - right.requiredLevel)[0] ?? null;
+    const newlyUnlockedWeaponIds = now <= this.unlockNoticeUntilMs ? this.newlyUnlockedWeaponIds : [];
+
+    return {
+      visible: true,
+      unlockedWeaponIds: this.unlockState.unlockedWeaponIds,
+      newlyUnlockedWeaponIds,
+      nextUnlockWeaponId: nextRule?.weaponId ?? null,
+      nextUnlockLevel: nextRule?.requiredLevel ?? null,
+      noticeTitle: newlyUnlockedWeaponIds.length > 0 ? "Weapon unlocked" : "",
+      noticeSubtitle: newlyUnlockedWeaponIds.length > 0
+        ? newlyUnlockedWeaponIds.map((weaponId) => this.getWeaponLabel(weaponId)).join(", ")
+        : ""
+    };
+  }
+
+  private createHudAreaPreviewSnapshot(): HudAreaPreviewSnapshot {
+    return {
+      visible: true,
+      stageId: this.currentStage.id,
+      stageLabel: this.currentStage.label,
+      stageIndex: this.stageRotationState.currentIndex + 1,
+      stageCount: this.stageDefinitions.length,
+      title: this.currentStage.label,
+      subtitle: `${this.currentStage.blueSpawns.length} blue spawns, ${this.currentStage.redSpawns.length} red spawns, ${this.currentStage.obstacles.length} cover blocks`,
+      stages: this.stageDefinitions.map((stage) => ({
+        id: stage.id,
+        label: stage.label,
+        details: `${stage.blueSpawns.length}/${stage.redSpawns.length} spawns, ${stage.obstacles.length} cover`
+      }))
+    };
+  }
+
+  private getWeaponLabel(weaponId: string): string {
+    return this.weaponSlots.find((slot) => slot.id === weaponId)?.label ?? weaponId;
+  }
+
+  private createHudBlastPreviewSnapshot(activeWeapon: PlayerWeaponSlot): HudBlastPreviewSnapshot {
+    const projectile = activeWeapon.logic.getProjectileConfig();
+    const radius = projectile.blastRadius ?? 0;
+
+    return {
+      visible: radius > 0 && this.isCombatLive(this.time.now),
+      x: Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X),
+      y: Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y),
+      radius
+    };
   }
 
   private handleGateInteraction(): void {
@@ -1372,9 +1625,9 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (hazardResolution.roundWinner === "DUMMY") {
-      this.roundLogic.registerDummyWin();
+      this.registerDummyRoundWin();
     } else {
-      this.roundLogic.registerPlayerWin();
+      this.registerPlayerRoundWin(now);
     }
 
     this.scheduleResetAfterRound(now);
@@ -1480,10 +1733,10 @@ export class MainScene extends Phaser.Scene {
       }
 
       if (bulletResolution.roundWinner === "PLAYER") {
-        this.roundLogic.registerPlayerWin();
+        this.registerPlayerRoundWin(this.time.now);
         this.scheduleResetAfterRound(this.time.now);
       } else if (bulletResolution.roundWinner === "DUMMY") {
-        this.roundLogic.registerDummyWin();
+        this.registerDummyRoundWin();
         this.scheduleResetAfterRound(this.time.now);
       }
 
@@ -1543,10 +1796,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (!dummyWasDead && this.dummyLogic.isDead() && !this.roundLogic.state.isMatchOver) {
-      this.roundLogic.registerPlayerWin();
+      this.registerPlayerRoundWin(this.time.now);
       this.scheduleResetAfterRound(this.time.now);
     } else if (!playerWasDead && this.playerLogic.isDead() && !this.roundLogic.state.isMatchOver) {
-      this.roundLogic.registerDummyWin();
+      this.registerDummyRoundWin();
       this.scheduleResetAfterRound(this.time.now);
     }
   }
@@ -2159,6 +2412,7 @@ export class MainScene extends Phaser.Scene {
     this.emitSoundCue({ kind: "match-confirm", action: "accept" });
     this.roundLogic.resetMatch();
     this.matchFlow.prepareNextMatch();
+    this.rotateStageForNextMatch();
     this.lastSpawnSummary = "WAITING";
     this.roundStartUntilMs = 0;
     this.clearBullets();
@@ -2191,6 +2445,7 @@ export class MainScene extends Phaser.Scene {
   private createHudPresenterInput(now: number, movementBlocked: boolean): HudPresenterInput {
     const activeWeapon = this.getActiveWeaponSlot();
     const coverVision = this.getHudCoverVisionState();
+    const activeWeaponIndex = this.weaponInventory.getActiveIndex();
 
     return {
       now,
@@ -2200,13 +2455,16 @@ export class MainScene extends Phaser.Scene {
         selectedTeam: this.matchFlow.state.selectedTeam,
         spawnSummary: this.lastSpawnSummary,
         activeWeapon: activeWeapon.label,
-        weaponSlot: this.weaponInventory.getActiveIndex() + 1,
+        weaponSlot: activeWeaponIndex + 1,
+        weaponSlots: this.createWeaponHudSlots(activeWeaponIndex, now),
         ammoInMagazine: activeWeapon.logic.getAmmoInMagazine(now),
         reserveAmmo: activeWeapon.logic.getReserveAmmo(now),
         isReloading: activeWeapon.logic.isReloading(now),
         reloadProgress: activeWeapon.logic.isReloading(now)
           ? 1 - (activeWeapon.logic.getReloadRemaining(now) / activeWeapon.logic.getReloadDuration())
           : 0,
+        cooldownRemainingMs: activeWeapon.logic.getCooldownRemaining(now),
+        cooldownDurationMs: activeWeapon.logic.getCooldownDuration(),
         playerHealth: this.playerLogic.state.health,
         playerMaxHealth: this.playerLogic.state.maxHealth,
         dummyHealth: this.dummyLogic.state.health,
@@ -2226,7 +2484,11 @@ export class MainScene extends Phaser.Scene {
       },
       isRoundStarting: this.isRoundStarting(now),
       matchConfirmAtMs: this.matchConfirmAtMs,
-      matchConfirmReadyCueSent: this.matchConfirmReadyCueSent
+      matchConfirmReadyCueSent: this.matchConfirmReadyCueSent,
+      progression: this.createHudProgressionSnapshot(),
+      weaponUnlock: this.createHudWeaponUnlockSnapshot(now),
+      areaPreview: this.createHudAreaPreviewSnapshot(),
+      blastPreview: this.createHudBlastPreviewSnapshot(activeWeapon)
     };
   }
 
@@ -2693,21 +2955,84 @@ export class MainScene extends Phaser.Scene {
       .setDepth(depth);
   }
 
-  private addObstacle(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): void {
-    const visualKey = width > 140 ? MainScene.OBSTACLE_BARRIER_KEY : height > width ? MainScene.OBSTACLE_TOWER_KEY : MainScene.OBSTACLE_CORE_KEY;
-    this.add.rectangle(x + 6, y + 8, width, height, 0x0c1420, 0.26).setDepth(2);
-    if (crop !== undefined) {
-      this.addTerrainSurface(x, y, width, height, crop, 0.92, 2);
+  private applyStageGeometry(): void {
+    this.clearStageGeometry();
+
+    for (const obstacle of this.currentStage.obstacles) {
+      const view = this.addObstacle(
+        obstacle.x,
+        obstacle.y,
+        obstacle.width,
+        obstacle.height,
+        this.getStageObstacleColor(obstacle.id),
+        this.getStageObstacleCrop(obstacle.width, obstacle.height)
+      );
+      this.stageObstacleViews.push(view);
     }
-    this.add.image(x, y, visualKey).setDisplaySize(width, height).setDepth(3).setAlpha(0.96);
+  }
+
+  private clearStageGeometry(): void {
+    for (const obstacle of this.stageObstacleViews) {
+      for (const visual of obstacle.visuals ?? []) {
+        visual.destroy();
+      }
+      obstacle.sprite.destroy();
+      const obstacleIndex = this.obstacles.indexOf(obstacle);
+      if (obstacleIndex >= 0) {
+        this.obstacles.splice(obstacleIndex, 1);
+      }
+    }
+
+    this.stageObstacleViews.length = 0;
+  }
+
+  private getStageObstacleColor(obstacleId: string): number {
+    if (obstacleId.includes("tower") || obstacleId.includes("relay")) {
+      return 0x6bb6ff;
+    }
+
+    if (obstacleId.includes("barrier") || obstacleId.includes("crate")) {
+      return 0x7fd174;
+    }
+
+    if (obstacleId.includes("lock") || obstacleId.includes("drain")) {
+      return 0xb49cff;
+    }
+
+    return 0xe0a54f;
+  }
+
+  private getStageObstacleCrop(width: number, height: number): TerrainCrop {
+    if (width > 140) {
+      return { x: 768, y: 320, width: 96, height: 96 };
+    }
+
+    if (height > width) {
+      return { x: 448, y: 0, width: 96, height: 256 };
+    }
+
+    return { x: 792, y: 64, width: 64, height: 64 };
+  }
+
+  private addObstacle(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): ObstacleView {
+    const visualKey = width > 140 ? MainScene.OBSTACLE_BARRIER_KEY : height > width ? MainScene.OBSTACLE_TOWER_KEY : MainScene.OBSTACLE_CORE_KEY;
+    const visuals: Phaser.GameObjects.GameObject[] = [];
+    visuals.push(this.add.rectangle(x + 6, y + 8, width, height, 0x0c1420, 0.26).setDepth(2));
+    if (crop !== undefined) {
+      visuals.push(this.addTerrainSurface(x, y, width, height, crop, 0.92, 2));
+    }
+    visuals.push(this.add.image(x, y, visualKey).setDisplaySize(width, height).setDepth(3).setAlpha(0.96));
     const sprite = this.add
       .rectangle(x, y, width, height, color, crop === undefined ? 0.14 : 0.08)
       .setStrokeStyle(3, 0xffffff, crop === undefined ? 0.18 : 0.12)
       .setDepth(4);
-    this.obstacles.push({
+    const obstacle = {
       sprite,
-      bounds: createCenteredRect(x, y, width, height)
-    });
+      bounds: createCenteredRect(x, y, width, height),
+      visuals
+    };
+    this.obstacles.push(obstacle);
+    return obstacle;
   }
 
   private addGate(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): GateView {

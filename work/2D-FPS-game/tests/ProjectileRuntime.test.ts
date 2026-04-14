@@ -104,11 +104,12 @@ describe("ProjectileRuntime", () => {
     expect(finalHit.shouldExplode).toBe(true);
   });
 
-  it("steers homing projectiles toward a target", () => {
+  it("steers homing projectiles toward the nearest valid target with a turn clamp", () => {
     const config: ProjectileConfig = {
       trajectory: "homing",
       speed: 100,
-      homingStrength: 1
+      homingStrength: 1,
+      homingMaxTurnRate: Math.PI / 2
     };
     const projectile = createProjectileRuntimeState({
       x: 100,
@@ -125,11 +126,14 @@ describe("ProjectileRuntime", () => {
       deltaSeconds: 0.5,
       obstacles: [],
       arenaBounds,
-      target: { x: 100, y: 220 }
+      homingTargets: [
+        { x: 80, y: 100, valid: false },
+        { x: 100, y: 220 }
+      ]
     });
 
-    expect(result.projectile.velocityX).toBeCloseTo(50);
-    expect(result.projectile.velocityY).toBeCloseTo(50);
+    expect(result.projectile.velocityX).toBeCloseTo(70.710678);
+    expect(result.projectile.velocityY).toBeCloseTo(70.710678);
   });
 
   it("casts beams against the nearest target before farther obstacles", () => {

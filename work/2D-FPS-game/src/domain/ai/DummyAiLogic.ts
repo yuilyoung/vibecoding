@@ -1,3 +1,6 @@
+import { AiStateMachine, type AiState } from "./AiStateMachine";
+import { hasLineOfSight, lineIntersectsObstacle } from "./LineOfSightLogic";
+
 export interface DummyAiConfig {
   readonly engageRange: number;
   readonly retreatRange: number;
@@ -53,9 +56,17 @@ export class DummyAiLogic {
   private static readonly COVER_HOLD_FIRE_MS = 520;
   private static readonly COVER_HOLD_RESET_MS = 1500;
   private readonly config: DummyAiConfig;
+  private readonly stateMachine: AiStateMachine;
+  private currentState: AiState = "idle";
 
   public constructor(config: DummyAiConfig) {
     this.config = config;
+    this.stateMachine = new AiStateMachine({
+      engageRange: config.engageRange,
+      attackRange: config.shootRange,
+      retreatRange: config.retreatRange,
+      lowHealthThreshold: config.lowHealthThreshold
+    });
   }
 
   public evaluate(input: DummyAiInput): DummyAiDecision {
@@ -74,7 +85,18 @@ export class DummyAiLogic {
 
     const normalizedX = deltaX / distance;
     const normalizedY = deltaY / distance;
-    const hasLineOfSight = this.hasLineOfSight(input);
+    const lineOfSightBlockers = input.lineOfSightBlockers ?? [];
+    const lineOfSightClear = hasLineOfSight(
+      { x: input.dummyX, y: input.dummyY },
+      { x: input.playerX, y: input.playerY },
+      lineOfSightBlockers
+    );
+    this.currentState = this.stateMachine.evaluate({
+      currentState: this.currentState,
+      distanceToTarget: distance,
+      healthRatio: input.healthRatio,
+      hasLineOfSight: lineOfSightClear
+    });
     const blockingObstacle = this.findBlockingObstacle(input);
     const hazardZone = this.findActiveHazardZone(input);
     const shouldPlayTactical = (input.currentHealth ?? Number.POSITIVE_INFINITY) <= 80;
@@ -95,7 +117,7 @@ export class DummyAiLogic {
       };
     }
 
-    if (!hasLineOfSight && blockingObstacle !== undefined) {
+    if (!lineOfSightClear && blockingObstacle !== undefined) {
       const reroute = this.createObstacleBypass(input, normalizedX, normalizedY, blockingObstacle);
 
       return {
@@ -106,7 +128,7 @@ export class DummyAiLogic {
       };
     }
 
-    if (!hasLineOfSight && input.coverPoints.length > 0) {
+    if (!lineOfSightClear && input.coverPoints.length > 0) {
       const targetCover = this.findBestCover(input);
       const coverDeltaX = targetCover.x - input.dummyX;
       const coverDeltaY = targetCover.y - input.dummyY;
@@ -138,14 +160,14 @@ export class DummyAiLogic {
             };
           }
 
-          return this.createCoverReengageDecision(input.tickMs, normalizedX, normalizedY, hasLineOfSight);
+          return this.createCoverReengageDecision(input.tickMs, normalizedX, normalizedY, lineOfSightClear);
         }
 
         return this.createCoverHoldDecision(
           input.tickMs,
           normalizedX,
           normalizedY,
-          hasLineOfSight && distance <= this.config.shootRange
+          lineOfSightClear && distance <= this.config.shootRange
         );
       }
 
@@ -170,7 +192,7 @@ export class DummyAiLogic {
       return {
         moveX: -normalizedX,
         moveY: -normalizedY,
-        shouldFire: hasLineOfSight,
+        shouldFire: lineOfSightClear,
         mode: "retreat"
       };
     }
@@ -186,7 +208,7 @@ export class DummyAiLogic {
       return {
         moveX: flankVectorX / flankLength,
         moveY: flankVectorY / flankLength,
-        shouldFire: hasLineOfSight,
+        shouldFire: lineOfSightClear,
         mode: "flank"
       };
     }
@@ -194,15 +216,9 @@ export class DummyAiLogic {
     return {
       moveX: -normalizedY * strafeDirection,
       moveY: normalizedX * strafeDirection,
-      shouldFire: hasLineOfSight && distance <= this.config.shootRange,
+      shouldFire: lineOfSightClear && distance <= this.config.shootRange,
       mode: "strafe"
     };
-  }
-
-  private hasLineOfSight(input: DummyAiInput): boolean {
-    return !input.lineOfSightBlockers?.some((blocker) =>
-      this.lineIntersectsRect(input.dummyX, input.dummyY, input.playerX, input.playerY, blocker)
-    );
   }
 
   private findBlockingObstacle(input: DummyAiInput): LineOfSightBlocker | undefined {
@@ -214,7 +230,11 @@ export class DummyAiLogic {
     let bestDistance = Number.POSITIVE_INFINITY;
 
     for (const blocker of input.lineOfSightBlockers) {
-      if (!this.lineIntersectsRect(input.dummyX, input.dummyY, input.playerX, input.playerY, blocker)) {
+      if (!lineIntersectsObstacle(
+        { x: input.dummyX, y: input.dummyY },
+        { x: input.playerX, y: input.playerY },
+        blocker
+      )) {
         continue;
       }
 
@@ -241,56 +261,8 @@ export class DummyAiLogic {
     });
   }
 
-  private lineIntersectsRect(
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-    rect: LineOfSightBlocker
-  ): boolean {
-    const left = rect.x;
-    const right = rect.x + rect.width;
-    const top = rect.y;
-    const bottom = rect.y + rect.height;
-
-    if (this.pointInsideRect(startX, startY, left, right, top, bottom) || this.pointInsideRect(endX, endY, left, right, top, bottom)) {
-      return true;
-    }
-
-    return (
-      this.linesIntersect(startX, startY, endX, endY, left, top, right, top) ||
-      this.linesIntersect(startX, startY, endX, endY, right, top, right, bottom) ||
-      this.linesIntersect(startX, startY, endX, endY, right, bottom, left, bottom) ||
-      this.linesIntersect(startX, startY, endX, endY, left, bottom, left, top)
-    );
-  }
-
   private pointInsideRect(x: number, y: number, left: number, right: number, top: number, bottom: number): boolean {
     return x >= left && x <= right && y >= top && y <= bottom;
-  }
-
-  private linesIntersect(
-    aStartX: number,
-    aStartY: number,
-    aEndX: number,
-    aEndY: number,
-    bStartX: number,
-    bStartY: number,
-    bEndX: number,
-    bEndY: number
-  ): boolean {
-    const denominator = (aEndX - aStartX) * (bEndY - bStartY) - (aEndY - aStartY) * (bEndX - bStartX);
-
-    if (denominator === 0) {
-      return false;
-    }
-
-    const numeratorA = (aStartY - bStartY) * (bEndX - bStartX) - (aStartX - bStartX) * (bEndY - bStartY);
-    const numeratorB = (aStartY - bStartY) * (aEndX - aStartX) - (aStartX - bStartX) * (aEndY - aStartY);
-    const scalarA = numeratorA / denominator;
-    const scalarB = numeratorB / denominator;
-
-    return scalarA >= 0 && scalarA <= 1 && scalarB >= 0 && scalarB <= 1;
   }
 
   private createObstacleBypass(

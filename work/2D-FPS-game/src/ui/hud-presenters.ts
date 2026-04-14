@@ -1,16 +1,27 @@
 import type { MatchFlowPhase, MatchFlowState, TeamId } from "../domain/round/MatchFlowLogic";
 import type { RoundState } from "../domain/round/RoundLogic";
-import type { HudOverlayState, HudSnapshot } from "./hud-events";
+import type {
+  HudAreaPreviewSnapshot,
+  HudBlastPreviewSnapshot,
+  HudOverlayState,
+  HudProgressionSnapshot,
+  HudSnapshot,
+  HudWeaponSlotSnapshot,
+  HudWeaponUnlockSnapshot
+} from "./hud-events";
 
 export interface HudCombatPresenterState {
   readonly selectedTeam: TeamId | null;
   readonly spawnSummary: string;
   readonly activeWeapon: string;
   readonly weaponSlot: number;
+  readonly weaponSlots: readonly HudWeaponSlotSnapshot[];
   readonly ammoInMagazine: number;
   readonly reserveAmmo: number;
   readonly isReloading: boolean;
   readonly reloadProgress: number;
+  readonly cooldownRemainingMs: number;
+  readonly cooldownDurationMs: number;
   readonly playerHealth: number;
   readonly playerMaxHealth: number;
   readonly dummyHealth: number;
@@ -37,6 +48,10 @@ export interface HudPresenterInput {
   readonly isRoundStarting: boolean;
   readonly matchConfirmAtMs: number | null;
   readonly matchConfirmReadyCueSent: boolean;
+  readonly progression?: HudProgressionSnapshot;
+  readonly weaponUnlock?: HudWeaponUnlockSnapshot;
+  readonly areaPreview?: HudAreaPreviewSnapshot;
+  readonly blastPreview?: HudBlastPreviewSnapshot;
 }
 
 export interface MatchOverlayPresenterResult {
@@ -89,7 +104,7 @@ export function getPromptText(input: Pick<HudPresenterInput, "matchFlow" | "roun
       : `Match reset unlock in ${Math.max(0, input.matchConfirmAtMs - input.now).toFixed(0)} ms.`;
   }
 
-  return "WASD move. Mouse or F fire. R reload. E gate. Q or 1-2 swap weapons.";
+  return "WASD move. Mouse or F fire. R reload. E gate. Q or 1-6 swap weapons.";
 }
 
 export function buildMatchOverlayState(input: HudPresenterInput): MatchOverlayPresenterResult {
@@ -166,10 +181,13 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     spawn: input.combat.spawnSummary,
     activeWeapon: input.combat.activeWeapon,
     weaponSlot: input.combat.weaponSlot,
+    weaponSlots: input.combat.weaponSlots,
     ammoInMagazine: input.combat.ammoInMagazine,
     reserveAmmo: input.combat.reserveAmmo,
     isReloading: input.combat.isReloading,
     reloadProgress: input.combat.reloadProgress,
+    cooldownRemainingMs: input.combat.cooldownRemainingMs,
+    cooldownDurationMs: input.combat.cooldownDurationMs,
     playerHealth: input.combat.playerHealth,
     playerMaxHealth: input.combat.playerMaxHealth,
     dummyHealth: input.combat.dummyHealth,
@@ -190,6 +208,10 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     coverVisionX: input.combat.coverVisionX,
     coverVisionY: input.combat.coverVisionY,
     coverVisionRadius: input.combat.coverVisionRadius,
+    progression: input.progression,
+    weaponUnlock: input.weaponUnlock,
+    areaPreview: input.areaPreview,
+    blastPreview: input.blastPreview,
     overlay: {
       ...overlay,
       subtitle: overlay.subtitle || getPromptText(input)

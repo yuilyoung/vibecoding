@@ -1,0 +1,166 @@
+{
+  "phase": "phase-2",
+  "name": "AI 고도화 + 진행도/언락 + 스테이지 로테이션",
+  "handoff": "../handoffs/current-handoff.json",
+  "created": "2026-04-14",
+  "tasks": [
+    {
+      "id": "T1",
+      "subject": "AiStateMachine 순수 로직 + 테스트",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "src/domain/ai/AiStateMachine.ts 신규. idle/patrol/chase/attack/retreat 상태 전이 순수 함수. 입력: 현재 상태, 감지 거리, 체력, 타겟 존재. 출력: 다음 상태 + 행동 지시. DummyAiLogic 리팩터로 상태머신 사용.",
+      "files": [
+        "src/domain/ai/AiStateMachine.ts (신규)",
+        "src/domain/ai/DummyAiLogic.ts",
+        "tests/AiStateMachine.test.ts (신규)"
+      ],
+      "acceptance": "5개 상태 전이 테스트 통과, DummyAiLogic 기존 테스트 유지"
+    },
+    {
+      "id": "T2",
+      "subject": "LineOfSightLogic 시야선/엄폐 판정",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "src/domain/ai/LineOfSightLogic.ts 신규. 레이캐스트 기반 시야 차단 판정. hasLineOfSight(observer, target, obstacles) → boolean. 엄폐물 차단 시 false. BeamLogic과 레이캐스트 유틸 공유 가능.",
+      "files": [
+        "src/domain/ai/LineOfSightLogic.ts (신규)",
+        "tests/LineOfSightLogic.test.ts (신규)"
+      ],
+      "acceptance": "엄폐/비엄폐/부분 차단 테스트 통과"
+    },
+    {
+      "id": "T3",
+      "subject": "StageDefinition + StageRotationLogic",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "src/domain/map/StageDefinition.ts 타입 정의. StageRotationLogic.ts 로 시퀀스 선정 (순환/랜덤/난이도 곡선). game-balance.json stages 섹션에 최소 3개 스테이지 정의. MatchFlowOrchestrator가 다음 라운드 시작 시 StageRotationLogic 호출.",
+      "files": [
+        "src/domain/map/StageDefinition.ts (신규)",
+        "src/domain/map/StageRotationLogic.ts (신규)",
+        "src/domain/round/MatchFlowOrchestrator.ts",
+        "assets/data/game-balance.json",
+        "tests/StageRotationLogic.test.ts (신규)"
+      ],
+      "acceptance": "3개 스테이지 순환 테스트 통과, 매치 플로우 회귀 없음"
+    },
+    {
+      "id": "T4",
+      "subject": "ProgressionLogic (XP/레벨)",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "src/domain/progression/ProgressionLogic.ts. XP 획득·레벨업 곡선 평가 순수 로직. addXp(state, amount) → newState + leveledUp. game-balance.json progression 섹션 (xpPerKill, xpPerRoundClear, levelCurve).",
+      "files": [
+        "src/domain/progression/ProgressionLogic.ts (신규)",
+        "assets/data/game-balance.json",
+        "tests/ProgressionLogic.test.ts (신규)"
+      ],
+      "acceptance": "XP 누적/레벨업 경계/다단 레벨업 테스트 통과"
+    },
+    {
+      "id": "T5",
+      "subject": "UnlockLogic 무기 언락",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": ["T4"],
+      "description": "src/domain/progression/UnlockLogic.ts. 레벨 기반 무기 언락 평가. 기본 2종(Carbine, Scatter) 시작 가능, 나머지 4종 레벨 조건. game-balance.json unlocks 섹션 외부화. WeaponInventoryLogic이 언락 상태 반영.",
+      "files": [
+        "src/domain/progression/UnlockLogic.ts (신규)",
+        "src/domain/combat/WeaponInventoryLogic.ts",
+        "assets/data/game-balance.json",
+        "tests/UnlockLogic.test.ts (신규)"
+      ],
+      "acceptance": "언락 조건 평가 테스트 통과, 인벤토리 연동 유지"
+    },
+    {
+      "id": "T6",
+      "subject": "ProgressionStorage localStorage 영속화",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": ["T4"],
+      "description": "src/domain/progression/ProgressionStorage.ts. 순수 Storage 인터페이스 + localStorage 어댑터 분리. 테스트는 in-memory 어댑터로 검증. save/load/clear. 스키마 버전 필드 포함.",
+      "files": [
+        "src/domain/progression/ProgressionStorage.ts (신규)",
+        "tests/ProgressionStorage.test.ts (신규)"
+      ],
+      "acceptance": "in-memory 어댑터로 라운드트립 테스트 통과"
+    },
+    {
+      "id": "T7",
+      "subject": "HomingLogic 유도 탄도 타겟팅",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "src/domain/combat/HomingLogic.ts. 가장 가까운 유효 타겟 선정 + 조향 벡터(maxTurnRate 존중). ProjectileRuntime homing 탄도 업데이트 훅 연결. game-balance.json homing 파라미터.",
+      "files": [
+        "src/domain/combat/HomingLogic.ts (신규)",
+        "src/domain/combat/ProjectileRuntime.ts",
+        "tests/HomingLogic.test.ts (신규)"
+      ],
+      "acceptance": "타겟 선정/조향 제한/타겟 소멸 테스트 통과"
+    },
+    {
+      "id": "T8",
+      "subject": "MainScene Phase 2 통합",
+      "assignee": "ultron/app-developer",
+      "status": "pending",
+      "blockedBy": ["T1", "T2", "T3", "T5", "T6", "T7"],
+      "description": "AiStateMachine + LineOfSight 연동, 스테이지 전환 트리거, 진행도/언락 이벤트 브로드캐스트, Homing 업데이트 훅 연결, ProgressionStorage 로드/세이브.",
+      "files": [
+        "src/scenes/MainScene.ts"
+      ],
+      "acceptance": "타입체크/빌드 통과, 기존 플로우 회귀 없음"
+    },
+    {
+      "id": "T9",
+      "subject": "HUD 개선 (XP/언락/폭발 범위)",
+      "assignee": "ultron/frontend",
+      "status": "pending",
+      "blockedBy": ["T8"],
+      "description": "hud-presenters.ts에 progression(xp/level) + unlocks 데이터 추가. hud-events.ts에 LEVEL_UP, WEAPON_UNLOCKED 이벤트. XP 바, 레벨 뱃지, 언락 토스트, aoe/bazooka 선택 시 폭발 범위 프리뷰 원.",
+      "files": [
+        "src/ui/hud-presenters.ts",
+        "src/ui/hud-events.ts",
+        "src/scenes/MainScene.ts"
+      ],
+      "acceptance": "HUD 표시 + 전환 확인, 빌드 성공"
+    },
+    {
+      "id": "T10",
+      "subject": "phaser-vendor 번들 분할",
+      "assignee": "ultron/devops",
+      "status": "pending",
+      "blockedBy": [],
+      "description": "vite.config.ts manualChunks 구성으로 phaser-vendor 청크 분할. 목표: chunk < 800 kB, gzip < 250 kB. dist 크기 보고.",
+      "files": [
+        "vite.config.ts"
+      ],
+      "acceptance": "빌드 성공 + chunk 크기 목표 달성"
+    },
+    {
+      "id": "T11",
+      "subject": "검증 게이트 + execution report",
+      "assignee": "ultron/qa",
+      "status": "pending",
+      "blockedBy": ["T8", "T9", "T10"],
+      "description": "npm run type-check/lint/test/build 전부 통과. 기존 117 테스트 + Phase 2 신규 테스트 전부 pass. docs/handoffs/current-execution-report.md 및 execution-status.json 갱신. postflight-sync 실행.",
+      "files": [
+        "tests/**",
+        "docs/handoffs/current-execution-report.md",
+        "docs/handoffs/execution-status.json"
+      ],
+      "acceptance": "모든 검증 통과, execution report 작성 완료"
+    }
+  ],
+  "dependencyGraph": {
+    "parallel": ["T1", "T2", "T3", "T4", "T7", "T10"],
+    "afterT4": ["T5", "T6"],
+    "afterT1toT7": ["T8"],
+    "afterT8": ["T9"],
+    "afterT8T9T10": ["T11"]
+  }
+}

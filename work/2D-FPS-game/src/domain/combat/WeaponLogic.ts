@@ -67,6 +67,10 @@ export class WeaponLogic {
     return Math.max(0, this.nextReadyAtMs - atTimeMs);
   }
 
+  public getCooldownDuration(): number {
+    return this.config.fireRateMs;
+  }
+
   public startReload(atTimeMs: number): boolean {
     if (this.isReloading(atTimeMs) || this.ammoInMagazine === this.config.magazineSize) {
       return false;

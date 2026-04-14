@@ -44,7 +44,7 @@ appRoot.innerHTML = `
               </div>
               <div class="meter-track"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
             </div>
-              <div class="weapon-strip">
+            <div class="weapon-strip">
               <img id="weapon-icon" class="weapon-icon" src="/assets/runtime/sprites/weapon-hud-carbine.png" alt="" />
               <div>
                 <p class="micro-label">Loadout</p>
@@ -55,6 +55,7 @@ appRoot.innerHTML = `
                 <strong id="ammo-count">${gameBalance.magazineSize}/${gameBalance.reserveAmmo}</strong>
               </div>
             </div>
+            <div id="weapon-slot-grid" class="weapon-slot-grid" aria-label="Weapon slots"></div>
             <div class="reload-strip">
               <div class="meter-copy">
                 <span>Reload</span>
@@ -83,6 +84,7 @@ appRoot.innerHTML = `
 
         <div class="stage-frame">
           <div id="game-root" class="game-root"></div>
+          <div id="blast-preview" class="blast-preview"></div>
           <div id="cover-vision" class="cover-vision"></div>
           <div class="hud-overlay" aria-live="polite">
             <section id="banner-card" class="banner-card">
@@ -114,6 +116,22 @@ appRoot.innerHTML = `
             <div class="support-pill support-pill--pickup">
               <p class="micro-label">Health Pickup</p>
               <strong id="health-pickup-text">Ready</strong>
+            </div>
+            <div class="support-pill support-pill--progression">
+              <p class="micro-label">Level</p>
+              <strong id="progression-text">Lv 1 | 0 XP</strong>
+            </div>
+            <div class="support-pill support-pill--unlock">
+              <p class="micro-label">Armory</p>
+              <strong id="unlock-text">Next: Bazooka Lv 2</strong>
+            </div>
+            <div class="support-pill support-pill--stage">
+              <p class="micro-label">Area</p>
+              <strong id="stage-text">Foundry 1/3</strong>
+            </div>
+            <div class="support-pill support-pill--cooldown">
+              <p class="micro-label">Weapon Ready</p>
+              <strong id="cooldown-text">Ready</strong>
             </div>
           </div>
         </section>
@@ -163,6 +181,7 @@ const hudElements = {
   weaponIcon: queryElement("#weapon-icon"),
   weaponName: queryText("#weapon-name"),
   ammoCount: queryText("#ammo-count"),
+  weaponSlotGrid: queryElement("#weapon-slot-grid"),
   reloadText: queryText("#reload-text"),
   reloadFill: queryElement("#reload-fill"),
   bannerCard: queryElement("#banner-card"),
@@ -179,6 +198,11 @@ const hudElements = {
   weaponSlotText: queryText("#weapon-slot-text"),
   ammoPickupText: queryText("#ammo-pickup-text"),
   healthPickupText: queryText("#health-pickup-text"),
+  progressionText: queryText("#progression-text"),
+  unlockText: queryText("#unlock-text"),
+  stageText: queryText("#stage-text"),
+  cooldownText: queryText("#cooldown-text"),
+  blastPreview: queryElement("#blast-preview"),
   coverVision: queryElement("#cover-vision")
 };
 const hudRenderCache = new Map<string, string>();
@@ -236,6 +260,7 @@ function renderHud(snapshot: HudSnapshot): void {
   );
   updateText(hudElements.weaponName, snapshot.activeWeapon, "weapon-name-text");
   updateText(hudElements.ammoCount, `${snapshot.ammoInMagazine}/${snapshot.reserveAmmo}`, "ammo-count-text");
+  renderWeaponSlots(snapshot);
   updateText(hudElements.reloadText, snapshot.isReloading ? "RELOADING" : "READY", "reload-text");
   updateText(hudElements.bannerKicker, snapshot.overlay.visible ? "MATCH FLOW" : "COMBAT LIVE", "banner-kicker-text");
   updateText(hudElements.bannerTitle, snapshot.overlay.title || snapshot.phase, "banner-title-text");
@@ -250,6 +275,11 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.weaponSlotText, String(snapshot.weaponSlot), "weapon-slot-text");
   updateText(hudElements.ammoPickupText, formatPickupStatus(snapshot.ammoPickupLabel, "Ammo ready"), "ammo-pickup-text");
   updateText(hudElements.healthPickupText, formatPickupStatus(snapshot.healthPickupLabel, "Health ready"), "health-pickup-text");
+  updateText(hudElements.progressionText, formatProgressionStatus(snapshot), "progression-text");
+  updateText(hudElements.unlockText, formatUnlockStatus(snapshot), "unlock-text");
+  updateText(hudElements.stageText, formatStageStatus(snapshot), "stage-text");
+  updateText(hudElements.cooldownText, formatCooldownStatus(snapshot), "cooldown-text");
+  renderBlastPreview(snapshot);
   updateClassState(hudElements.coverVision, "is-active", snapshot.coverVisionActive, "cover-vision-active");
   updateStyleVar(hudElements.coverVision, "--vision-x", coverVision.x, "cover-vision-x");
   updateStyleVar(hudElements.coverVision, "--vision-y", coverVision.y, "cover-vision-y");
@@ -288,10 +318,13 @@ function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnap
     spawn: fallbackText(snapshot?.spawn, "Awaiting deployment"),
     activeWeapon: fallbackText(snapshot?.activeWeapon, "Carbine"),
     weaponSlot: fallbackNumber(snapshot?.weaponSlot, 1),
+    weaponSlots: normalizeWeaponSlots(snapshot),
     ammoInMagazine: fallbackNumber(snapshot?.ammoInMagazine, gameBalance.magazineSize),
     reserveAmmo: fallbackNumber(snapshot?.reserveAmmo, gameBalance.reserveAmmo),
     isReloading: Boolean(snapshot?.isReloading),
     reloadProgress: clamp01(snapshot?.reloadProgress),
+    cooldownRemainingMs: fallbackNumber(snapshot?.cooldownRemainingMs, 0),
+    cooldownDurationMs: fallbackNumber(snapshot?.cooldownDurationMs, 0),
     playerHealth: fallbackNumber(snapshot?.playerHealth, gameBalance.maxHealth),
     playerMaxHealth: maxOrFallback(snapshot?.playerMaxHealth, gameBalance.maxHealth),
     dummyHealth: fallbackNumber(snapshot?.dummyHealth, gameBalance.maxHealth),
@@ -312,12 +345,156 @@ function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnap
     coverVisionX: fallbackNumber(snapshot?.coverVisionX, 480),
     coverVisionY: fallbackNumber(snapshot?.coverVisionY, 270),
     coverVisionRadius: maxOrFallback(snapshot?.coverVisionRadius, 72),
+    progression: snapshot?.progression === undefined
+      ? {
+          visible: true,
+          level: 1,
+          xp: 0,
+          totalXp: 0,
+          xpToNextLevel: Array.isArray(gameBalance.progression.levelCurve) ? gameBalance.progression.levelCurve[0] : null
+        }
+      : {
+          visible: Boolean(snapshot.progression.visible),
+          level: fallbackNumber(snapshot.progression.level, 1),
+          xp: fallbackNumber(snapshot.progression.xp, 0),
+          totalXp: fallbackNumber(snapshot.progression.totalXp, 0),
+          xpToNextLevel: snapshot.progression.xpToNextLevel === null ? null : fallbackNumber(snapshot.progression.xpToNextLevel, 0)
+        },
+    weaponUnlock: snapshot?.weaponUnlock === undefined
+      ? {
+          visible: true,
+          unlockedWeaponIds: ["carbine", "scatter"],
+          newlyUnlockedWeaponIds: [],
+          nextUnlockWeaponId: "bazooka",
+          nextUnlockLevel: 2,
+          noticeTitle: "",
+          noticeSubtitle: ""
+        }
+      : {
+          visible: Boolean(snapshot.weaponUnlock.visible),
+          unlockedWeaponIds: Array.isArray(snapshot.weaponUnlock.unlockedWeaponIds) ? snapshot.weaponUnlock.unlockedWeaponIds : [],
+          newlyUnlockedWeaponIds: Array.isArray(snapshot.weaponUnlock.newlyUnlockedWeaponIds) ? snapshot.weaponUnlock.newlyUnlockedWeaponIds : [],
+          nextUnlockWeaponId: snapshot.weaponUnlock.nextUnlockWeaponId,
+          nextUnlockLevel: snapshot.weaponUnlock.nextUnlockLevel,
+          noticeTitle: fallbackText(snapshot.weaponUnlock.noticeTitle, ""),
+          noticeSubtitle: fallbackText(snapshot.weaponUnlock.noticeSubtitle, "")
+        },
+    areaPreview: snapshot?.areaPreview === undefined
+      ? {
+          visible: true,
+          stageId: "foundry",
+          stageLabel: "Foundry",
+          stageIndex: 1,
+          stageCount: Array.isArray(gameBalance.stages) ? gameBalance.stages.length : 1,
+          title: "Foundry",
+          subtitle: "",
+          stages: []
+        }
+      : {
+          visible: Boolean(snapshot.areaPreview.visible),
+          stageId: fallbackText(snapshot.areaPreview.stageId, "foundry"),
+          stageLabel: fallbackText(snapshot.areaPreview.stageLabel, "Foundry"),
+          stageIndex: fallbackNumber(snapshot.areaPreview.stageIndex, 1),
+          stageCount: maxOrFallback(snapshot.areaPreview.stageCount, 1),
+          title: fallbackText(snapshot.areaPreview.title, snapshot.areaPreview.stageLabel),
+          subtitle: fallbackText(snapshot.areaPreview.subtitle, ""),
+          stages: Array.isArray(snapshot.areaPreview.stages) ? snapshot.areaPreview.stages : []
+        },
+    blastPreview: snapshot?.blastPreview === undefined
+      ? {
+          visible: false,
+          x: 480,
+          y: 270,
+          radius: 0
+        }
+      : {
+          visible: Boolean(snapshot.blastPreview.visible),
+          x: fallbackNumber(snapshot.blastPreview.x, 480),
+          y: fallbackNumber(snapshot.blastPreview.y, 270),
+          radius: fallbackNumber(snapshot.blastPreview.radius, 0)
+        },
     overlay: {
       visible: Boolean(snapshot?.overlay?.visible),
       title: fallbackText(snapshot?.overlay?.title, ""),
       subtitle: fallbackText(snapshot?.overlay?.subtitle, "")
     }
   };
+}
+
+function normalizeWeaponSlots(snapshot: HudSnapshot | null | undefined): HudSnapshot["weaponSlots"] {
+  if (Array.isArray(snapshot?.weaponSlots) && snapshot.weaponSlots.length > 0) {
+    return snapshot.weaponSlots.map((slot, index) => ({
+      slot: fallbackNumber(slot.slot, index + 1),
+      id: fallbackText(slot.id, `slot-${index + 1}`),
+      label: fallbackText(slot.label, `Slot ${index + 1}`),
+      ammoInMagazine: fallbackNumber(slot.ammoInMagazine, 0),
+      reserveAmmo: fallbackNumber(slot.reserveAmmo, 0),
+      isActive: Boolean(slot.isActive),
+      isReloading: Boolean(slot.isReloading)
+    }));
+  }
+
+  return [
+    { slot: 1, id: "carbine", label: "Carbine", ammoInMagazine: fallbackNumber(snapshot?.ammoInMagazine, gameBalance.magazineSize), reserveAmmo: fallbackNumber(snapshot?.reserveAmmo, gameBalance.reserveAmmo), isActive: true, isReloading: Boolean(snapshot?.isReloading) },
+    { slot: 2, id: "scatter", label: "Scatter", ammoInMagazine: 0, reserveAmmo: 0, isActive: false, isReloading: false },
+    { slot: 3, id: "bazooka", label: "Bazooka", ammoInMagazine: 0, reserveAmmo: 0, isActive: false, isReloading: false },
+    { slot: 4, id: "grenade", label: "Grenade", ammoInMagazine: 0, reserveAmmo: 0, isActive: false, isReloading: false },
+    { slot: 5, id: "sniper", label: "Sniper", ammoInMagazine: 0, reserveAmmo: 0, isActive: false, isReloading: false },
+    { slot: 6, id: "airStrike", label: "Air Strike", ammoInMagazine: 0, reserveAmmo: 0, isActive: false, isReloading: false }
+  ];
+}
+
+function renderWeaponSlots(snapshot: HudSnapshot): void {
+  const serialized = JSON.stringify(snapshot.weaponSlots);
+
+  if (hudRenderCache.get("weapon-slot-grid") === serialized) {
+    return;
+  }
+
+  hudElements.weaponSlotGrid.replaceChildren(
+    ...snapshot.weaponSlots.map((slot) => {
+      const element = document.createElement("div");
+      element.className = `weapon-slot-tile${slot.isActive ? " is-active" : ""}${slot.isReloading ? " is-reloading" : ""}`;
+      element.dataset.slot = String(slot.slot);
+      element.dataset.weaponId = slot.id;
+      element.setAttribute("aria-current", slot.isActive ? "true" : "false");
+
+      const slotLabel = document.createElement("span");
+      slotLabel.className = "weapon-slot-number";
+      slotLabel.textContent = String(slot.slot);
+
+      const name = document.createElement("strong");
+      name.textContent = slot.label;
+
+      const ammo = document.createElement("span");
+      ammo.className = "weapon-slot-ammo";
+      ammo.textContent = slot.isReloading ? "Reloading" : `${slot.ammoInMagazine}/${slot.reserveAmmo}`;
+
+      element.append(slotLabel, name, ammo);
+      return element;
+    })
+  );
+  hudRenderCache.set("weapon-slot-grid", serialized);
+}
+
+function renderBlastPreview(snapshot: HudSnapshot): void {
+  const preview = snapshot.blastPreview;
+
+  if (preview === undefined || !preview.visible || preview.radius <= 0) {
+    updateClassState(hudElements.blastPreview, "is-active", false, "blast-preview-active");
+    return;
+  }
+
+  const centerX = clamp01(preview.x / GAME_VIEWPORT_WIDTH) * 100;
+  const centerY = clamp01(preview.y / GAME_VIEWPORT_HEIGHT) * 100;
+  const radiusX = clamp01(preview.radius / GAME_VIEWPORT_WIDTH) * 100;
+  const radiusY = clamp01(preview.radius / GAME_VIEWPORT_HEIGHT) * 100;
+
+  updateClassState(hudElements.blastPreview, "is-active", true, "blast-preview-active");
+  updateStyleVar(hudElements.blastPreview, "--blast-x", `${centerX}%`, "blast-preview-x");
+  updateStyleVar(hudElements.blastPreview, "--blast-y", `${centerY}%`, "blast-preview-y");
+  updateStyleVar(hudElements.blastPreview, "--blast-radius-x", `${radiusX}%`, "blast-preview-radius-x");
+  updateStyleVar(hudElements.blastPreview, "--blast-radius-y", `${radiusY}%`, "blast-preview-radius-y");
 }
 
 function toActionCallout(snapshot: HudSnapshot): string {
@@ -374,6 +551,58 @@ function formatPickupStatus(label: string, readyText: string): string {
   }
 
   return `${label} ms`;
+}
+
+function formatProgressionStatus(snapshot: HudSnapshot): string {
+  const progression = snapshot.progression;
+
+  if (progression === undefined || !progression.visible) {
+    return "Unavailable";
+  }
+
+  const nextXp = progression.xpToNextLevel === null ? "MAX" : progression.xpToNextLevel;
+  return `Lv ${progression.level} | ${progression.xp}/${nextXp} XP`;
+}
+
+function formatUnlockStatus(snapshot: HudSnapshot): string {
+  const unlock = snapshot.weaponUnlock;
+
+  if (unlock === undefined || !unlock.visible) {
+    return "Unavailable";
+  }
+
+  if (unlock.newlyUnlockedWeaponIds.length > 0) {
+    return unlock.noticeSubtitle.length > 0 ? unlock.noticeSubtitle : unlock.noticeTitle;
+  }
+
+  if (unlock.nextUnlockWeaponId !== null && unlock.nextUnlockLevel !== null) {
+    return `Next: ${sentenceCase(unlock.nextUnlockWeaponId).replace(".", "")} Lv ${unlock.nextUnlockLevel}`;
+  }
+
+  return "All weapons unlocked";
+}
+
+function formatStageStatus(snapshot: HudSnapshot): string {
+  const area = snapshot.areaPreview;
+
+  if (area === undefined || !area.visible) {
+    return "Unavailable";
+  }
+
+  return `${area.stageLabel} ${area.stageIndex}/${area.stageCount}`;
+}
+
+function formatCooldownStatus(snapshot: HudSnapshot): string {
+  if (snapshot.isReloading) {
+    return "Reloading";
+  }
+
+  if (snapshot.cooldownRemainingMs <= 0) {
+    return "Ready";
+  }
+
+  const seconds = Math.max(0.1, snapshot.cooldownRemainingMs / 1000);
+  return `${seconds.toFixed(1)}s`;
 }
 
 function sentenceCase(value: string): string {

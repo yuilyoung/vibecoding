@@ -1,4 +1,5 @@
 import { createCenteredRect, intersectsRect, type Rect } from "../collision/CollisionLogic";
+import { steerHomingTrajectory, type HomingTarget } from "./HomingLogic";
 
 export type ProjectileTrajectory = "linear" | "arc" | "bounce" | "homing" | "aoe-call" | "beam";
 
@@ -8,6 +9,7 @@ export interface ProjectileConfig {
   readonly gravity?: number;
   readonly bounceCount?: number;
   readonly homingStrength?: number;
+  readonly homingMaxTurnRate?: number;
   readonly blastRadius?: number;
   readonly blastDamage?: number;
   readonly knockback?: number;
@@ -41,6 +43,7 @@ export interface ProjectileStepInput {
     readonly x: number;
     readonly y: number;
   };
+  readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
 }
 
@@ -101,7 +104,14 @@ export function createProjectileRuntimeState(input: {
 
 export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult {
   const deltaSeconds = Number.isFinite(input.deltaSeconds) && input.deltaSeconds > 0 ? input.deltaSeconds : 0;
-  const velocity = resolveVelocity(input.projectile, input.config, deltaSeconds, input.target, input.windX ?? 0);
+  const velocity = resolveVelocity(
+    input.projectile,
+    input.config,
+    deltaSeconds,
+    input.target,
+    input.homingTargets,
+    input.windX ?? 0
+  );
   const nextX = input.projectile.x + velocity.x * deltaSeconds;
   const nextY = input.projectile.y + velocity.y * deltaSeconds;
   const nextBounds = createCenteredRect(nextX, nextY, input.projectile.width, input.projectile.height);
@@ -155,6 +165,7 @@ export interface ProjectileRuntimeInput {
   readonly arenaHeight: number;
   readonly obstacles?: readonly Rect[];
   readonly target?: { readonly x: number; readonly y: number } | null;
+  readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
 }
 
@@ -186,6 +197,7 @@ export function advanceProjectile(input: ProjectileRuntimeInput): ProjectileRunt
     obstacles: input.obstacles ?? [],
     arenaBounds: { x: 0, y: 0, width: input.arenaWidth, height: input.arenaHeight },
     target: input.target ?? undefined,
+    homingTargets: input.homingTargets,
     windX: input.windX
   });
   const bounced = result.projectile.bouncesRemaining < (input.projectile.bouncesRemaining ?? input.config.bounceCount ?? 0);
@@ -280,6 +292,7 @@ function resolveVelocity(
   config: ProjectileConfig,
   deltaSeconds: number,
   target: ProjectileStepInput["target"],
+  homingTargets: readonly HomingTarget[] | undefined,
   windX: number
 ): { x: number; y: number } {
   if (projectile.trajectory === "arc") {
@@ -289,18 +302,26 @@ function resolveVelocity(
     };
   }
 
-  if (projectile.trajectory === "homing" && target !== undefined) {
-    const desiredX = target.x - projectile.x;
-    const desiredY = target.y - projectile.y;
-    const desiredLength = Math.hypot(desiredX, desiredY) || 1;
-    const currentSpeed = Math.hypot(projectile.velocityX, projectile.velocityY) || config.speed;
-    const blend = Math.min(1, Math.max(0, config.homingStrength ?? 0) * deltaSeconds);
-    const targetVelocityX = (desiredX / desiredLength) * currentSpeed;
-    const targetVelocityY = (desiredY / desiredLength) * currentSpeed;
+  if (projectile.trajectory === "homing") {
+    const targets = [
+      ...(homingTargets ?? []),
+      ...(target !== undefined ? [target] : [])
+    ];
+    const homingResult = steerHomingTrajectory({
+      x: projectile.x,
+      y: projectile.y,
+      velocityX: projectile.velocityX,
+      velocityY: projectile.velocityY,
+      speed: config.speed,
+      deltaSeconds,
+      maxTurnRateRadiansPerSecond:
+        Math.max(0, config.homingStrength ?? 1) * (config.homingMaxTurnRate ?? DEFAULT_HOMING_MAX_TURN_RATE_RADIANS_PER_SECOND),
+      targets
+    });
 
     return {
-      x: projectile.velocityX + (targetVelocityX - projectile.velocityX) * blend,
-      y: projectile.velocityY + (targetVelocityY - projectile.velocityY) * blend
+      x: homingResult.velocityX,
+      y: homingResult.velocityY
     };
   }
 
@@ -369,3 +390,5 @@ function intersectRayWithRect(
 
   return Math.max(0, entry);
 }
+
+const DEFAULT_HOMING_MAX_TURN_RATE_RADIANS_PER_SECOND = Math.PI / 2;
