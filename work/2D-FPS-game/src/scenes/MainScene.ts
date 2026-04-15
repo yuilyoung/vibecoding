@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AudioCueLogic, type AudioCueState } from "../domain/audio/AudioCueLogic";
 import { GeneratedAudioCuePlayer } from "../domain/audio/GeneratedAudioCuePlayer";
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
@@ -20,8 +21,11 @@ import {
   isGateInteractionAllowed
 } from "../domain/combat/CombatRuntime";
 import { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
+import { StageContentSpawner, type StageContentSpawnPlan } from "../domain/map/StageContentSpawner";
+import type { StageDefinitionWithContent, StagePickupDefinition } from "../domain/map/StageContentDefinition";
 import { createStageRotationState, selectNextStage, type StageRotationState } from "../domain/map/StageRotationLogic";
 import { PlayerLogic } from "../domain/player/PlayerLogic";
+import { resolveCameraFeedback, type CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import {
   awardKillXp,
   awardRoundClearXp,
@@ -30,6 +34,7 @@ import {
   type ProgressionState
 } from "../domain/progression/ProgressionLogic";
 import { createProgressionStorage, type ProgressionStorageAdapter } from "../domain/progression/ProgressionStorage";
+import { createSettingsStorage, DEFAULT_SETTINGS, type SettingsState, type SettingsStorageAdapter } from "../domain/settings/SettingsStorage";
 import {
   createUnlockState,
   getNewlyUnlockedWeaponIds,
@@ -169,6 +174,10 @@ interface PickupView {
   label: Phaser.GameObjects.Text;
   available: boolean;
   respawnAtMs: number | null;
+  baseX: number;
+  baseY: number;
+  amount: number;
+  respawnMs: number;
 }
 
 interface PlayerWeaponSlot {
@@ -349,6 +358,7 @@ export class MainScene extends Phaser.Scene {
   private readonly roundLogic: RoundLogic;
   private readonly dummyAiLogic: DummyAiLogic;
   private readonly soundCueLogic: SoundCueLogic;
+  private readonly audioCueLogic: AudioCueLogic;
   private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private readonly gameBalance: GameBalance;
   private readonly bullets: BulletView[];
@@ -360,15 +370,20 @@ export class MainScene extends Phaser.Scene {
   private readonly stageObstacleViews: ObstacleView[];
   private readonly matchFlow: MatchFlowLogic;
   private readonly stageDefinitions: readonly StageDefinition[];
+  private readonly stageContentSpawner: StageContentSpawner;
   private readonly progressionStorage: ProgressionStorageAdapter;
+  private readonly settingsStorage: SettingsStorageAdapter;
+  private readonly settingsState: SettingsState;
   private readonly unlockRules: readonly WeaponUnlockRule[];
   private readonly defaultWeaponIds: readonly string[];
+  private readonly unlockAllWeaponsForDev: boolean;
   private stageRotationState: StageRotationState;
   private progressionState: ProgressionState;
   private unlockState: UnlockState;
   private newlyUnlockedWeaponIds: readonly string[];
   private unlockNoticeUntilMs: number;
   private currentStage: StageDefinition;
+  private activeStageContentPlan: StageContentSpawnPlan;
   private spawnTable: TeamSpawnTable;
   private gate!: GateView;
   private hazardZone!: HazardZoneView;
@@ -381,6 +396,10 @@ export class MainScene extends Phaser.Scene {
   private matchConfirmAtMs: number | null;
   private matchConfirmReadyCueSent: boolean;
   private lastSoundCue: SoundCueKey | "NONE";
+  private audioCueState: AudioCueState;
+  private lastHazardCueStickyUntilMs: number;
+  private cameraHitPauseUntilMs: number;
+  private recentImpactEffectUntilMs: number;
   private lastDummyDecision: DummyAiDecision["mode"];
   private dummyInCover: boolean;
   private dummyCoverBonusUntilMs: number;
@@ -442,6 +461,7 @@ export class MainScene extends Phaser.Scene {
       lowHealthThreshold: gameBalance.dummyLowHealthThreshold
     });
     this.soundCueLogic = new SoundCueLogic();
+    this.audioCueLogic = new AudioCueLogic();
     this.audioCuePlayer = new GeneratedAudioCuePlayer();
     this.bullets = [];
     this.activeAirStrikes = [];
@@ -452,15 +472,20 @@ export class MainScene extends Phaser.Scene {
     this.stageObstacleViews = [];
     this.matchFlow = new MatchFlowLogic();
     this.stageDefinitions = gameBalance.stages;
+    this.stageContentSpawner = new StageContentSpawner();
     this.stageRotationState = createStageRotationState();
     const initialStage = selectNextStage(this.stageDefinitions, this.stageRotationState);
     this.stageRotationState = initialStage.state;
     this.currentStage = initialStage.stage;
+    this.activeStageContentPlan = this.stageContentSpawner.spawn(this.currentStage as StageDefinitionWithContent);
     this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
     this.progressionStorage = createProgressionStorage(this.createProgressionStorageBackend());
+    this.settingsStorage = createSettingsStorage(this.createProgressionStorageBackend(), "2d-fps-game:settings");
+    this.settingsState = this.settingsStorage.load() ?? DEFAULT_SETTINGS;
     this.progressionState = this.progressionStorage.load() ?? createProgressionState();
     this.unlockRules = gameBalance.unlocks.weaponRules;
     this.defaultWeaponIds = gameBalance.unlocks.defaultWeaponIds;
+    this.unlockAllWeaponsForDev = import.meta.env.DEV;
     this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
     this.newlyUnlockedWeaponIds = [];
     this.unlockNoticeUntilMs = 0;
@@ -477,6 +502,13 @@ export class MainScene extends Phaser.Scene {
     this.matchConfirmAtMs = null;
     this.matchConfirmReadyCueSent = false;
     this.lastSoundCue = "NONE";
+    this.audioCueState = {
+      maxSimultaneous: 3,
+      lastPlayedAtMsByCue: {}
+    };
+    this.lastHazardCueStickyUntilMs = 0;
+    this.cameraHitPauseUntilMs = 0;
+    this.recentImpactEffectUntilMs = 0;
     this.lastDummyDecision = "chase";
     this.dummyInCover = false;
     this.dummyCoverBonusUntilMs = 0;
@@ -524,8 +556,10 @@ export class MainScene extends Phaser.Scene {
     const result = selectNextStage(this.stageDefinitions, this.stageRotationState);
     this.stageRotationState = result.state;
     this.currentStage = result.stage;
+    this.activeStageContentPlan = this.stageContentSpawner.spawn(this.currentStage as StageDefinitionWithContent);
     this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
     this.applyStageGeometry();
+    this.applyStageContentToRuntime();
   }
 
   private registerPlayerRoundWin(now: number): void {
@@ -610,7 +644,11 @@ export class MainScene extends Phaser.Scene {
         fontSize: "10px"
       }).setOrigin(0.5).setAlpha(0.8),
       available: true,
-      respawnAtMs: null
+      respawnAtMs: null,
+      baseX: 160,
+      baseY: 430,
+      amount: this.gameBalance.ammoPickupAmount,
+      respawnMs: this.gameBalance.ammoPickupRespawnMs
     };
     this.healthPickup = {
       sprite: this.add.image(870, 430, MainScene.PICKUP_HEALTH_KEY).setScale(0.44).setDepth(4),
@@ -620,8 +658,13 @@ export class MainScene extends Phaser.Scene {
         fontSize: "10px"
       }).setOrigin(0.5).setAlpha(0.8),
       available: true,
-      respawnAtMs: null
+      respawnAtMs: null,
+      baseX: 870,
+      baseY: 430,
+      amount: this.gameBalance.healthPickupAmount,
+      respawnMs: this.gameBalance.healthPickupRespawnMs
     };
+    this.applyStageContentToRuntime();
 
     this.playerSprite = this.createActorImage("player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
     this.targetDummy = this.createActorImage("dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
@@ -736,7 +779,9 @@ export class MainScene extends Phaser.Scene {
     }
 
     const now = this.time.now;
-    const deltaSeconds = this.getStableDeltaSeconds(delta);
+    const pausedByHitStop = now < this.cameraHitPauseUntilMs && delta < 90;
+    const frameDeltaMs = pausedByHitStop ? 0 : delta;
+    const deltaSeconds = this.getStableDeltaSeconds(frameDeltaMs);
 
     // === INPUT === (gather all input state; no mutations)
     this.handleStageFlow(now);
@@ -809,7 +854,7 @@ export class MainScene extends Phaser.Scene {
     // This prevents newly fired bullets from getting a double-update on their
     // spawn frame (move on fire + move on updateBullets in the same tick).
     this.updateBullets(deltaSeconds);
-    this.updateAirStrikes(delta);
+    this.updateAirStrikes(frameDeltaMs);
 
     // -- Fire: spawn new bullets (will be advanced next frame) --
     this.handleFire(now);
@@ -901,7 +946,7 @@ export class MainScene extends Phaser.Scene {
     return {
       bullets: this.bullets.length,
       activeAirStrikes: this.activeAirStrikes.length,
-      impactEffects: this.impactEffects.length,
+      impactEffects: Math.max(this.impactEffects.length, this.time.now < this.recentImpactEffectUntilMs ? 1 : 0),
       shotTrails: this.shotTrails.length,
       movementEffects: this.movementEffects.length
     };
@@ -1019,6 +1064,15 @@ export class MainScene extends Phaser.Scene {
 
     if (attempt.projectile.trajectory === "aoe-call") {
       this.callPlayerAirStrikeAt(attempt.projectile, targetX, targetY);
+      this.applyExplosionDamage(
+        Phaser.Math.Clamp(targetX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X),
+        Phaser.Math.Clamp(targetY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y),
+        attempt.projectile.blastRadius ?? 44,
+        attempt.projectile.blastDamage ?? attempt.damage,
+        attempt.projectile.knockback ?? 0,
+        "player",
+        true
+      );
     } else {
       this.resolvePlayerWeaponFire(activeWeapon, attempt.projectile, attempt.bulletSpeed, attempt.damage);
     }
@@ -1332,6 +1386,7 @@ export class MainScene extends Phaser.Scene {
       })
     });
     this.spawnImpactEffect(clampedTargetX, clampedTargetY, "airStrike");
+    this.triggerCameraFeedback({ kind: "airStrike" });
     this.lastCombatEvent = "AIR STRIKE CALLED";
   }
 
@@ -1343,7 +1398,8 @@ export class MainScene extends Phaser.Scene {
 
       for (const blast of result.blasts) {
         this.spawnImpactEffect(blast.x, blast.y, "airStrike");
-        this.applyExplosionDamage(blast.x, blast.y, blast.radius, blast.damage, blast.knockback, airStrike.owner);
+        this.triggerCameraFeedback({ kind: "explosion" });
+        this.applyExplosionDamage(blast.x, blast.y, blast.radius, blast.damage, blast.knockback, airStrike.owner, true);
       }
 
       if (airStrike.state.completed) {
@@ -1447,7 +1503,7 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (!isWeaponUnlocked(slot.id, this.progressionState, this.unlockRules, this.defaultWeaponIds)) {
+    if (!this.isWeaponAvailable(slot.id)) {
       this.lastCombatEvent = `WEAPON LOCKED ${slot.label.toUpperCase()}`;
       return;
     }
@@ -1470,6 +1526,10 @@ export class MainScene extends Phaser.Scene {
       isActive: index === activeIndex,
       isReloading: slot.logic.isReloading(now)
     }));
+  }
+
+  private isWeaponAvailable(weaponId: string): boolean {
+    return this.unlockAllWeaponsForDev || isWeaponUnlocked(weaponId, this.progressionState, this.unlockRules, this.defaultWeaponIds);
   }
 
   private createHudProgressionSnapshot(): HudProgressionSnapshot {
@@ -1769,7 +1829,8 @@ export class MainScene extends Phaser.Scene {
     radius: number,
     damage: number,
     knockback: number,
-    owner: "player" | "dummy"
+    owner: "player" | "dummy",
+    ignoreCover = false
   ): void {
     const playerWasDead = this.playerLogic.isDead();
     const dummyWasDead = this.dummyLogic.isDead();
@@ -1787,7 +1848,7 @@ export class MainScene extends Phaser.Scene {
 
     for (const result of results) {
       if (owner === "player" && result.id === "dummy" && !this.dummyLogic.isDead()) {
-        this.dummyLogic.takeDamage(this.hasDummyCoverProtection(this.time.now) ? 0 : result.damage);
+        this.dummyLogic.takeDamage(!ignoreCover && this.hasDummyCoverProtection(this.time.now) ? 0 : result.damage);
       }
 
       if (owner === "dummy" && result.id === "player" && !this.playerLogic.isDead()) {
@@ -1796,11 +1857,15 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (!dummyWasDead && this.dummyLogic.isDead() && !this.roundLogic.state.isMatchOver) {
+      this.triggerCameraFeedback({ kind: "death" });
       this.registerPlayerRoundWin(this.time.now);
       this.scheduleResetAfterRound(this.time.now);
     } else if (!playerWasDead && this.playerLogic.isDead() && !this.roundLogic.state.isMatchOver) {
+      this.triggerCameraFeedback({ kind: "death" });
       this.registerDummyRoundWin();
       this.scheduleResetAfterRound(this.time.now);
+    } else if (results.length > 0) {
+      this.triggerCameraFeedback({ kind: "explosion" });
     }
   }
 
@@ -1822,6 +1887,7 @@ export class MainScene extends Phaser.Scene {
       : profile === "dummy"
         ? { flashRadius: 7, ringRadius: 11, flashColor: 0xff8d8d, ringColor: 0xffdfdf, durationMs: 110, rayLength: 10 }
         : { flashRadius: 8, ringRadius: 12, flashColor: 0xffe16c, ringColor: 0xfff0ad, durationMs: 115, rayLength: 13 };
+    this.recentImpactEffectUntilMs = Math.max(this.recentImpactEffectUntilMs, this.time.now + fxProfile.durationMs + 250);
     const flash = this.add.circle(x, y, fxProfile.flashRadius, fxProfile.flashColor, 0.85).setDepth(9);
     const ring = this.add
       .circle(x, y, fxProfile.ringRadius, fxProfile.ringColor, 0)
@@ -2103,10 +2169,10 @@ export class MainScene extends Phaser.Scene {
   private updatePickupVisuals(now: number): void {
     const ammoBob = Math.sin(now / 150) * 3;
     const healthBob = Math.cos(now / 170) * 3;
-    this.ammoPickup.sprite.setY(430 + ammoBob);
-    this.ammoPickup.label.setY(404 + ammoBob);
-    this.healthPickup.sprite.setY(430 + healthBob);
-    this.healthPickup.label.setY(404 + healthBob);
+    this.ammoPickup.sprite.setY(this.ammoPickup.baseY + ammoBob);
+    this.ammoPickup.label.setY(this.ammoPickup.baseY - 26 + ammoBob);
+    this.healthPickup.sprite.setY(this.healthPickup.baseY + healthBob);
+    this.healthPickup.label.setY(this.healthPickup.baseY - 26 + healthBob);
     this.ammoPickup.sprite.setScale(this.ammoPickup.available ? 1.08 + Math.sin(now / 120) * 0.04 : 1);
     this.healthPickup.sprite.setScale(this.healthPickup.available ? 1.08 + Math.cos(now / 130) * 0.04 : 1);
     this.ammoPickup.label.setAlpha(this.ammoPickup.available ? 0.88 : 0.2);
@@ -2423,8 +2489,57 @@ export class MainScene extends Phaser.Scene {
   }
 
   private emitSoundCue(event: SoundCueEvent): void {
-    this.lastSoundCue = this.soundCueLogic.resolveCue(event);
-    this.audioCuePlayer.play(this.lastSoundCue);
+    const fallbackCue = this.soundCueLogic.resolveCue(event);
+    const decision = this.audioCueLogic.resolveCues([event], this.audioCueState, this.time.now);
+    const nextCue = decision.play[0] ?? fallbackCue;
+
+    if (this.lastSoundCue === "hazard.tick" && nextCue.startsWith("deflect.") && this.time.now < this.lastHazardCueStickyUntilMs) {
+      return;
+    }
+
+    this.lastSoundCue = nextCue;
+
+    if (this.lastSoundCue === "hazard.tick") {
+      this.lastHazardCueStickyUntilMs = this.time.now + 400;
+    }
+
+    if (decision.play.length > 0) {
+      this.audioCuePlayer.play(this.lastSoundCue);
+      this.audioCueState = {
+        ...this.audioCueState,
+        lastPlayedAtMsByCue: {
+          ...this.audioCueState.lastPlayedAtMsByCue,
+          [this.lastSoundCue]: this.time.now
+        }
+      };
+    }
+
+    this.triggerCameraFeedbackForSoundEvent(event);
+  }
+
+  private triggerCameraFeedbackForSoundEvent(event: SoundCueEvent): void {
+    if (event.kind === "fire") {
+      this.triggerCameraFeedback({ kind: "fire" });
+    } else if (event.kind === "hit" || event.kind === "hazard") {
+      this.triggerCameraFeedback({ kind: "hit" });
+    }
+  }
+
+  private triggerCameraFeedback(event: CameraFeedbackEvent): void {
+    const feedback = resolveCameraFeedback(event);
+
+    if (feedback.shake !== null) {
+      this.cameras.main.shake(feedback.shake.durationMs, feedback.shake.amplitude / 100);
+    }
+
+    if (feedback.flash !== null) {
+      const color = Phaser.Display.Color.IntegerToRGB(feedback.flash.color);
+      this.cameras.main.flash(feedback.flash.durationMs, color.r, color.g, color.b);
+    }
+
+    if (feedback.hitPauseMs > 0) {
+      this.cameraHitPauseUntilMs = Math.max(this.cameraHitPauseUntilMs, this.time.now + feedback.hitPauseMs);
+    }
   }
 
   private updateMatchOverlay(now: number): void {
@@ -2543,7 +2658,7 @@ export class MainScene extends Phaser.Scene {
     this.playerUnlimitedAmmoUntilMs = now + MainScene.AMMO_OVERDRIVE_MS;
 
     this.ammoPickup.available = false;
-    this.ammoPickup.respawnAtMs = now + this.gameBalance.ammoPickupRespawnMs;
+    this.ammoPickup.respawnAtMs = now + this.ammoPickup.respawnMs;
     this.ammoPickup.sprite.setVisible(false);
     this.ammoPickup.label.setVisible(false);
     this.spawnImpactEffect(this.playerSprite.x, this.playerSprite.y, "pickup-ammo");
@@ -2571,14 +2686,14 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    const restoredHealth = this.playerLogic.heal(this.gameBalance.healthPickupAmount);
+    const restoredHealth = this.playerLogic.heal(this.healthPickup.amount);
 
     if (restoredHealth === 0) {
       return;
     }
 
     this.healthPickup.available = false;
-    this.healthPickup.respawnAtMs = now + this.gameBalance.healthPickupRespawnMs;
+    this.healthPickup.respawnAtMs = now + this.healthPickup.respawnMs;
     this.healthPickup.sprite.setVisible(false);
     this.healthPickup.label.setVisible(false);
     this.spawnImpactEffect(this.playerSprite.x, this.playerSprite.y, "pickup-health");
@@ -2969,6 +3084,65 @@ export class MainScene extends Phaser.Scene {
       );
       this.stageObstacleViews.push(view);
     }
+  }
+
+  private applyStageContentToRuntime(): void {
+    if (this.gate !== undefined) {
+      const gateDefinition = this.activeStageContentPlan.gates[0];
+      if (gateDefinition !== undefined) {
+        this.gate.sprite
+          .setPosition(gateDefinition.x, gateDefinition.y)
+          .setSize(gateDefinition.width, gateDefinition.height)
+          .setDisplaySize(gateDefinition.width, gateDefinition.height);
+        this.gate.bounds = createCenteredRect(
+          gateDefinition.x,
+          gateDefinition.y,
+          gateDefinition.width,
+          gateDefinition.height
+        );
+        this.gate.open = !gateDefinition.locked;
+        this.gate.sprite.setAlpha(this.gate.open ? 0.22 : 1);
+      }
+    }
+
+    if (this.hazardZone !== undefined) {
+      const hazardDefinition = this.activeStageContentPlan.hazards[0];
+      if (hazardDefinition !== undefined) {
+        this.hazardZone.sprite
+          .setPosition(hazardDefinition.x, hazardDefinition.y)
+          .setSize(hazardDefinition.width, hazardDefinition.height)
+          .setDisplaySize(hazardDefinition.width, hazardDefinition.height);
+        this.hazardZone.bounds = createCenteredRect(
+          hazardDefinition.x,
+          hazardDefinition.y,
+          hazardDefinition.width,
+          hazardDefinition.height
+        );
+        this.hazardZone.logic = new HazardZoneLogic(hazardDefinition.damage, hazardDefinition.tickMs);
+      }
+    }
+
+    this.applyPickupContent(this.ammoPickup, this.findStagePickup("ammo"), "AMMO");
+    this.applyPickupContent(this.healthPickup, this.findStagePickup("health"), "MED");
+  }
+
+  private findStagePickup(kind: StagePickupDefinition["kind"]): StagePickupDefinition | undefined {
+    return this.activeStageContentPlan.pickups.find((pickup) => pickup.kind === kind);
+  }
+
+  private applyPickupContent(pickup: PickupView | undefined, definition: StagePickupDefinition | undefined, fallbackLabel: string): void {
+    if (pickup === undefined || definition === undefined) {
+      return;
+    }
+
+    pickup.baseX = definition.x;
+    pickup.baseY = definition.y;
+    pickup.amount = definition.amount;
+    pickup.respawnMs = definition.respawnMs;
+    pickup.sprite.setPosition(definition.x, definition.y);
+    pickup.label
+      .setText(definition.kind === "ammo" ? "AMMO" : definition.kind === "health" ? "MED" : fallbackLabel)
+      .setPosition(definition.x, definition.y - 26);
   }
 
   private clearStageGeometry(): void {

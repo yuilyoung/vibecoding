@@ -1,6 +1,6 @@
 # Phase 1 WBS — 물리 엔진 + 무기 시스템
 
-> Handoff: [current-handoff.json](../handoffs/current-handoff.json)
+> Handoff: [current-handoff.json](../../../../docs/handoffs/current-handoff.json)
 > Task 데이터: [phase1-tasks.json](./phase1-tasks.json)
 
 ## 의존 관계
@@ -47,4 +47,4 @@ T7+T8 완료 후
 - 폭발 범위 데미지 감쇠 + 넉백 적용
 - `npm run type-check && lint && test && build` 전부 통과
 - 기존 매치 플로우 정상 유지
-- [execution-report](../handoffs/current-execution-report.md) 작성 완료
+- [execution-report](../../../../docs/handoffs/current-execution-report.md) 작성 완료

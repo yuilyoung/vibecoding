@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const reportPath = path.join(process.cwd(), "docs", "reports", "project-status.md");
+const reportPath = path.join(process.cwd(), "work", "2D-FPS-game", "docs", "reports", "project-status.md");
 const text = readFileSync(reportPath, "utf8");
 const lines = text.split(/\r?\n/);
-const startIndex = lines.findIndex((line) => line.includes("Immediate Next Tasks"));
+const startIndex = lines.findIndex((line) => line.includes("Immediate Next Tasks") || line.includes("다음 단계"));
 
 if (startIndex === -1) {
   process.stderr.write("next tasks section not found\n");
@@ -23,7 +23,7 @@ for (const line of lines.slice(startIndex + 1)) {
   }
 }
 
-const tasks = taskLines
+let tasks = taskLines
   .slice(1, 11)
   .map((line) => line.split("|").map((entry) => entry.trim()).filter(Boolean))
   .filter((columns) => columns.length >= 5)
@@ -35,4 +35,24 @@ const tasks = taskLines
     estimate: columns[4]
   }));
 
-process.stdout.write(`${JSON.stringify({ ctx: "docs/reports/project-status.md", nextTasks: tasks }, null, 2)}\n`);
+if (tasks.length === 0) {
+  tasks = lines
+    .slice(startIndex + 1)
+    .filter((line) => /^\d+\.\s+/.test(line.trim()))
+    .slice(0, 10)
+    .map((line) => {
+      const match = line.trim().match(/^(\d+)\.\s+(.*)$/);
+      const body = match?.[2] ?? line.trim();
+      const ownerMatch = body.match(/\(([^)]+)\)\s*$/);
+      const owner = ownerMatch !== null && !ownerMatch[1].includes(" ") ? ownerMatch[1] : "";
+      return {
+        priority: match?.[1] ?? "",
+        id: "",
+        task: body.replace(/\*\*/g, "").replace(owner === "" ? /$^/ : /\s+\([^)]+\)\s*$/, ""),
+        owner,
+        estimate: ""
+      };
+    });
+}
+
+process.stdout.write(`${JSON.stringify({ ctx: "work/2D-FPS-game/docs/reports/project-status.md", nextTasks: tasks }, null, 2)}\n`);

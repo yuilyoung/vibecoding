@@ -152,7 +152,77 @@
         { "id": "core", "x": 480, "y": 270, "width": 120, "height": 120 },
         { "id": "tower", "x": 260, "y": 180, "width": 80, "height": 180 },
         { "id": "barrier", "x": 710, "y": 340, "width": 160, "height": 60 }
-      ]
+      ],
+      "content": {
+        "hazards": [
+          {
+            "id": "foundry-molten-core",
+            "kind": "lava",
+            "x": 510,
+            "y": 138,
+            "width": 170,
+            "height": 46,
+            "damage": 7,
+            "tickMs": 900,
+            "label": "Molten Core"
+          },
+          {
+            "id": "foundry-steam-line",
+            "kind": "steam",
+            "x": 292,
+            "y": 186,
+            "width": 68,
+            "height": 168,
+            "damage": 6,
+            "tickMs": 1200,
+            "label": "Steam Line"
+          }
+        ],
+        "pickups": [
+          {
+            "id": "foundry-medkit",
+            "kind": "health",
+            "x": 870,
+            "y": 432,
+            "amount": 28,
+            "respawnMs": 6500,
+            "label": "Med Kit"
+          },
+          {
+            "id": "foundry-ammo-crate",
+            "kind": "ammo",
+            "x": 160,
+            "y": 430,
+            "amount": 8,
+            "respawnMs": 5000,
+            "label": "Ammo Crate"
+          }
+        ],
+        "gates": [
+          {
+            "id": "foundry-core-gate",
+            "kind": "barrier",
+            "x": 482,
+            "y": 430,
+            "width": 96,
+            "height": 24,
+            "locked": true,
+            "label": "Core Gate",
+            "targetStageId": "relay-yard"
+          },
+          {
+            "id": "foundry-service-door",
+            "kind": "door",
+            "x": 686,
+            "y": 344,
+            "width": 88,
+            "height": 40,
+            "locked": false,
+            "label": "Service Door",
+            "targetStageId": "storm-drain"
+          }
+        ]
+      }
     },
     {
       "id": "relay-yard",
@@ -170,7 +240,77 @@
         { "id": "north-relay", "x": 480, "y": 150, "width": 180, "height": 50 },
         { "id": "south-relay", "x": 480, "y": 390, "width": 180, "height": 50 },
         { "id": "mid-crate", "x": 480, "y": 270, "width": 70, "height": 90 }
-      ]
+      ],
+      "content": {
+        "hazards": [
+          {
+            "id": "relay-yard-arc-field",
+            "kind": "electric",
+            "x": 430,
+            "y": 150,
+            "width": 120,
+            "height": 48,
+            "damage": 8,
+            "tickMs": 850,
+            "label": "Arc Field"
+          },
+          {
+            "id": "relay-yard-coolant-spill",
+            "kind": "sludge",
+            "x": 470,
+            "y": 386,
+            "width": 170,
+            "height": 58,
+            "damage": 5,
+            "tickMs": 1100,
+            "label": "Coolant Spill"
+          }
+        ],
+        "pickups": [
+          {
+            "id": "relay-yard-health-kit",
+            "kind": "health",
+            "x": 164,
+            "y": 122,
+            "amount": 24,
+            "respawnMs": 6200,
+            "label": "Health Kit"
+          },
+          {
+            "id": "relay-yard-boost-canister",
+            "kind": "boost",
+            "x": 734,
+            "y": 426,
+            "amount": 1,
+            "respawnMs": 7200,
+            "label": "Boost Canister"
+          }
+        ],
+        "gates": [
+          {
+            "id": "relay-yard-north-barrier",
+            "kind": "barrier",
+            "x": 480,
+            "y": 124,
+            "width": 110,
+            "height": 34,
+            "locked": true,
+            "label": "North Barrier",
+            "targetStageId": "foundry"
+          },
+          {
+            "id": "relay-yard-south-switch",
+            "kind": "switch",
+            "x": 480,
+            "y": 414,
+            "width": 110,
+            "height": 34,
+            "locked": false,
+            "label": "South Switch",
+            "targetStageId": "storm-drain"
+          }
+        ]
+      }
     },
     {
       "id": "storm-drain",
@@ -188,7 +328,77 @@
         { "id": "upper-lock", "x": 380, "y": 165, "width": 140, "height": 52 },
         { "id": "lower-lock", "x": 580, "y": 375, "width": 140, "height": 52 },
         { "id": "drain-core", "x": 480, "y": 270, "width": 90, "height": 90 }
-      ]
+      ],
+      "content": {
+        "hazards": [
+          {
+            "id": "storm-drain-sludge-trench",
+            "kind": "sludge",
+            "x": 392,
+            "y": 160,
+            "width": 136,
+            "height": 54,
+            "damage": 7,
+            "tickMs": 1000,
+            "label": "Sludge Trench"
+          },
+          {
+            "id": "storm-drain-pressure-vent",
+            "kind": "pressure",
+            "x": 573,
+            "y": 368,
+            "width": 134,
+            "height": 58,
+            "damage": 6,
+            "tickMs": 1050,
+            "label": "Pressure Vent"
+          }
+        ],
+        "pickups": [
+          {
+            "id": "storm-drain-ammo-cache",
+            "kind": "ammo",
+            "x": 164,
+            "y": 270,
+            "amount": 10,
+            "respawnMs": 5400,
+            "label": "Ammo Cache"
+          },
+          {
+            "id": "storm-drain-health-cache",
+            "kind": "health",
+            "x": 732,
+            "y": 438,
+            "amount": 32,
+            "respawnMs": 7000,
+            "label": "Health Cache"
+          }
+        ],
+        "gates": [
+          {
+            "id": "storm-drain-pump-door",
+            "kind": "door",
+            "x": 480,
+            "y": 140,
+            "width": 106,
+            "height": 36,
+            "locked": true,
+            "label": "Pump Door",
+            "targetStageId": "foundry"
+          },
+          {
+            "id": "storm-drain-access-barrier",
+            "kind": "barrier",
+            "x": 480,
+            "y": 408,
+            "width": 106,
+            "height": 36,
+            "locked": false,
+            "label": "Access Barrier",
+            "targetStageId": "relay-yard"
+          }
+        ]
+      }
     }
   ]
 }

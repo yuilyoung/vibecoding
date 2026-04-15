@@ -2,3 +2,5 @@ node_modules/
 dist/
 coverage/
 .vercel
+test-results/*
+!test-results/.last-run.json

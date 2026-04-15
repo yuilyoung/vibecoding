@@ -1,8 +1,8 @@
 # Phase 2 WBS — AI 고도화 + 진행도/언락 + 스테이지 로테이션
 
-> Handoff: [current-handoff.json](../handoffs/current-handoff.json)
+> Handoff: [current-handoff.json](../../../../docs/handoffs/current-handoff.json)
 > Task 데이터: [phase2-tasks.json](./phase2-tasks.json)
-> Phase 1 아카이브: [phase-1-weapon-physics.json](../handoffs/phase-1-weapon-physics.json)
+> Phase 1 아카이브: root handoff archive removed during harness consolidation.
 
 ## 의존 관계
 
@@ -56,4 +56,4 @@ T8+T9+T10 완료 후
 - phaser-vendor chunk < 800 kB (gzip < 250 kB)
 - `npm run type-check && lint && test && build` 전부 통과
 - 기존 117 테스트 + Phase 2 신규 테스트 전부 pass
-- [execution-report](../handoffs/current-execution-report.md) 작성 완료
+- [execution-report](../../../../docs/handoffs/current-execution-report.md) 작성 완료
