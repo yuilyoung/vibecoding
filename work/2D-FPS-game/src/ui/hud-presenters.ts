@@ -1,5 +1,6 @@
 import type { MatchFlowPhase, MatchFlowState, TeamId } from "../domain/round/MatchFlowLogic";
 import type { RoundState } from "../domain/round/RoundLogic";
+import type { BossWaveOverlayDecision } from "../domain/round/MatchFlowOrchestrator";
 import type {
   HudAreaPreviewSnapshot,
   HudBlastPreviewSnapshot,
@@ -52,6 +53,7 @@ export interface HudPresenterInput {
   readonly weaponUnlock?: HudWeaponUnlockSnapshot;
   readonly areaPreview?: HudAreaPreviewSnapshot;
   readonly blastPreview?: HudBlastPreviewSnapshot;
+  readonly bossWave?: BossWaveOverlayDecision;
 }
 
 export interface MatchOverlayPresenterResult {
@@ -108,6 +110,18 @@ export function getPromptText(input: Pick<HudPresenterInput, "matchFlow" | "roun
 }
 
 export function buildMatchOverlayState(input: HudPresenterInput): MatchOverlayPresenterResult {
+  if (!input.round.isMatchOver && input.bossWave?.visible === true) {
+    return {
+      overlay: {
+        visible: true,
+        title: input.bossWave.title,
+        subtitle: input.bossWave.subtitle
+      },
+      shouldEmitMatchConfirmReadyCue: false,
+      shouldEnterMatchOver: false
+    };
+  }
+
   if (input.matchFlow.phase === "stage-entry") {
     return {
       overlay: {

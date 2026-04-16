@@ -1,94 +1,98 @@
 {
-  "id": "phase-3-feel-stage-content-playtest",
+  "id": "phase-4-play-loop-polish",
   "timestamp": "2026-04-15",
   "from": "vision",
   "to": "ultron",
   "status": "complete",
   "completedAt": "2026-04-15",
   "previousPhase": {
-    "id": "phase-2-ai-progression-stages",
+    "id": "phase-3-feel-stage-content-playtest",
     "status": "complete",
-    "completedAt": "2026-04-14"
+    "completedAt": "2026-04-15",
+    "carryovers": [
+      "Settings HUD 패널 UI 미노출 — Phase 4 T1로 이관",
+      "오디오 방향 확정(generated vs .ogg) — Phase 4 T2로 이관",
+      "Foundry 포함 스테이지 콘텐츠 좌표 임시 호환 유지 — Phase 4 T3로 이관"
+    ]
   },
-  "scope": "Phase 3 — 전투 감각(Feel) 향상 + 스테이지 콘텐츠 깊이 + 헤드리스 플레이테스트 증거. 오디오 큐 체계, 카메라 피드백(셰이크/플래시/hit-pause), 스테이지별 hazard/pickup/gate 외부화, 픽업 로직, 설정 영속화, Playwright smoke 시나리오.",
+  "scope": "Phase 4 — 플레이 루프 완성도 + UX 정리. Phase 3 캐리오버(Settings UI, 오디오 방향 확정, 스테이지 콘텐츠 튜닝) 처리와 보스 웨이브/튜토리얼 도입으로 '한 판 제대로 플레이 가능한' 루프를 완성한다.",
   "constraints": [
     "게임 로직은 src/domain/ 순수 TS, Phaser 의존은 src/scenes/ 분리 유지",
-    "모든 수치/맵핑은 assets/data/game-balance.json 외부화",
+    "모든 수치는 assets/data/game-balance.json 외부화",
     "TDD: 새 로직은 반드시 tests/*.test.ts 동반",
-    "기존 145개 유닛 테스트 + 12개 E2E 전부 pass 유지",
-    "Phase 1/2 인터페이스 (WeaponLogic, ProjectileRuntime, ExplosionLogic, AiStateMachine, ProgressionLogic, StageRotationLogic) 호환 유지",
+    "기존 167 유닛 + 12 E2E 전부 pass 유지",
+    "Phase 1~3 도메인 인터페이스 (WeaponLogic, AiStateMachine, ProgressionLogic, StageRotationLogic, AudioCueLogic, CameraFeedbackLogic, StageContentSpawner, PickupLogic, SettingsStorage) 호환 유지",
     "빌드 사이즈 목표(최대 청크 < 800 kB, gzip < 250 kB) 유지",
-    "오디오 에셋은 assets/audio/ 하위에 배치, Web Audio 사용",
-    "핸드오프 파일 단일 소스는 루트 docs/handoffs/ — 프로젝트 로컬에 사본 금지",
-    "npm run type-check && npm run lint && npm test && npm run build && npx playwright test 전부 통과"
+    "핸드오프 단일 소스는 루트 docs/handoffs/ — 프로젝트 로컬 사본 금지",
+    "튜토리얼 'don't show again' 플래그는 SettingsStorage에 영속",
+    "npm run type-check && npm run lint && npm test && npm run build && npm run test:e2e 전부 통과"
   ],
   "currentState": {
     "implemented": [
       "Phase 1 완료 — 6종 무기, 5종 탄도, 폭발 감쇠/넉백",
-      "Phase 2 완료 — AiStateMachine, LineOfSight, Homing, Progression, Unlock, StageRotation, HUD 통합",
-      "테스트 145개 + E2E 12개 pass, 최대 청크 약 260 kB"
+      "Phase 2 완료 — AiStateMachine, LineOfSight, Homing, Progression, Unlock, StageRotation",
+      "Phase 3 완료 — AudioCueLogic, CameraFeedbackLogic, StageContent, PickupLogic, SettingsStorage",
+      "테스트 33 파일 / 167개 + E2E 12개 pass"
     ],
     "missing": [
-      "사운드 큐 체계 (무기/폭발/피격/언락/라운드 전이)",
-      "카메라 셰이크/히트 플래시/hit-pause 피드백",
-      "스테이지별 hazard/pickup/gate 콘텐츠 외부화 (현재는 geometry/spawn table만 로테이션)",
-      "PickupLogic (체력/탄약/부스트) 없음",
-      "볼륨/마우스 감도 설정 영속화 없음",
-      "헤드리스 플레이테스트 증거 (스테이지 3개 순환 + 무기 6종 + 진행도 smoke) 없음"
+      "Settings HUD 패널 UI (ESC 토글, 볼륨/감도 슬라이더)",
+      "오디오 최종 방향 확정 (generated 파라미터 정돈 또는 .ogg 에셋 교체)",
+      "3 스테이지 콘텐츠 좌표/수치 튜닝 (임시 호환 좌표 정리)",
+      "BossWaveLogic (N 라운드마다 보스 스폰/보상)",
+      "MainScene 보스 웨이브 통합 (HUD 보스 HP 바 포함)",
+      "TutorialOverlayLogic + 첫 실행 온보딩 오버레이",
+      "Phase 4 Playwright smoke (boss/tutorial/settings)"
     ]
   },
   "files": {
     "create": [
-      "src/domain/audio/AudioCueLogic.ts",
-      "src/domain/audio/AudioPlayerAdapter.ts",
-      "src/domain/feedback/CameraFeedbackLogic.ts",
-      "src/domain/map/StageContentDefinition.ts",
-      "src/domain/map/StageContentSpawner.ts",
-      "src/domain/pickup/PickupLogic.ts",
-      "src/domain/settings/SettingsStorage.ts",
-      "assets/audio/*.ogg",
-      "tests/AudioCueLogic.test.ts",
-      "tests/CameraFeedbackLogic.test.ts",
-      "tests/StageContentDefinition.test.ts",
-      "tests/StageContentSpawner.test.ts",
-      "tests/PickupLogic.test.ts",
-      "tests/SettingsStorage.test.ts",
-      "tests/e2e/phase3-smoke.spec.ts"
+      "src/ui/SettingsPanel.ts",
+      "src/ui/TutorialOverlay.ts",
+      "src/domain/round/BossWaveLogic.ts",
+      "src/domain/tutorial/TutorialOverlayLogic.ts",
+      "tests/SettingsPanel.test.ts",
+      "tests/BossWaveLogic.test.ts",
+      "tests/TutorialOverlayLogic.test.ts",
+      "tests/e2e/phase4-smoke.spec.ts"
     ],
     "modify": [
       "src/scenes/MainScene.ts",
-      "src/domain/map/StageRotationLogic.ts",
-      "src/domain/combat/WeaponInventoryLogic.ts",
+      "src/domain/round/MatchFlowOrchestrator.ts",
+      "src/domain/settings/SettingsStorage.ts",
+      "src/domain/audio/GeneratedAudioCuePlayer.ts",
+      "src/domain/map/StageContentDefinition.ts",
       "src/ui/hud-presenters.ts",
       "assets/data/game-balance.json",
       "playwright.config.ts"
+    ],
+    "createIfNgOgg": [
+      "assets/audio/*.ogg",
+      "src/domain/audio/AudioPlayerAdapter.ts"
     ]
   },
   "acceptance": [
-    "AudioCueLogic이 우선순위/쿨다운/동시재생 제한을 정확히 적용",
-    "무기 6종 사격, 폭발, 피격, 언락, 라운드 전이에 사운드 큐 연결",
-    "피격/폭발 시 카메라 셰이크와 히트 플래시 발생, hit-pause로 순간 감속",
-    "스테이지 3개가 서로 다른 hazard/pickup/gate 구성으로 순환",
-    "플레이어가 픽업 습득 시 체력/탄약/부스트가 정확히 적용 (상한 존중)",
-    "볼륨(master/sfx)과 마우스 감도가 새로고침 후 유지",
-    "Playwright smoke 시나리오가 스테이지 3 순환 + 무기 6종 + 픽업 + 레벨업/언락을 관통해 통과",
-    "smoke 실행으로 stage1/2/3 스크린샷 아티팩트 생성",
-    "기존 145 유닛 + 12 E2E 회귀 없음",
-    "npm run type-check && lint && test && build 전부 pass",
+    "ESC 토글로 설정 패널 열림, 슬라이더 조작 시 SettingsStorage 즉시 반영 및 재로드 후 유지",
+    "오디오 최종 방향 확정 및 모든 cue 단일 경로 재생 (선택 근거 execution report 기록)",
+    "3 스테이지의 hazard/pickup/gate 좌표가 스테이지 특성에 맞게 재분배, 기존 E2E 회귀 없음",
+    "BossWaveLogic이 N 라운드마다 보스 스폰 조건을 정확히 평가",
+    "보스 스폰 시 HUD 경고 + 보스 HP 바 표시, 처치 시 대량 XP/언락 보상",
+    "첫 실행 시 튜토리얼 오버레이 표시, skip 시 SettingsStorage에 영속",
+    "Phase 4 smoke가 tutorial skip → settings 조절 → boss wave 진입/처치 → 레벨업을 관통",
+    "기존 167 유닛 + 12 E2E 회귀 없음",
+    "npm run type-check && lint && test && build && test:e2e 전부 pass",
     "docs/handoffs/current-execution-report.md 갱신 및 postflight sync 완료"
   ],
   "priority": [
-    "1. AudioCueLogic + 사운드 바인딩 (체감 개선 최우선)",
-    "2. CameraFeedbackLogic + MainScene 통합 (hit feel)",
-    "3. StageContentDefinition + Spawner + PickupLogic (콘텐츠 깊이)",
-    "4. SettingsStorage (UX 기본)",
-    "5. Playwright smoke (플레이테스트 증거)",
-    "6. 검증 게이트 + execution report"
+    "1. T1 Settings UI / T2 오디오 방향 / T3 스테이지 튜닝 (Phase 3 캐리오버 정리)",
+    "2. T4 BossWaveLogic + T5 MainScene 통합 (엔드게임 피크)",
+    "3. T6 TutorialOverlay (첫 사용자 경험)",
+    "4. T7 Phase 4 smoke + T8 검증 게이트"
   ],
-  "nextHandoff": "phase-4 (TBD — Phase 3 종료 후 비전 결정)",
+  "nextHandoff": "phase-5 (TBD — Phase 4 종료 후 비전 결정)",
   "references": {
-    "wbs": "work/2D-FPS-game/docs/planning/phase3-wbs.md",
-    "tasks": "work/2D-FPS-game/docs/planning/phase3-tasks.json",
-    "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md"
+    "wbs": "work/2D-FPS-game/docs/planning/phase4-wbs.md",
+    "tasks": "work/2D-FPS-game/docs/planning/phase4-tasks.json",
+    "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
+    "previousExecutionReport": "docs/handoffs/current-execution-report.md"
   }
 }

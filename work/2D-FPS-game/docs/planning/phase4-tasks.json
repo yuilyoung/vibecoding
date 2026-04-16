@@ -1,0 +1,81 @@
+{
+  "phase": "phase-4",
+  "name": "Playable loop completion and UX polish",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "created": "2026-04-15",
+  "updated": "2026-04-15",
+  "status": "completed",
+  "completedBy": "ultron/codex",
+  "verification": {
+    "typeCheck": "passed",
+    "lint": "passed",
+    "unit": "passed: 38 files / 187 tests",
+    "build": "passed",
+    "e2e": "passed: 13 tests"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "subject": "Settings HUD panel UI",
+      "assignee": "ultron/frontend via .claude frontend/designer profile",
+      "status": "completed",
+      "completionNotes": "ESC opens/closes settings overlay. Master/SFX/mouse sliders render in DOM with stable test ids. Slider input is saved immediately through SettingsStorage and applied to GeneratedAudioCuePlayer volume."
+    },
+    {
+      "id": "T2",
+      "subject": "Generated audio direction polish",
+      "assignee": "ultron/sounder via .claude sounder profile",
+      "status": "completed",
+      "completionNotes": "GeneratedAudioCuePlayer cue tones were differentiated and runtime volume control was added. Existing AudioCueLogic priority/cooldown tests remain passing."
+    },
+    {
+      "id": "T3",
+      "subject": "Stage content coordinate and tuning pass",
+      "assignee": "ultron/app-developer",
+      "status": "completed",
+      "completionNotes": "Foundry, Relay Yard, and Storm Drain hazards/pickups/gates were tuned in game-balance.json. StageContentDefinition tests updated."
+    },
+    {
+      "id": "T4",
+      "subject": "BossWaveLogic pure domain logic",
+      "assignee": "ultron/app-developer",
+      "status": "completed",
+      "completionNotes": "BossWaveLogic was added with round trigger, spawn plan, and reward calculation tests."
+    },
+    {
+      "id": "T5",
+      "subject": "MainScene boss wave integration",
+      "assignee": "ultron/fps-architect via .claude fps-architect profile",
+      "status": "completed",
+      "completionNotes": "Boss wave rules are loaded from game-balance.json, boss wave overlay/HP/reward text is exposed through HUD presenters, match-over overlay now takes priority, and boss round player victory applies XP plus airStrike reward unlock."
+    },
+    {
+      "id": "T6",
+      "subject": "TutorialOverlayLogic and UI",
+      "assignee": "ultron/frontend via .claude designer profile",
+      "status": "completed",
+      "completionNotes": "TutorialOverlayLogic and TutorialOverlay UI module were added. Main DOM now shows first-run tutorial, supports skip/don't-show-again, and settings replay resets tutorial persistence."
+    },
+    {
+      "id": "T7",
+      "subject": "Playwright smoke for boss/tutorial/settings",
+      "assignee": "ultron/qa via .claude tester profile",
+      "status": "completed",
+      "completionNotes": "tests/e2e/phase4-smoke.spec.ts covers tutorial progression, ESC settings overlay, settings persistence, boss wave overlay, and boss reward unlock. Screenshots are produced for settings, boss, and after-boss states."
+    },
+    {
+      "id": "T8",
+      "subject": "Verification gates and status report",
+      "assignee": "ultron/qa",
+      "status": "completed",
+      "completionNotes": "type-check, lint, unit tests, build, and Playwright E2E all passed. Project status report updated for Vision review."
+    }
+  ],
+  "dependencyGraph": {
+    "parallelCompleted": ["T1", "T2", "T3", "T4"],
+    "completedAfterT1": ["T6"],
+    "completedAfterT4": ["T5"],
+    "completedAfterT1T5T6": ["T7"],
+    "completedAfterT2T3T7": ["T8"]
+  }
+}

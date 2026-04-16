@@ -74,4 +74,90 @@ describe("AudioCueLogic", () => {
     expect(decision.play).toEqual(["match.confirm.ready", "pickup.ammo", "weapon.swap"]);
     expect(decision.drop).toEqual(["hazard.tick"]);
   });
+
+  describe("edge cases (Phase 3 QA audit)", () => {
+    it("plays no cues when maxSimultaneous is zero, regardless of priority", () => {
+      const logic = new AudioCueLogic();
+      const state: AudioCueState = {
+        maxSimultaneous: 0,
+        lastPlayedAtMsByCue: {}
+      };
+
+      const decision = logic.resolveCues(
+        [
+          { kind: "match-start" },
+          { kind: "hit", target: "player" },
+          { kind: "fire", weaponId: "carbine" }
+        ],
+        state,
+        1000
+      );
+
+      expect(decision.play).toEqual([]);
+      expect(decision.drop).toEqual(["match.start", "hit.player", "fire.carbine"]);
+    });
+
+    it("dedupes same-frame duplicate cues that have a non-zero cooldown", () => {
+      const logic = new AudioCueLogic();
+      const state: AudioCueState = {
+        maxSimultaneous: 8,
+        lastPlayedAtMsByCue: {}
+      };
+
+      // pickup.health has cooldownMs: 80. After the first plays at t=2000,
+      // the second same-frame event sees lastPlayed=2000 and (2000-2000) < 80 → drop.
+      const decision = logic.resolveCues(
+        [
+          { kind: "pickup", pickupId: "health" },
+          { kind: "pickup", pickupId: "health" },
+          { kind: "pickup", pickupId: "health" }
+        ],
+        state,
+        2000
+      );
+
+      expect(decision.play).toEqual(["pickup.health"]);
+      expect(decision.drop).toEqual(["pickup.health", "pickup.health"]);
+    });
+
+    it("allows duplicate same-frame cues when their cooldown is zero", () => {
+      const logic = new AudioCueLogic();
+      const state: AudioCueState = {
+        maxSimultaneous: 8,
+        lastPlayedAtMsByCue: {}
+      };
+
+      // match.start has cooldownMs: 0 → repeated events all play (until cap).
+      const decision = logic.resolveCues(
+        [{ kind: "match-start" }, { kind: "match-start" }],
+        state,
+        100
+      );
+
+      expect(decision.play).toEqual(["match.start", "match.start"]);
+      expect(decision.drop).toEqual([]);
+    });
+
+    it("does not crash when nowMs is negative (no input guard, arithmetic still consistent)", () => {
+      const logic = new AudioCueLogic();
+      const state: AudioCueState = {
+        maxSimultaneous: 4,
+        lastPlayedAtMsByCue: { "fire.carbine": -2000 }
+      };
+
+      // (-1000) - (-2000) = 1000 >= 90 (carbine cooldown) → plays.
+      expect(() =>
+        logic.resolveCues([{ kind: "fire", weaponId: "carbine" }], state, -1000)
+      ).not.toThrow();
+
+      const decision = logic.resolveCues(
+        [{ kind: "fire", weaponId: "carbine" }],
+        state,
+        -1000
+      );
+
+      expect(decision.play).toEqual(["fire.carbine"]);
+      expect(decision.drop).toEqual([]);
+    });
+  });
 });

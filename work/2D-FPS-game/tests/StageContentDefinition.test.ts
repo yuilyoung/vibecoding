@@ -12,22 +12,230 @@ describe("StageContentDefinition", () => {
     expect(stages).toHaveLength(3);
     expect(stages.every((stage) => isStageContentDefinition(stage.content))).toBe(true);
 
-    expect(stages.map((stage) => stage.content.hazards.map((hazard) => hazard.id))).toEqual([
-      ["foundry-molten-core", "foundry-steam-line"],
-      ["relay-yard-arc-field", "relay-yard-coolant-spill"],
-      ["storm-drain-sludge-trench", "storm-drain-pressure-vent"]
-    ]);
-
-    expect(stages.map((stage) => stage.content.pickups.map((pickup) => pickup.id))).toEqual([
-      ["foundry-medkit", "foundry-ammo-crate"],
-      ["relay-yard-health-kit", "relay-yard-boost-canister"],
-      ["storm-drain-ammo-cache", "storm-drain-health-cache"]
-    ]);
-
-    expect(stages.map((stage) => stage.content.gates.map((gate) => gate.id))).toEqual([
-      ["foundry-core-gate", "foundry-service-door"],
-      ["relay-yard-north-barrier", "relay-yard-south-switch"],
-      ["storm-drain-pump-door", "storm-drain-access-barrier"]
+    expect(
+      stages.map((stage) => ({
+        hazards: stage.content.hazards.map(({ id, kind, x, y, width, height, damage, tickMs }) => ({
+          id,
+          kind,
+          x,
+          y,
+          width,
+          height,
+          damage,
+          tickMs
+        })),
+        pickups: stage.content.pickups.map(({ id, kind, x, y, amount, respawnMs }) => ({
+          id,
+          kind,
+          x,
+          y,
+          amount,
+          respawnMs
+        })),
+        gates: stage.content.gates.map(({ id, kind, x, y, width, height, locked, targetStageId }) => ({
+          id,
+          kind,
+          x,
+          y,
+          width,
+          height,
+          locked,
+          targetStageId
+        }))
+      }))
+    ).toEqual([
+      {
+        hazards: [
+          {
+            id: "foundry-molten-core",
+            kind: "lava",
+            x: 510,
+            y: 138,
+            width: 170,
+            height: 46,
+            damage: 7,
+            tickMs: 900
+          },
+          {
+            id: "foundry-steam-line",
+            kind: "steam",
+            x: 292,
+            y: 186,
+            width: 68,
+            height: 168,
+            damage: 6,
+            tickMs: 1200
+          }
+        ],
+        pickups: [
+          {
+            id: "foundry-medkit",
+            kind: "health",
+            x: 870,
+            y: 432,
+            amount: 28,
+            respawnMs: 6500
+          },
+          {
+            id: "foundry-ammo-crate",
+            kind: "ammo",
+            x: 160,
+            y: 430,
+            amount: 8,
+            respawnMs: 5000
+          }
+        ],
+        gates: [
+          {
+            id: "foundry-core-gate",
+            kind: "barrier",
+            x: 482,
+            y: 430,
+            width: 96,
+            height: 24,
+            locked: true,
+            targetStageId: "relay-yard"
+          },
+          {
+            id: "foundry-service-door",
+            kind: "door",
+            x: 686,
+            y: 344,
+            width: 88,
+            height: 40,
+            locked: false,
+            targetStageId: "storm-drain"
+          }
+        ]
+      },
+      {
+        hazards: [
+          {
+            id: "relay-yard-arc-field",
+            kind: "electric",
+            x: 420,
+            y: 146,
+            width: 132,
+            height: 46,
+            damage: 9,
+            tickMs: 780
+          },
+          {
+            id: "relay-yard-coolant-spill",
+            kind: "sludge",
+            x: 468,
+            y: 384,
+            width: 178,
+            height: 60,
+            damage: 5,
+            tickMs: 1180
+          }
+        ],
+        pickups: [
+          {
+            id: "relay-yard-health-kit",
+            kind: "health",
+            x: 160,
+            y: 118,
+            amount: 26,
+            respawnMs: 6200
+          },
+          {
+            id: "relay-yard-boost-canister",
+            kind: "boost",
+            x: 726,
+            y: 424,
+            amount: 2,
+            respawnMs: 7400
+          }
+        ],
+        gates: [
+          {
+            id: "relay-yard-north-barrier",
+            kind: "barrier",
+            x: 480,
+            y: 122,
+            width: 112,
+            height: 36,
+            locked: true,
+            targetStageId: "foundry"
+          },
+          {
+            id: "relay-yard-south-switch",
+            kind: "switch",
+            x: 488,
+            y: 410,
+            width: 104,
+            height: 34,
+            locked: false,
+            targetStageId: "storm-drain"
+          }
+        ]
+      },
+      {
+        hazards: [
+          {
+            id: "storm-drain-sludge-trench",
+            kind: "sludge",
+            x: 390,
+            y: 162,
+            width: 138,
+            height: 52,
+            damage: 7,
+            tickMs: 1000
+          },
+          {
+            id: "storm-drain-pressure-vent",
+            kind: "pressure",
+            x: 576,
+            y: 366,
+            width: 138,
+            height: 60,
+            damage: 8,
+            tickMs: 980
+          }
+        ],
+        pickups: [
+          {
+            id: "storm-drain-ammo-cache",
+            kind: "ammo",
+            x: 162,
+            y: 270,
+            amount: 12,
+            respawnMs: 5400
+          },
+          {
+            id: "storm-drain-health-cache",
+            kind: "health",
+            x: 732,
+            y: 438,
+            amount: 30,
+            respawnMs: 7000
+          }
+        ],
+        gates: [
+          {
+            id: "storm-drain-pump-door",
+            kind: "door",
+            x: 480,
+            y: 140,
+            width: 108,
+            height: 36,
+            locked: true,
+            targetStageId: "foundry"
+          },
+          {
+            id: "storm-drain-access-barrier",
+            kind: "barrier",
+            x: 480,
+            y: 410,
+            width: 104,
+            height: 34,
+            locked: false,
+            targetStageId: "relay-yard"
+          }
+        ]
+      }
     ]);
   });
 

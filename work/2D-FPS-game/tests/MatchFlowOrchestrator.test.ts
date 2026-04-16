@@ -1,4 +1,13 @@
-import { planRoundReset, resolveStageFlow } from "../src/domain/round/MatchFlowOrchestrator";
+import gameBalance from "../assets/data/game-balance.json";
+import {
+  planRoundReset,
+  resolveBossWaveOverlay,
+  resolveStageFlow
+} from "../src/domain/round/MatchFlowOrchestrator";
+import { createBossSpawn } from "../src/domain/round/BossWaveLogic";
+
+const bossWaveRules = gameBalance.bossWave;
+const bossWavePlan = createBossSpawn(gameBalance.stages[0], bossWaveRules);
 
 describe("MatchFlowOrchestrator", () => {
   it("moves from stage entry into team selection on confirm", () => {
@@ -87,5 +96,33 @@ describe("MatchFlowOrchestrator", () => {
     expect(plan.matchConfirmAtMs).toBeNull();
     expect(plan.roundResetAtMs).toBe(2400);
     expect(plan.combatEvent).toBeNull();
+  });
+
+  it("resolves boss wave overlay text on configured boss rounds", () => {
+    const bossWave = resolveBossWaveOverlay({
+      roundNumber: 5,
+      stage: gameBalance.stages[0],
+      bossWaveRules,
+      bossWavePlan
+    });
+
+    expect(bossWave).toEqual({
+      visible: true,
+      title: "BOSS WAVE",
+      subtitle: "Forge Titan incoming. HP 240. Reward Titan cache secured.",
+      combatEvent: "FORGE TITAN WAVE"
+    });
+  });
+
+  it("keeps the boss wave overlay hidden on non-boss rounds", () => {
+    const bossWave = resolveBossWaveOverlay({
+      roundNumber: 4,
+      stage: gameBalance.stages[0],
+      bossWaveRules,
+      bossWavePlan
+    });
+
+    expect(bossWave.visible).toBe(false);
+    expect(bossWave.combatEvent).toBeNull();
   });
 });

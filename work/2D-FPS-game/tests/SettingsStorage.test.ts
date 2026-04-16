@@ -29,7 +29,8 @@ describe("SettingsStorage", () => {
     const state = {
       masterVolume: 0.75,
       sfxVolume: 0.25,
-      mouseSensitivity: 2.5
+      mouseSensitivity: 2.5,
+      tutorialDismissed: true
     } as const;
 
     adapter.save(state);
@@ -48,7 +49,8 @@ describe("SettingsStorage", () => {
       serializeSettingsState({
         masterVolume: 0.5,
         sfxVolume: 0.25,
-        mouseSensitivity: 1.5
+        mouseSensitivity: 1.5,
+        tutorialDismissed: true
       })
     ) as {
       version: number;
@@ -56,6 +58,7 @@ describe("SettingsStorage", () => {
         masterVolume: number;
         sfxVolume: number;
         mouseSensitivity: number;
+        tutorialDismissed: boolean;
       };
     };
 
@@ -63,7 +66,8 @@ describe("SettingsStorage", () => {
     expect(payload.settings).toEqual({
       masterVolume: 0.5,
       sfxVolume: 0.25,
-      mouseSensitivity: 1.5
+      mouseSensitivity: 1.5,
+      tutorialDismissed: true
     });
   });
 
@@ -75,14 +79,16 @@ describe("SettingsStorage", () => {
           settings: {
             masterVolume: 9,
             sfxVolume: -1,
-            mouseSensitivity: 0.01
+            mouseSensitivity: 0.01,
+            tutorialDismissed: true
           }
         })
       )
     ).toEqual({
       masterVolume: 1,
       sfxVolume: 0,
-      mouseSensitivity: 0.1
+      mouseSensitivity: 0.1,
+      tutorialDismissed: true
     });
 
     expect(
@@ -121,5 +127,111 @@ describe("SettingsStorage", () => {
         })
       )
     ).toBeNull();
+  });
+
+  describe("edge cases (Phase 3 QA audit)", () => {
+    function createMemoryStorage() {
+      const entries = new Map<string, string>();
+      return {
+        getItem(key: string): string | null {
+          return entries.has(key) ? entries.get(key) ?? null : null;
+        },
+        setItem(key: string, value: string): void {
+          entries.set(key, value);
+        },
+        removeItem(key: string): void {
+          entries.delete(key);
+        }
+      };
+    }
+
+    it("returns null (caller falls back to defaults) for malformed JSON without throwing", () => {
+      // Documents actual behavior: load() returns null on corrupted JSON,
+      // and the caller (SettingsPanel/MainScene) substitutes DEFAULT_SETTINGS.
+      const corruptedPayloads = ["not a json", "[1,2,3]", "42", "null", '"string"', ""];
+
+      for (const raw of corruptedPayloads) {
+        const memoryStorage = createMemoryStorage();
+        memoryStorage.setItem("settings:test", raw);
+        const adapter = createSettingsStorage(memoryStorage, "settings:test");
+
+        expect(() => adapter.load()).not.toThrow();
+        expect(adapter.load()).toBeNull();
+      }
+    });
+
+    it("propagates quota-exceeded errors from save() (no swallow) so the caller can react", () => {
+      // TODO(bug): save() has no try/catch — a thrown setItem will crash MainScene's settings flow.
+      // Documenting actual behavior so a future Phase 4 hardening pass can wrap it.
+      const throwingStorage = {
+        getItem(): string | null {
+          return null;
+        },
+        setItem(): void {
+          const error = new Error("QuotaExceededError");
+          error.name = "QuotaExceededError";
+          throw error;
+        },
+        removeItem(): void {}
+      };
+
+      const adapter = createSettingsStorage(throwingStorage, "settings:test");
+
+      expect(() =>
+        adapter.save({
+          masterVolume: 0.5,
+          sfxVolume: 0.5,
+          mouseSensitivity: 1,
+          tutorialDismissed: false
+        })
+      ).toThrow(/QuotaExceeded/);
+    });
+
+    it("rejects payloads missing the version field", () => {
+      expect(
+        deserializeSettingsState(
+          JSON.stringify({
+            settings: { masterVolume: 0.5, sfxVolume: 0.5, mouseSensitivity: 1, tutorialDismissed: false }
+          })
+        )
+      ).toBeNull();
+    });
+
+    it("normalizes Infinity, NaN, and negative volume to defaults or clamped values", () => {
+      const result = deserializeSettingsState(
+        JSON.stringify({
+          version: SETTINGS_STORAGE_VERSION,
+          settings: {
+            masterVolume: Number.POSITIVE_INFINITY,
+            sfxVolume: Number.NaN,
+            mouseSensitivity: -10,
+            tutorialDismissed: false
+          }
+        })
+      );
+
+      // Infinity / NaN serialize to null in JSON → fall back to defaults.
+      expect(result).not.toBeNull();
+      expect(result?.masterVolume).toBe(DEFAULT_SETTINGS.masterVolume);
+      expect(result?.sfxVolume).toBe(DEFAULT_SETTINGS.sfxVolume);
+      // Negative values are clamped to the minimum.
+      expect(result?.mouseSensitivity).toBeCloseTo(0.1, 5);
+    });
+
+    it("rejects negative volume passed directly to the in-memory normalizer path", () => {
+      const memoryStorage = createMemoryStorage();
+      const adapter = createSettingsStorage(memoryStorage, "settings:test");
+
+      adapter.save({
+        masterVolume: -5,
+        sfxVolume: -0.1,
+        mouseSensitivity: 1,
+        tutorialDismissed: false
+      });
+
+      const loaded = adapter.load();
+      expect(loaded?.masterVolume).toBe(0);
+      expect(loaded?.sfxVolume).toBe(0);
+    });
   });
 });

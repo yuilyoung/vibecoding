@@ -9,7 +9,7 @@
   "magazineSize": 6,
   "reloadTimeMs": 1200,
   "reserveAmmo": 24,
-  "matchScoreToWin": 3,
+  "matchScoreToWin": 5,
   "matchResetDelayMs": 2200,
   "roundStartDelayMs": 900,
   "ammoPickupAmount": 8,
@@ -41,6 +41,17 @@
       { "weaponId": "sniper", "requiredLevel": 4 },
       { "weaponId": "airStrike", "requiredLevel": 5 }
     ]
+  },
+  "bossWave": {
+    "intervalRounds": 5,
+    "firstBossRound": 5,
+    "bossName": "Forge Titan",
+    "bossHealth": 240,
+    "bossSpeed": 115,
+    "rewardExperience": 160,
+    "rewardUnlockWeaponId": "airStrike",
+    "rewardLabel": "Titan cache secured",
+    "spawnLabel": "Boss Drop Zone"
   },
   "weapons": {
     "carbine": {
@@ -246,23 +257,23 @@
           {
             "id": "relay-yard-arc-field",
             "kind": "electric",
-            "x": 430,
-            "y": 150,
-            "width": 120,
-            "height": 48,
-            "damage": 8,
-            "tickMs": 850,
+            "x": 420,
+            "y": 146,
+            "width": 132,
+            "height": 46,
+            "damage": 9,
+            "tickMs": 780,
             "label": "Arc Field"
           },
           {
             "id": "relay-yard-coolant-spill",
             "kind": "sludge",
-            "x": 470,
-            "y": 386,
-            "width": 170,
-            "height": 58,
+            "x": 468,
+            "y": 384,
+            "width": 178,
+            "height": 60,
             "damage": 5,
-            "tickMs": 1100,
+            "tickMs": 1180,
             "label": "Coolant Spill"
           }
         ],
@@ -270,19 +281,19 @@
           {
             "id": "relay-yard-health-kit",
             "kind": "health",
-            "x": 164,
-            "y": 122,
-            "amount": 24,
+            "x": 160,
+            "y": 118,
+            "amount": 26,
             "respawnMs": 6200,
             "label": "Health Kit"
           },
           {
             "id": "relay-yard-boost-canister",
             "kind": "boost",
-            "x": 734,
-            "y": 426,
-            "amount": 1,
-            "respawnMs": 7200,
+            "x": 726,
+            "y": 424,
+            "amount": 2,
+            "respawnMs": 7400,
             "label": "Boost Canister"
           }
         ],
@@ -291,9 +302,9 @@
             "id": "relay-yard-north-barrier",
             "kind": "barrier",
             "x": 480,
-            "y": 124,
-            "width": 110,
-            "height": 34,
+            "y": 122,
+            "width": 112,
+            "height": 36,
             "locked": true,
             "label": "North Barrier",
             "targetStageId": "foundry"
@@ -301,9 +312,9 @@
           {
             "id": "relay-yard-south-switch",
             "kind": "switch",
-            "x": 480,
-            "y": 414,
-            "width": 110,
+            "x": 488,
+            "y": 410,
+            "width": 104,
             "height": 34,
             "locked": false,
             "label": "South Switch",
@@ -334,10 +345,10 @@
           {
             "id": "storm-drain-sludge-trench",
             "kind": "sludge",
-            "x": 392,
-            "y": 160,
-            "width": 136,
-            "height": 54,
+            "x": 390,
+            "y": 162,
+            "width": 138,
+            "height": 52,
             "damage": 7,
             "tickMs": 1000,
             "label": "Sludge Trench"
@@ -345,12 +356,12 @@
           {
             "id": "storm-drain-pressure-vent",
             "kind": "pressure",
-            "x": 573,
-            "y": 368,
-            "width": 134,
-            "height": 58,
-            "damage": 6,
-            "tickMs": 1050,
+            "x": 576,
+            "y": 366,
+            "width": 138,
+            "height": 60,
+            "damage": 8,
+            "tickMs": 980,
             "label": "Pressure Vent"
           }
         ],
@@ -358,9 +369,9 @@
           {
             "id": "storm-drain-ammo-cache",
             "kind": "ammo",
-            "x": 164,
+            "x": 162,
             "y": 270,
-            "amount": 10,
+            "amount": 12,
             "respawnMs": 5400,
             "label": "Ammo Cache"
           },
@@ -369,7 +380,7 @@
             "kind": "health",
             "x": 732,
             "y": 438,
-            "amount": 32,
+            "amount": 30,
             "respawnMs": 7000,
             "label": "Health Cache"
           }
@@ -380,7 +391,7 @@
             "kind": "door",
             "x": 480,
             "y": 140,
-            "width": 106,
+            "width": 108,
             "height": 36,
             "locked": true,
             "label": "Pump Door",
@@ -390,9 +401,9 @@
             "id": "storm-drain-access-barrier",
             "kind": "barrier",
             "x": 480,
-            "y": 408,
-            "width": 106,
-            "height": 36,
+            "y": 410,
+            "width": 104,
+            "height": 34,
             "locked": false,
             "label": "Access Barrier",
             "targetStageId": "relay-yard"

@@ -8,6 +8,7 @@ export interface SettingsState {
   masterVolume: number;
   sfxVolume: number;
   mouseSensitivity: number;
+  tutorialDismissed: boolean;
 }
 
 export interface SettingsStorageAdapter {
@@ -27,7 +28,8 @@ export const SETTINGS_STORAGE_VERSION = 1;
 export const DEFAULT_SETTINGS: SettingsState = {
   masterVolume: 1,
   sfxVolume: 1,
-  mouseSensitivity: 1
+  mouseSensitivity: 1,
+  tutorialDismissed: false
 };
 
 const MIN_VOLUME = 0;
@@ -103,7 +105,8 @@ function normalizeSettings(state: Partial<SettingsState>): SettingsState {
     mouseSensitivity: clampMouseSensitivity(
       state.mouseSensitivity,
       DEFAULT_SETTINGS.mouseSensitivity
-    )
+    ),
+    tutorialDismissed: state.tutorialDismissed === true
   };
 }
 

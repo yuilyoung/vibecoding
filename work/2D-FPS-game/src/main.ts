@@ -1,12 +1,37 @@
 import Phaser from "phaser";
 import gameBalance from "../assets/data/game-balance.json";
+import { type SettingsState } from "./domain/settings/SettingsStorage";
+import {
+  advanceTutorial,
+  createTutorialOverlayState,
+  dismissTutorial,
+  resetTutorial,
+  type TutorialSignal
+} from "./domain/tutorial/TutorialOverlayLogic";
 import { MainScene } from "./scenes/MainScene";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
+import {
+  applySettingsPanelDraft,
+  buildSettingsPanelRenderState,
+  closeSettingsPanel,
+  createSettingsPanelState,
+  openSettingsPanel,
+  saveSettingsPanelDraft,
+  setSettingsPanelSliderValue,
+  type SettingsPanelField
+} from "./ui/SettingsPanel";
+import { buildTutorialOverlayRenderState } from "./ui/TutorialOverlay";
 import "./styles.css";
 
 declare global {
   interface Window {
     __FPS_GAME__?: Phaser.Game;
+    __FPS_UI__?: {
+      openSettings: () => void;
+      closeSettings: () => void;
+      replayTutorial: () => void;
+      advanceTutorial: (signal: TutorialSignal) => void;
+    };
   }
 }
 
@@ -93,6 +118,46 @@ appRoot.innerHTML = `
               <p id="banner-subtitle">Press ENTER to open team selection.</p>
             </section>
           </div>
+          <section id="settings-panel-root" class="settings-panel is-hidden" data-testid="settings-panel" aria-hidden="true">
+            <div class="settings-panel-surface" role="dialog" aria-modal="true" aria-labelledby="settings-panel-title">
+              <div class="overlay-head">
+                <p class="panel-kicker">Settings</p>
+                <button id="settings-close" class="overlay-icon-button" type="button" data-testid="settings-close" aria-label="Close settings">Close</button>
+              </div>
+              <h2 id="settings-panel-title">Combat Settings</h2>
+              <label class="settings-field" for="settings-master-volume">
+                <span>Master Volume</span>
+                <strong id="settings-master-volume-text">100%</strong>
+                <input id="settings-master-volume" data-testid="settings-master-volume" data-settings-field="masterVolume" type="range" min="0" max="1" step="0.01" value="1" />
+              </label>
+              <label class="settings-field" for="settings-sfx-volume">
+                <span>SFX Volume</span>
+                <strong id="settings-sfx-volume-text">100%</strong>
+                <input id="settings-sfx-volume" data-testid="settings-sfx-volume" data-settings-field="sfxVolume" type="range" min="0" max="1" step="0.01" value="1" />
+              </label>
+              <label class="settings-field" for="settings-mouse-sensitivity">
+                <span>Mouse Sensitivity</span>
+                <strong id="settings-mouse-sensitivity-text">1.00x</strong>
+                <input id="settings-mouse-sensitivity" data-testid="settings-mouse-sensitivity" data-settings-field="mouseSensitivity" type="range" min="0.1" max="5" step="0.1" value="1" />
+              </label>
+              <div class="overlay-actions">
+                <button id="settings-apply" type="button" data-testid="settings-apply">Apply</button>
+                <button id="settings-save" type="button" data-testid="settings-save">Save</button>
+                <button id="settings-replay-tutorial" type="button" data-testid="settings-replay-tutorial">Replay Tutorial</button>
+              </div>
+            </div>
+          </section>
+          <section id="tutorial-overlay-root" class="tutorial-overlay is-hidden" data-testid="tutorial-overlay" aria-hidden="true">
+            <div class="tutorial-overlay-panel" role="status" aria-live="polite">
+              <p id="tutorial-counter" class="panel-kicker">Step 1 of 5</p>
+              <h2 id="tutorial-title">Move</h2>
+              <p id="tutorial-body">Use WASD to move and Space to sprint.</p>
+              <div class="overlay-actions">
+                <button id="tutorial-skip" type="button" data-testid="tutorial-skip">Skip</button>
+                <button id="tutorial-hide" type="button" data-testid="tutorial-hide">Don't Show Again</button>
+              </div>
+            </div>
+          </section>
         </div>
 
         <section class="hud-card support-card">
@@ -205,6 +270,27 @@ const hudElements = {
   blastPreview: queryElement("#blast-preview"),
   coverVision: queryElement("#cover-vision")
 };
+const settingsPanelElements = {
+  root: queryElement("#settings-panel-root"),
+  close: queryButton("#settings-close"),
+  apply: queryButton("#settings-apply"),
+  save: queryButton("#settings-save"),
+  replayTutorial: queryButton("#settings-replay-tutorial"),
+  masterVolume: queryInput("#settings-master-volume"),
+  masterVolumeText: queryText("#settings-master-volume-text"),
+  sfxVolume: queryInput("#settings-sfx-volume"),
+  sfxVolumeText: queryText("#settings-sfx-volume-text"),
+  mouseSensitivity: queryInput("#settings-mouse-sensitivity"),
+  mouseSensitivityText: queryText("#settings-mouse-sensitivity-text")
+};
+const tutorialOverlayElements = {
+  root: queryElement("#tutorial-overlay-root"),
+  skip: queryButton("#tutorial-skip"),
+  hide: queryButton("#tutorial-hide"),
+  counter: queryText("#tutorial-counter"),
+  title: queryText("#tutorial-title"),
+  body: queryText("#tutorial-body")
+};
 const hudRenderCache = new Map<string, string>();
 
 const onHudSnapshot = ((event: Event) => {
@@ -235,15 +321,254 @@ const game = new Phaser.Game({
 
 window.__FPS_GAME__ = game;
 
+let currentSettings = mainScene.getSettingsState();
+let settingsPanelState = createSettingsPanelState(currentSettings);
+let tutorialState = createTutorialOverlayState(currentSettings.tutorialDismissed);
+
+const settingsPanelCallbacks = {
+  onSave(settings: SettingsState): void {
+    currentSettings = mainScene.applySettings(settings);
+  },
+  onApply(settings: SettingsState): void {
+    currentSettings = mainScene.applySettings(settings);
+  },
+  onReplayTutorial(): void {
+    replayTutorial();
+  }
+};
+
+renderSettingsPanel();
+renderTutorialOverlay();
+
+settingsPanelElements.close.addEventListener("click", closeSettings);
+settingsPanelElements.apply.addEventListener("click", applySettingsDraft);
+settingsPanelElements.save.addEventListener("click", saveSettingsDraft);
+settingsPanelElements.replayTutorial.addEventListener("click", replayTutorial);
+settingsPanelElements.masterVolume.addEventListener("input", onSettingsSliderInput);
+settingsPanelElements.sfxVolume.addEventListener("input", onSettingsSliderInput);
+settingsPanelElements.mouseSensitivity.addEventListener("input", onSettingsSliderInput);
+tutorialOverlayElements.skip.addEventListener("click", skipTutorial);
+tutorialOverlayElements.hide.addEventListener("click", hideTutorialPermanently);
+
+window.addEventListener("keydown", onGlobalKeyDown, { capture: true });
+window.addEventListener("keyup", blockGameInputWhenSettingsOpen, { capture: true });
+window.addEventListener("pointerdown", onGlobalPointerDown, { capture: true });
+
+window.__FPS_UI__ = {
+  openSettings,
+  closeSettings,
+  replayTutorial,
+  advanceTutorial: advanceTutorialFromUi
+};
+
 game.events.on("destroy", () => {
   removeHudListener();
+  removeUiListeners();
 });
 
 window.addEventListener("beforeunload", () => {
   removeHudListener();
+  removeUiListeners();
   game.destroy(true);
   delete window.__FPS_GAME__;
+  delete window.__FPS_UI__;
 });
+
+function openSettings(): void {
+  currentSettings = mainScene.getSettingsState();
+  settingsPanelState = openSettingsPanel(settingsPanelState, currentSettings);
+  mainScene.setInputOverlayActive(true);
+  renderSettingsPanel();
+}
+
+function closeSettings(): void {
+  settingsPanelState = closeSettingsPanel(settingsPanelState);
+  mainScene.setInputOverlayActive(false);
+  renderSettingsPanel();
+  gameContainer?.focus();
+}
+
+function applySettingsDraft(): void {
+  currentSettings = applySettingsPanelDraft(settingsPanelState, settingsPanelCallbacks);
+  settingsPanelState = createSettingsPanelState(currentSettings, settingsPanelState.isOpen);
+  renderSettingsPanel();
+}
+
+function saveSettingsDraft(): void {
+  currentSettings = saveSettingsPanelDraft(settingsPanelState, settingsPanelCallbacks);
+  settingsPanelState = createSettingsPanelState(currentSettings, settingsPanelState.isOpen);
+  renderSettingsPanel();
+}
+
+function replayTutorial(): void {
+  currentSettings = mainScene.applySettings({
+    ...currentSettings,
+    tutorialDismissed: false
+  });
+  settingsPanelState = createSettingsPanelState(currentSettings, settingsPanelState.isOpen);
+  tutorialState = resetTutorial();
+  renderSettingsPanel();
+  renderTutorialOverlay();
+}
+
+function skipTutorial(): void {
+  tutorialState = dismissTutorial(tutorialState);
+  renderTutorialOverlay();
+}
+
+function hideTutorialPermanently(): void {
+  tutorialState = dismissTutorial(tutorialState);
+  currentSettings = mainScene.applySettings({
+    ...currentSettings,
+    tutorialDismissed: true
+  });
+  settingsPanelState = createSettingsPanelState(currentSettings, settingsPanelState.isOpen);
+  renderSettingsPanel();
+  renderTutorialOverlay();
+}
+
+function advanceTutorialFromUi(signal: TutorialSignal): void {
+  const result = advanceTutorial(tutorialState, signal);
+  tutorialState = result.state;
+
+  if (tutorialState.dismissed && !currentSettings.tutorialDismissed) {
+    currentSettings = mainScene.applySettings({
+      ...currentSettings,
+      tutorialDismissed: true
+    });
+    settingsPanelState = createSettingsPanelState(currentSettings, settingsPanelState.isOpen);
+    renderSettingsPanel();
+  }
+
+  renderTutorialOverlay();
+}
+
+function onSettingsSliderInput(event: Event): void {
+  const input = event.currentTarget as HTMLInputElement;
+  const field = input.dataset.settingsField;
+
+  if (!isSettingsPanelField(field)) {
+    return;
+  }
+
+  settingsPanelState = setSettingsPanelSliderValue(settingsPanelState, field, input.value);
+  applySettingsDraft();
+}
+
+function onGlobalKeyDown(event: KeyboardEvent): void {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (settingsPanelState.isOpen) {
+      closeSettings();
+      return;
+    }
+
+    openSettings();
+    return;
+  }
+
+  if (settingsPanelState.isOpen) {
+    blockGameInputWhenSettingsOpen(event);
+    return;
+  }
+
+  const signal = tutorialSignalForKey(event.key);
+
+  if (signal !== null) {
+    advanceTutorialFromUi(signal);
+  }
+}
+
+function blockGameInputWhenSettingsOpen(event: Event): void {
+  if (!settingsPanelState.isOpen) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
+function onGlobalPointerDown(event: PointerEvent): void {
+  if (settingsPanelState.isOpen) {
+    blockGameInputWhenSettingsOpen(event);
+    return;
+  }
+
+  if (event.button === 0) {
+    advanceTutorialFromUi("fired");
+  }
+}
+
+function renderSettingsPanel(): void {
+  const renderState = buildSettingsPanelRenderState(settingsPanelState);
+
+  settingsPanelElements.root.className = renderState.overlayClassName;
+  settingsPanelElements.root.setAttribute("aria-hidden", renderState.ariaHidden);
+  settingsPanelElements.masterVolume.value = String(renderState.masterVolume.value);
+  settingsPanelElements.masterVolume.min = String(renderState.masterVolume.min);
+  settingsPanelElements.masterVolume.max = String(renderState.masterVolume.max);
+  settingsPanelElements.masterVolume.step = String(renderState.masterVolume.step);
+  settingsPanelElements.masterVolumeText.textContent = renderState.masterVolume.text;
+  settingsPanelElements.sfxVolume.value = String(renderState.sfxVolume.value);
+  settingsPanelElements.sfxVolume.min = String(renderState.sfxVolume.min);
+  settingsPanelElements.sfxVolume.max = String(renderState.sfxVolume.max);
+  settingsPanelElements.sfxVolume.step = String(renderState.sfxVolume.step);
+  settingsPanelElements.sfxVolumeText.textContent = renderState.sfxVolume.text;
+  settingsPanelElements.mouseSensitivity.value = String(renderState.mouseSensitivity.value);
+  settingsPanelElements.mouseSensitivity.min = String(renderState.mouseSensitivity.min);
+  settingsPanelElements.mouseSensitivity.max = String(renderState.mouseSensitivity.max);
+  settingsPanelElements.mouseSensitivity.step = String(renderState.mouseSensitivity.step);
+  settingsPanelElements.mouseSensitivityText.textContent = renderState.mouseSensitivity.text;
+}
+
+function renderTutorialOverlay(): void {
+  const renderState = buildTutorialOverlayRenderState(tutorialState);
+
+  tutorialOverlayElements.root.className = renderState.overlayClassName;
+  tutorialOverlayElements.root.setAttribute("aria-hidden", renderState.ariaHidden);
+  tutorialOverlayElements.counter.textContent = renderState.stepCounterText;
+  tutorialOverlayElements.title.textContent = renderState.stepTitleText;
+  tutorialOverlayElements.body.textContent = renderState.stepBodyText;
+}
+
+function tutorialSignalForKey(key: string): TutorialSignal | null {
+  const normalized = key.toLowerCase();
+
+  if (normalized === "w" || normalized === "a" || normalized === "s" || normalized === "d" || normalized === " ") {
+    return "moved";
+  }
+
+  if (normalized === "f") {
+    return "fired";
+  }
+
+  if (normalized === "q" || ["1", "2", "3", "4", "5", "6"].includes(normalized)) {
+    return "swapped-weapon";
+  }
+
+  return null;
+}
+
+function isSettingsPanelField(value: string | undefined): value is SettingsPanelField {
+  return value === "masterVolume" || value === "sfxVolume" || value === "mouseSensitivity";
+}
+
+function removeUiListeners(): void {
+  settingsPanelElements.close.removeEventListener("click", closeSettings);
+  settingsPanelElements.apply.removeEventListener("click", applySettingsDraft);
+  settingsPanelElements.save.removeEventListener("click", saveSettingsDraft);
+  settingsPanelElements.replayTutorial.removeEventListener("click", replayTutorial);
+  settingsPanelElements.masterVolume.removeEventListener("input", onSettingsSliderInput);
+  settingsPanelElements.sfxVolume.removeEventListener("input", onSettingsSliderInput);
+  settingsPanelElements.mouseSensitivity.removeEventListener("input", onSettingsSliderInput);
+  tutorialOverlayElements.skip.removeEventListener("click", skipTutorial);
+  tutorialOverlayElements.hide.removeEventListener("click", hideTutorialPermanently);
+  window.removeEventListener("keydown", onGlobalKeyDown, { capture: true });
+  window.removeEventListener("keyup", blockGameInputWhenSettingsOpen, { capture: true });
+  window.removeEventListener("pointerdown", onGlobalPointerDown, { capture: true });
+}
 
 function renderHud(snapshot: HudSnapshot): void {
   const coverVision = toCoverVisionState(snapshot);
@@ -309,6 +634,26 @@ function queryElement(selector: string): HTMLElement {
 
 function queryText(selector: string): HTMLElement {
   return queryElement(selector);
+}
+
+function queryButton(selector: string): HTMLButtonElement {
+  const element = document.querySelector<HTMLButtonElement>(selector);
+
+  if (element === null) {
+    throw new Error(`Missing required button: ${selector}`);
+  }
+
+  return element;
+}
+
+function queryInput(selector: string): HTMLInputElement {
+  const element = document.querySelector<HTMLInputElement>(selector);
+
+  if (element === null) {
+    throw new Error(`Missing required input: ${selector}`);
+  }
+
+  return element;
 }
 
 function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnapshot {

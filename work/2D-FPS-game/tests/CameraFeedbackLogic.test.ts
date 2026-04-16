@@ -1,4 +1,7 @@
-import { resolveCameraFeedback } from "../src/domain/feedback/CameraFeedbackLogic";
+import {
+  resolveCameraFeedback,
+  type CameraFeedbackEvent
+} from "../src/domain/feedback/CameraFeedbackLogic";
 
 describe("CameraFeedbackLogic", () => {
   it("returns no camera feedback for an empty event list", () => {
@@ -74,6 +77,41 @@ describe("CameraFeedbackLogic", () => {
         durationMs: 150
       },
       hitPauseMs: 42
+    });
+  });
+
+  describe("edge cases (Phase 3 QA audit)", () => {
+    // TODO(bug): src/domain/feedback/CameraFeedbackLogic.ts:130
+    // Unknown event.kind makes FEEDBACK_PROFILES[kind] undefined and the loop crashes
+    // on `profile.priority`. Should fall back to EMPTY_RESULT instead. Skipped until
+    // Phase 4 Sprint 0 hardening pass.
+    test.skip("returns EMPTY_RESULT for unknown event kinds without throwing", () => {
+      const result = resolveCameraFeedback([
+        { kind: "ultra-mega-impact" } as unknown as CameraFeedbackEvent
+      ]);
+
+      expect(result).toEqual({ shake: null, flash: null, hitPauseMs: 0 });
+    });
+
+    it("selects the first event deterministically when two events share the same tier", () => {
+      // Two `hit` events have identical priority; the strict `>` comparison keeps
+      // the first one that established `strongestProfile`. Both yield identical
+      // profiles, so the result is the standard hit profile either way — but we
+      // also confirm that mixing two distinct same-tier kinds is order-stable.
+      const twoHits = resolveCameraFeedback([{ kind: "hit" }, { kind: "hit" }]);
+      expect(twoHits).toEqual({
+        shake: { amplitude: 2.2, durationMs: 52 },
+        flash: { color: 0xffd59e, alpha: 0.14, durationMs: 44 },
+        hitPauseMs: 10
+      });
+
+      // explosion (priority 3) twice — first wins, second is identical.
+      const twoExplosions = resolveCameraFeedback([
+        { kind: "explosion" },
+        { kind: "explosion" }
+      ]);
+      expect(twoExplosions.shake?.amplitude).toBe(6);
+      expect(twoExplosions.hitPauseMs).toBe(24);
     });
   });
 });

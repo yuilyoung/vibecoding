@@ -242,6 +242,116 @@ p {
   line-height: 1.55;
 }
 
+.settings-panel,
+.tutorial-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 10, 16, 0.62);
+  transition: opacity 120ms ease, visibility 120ms ease;
+}
+
+.settings-panel.is-hidden,
+.tutorial-overlay.is-hidden {
+  pointer-events: none;
+}
+
+.settings-panel.is-open,
+.tutorial-overlay.is-open {
+  pointer-events: auto;
+}
+
+.tutorial-overlay.is-open {
+  pointer-events: none;
+}
+
+.settings-panel-surface,
+.tutorial-overlay-panel {
+  width: min(100%, 430px);
+  padding: 18px;
+  border: 1px solid rgba(143, 233, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(7, 14, 22, 0.96);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.tutorial-overlay {
+  place-items: end start;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tutorial-overlay-panel {
+  width: min(100%, 360px);
+  border-color: rgba(255, 201, 106, 0.32);
+  pointer-events: auto;
+}
+
+.overlay-head,
+.overlay-actions,
+.settings-field {
+  display: grid;
+  gap: 10px;
+}
+
+.overlay-head {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.settings-panel h2,
+.tutorial-overlay h2 {
+  margin: 8px 0 14px;
+  font-size: 1.3rem;
+}
+
+.settings-field {
+  margin-top: 14px;
+}
+
+.settings-field span,
+.settings-field strong {
+  font-size: 0.9rem;
+}
+
+.settings-field strong {
+  color: var(--amber);
+}
+
+.settings-field input {
+  width: 100%;
+  accent-color: var(--mint);
+}
+
+.overlay-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.overlay-actions button,
+.overlay-icon-button {
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.overlay-actions button:hover,
+.overlay-icon-button:hover {
+  border-color: rgba(143, 233, 255, 0.42);
+}
+
+.tutorial-overlay .overlay-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .hud-statline,
 .weapon-strip,
 .scoreline,

@@ -125,4 +125,130 @@ describe("StageContentSpawner", () => {
       ]
     });
   });
+
+  describe("edge cases (Phase 3 QA audit)", () => {
+    const baseStage = {
+      id: "edge-stage",
+      label: "Edge Stage"
+    } as unknown as StageDefinitionWithContent;
+
+    it("produces a valid plan with zero entries when content arrays are empty", () => {
+      const spawner = new StageContentSpawner();
+      const stage = {
+        ...baseStage,
+        content: { hazards: [], pickups: [], gates: [] }
+      } as unknown as StageDefinitionWithContent;
+
+      const plan = spawner.spawn(stage);
+
+      expect(plan.stageId).toBe("edge-stage");
+      expect(plan.hazards).toEqual([]);
+      expect(plan.pickups).toEqual([]);
+      expect(plan.gates).toEqual([]);
+      expect(spawner.getActivePlan()).toBe(plan);
+    });
+
+    it("dedupes entries with duplicate ids by keeping the first occurrence", () => {
+      const spawner = new StageContentSpawner();
+      const stage = {
+        ...baseStage,
+        content: {
+          hazards: [
+            {
+              id: "dup",
+              kind: "lava",
+              x: 1,
+              y: 2,
+              width: 10,
+              height: 10,
+              damage: 5,
+              tickMs: 200,
+              label: "First"
+            },
+            {
+              id: "dup",
+              kind: "steam",
+              x: 99,
+              y: 99,
+              width: 50,
+              height: 50,
+              damage: 50,
+              tickMs: 999,
+              label: "Second"
+            }
+          ],
+          pickups: [
+            {
+              id: "p-dup",
+              kind: "health",
+              x: 0,
+              y: 0,
+              amount: 10,
+              respawnMs: 1000,
+              label: "First Pickup"
+            },
+            {
+              id: "p-dup",
+              kind: "ammo",
+              x: 5,
+              y: 5,
+              amount: 99,
+              respawnMs: 9999,
+              label: "Second Pickup"
+            }
+          ],
+          gates: [
+            {
+              id: "g-dup",
+              kind: "door",
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+              locked: false,
+              label: "First Gate"
+            },
+            {
+              id: "g-dup",
+              kind: "barrier",
+              x: 9,
+              y: 9,
+              width: 99,
+              height: 99,
+              locked: true,
+              label: "Second Gate"
+            }
+          ]
+        }
+      } as unknown as StageDefinitionWithContent;
+
+      const plan = spawner.spawn(stage);
+
+      expect(plan.hazards).toHaveLength(1);
+      expect(plan.hazards[0]).toMatchObject({ id: "dup", kind: "lava", label: "First" });
+      expect(plan.pickups).toHaveLength(1);
+      expect(plan.pickups[0]).toMatchObject({ id: "p-dup", kind: "health", label: "First Pickup" });
+      expect(plan.gates).toHaveLength(1);
+      expect(plan.gates[0]).toMatchObject({ id: "g-dup", kind: "door", label: "First Gate" });
+    });
+
+    it("clears the active plan and leaves no stale references on stage transition cleanup", () => {
+      const spawner = new StageContentSpawner();
+      spawner.spawn(stages[0]);
+      expect(spawner.getActivePlan()).not.toBeNull();
+
+      spawner.clear();
+
+      expect(spawner.getActivePlan()).toBeNull();
+
+      // After clear, spawning a fresh stage must not leak prior content.
+      const next = spawner.spawn({
+        ...baseStage,
+        content: { hazards: [], pickups: [], gates: [] }
+      } as unknown as StageDefinitionWithContent);
+
+      expect(next.hazards).toEqual([]);
+      expect(spawner.getActivePlan()).toBe(next);
+    });
+  });
 });

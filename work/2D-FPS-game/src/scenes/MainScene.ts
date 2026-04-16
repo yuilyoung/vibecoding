@@ -27,6 +27,7 @@ import { createStageRotationState, selectNextStage, type StageRotationState } fr
 import { PlayerLogic } from "../domain/player/PlayerLogic";
 import { resolveCameraFeedback, type CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import {
+  addXp,
   awardKillXp,
   awardRoundClearXp,
   createProgressionState,
@@ -48,9 +49,10 @@ import {
   type SpawnPoint,
   type TeamId
 } from "../domain/round/MatchFlowLogic";
+import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
-import { planRoundReset, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
+import { planRoundReset, resolveBossWaveOverlay, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
 import { RoundLogic } from "../domain/round/RoundLogic";
 import {
   HUD_SNAPSHOT_EVENT,
@@ -109,8 +111,21 @@ interface GameBalance {
     weaponRules: readonly WeaponUnlockRule[];
   };
   stages: readonly StageDefinition[];
+  bossWave?: BossWaveRules;
   weapons?: Record<string, unknown>;
 }
+
+const DEFAULT_BOSS_WAVE_RULES: BossWaveRules = {
+  intervalRounds: 5,
+  firstBossRound: 5,
+  bossName: "Forge Titan",
+  bossHealth: 240,
+  bossSpeed: 115,
+  rewardExperience: 160,
+  rewardUnlockWeaponId: "airStrike",
+  rewardLabel: "Titan cache secured",
+  spawnLabel: "Boss Drop Zone"
+};
 
 type BalanceWeaponConfig = Partial<WeaponConfig> & {
   readonly label?: string;
@@ -361,6 +376,7 @@ export class MainScene extends Phaser.Scene {
   private readonly audioCueLogic: AudioCueLogic;
   private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private readonly gameBalance: GameBalance;
+  private readonly bossWaveRules: BossWaveRules;
   private readonly bullets: BulletView[];
   private readonly activeAirStrikes: ActiveAirStrikeView[];
   private readonly impactEffects: ImpactFxView[];
@@ -373,7 +389,7 @@ export class MainScene extends Phaser.Scene {
   private readonly stageContentSpawner: StageContentSpawner;
   private readonly progressionStorage: ProgressionStorageAdapter;
   private readonly settingsStorage: SettingsStorageAdapter;
-  private readonly settingsState: SettingsState;
+  private settingsState: SettingsState;
   private readonly unlockRules: readonly WeaponUnlockRule[];
   private readonly defaultWeaponIds: readonly string[];
   private readonly unlockAllWeaponsForDev: boolean;
@@ -383,6 +399,7 @@ export class MainScene extends Phaser.Scene {
   private newlyUnlockedWeaponIds: readonly string[];
   private unlockNoticeUntilMs: number;
   private currentStage: StageDefinition;
+  private bossWavePlan: BossWaveSpawnPlan | null;
   private activeStageContentPlan: StageContentSpawnPlan;
   private spawnTable: TeamSpawnTable;
   private gate!: GateView;
@@ -430,6 +447,7 @@ export class MainScene extends Phaser.Scene {
   private dummyConsecutiveBlockedFrames: number;
   private suppressPointerFireUntilMs: number;
   private nextGateInteractionAtMs: number;
+  private inputOverlayActive: boolean;
   private static readonly STUCK_ESCAPE_THRESHOLD = 3;
   private static readonly SPIRAL_SCAN_MAX_STEPS = 24;
   private static readonly SPIRAL_SCAN_STEP_SIZE = 8;
@@ -437,6 +455,7 @@ export class MainScene extends Phaser.Scene {
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
     this.gameBalance = gameBalance;
+    this.bossWaveRules = gameBalance.bossWave ?? DEFAULT_BOSS_WAVE_RULES;
     this.playerLogic = new PlayerLogic(gameBalance.maxHealth, {
       movementSpeed: gameBalance.movementSpeed,
       dashMultiplier: gameBalance.dashMultiplier
@@ -477,11 +496,13 @@ export class MainScene extends Phaser.Scene {
     const initialStage = selectNextStage(this.stageDefinitions, this.stageRotationState);
     this.stageRotationState = initialStage.state;
     this.currentStage = initialStage.stage;
+    this.bossWavePlan = createBossSpawn(this.currentStage, this.bossWaveRules);
     this.activeStageContentPlan = this.stageContentSpawner.spawn(this.currentStage as StageDefinitionWithContent);
     this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
     this.progressionStorage = createProgressionStorage(this.createProgressionStorageBackend());
     this.settingsStorage = createSettingsStorage(this.createProgressionStorageBackend(), "2d-fps-game:settings");
     this.settingsState = this.settingsStorage.load() ?? DEFAULT_SETTINGS;
+    this.audioCuePlayer.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume);
     this.progressionState = this.progressionStorage.load() ?? createProgressionState();
     this.unlockRules = gameBalance.unlocks.weaponRules;
     this.defaultWeaponIds = gameBalance.unlocks.defaultWeaponIds;
@@ -534,6 +555,7 @@ export class MainScene extends Phaser.Scene {
     this.dummyConsecutiveBlockedFrames = 0;
     this.suppressPointerFireUntilMs = 0;
     this.nextGateInteractionAtMs = 0;
+    this.inputOverlayActive = false;
     this.overlayState = {
       visible: false,
       title: "",
@@ -556,6 +578,7 @@ export class MainScene extends Phaser.Scene {
     const result = selectNextStage(this.stageDefinitions, this.stageRotationState);
     this.stageRotationState = result.state;
     this.currentStage = result.stage;
+    this.bossWavePlan = createBossSpawn(this.currentStage, this.bossWaveRules);
     this.activeStageContentPlan = this.stageContentSpawner.spawn(this.currentStage as StageDefinitionWithContent);
     this.spawnTable = this.createSpawnTableFromStage(this.currentStage);
     this.applyStageGeometry();
@@ -565,6 +588,12 @@ export class MainScene extends Phaser.Scene {
   private registerPlayerRoundWin(now: number): void {
     const previousPlayerScore = this.roundLogic.state.playerScore;
     const previousUnlockState = this.unlockState;
+    const bossWaveReward = resolveBossWaveOverlay({
+      roundNumber: this.roundLogic.state.roundNumber,
+      stage: this.currentStage,
+      bossWaveRules: this.bossWaveRules,
+      bossWavePlan: this.bossWavePlan
+    }).visible ? this.bossWavePlan?.reward ?? null : null;
 
     this.roundLogic.registerPlayerWin();
 
@@ -574,11 +603,23 @@ export class MainScene extends Phaser.Scene {
 
     const killGain = awardKillXp(this.progressionState, this.gameBalance.progression);
     const clearGain = awardRoundClearXp(killGain.state, this.gameBalance.progression);
-    this.progressionState = clearGain.state;
-    this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
+    const bossGain = bossWaveReward === null
+      ? { state: clearGain.state, leveledUp: false }
+      : addXp(clearGain.state, bossWaveReward.experience, this.gameBalance.progression);
+    this.progressionState = bossGain.state;
+    const levelUnlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
+    const rewardUnlockWeaponId = bossWaveReward?.unlockWeaponId ?? null;
+    const unlockedWeaponIds = rewardUnlockWeaponId === null || levelUnlockState.unlockedWeaponIds.includes(rewardUnlockWeaponId)
+      ? levelUnlockState.unlockedWeaponIds
+      : [...levelUnlockState.unlockedWeaponIds, rewardUnlockWeaponId];
+    this.unlockState = { unlockedWeaponIds };
     this.newlyUnlockedWeaponIds = getNewlyUnlockedWeaponIds(previousUnlockState, this.unlockState);
 
-    if (killGain.leveledUp || clearGain.leveledUp || this.newlyUnlockedWeaponIds.length > 0) {
+    if (bossWaveReward !== null) {
+      this.lastCombatEvent = bossWaveReward.label.toUpperCase();
+    }
+
+    if (killGain.leveledUp || clearGain.leveledUp || bossGain.leveledUp || this.newlyUnlockedWeaponIds.length > 0) {
       this.unlockNoticeUntilMs = now + MainScene.UNLOCK_NOTICE_DURATION_MS;
     }
 
@@ -779,6 +820,13 @@ export class MainScene extends Phaser.Scene {
     }
 
     const now = this.time.now;
+
+    if (this.inputOverlayActive) {
+      this.updateMatchOverlay(now);
+      this.publishHudSnapshot(now, false);
+      return;
+    }
+
     const pausedByHitStop = now < this.cameraHitPauseUntilMs && delta < 90;
     const frameDeltaMs = pausedByHitStop ? 0 : delta;
     const deltaSeconds = this.getStableDeltaSeconds(frameDeltaMs);
@@ -956,6 +1004,28 @@ export class MainScene extends Phaser.Scene {
     return buildHudSnapshot(this.createHudPresenterInput(now, movementBlocked), this.overlayState);
   }
 
+  public getSettingsState(): SettingsState {
+    return { ...this.settingsState };
+  }
+
+  public applySettings(settings: SettingsState): SettingsState {
+    this.settingsState = {
+      masterVolume: settings.masterVolume,
+      sfxVolume: settings.sfxVolume,
+      mouseSensitivity: settings.mouseSensitivity,
+      tutorialDismissed: settings.tutorialDismissed
+    };
+    this.settingsStorage.save(this.settingsState);
+    this.audioCuePlayer.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume);
+    this.lastCombatEvent = "SETTINGS UPDATED";
+    return this.getSettingsState();
+  }
+
+  public setInputOverlayActive(active: boolean): void {
+    this.inputOverlayActive = active;
+    this.suppressPointerFireUntilMs = active ? Number.POSITIVE_INFINITY : this.time.now + 200;
+  }
+
   private publishHudSnapshot(now: number, movementBlocked: boolean): void {
     window.dispatchEvent(new CustomEvent<HudSnapshot>(HUD_SNAPSHOT_EVENT, {
       detail: this.getHudSnapshot(now, movementBlocked)
@@ -1113,6 +1183,19 @@ export class MainScene extends Phaser.Scene {
     this.matchFlow.enterMatchOver();
     this.matchConfirmAtMs = this.time.now;
     this.lastCombatEvent = `${winner} LOCKED`;
+  }
+
+  public debugForceBossRound(): void {
+    this.roundLogic.state.roundNumber = this.bossWavePlan?.firstBossRound ?? this.bossWaveRules.firstBossRound ?? this.bossWaveRules.intervalRounds;
+    this.lastCombatEvent = "BOSS WAVE DEBUG";
+    this.updateMatchOverlay(this.time.now);
+    this.publishHudSnapshot(this.time.now, false);
+  }
+
+  public debugRegisterPlayerRoundWin(): void {
+    this.registerPlayerRoundWin(this.time.now);
+    this.updateMatchOverlay(this.time.now);
+    this.publishHudSnapshot(this.time.now, false);
   }
 
   private handleStageFlow(now: number): void {
@@ -2543,7 +2626,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateMatchOverlay(now: number): void {
-    const overlayResult = buildMatchOverlayState(this.createHudPresenterInput(now, false));
+    const bossWave = resolveBossWaveOverlay({
+      roundNumber: this.roundLogic.state.roundNumber,
+      stage: this.currentStage,
+      bossWaveRules: this.bossWaveRules,
+      bossWavePlan: this.bossWavePlan
+    });
+    const overlayResult = buildMatchOverlayState(this.createHudPresenterInput(now, false, bossWave));
 
     if (overlayResult.shouldEmitMatchConfirmReadyCue) {
       this.emitSoundCue({ kind: "match-confirm", action: "ready" });
@@ -2557,7 +2646,16 @@ export class MainScene extends Phaser.Scene {
     this.overlayState = overlayResult.overlay;
   }
 
-  private createHudPresenterInput(now: number, movementBlocked: boolean): HudPresenterInput {
+  private createHudPresenterInput(
+    now: number,
+    movementBlocked: boolean,
+    bossWave = resolveBossWaveOverlay({
+      roundNumber: this.roundLogic.state.roundNumber,
+      stage: this.currentStage,
+      bossWaveRules: this.bossWaveRules,
+      bossWavePlan: this.bossWavePlan
+    })
+  ): HudPresenterInput {
     const activeWeapon = this.getActiveWeaponSlot();
     const coverVision = this.getHudCoverVisionState();
     const activeWeaponIndex = this.weaponInventory.getActiveIndex();
@@ -2600,6 +2698,7 @@ export class MainScene extends Phaser.Scene {
       isRoundStarting: this.isRoundStarting(now),
       matchConfirmAtMs: this.matchConfirmAtMs,
       matchConfirmReadyCueSent: this.matchConfirmReadyCueSent,
+      bossWave,
       progression: this.createHudProgressionSnapshot(),
       weaponUnlock: this.createHudWeaponUnlockSnapshot(now),
       areaPreview: this.createHudAreaPreviewSnapshot(),

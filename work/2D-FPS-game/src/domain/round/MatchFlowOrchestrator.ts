@@ -1,3 +1,5 @@
+import type { StageDefinition } from "../map/StageDefinition";
+import type { BossWaveRules, BossWaveSpawnPlan } from "./BossWaveLogic";
 import type { MatchFlowPhase, TeamId } from "./MatchFlowLogic";
 
 export interface StageFlowInput {
@@ -22,6 +24,13 @@ export interface RoundResetPlan {
   readonly matchConfirmAtMs: number | null;
   readonly matchConfirmReadyCueSent: boolean;
   readonly roundResetAtMs: number | null;
+  readonly combatEvent: string | null;
+}
+
+export interface BossWaveOverlayDecision {
+  readonly visible: boolean;
+  readonly title: string;
+  readonly subtitle: string;
   readonly combatEvent: string | null;
 }
 
@@ -102,14 +111,38 @@ export function planRoundReset(input: {
     };
   }
 
-    return {
-      clearBullets: true,
-      matchConfirmAtMs: null,
-      matchConfirmReadyCueSent: false,
-      roundResetAtMs: input.now + input.respawnDelayMs,
-      combatEvent: null
-    };
+  return {
+    clearBullets: true,
+    matchConfirmAtMs: null,
+    matchConfirmReadyCueSent: false,
+    roundResetAtMs: input.now + input.respawnDelayMs,
+    combatEvent: null
+  };
+}
+
+export function resolveBossWaveOverlay(input: {
+  readonly roundNumber: number;
+  readonly stage: StageDefinition | null;
+  readonly bossWaveRules: BossWaveRules | null;
+  readonly bossWavePlan: BossWaveSpawnPlan | null;
+}): BossWaveOverlayDecision {
+  if (input.stage === null || input.bossWaveRules === null || input.bossWavePlan === null) {
+    return idleBossWaveOverlayDecision();
   }
+
+  if (!isBossWaveRound(input.roundNumber, input.bossWavePlan)) {
+    return idleBossWaveOverlayDecision();
+  }
+
+  const bossName = input.bossWavePlan.boss.name;
+
+  return {
+    visible: true,
+    title: "BOSS WAVE",
+    subtitle: `${bossName} incoming. HP ${input.bossWavePlan.boss.health}. Reward ${input.bossWavePlan.reward.label}.`,
+    combatEvent: `${bossName.toUpperCase()} WAVE`
+  };
+}
 
 function idleStageFlowDecision(): StageFlowDecision {
   return {
@@ -119,4 +152,21 @@ function idleStageFlowDecision(): StageFlowDecision {
     startCombat: false,
     combatEvent: null
   };
+}
+
+function idleBossWaveOverlayDecision(): BossWaveOverlayDecision {
+  return {
+    visible: false,
+    title: "",
+    subtitle: "",
+    combatEvent: null
+  };
+}
+
+function isBossWaveRound(roundNumber: number, plan: BossWaveSpawnPlan): boolean {
+  if (roundNumber < plan.firstBossRound) {
+    return false;
+  }
+
+  return (roundNumber - plan.firstBossRound) % plan.intervalRounds === 0;
 }
