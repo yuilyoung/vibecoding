@@ -43,12 +43,16 @@ export function createSettingsStorage(
 ): SettingsStorageAdapter {
   return {
     save(state: SettingsState): void {
-      const payload: SettingsStoragePayloadV1 = {
-        version: SETTINGS_STORAGE_VERSION,
-        settings: normalizeSettings(state)
-      };
+      try {
+        const payload: SettingsStoragePayloadV1 = {
+          version: SETTINGS_STORAGE_VERSION,
+          settings: normalizeSettings(state)
+        };
 
-      storage.setItem(key, JSON.stringify(payload));
+        storage.setItem(key, JSON.stringify(payload));
+      } catch (err) {
+        console.warn("[SettingsStorage] save failed:", err);
+      }
     },
     load(): SettingsState | null {
       const rawValue = storage.getItem(key);

@@ -1,97 +1,77 @@
 {
-  "id": "phase-4-play-loop-polish",
-  "timestamp": "2026-04-15",
+  "id": "phase-5-sprint0-mainscene-decomposition",
+  "timestamp": "2026-04-16",
   "from": "vision",
   "to": "ultron",
-  "status": "complete",
-  "completedAt": "2026-04-15",
+  "status": "pending",
   "previousPhase": {
-    "id": "phase-3-feel-stage-content-playtest",
+    "id": "phase-4-play-loop-polish",
     "status": "complete",
-    "completedAt": "2026-04-15",
-    "carryovers": [
-      "Settings HUD 패널 UI 미노출 — Phase 4 T1로 이관",
-      "오디오 방향 확정(generated vs .ogg) — Phase 4 T2로 이관",
-      "Foundry 포함 스테이지 콘텐츠 좌표 임시 호환 유지 — Phase 4 T3로 이관"
-    ]
+    "completedAt": "2026-04-15"
   },
-  "scope": "Phase 4 — 플레이 루프 완성도 + UX 정리. Phase 3 캐리오버(Settings UI, 오디오 방향 확정, 스테이지 콘텐츠 튜닝) 처리와 보스 웨이브/튜토리얼 도입으로 '한 판 제대로 플레이 가능한' 루프를 완성한다.",
+  "scope": "Phase 5 Sprint 0 — MainScene 3320줄 god-class를 5개 헬퍼 모듈로 분해. 비전이 1차로 scene-types, scene-constants, weapon-slot-factory, arena-textures를 추출 완료 (3965→3320). 울트론은 나머지 5개 모듈을 추출하여 MainScene을 ~800줄 오케스트레이터로 축소한다.",
   "constraints": [
-    "게임 로직은 src/domain/ 순수 TS, Phaser 의존은 src/scenes/ 분리 유지",
-    "모든 수치는 assets/data/game-balance.json 외부화",
-    "TDD: 새 로직은 반드시 tests/*.test.ts 동반",
-    "기존 167 유닛 + 12 E2E 전부 pass 유지",
-    "Phase 1~3 도메인 인터페이스 (WeaponLogic, AiStateMachine, ProgressionLogic, StageRotationLogic, AudioCueLogic, CameraFeedbackLogic, StageContentSpawner, PickupLogic, SettingsStorage) 호환 유지",
+    "기존 206 유닛 + 14 E2E 전부 pass 유지",
+    "npm run type-check && lint && test && build && test:e2e 전부 통과",
+    "추출된 모듈은 src/scenes/ 하위에 위치 (Phaser 의존 허용)",
+    "MainScene의 debug* 공개 메서드는 E2E 계약이므로 시그니처 유지 (내부는 위임 가능)",
+    "각 모듈 추출 후 반드시 type-check + test 통과 확인 후 다음 추출 진행",
+    "SceneRuntimeState 공유 상태 객체 패턴 적용 — MainScene이 소유, 헬퍼에 참조 전달",
     "빌드 사이즈 목표(최대 청크 < 800 kB, gzip < 250 kB) 유지",
-    "핸드오프 단일 소스는 루트 docs/handoffs/ — 프로젝트 로컬 사본 금지",
-    "튜토리얼 'don't show again' 플래그는 SettingsStorage에 영속",
-    "npm run type-check && npm run lint && npm test && npm run build && npm run test:e2e 전부 통과"
+    "Phase 4까지 도메인 인터페이스 호환 유지"
   ],
   "currentState": {
     "implemented": [
-      "Phase 1 완료 — 6종 무기, 5종 탄도, 폭발 감쇠/넉백",
-      "Phase 2 완료 — AiStateMachine, LineOfSight, Homing, Progression, Unlock, StageRotation",
-      "Phase 3 완료 — AudioCueLogic, CameraFeedbackLogic, StageContent, PickupLogic, SettingsStorage",
-      "테스트 33 파일 / 167개 + E2E 12개 pass"
+      "Phase 1~4 완료 — 6종 무기, AI, 진행도, 피드백, 보스 웨이브, 튜토리얼, 설정 UI",
+      "1차 추출 완료: scene-types.ts, scene-constants.ts, weapon-slot-factory.ts, arena-textures.ts",
+      "MainScene 현재 3320줄, 테스트 38파일/206개 + E2E 14개 pass"
     ],
     "missing": [
-      "Settings HUD 패널 UI (ESC 토글, 볼륨/감도 슬라이더)",
-      "오디오 최종 방향 확정 (generated 파라미터 정돈 또는 .ogg 에셋 교체)",
-      "3 스테이지 콘텐츠 좌표/수치 튜닝 (임시 호환 좌표 정리)",
-      "BossWaveLogic (N 라운드마다 보스 스폰/보상)",
-      "MainScene 보스 웨이브 통합 (HUD 보스 HP 바 포함)",
-      "TutorialOverlayLogic + 첫 실행 온보딩 오버레이",
-      "Phase 4 Playwright smoke (boss/tutorial/settings)"
+      "VfxController 추출 (~300줄) — 이펙트 풀 관리",
+      "ActorCollisionResolver 추출 (~250줄) — 충돌/탈출 로직",
+      "StageGeometryManager 추출 (~400줄) — 스테이지 장애물/게이트/해저드/픽업",
+      "DummyActorController 추출 (~350줄) — 더미 AI 이동/커버/조향",
+      "CombatController 추출 (~500줄) — 사격/재장전/탄환/공습",
+      "TODO(bug) 2건 핫픽스: CameraFeedbackLogic 미지원 kind 크래시, SettingsStorage save try/catch"
     ]
   },
   "files": {
     "create": [
-      "src/ui/SettingsPanel.ts",
-      "src/ui/TutorialOverlay.ts",
-      "src/domain/round/BossWaveLogic.ts",
-      "src/domain/tutorial/TutorialOverlayLogic.ts",
-      "tests/SettingsPanel.test.ts",
-      "tests/BossWaveLogic.test.ts",
-      "tests/TutorialOverlayLogic.test.ts",
-      "tests/e2e/phase4-smoke.spec.ts"
+      "src/scenes/vfx-controller.ts",
+      "src/scenes/actor-collision.ts",
+      "src/scenes/stage-geometry.ts",
+      "src/scenes/dummy-controller.ts",
+      "src/scenes/combat-controller.ts"
     ],
     "modify": [
       "src/scenes/MainScene.ts",
-      "src/domain/round/MatchFlowOrchestrator.ts",
-      "src/domain/settings/SettingsStorage.ts",
-      "src/domain/audio/GeneratedAudioCuePlayer.ts",
-      "src/domain/map/StageContentDefinition.ts",
-      "src/ui/hud-presenters.ts",
-      "assets/data/game-balance.json",
-      "playwright.config.ts"
-    ],
-    "createIfNgOgg": [
-      "assets/audio/*.ogg",
-      "src/domain/audio/AudioPlayerAdapter.ts"
+      "src/domain/feedback/CameraFeedbackLogic.ts",
+      "src/domain/settings/SettingsStorage.ts"
     ]
   },
   "acceptance": [
-    "ESC 토글로 설정 패널 열림, 슬라이더 조작 시 SettingsStorage 즉시 반영 및 재로드 후 유지",
-    "오디오 최종 방향 확정 및 모든 cue 단일 경로 재생 (선택 근거 execution report 기록)",
-    "3 스테이지의 hazard/pickup/gate 좌표가 스테이지 특성에 맞게 재분배, 기존 E2E 회귀 없음",
-    "BossWaveLogic이 N 라운드마다 보스 스폰 조건을 정확히 평가",
-    "보스 스폰 시 HUD 경고 + 보스 HP 바 표시, 처치 시 대량 XP/언락 보상",
-    "첫 실행 시 튜토리얼 오버레이 표시, skip 시 SettingsStorage에 영속",
-    "Phase 4 smoke가 tutorial skip → settings 조절 → boss wave 진입/처치 → 레벨업을 관통",
-    "기존 167 유닛 + 12 E2E 회귀 없음",
+    "MainScene.ts가 ~800줄 이하의 얇은 오케스트레이터로 축소",
+    "5개 헬퍼 모듈(vfx-controller, actor-collision, stage-geometry, dummy-controller, combat-controller) 생성",
+    "SceneRuntimeState 공유 상태 패턴으로 헬퍼 간 상태 접근 일원화",
+    "CameraFeedbackLogic 미지원 kind에 EMPTY_RESULT 폴백 추가",
+    "SettingsStorage.save()에 try/catch 추가로 QuotaExceededError 하드닝",
+    "기존 206 유닛 + 14 E2E 회귀 없음",
     "npm run type-check && lint && test && build && test:e2e 전부 pass",
-    "docs/handoffs/current-execution-report.md 갱신 및 postflight sync 완료"
+    "docs/handoffs/current-execution-report.md 갱신"
   ],
   "priority": [
-    "1. T1 Settings UI / T2 오디오 방향 / T3 스테이지 튜닝 (Phase 3 캐리오버 정리)",
-    "2. T4 BossWaveLogic + T5 MainScene 통합 (엔드게임 피크)",
-    "3. T6 TutorialOverlay (첫 사용자 경험)",
-    "4. T7 Phase 4 smoke + T8 검증 게이트"
+    "1. SceneRuntimeState 공유 상태 객체 정의",
+    "2. T1 VfxController — CombatController 의존이므로 선추출",
+    "3. T2 ActorCollisionResolver — Dummy/Combat 의존이므로 선추출",
+    "4. T3 StageGeometryManager — 장애물/게이트/해저드/픽업 통합",
+    "5. T4 DummyActorController — AI 이동/커버 로직",
+    "6. T5 CombatController — 최고 결합도, 마지막 추출",
+    "7. T6 TODO(bug) 핫픽스 2건",
+    "8. T7 검증 게이트"
   ],
-  "nextHandoff": "phase-5 (TBD — Phase 4 종료 후 비전 결정)",
   "references": {
-    "wbs": "work/2D-FPS-game/docs/planning/phase4-wbs.md",
-    "tasks": "work/2D-FPS-game/docs/planning/phase4-tasks.json",
+    "wbs": "work/2D-FPS-game/docs/planning/phase5-sprint0-wbs.md",
+    "tasks": "work/2D-FPS-game/docs/planning/phase5-sprint0-tasks.json",
     "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
     "previousExecutionReport": "docs/handoffs/current-execution-report.md"
   }

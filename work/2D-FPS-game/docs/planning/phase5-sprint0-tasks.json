@@ -1,0 +1,83 @@
+{
+  "phase": "phase-5-sprint0",
+  "name": "MainScene decomposition and bug fixes",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "created": "2026-04-16",
+  "status": "pending",
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "SceneRuntimeState shared state object",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "MainScene의 mutable 필드를 SceneRuntimeState 인터페이스로 추출. MainScene이 소유하고 헬퍼에 참조 전달. 기존 this.field 접근을 state.field로 전환."
+    },
+    {
+      "id": "T1",
+      "subject": "VfxController extraction",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0"],
+      "description": "impactEffects, shotTrails, movementEffects 풀 관리. spawn/update/trim 메서드 추출. ~300줄."
+    },
+    {
+      "id": "T2",
+      "subject": "ActorCollisionResolver extraction",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0"],
+      "description": "resolveActorObstacleCollision, resolveObstacleOverlap, findSpiralEscapePosition, resolveStaticActorCenter, getActiveObstacles. ~250줄."
+    },
+    {
+      "id": "T3",
+      "subject": "StageGeometryManager extraction",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0", "T2"],
+      "description": "applyStageGeometry, clearStageGeometry, addObstacle, addGate, addHazardZone, addCoverPointMarkers, handleAmmoPickup, handleHealthPickup, handleHazardZone, handleGateInteraction. ~400줄."
+    },
+    {
+      "id": "T4",
+      "subject": "DummyActorController extraction",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0", "T2"],
+      "description": "updateDummyMovement, updateDummyBodyAngle, resolveHullAngle, rotateAngleTowards, stabilizeDummySteer, createDummyBlockedSteer, updateDummyCoverState, cover helpers. ~350줄."
+    },
+    {
+      "id": "T5",
+      "subject": "CombatController extraction",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0", "T1", "T2"],
+      "description": "handleFire, handleReload, handleReloadInterrupt, spawnPlayerProjectiles, firePlayerBeam, callPlayerAirStrike, updateAirStrikes, handleDummyFire, updateBullets, handleWeaponSwitch. ~500줄."
+    },
+    {
+      "id": "T6",
+      "subject": "TODO(bug) hotfixes",
+      "assignee": "vision",
+      "status": "complete",
+      "description": "1) CameraFeedbackLogic:130 미지원 kind에 EMPTY_RESULT 폴백. 2) SettingsStorage:51 save() try/catch. 3) 탄환 충돌 카메라 셰이크 강도 과도 — 이펙트 파라미터 튜닝 완료.",
+      "completedBy": "vision",
+      "completedAt": "2026-04-16"
+    },
+    {
+      "id": "T7",
+      "subject": "Verification gates and execution report",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T1", "T2", "T3", "T4", "T5", "T6"],
+      "description": "type-check, lint, 206+ tests, build, 14+ E2E 전부 pass 확인. MainScene ~800줄 이하 확인. execution report 갱신."
+    }
+  ],
+  "dependencyGraph": {
+    "T0": [],
+    "T1": ["T0"],
+    "T2": ["T0"],
+    "T3": ["T0", "T2"],
+    "T4": ["T0", "T2"],
+    "T5": ["T0", "T1", "T2"],
+    "T6": [],
+    "T7": ["T1", "T2", "T3", "T4", "T5", "T6"]
+  }
+}

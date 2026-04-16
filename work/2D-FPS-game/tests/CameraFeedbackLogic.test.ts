@@ -15,13 +15,13 @@ describe("CameraFeedbackLogic", () => {
   it("maps fire to subtle shake and flash without hit pause", () => {
     expect(resolveCameraFeedback({ kind: "fire" })).toEqual({
       shake: {
-        amplitude: 0.8,
-        durationMs: 28
+        amplitude: 0.3,
+        durationMs: 20
       },
       flash: {
         color: 0xfff2d6,
-        alpha: 0.08,
-        durationMs: 24
+        alpha: 0.04,
+        durationMs: 18
       },
       hitPauseMs: 0
     });
@@ -34,15 +34,15 @@ describe("CameraFeedbackLogic", () => {
       { kind: "explosion" }
     ])).toEqual({
       shake: {
-        amplitude: 6,
-        durationMs: 110
+        amplitude: 1.8,
+        durationMs: 70
       },
       flash: {
         color: 0xffc06a,
-        alpha: 0.22,
-        durationMs: 88
+        alpha: 0.10,
+        durationMs: 55
       },
-      hitPauseMs: 24
+      hitPauseMs: 12
     });
   });
 
@@ -52,15 +52,15 @@ describe("CameraFeedbackLogic", () => {
       { kind: "airStrike" }
     ])).toEqual({
       shake: {
-        amplitude: 7.5,
-        durationMs: 132
+        amplitude: 2.4,
+        durationMs: 90
       },
       flash: {
         color: 0xffefaa,
-        alpha: 0.24,
-        durationMs: 104
+        alpha: 0.12,
+        durationMs: 70
       },
-      hitPauseMs: 28
+      hitPauseMs: 16
     });
 
     expect(resolveCameraFeedback([
@@ -68,25 +68,22 @@ describe("CameraFeedbackLogic", () => {
       { kind: "death" }
     ])).toEqual({
       shake: {
-        amplitude: 10,
-        durationMs: 180
+        amplitude: 3.2,
+        durationMs: 120
       },
       flash: {
         color: 0xffffff,
-        alpha: 0.32,
-        durationMs: 150
+        alpha: 0.16,
+        durationMs: 100
       },
-      hitPauseMs: 42
+      hitPauseMs: 22
     });
   });
 
   describe("edge cases (Phase 3 QA audit)", () => {
-    // TODO(bug): src/domain/feedback/CameraFeedbackLogic.ts:130
-    // Unknown event.kind makes FEEDBACK_PROFILES[kind] undefined and the loop crashes
-    // on `profile.priority`. Should fall back to EMPTY_RESULT instead. Skipped until
-    // Phase 4 Sprint 0 hardening pass.
-    test.skip("returns EMPTY_RESULT for unknown event kinds without throwing", () => {
+    it("returns EMPTY_RESULT for missing or unknown event kinds without throwing", () => {
       const result = resolveCameraFeedback([
+        {} as unknown as CameraFeedbackEvent,
         { kind: "ultra-mega-impact" } as unknown as CameraFeedbackEvent
       ]);
 
@@ -100,9 +97,9 @@ describe("CameraFeedbackLogic", () => {
       // also confirm that mixing two distinct same-tier kinds is order-stable.
       const twoHits = resolveCameraFeedback([{ kind: "hit" }, { kind: "hit" }]);
       expect(twoHits).toEqual({
-        shake: { amplitude: 2.2, durationMs: 52 },
-        flash: { color: 0xffd59e, alpha: 0.14, durationMs: 44 },
-        hitPauseMs: 10
+        shake: { amplitude: 0.8, durationMs: 36 },
+        flash: { color: 0xffd59e, alpha: 0.06, durationMs: 30 },
+        hitPauseMs: 6
       });
 
       // explosion (priority 3) twice — first wins, second is identical.
@@ -110,8 +107,8 @@ describe("CameraFeedbackLogic", () => {
         { kind: "explosion" },
         { kind: "explosion" }
       ]);
-      expect(twoExplosions.shake?.amplitude).toBe(6);
-      expect(twoExplosions.hitPauseMs).toBe(24);
+      expect(twoExplosions.shake?.amplitude).toBe(1.8);
+      expect(twoExplosions.hitPauseMs).toBe(12);
     });
   });
 });

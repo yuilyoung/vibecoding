@@ -32,80 +32,80 @@ const FEEDBACK_PROFILES: Record<CameraFeedbackEventKind, CameraFeedbackProfile> 
   fire: {
     priority: 1,
     shake: {
-      amplitude: 0.8,
-      durationMs: 28
+      amplitude: 0.3,
+      durationMs: 20
     },
     flash: {
       color: 0xfff2d6,
-      alpha: 0.08,
-      durationMs: 24
+      alpha: 0.04,
+      durationMs: 18
     },
     hitPauseMs: 0
   },
   hit: {
     priority: 2,
     shake: {
-      amplitude: 2.2,
-      durationMs: 52
+      amplitude: 0.8,
+      durationMs: 36
     },
     flash: {
       color: 0xffd59e,
-      alpha: 0.14,
-      durationMs: 44
+      alpha: 0.06,
+      durationMs: 30
     },
-    hitPauseMs: 10
+    hitPauseMs: 6
   },
   explosion: {
     priority: 3,
     shake: {
-      amplitude: 6,
-      durationMs: 110
+      amplitude: 1.8,
+      durationMs: 70
     },
     flash: {
       color: 0xffc06a,
-      alpha: 0.22,
-      durationMs: 88
+      alpha: 0.10,
+      durationMs: 55
     },
-    hitPauseMs: 24
+    hitPauseMs: 12
   },
   airStrike: {
     priority: 4,
     shake: {
-      amplitude: 7.5,
-      durationMs: 132
+      amplitude: 2.4,
+      durationMs: 90
     },
     flash: {
       color: 0xffefaa,
-      alpha: 0.24,
-      durationMs: 104
+      alpha: 0.12,
+      durationMs: 70
     },
-    hitPauseMs: 28
+    hitPauseMs: 16
   },
   critical: {
     priority: 5,
     shake: {
-      amplitude: 4.5,
-      durationMs: 84
+      amplitude: 1.4,
+      durationMs: 55
     },
     flash: {
       color: 0xff7b7b,
-      alpha: 0.2,
-      durationMs: 72
+      alpha: 0.08,
+      durationMs: 45
     },
-    hitPauseMs: 20
+    hitPauseMs: 10
   },
   death: {
     priority: 6,
     shake: {
-      amplitude: 10,
-      durationMs: 180
+      amplitude: 3.2,
+      durationMs: 120
     },
     flash: {
       color: 0xffffff,
-      alpha: 0.32,
-      durationMs: 150
+      alpha: 0.16,
+      durationMs: 100
     },
-    hitPauseMs: 42
+    hitPauseMs: 22
   }
 };
 
@@ -128,6 +128,7 @@ export function resolveCameraFeedback(
 
   for (const event of normalizedEvents) {
     const profile = FEEDBACK_PROFILES[event.kind];
+    if (!profile) continue;
 
     if (strongestProfile === null || profile.priority > strongestProfile.priority) {
       strongestProfile = profile;
