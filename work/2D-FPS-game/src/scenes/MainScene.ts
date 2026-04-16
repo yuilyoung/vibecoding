@@ -6,11 +6,12 @@ import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/a
 import { createCenteredRect, intersectsRect, type Rect } from "../domain/collision/CollisionLogic";
 import { resolveBulletCollision, resolveHazardOutcome } from "../domain/combat/CombatResolution";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
-import { WeaponLogic, type WeaponConfig } from "../domain/combat/WeaponLogic";
+import { WeaponLogic } from "../domain/combat/WeaponLogic";
+import type { WeaponConfig } from "../domain/combat/WeaponLogic";
 import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import { resolveExplosion } from "../domain/combat/ExplosionLogic";
 import { castBeam } from "../domain/combat/BeamLogic";
-import { advanceAirStrike, createAirStrike, type AirStrikeState } from "../domain/combat/AirStrikeLogic";
+import { advanceAirStrike, createAirStrike } from "../domain/combat/AirStrikeLogic";
 import {
   canApplyHazard,
   canDummyFire,
@@ -41,12 +42,11 @@ import {
   getNewlyUnlockedWeaponIds,
   isWeaponUnlocked,
   type UnlockState,
-  type WeaponUnlockRule
+  type WeaponUnlockRule,
 } from "../domain/progression/UnlockLogic";
 import {
   MatchFlowLogic,
   type SpawnAssignment,
-  type SpawnPoint,
   type TeamId
 } from "../domain/round/MatchFlowLogic";
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
@@ -70,273 +70,60 @@ import {
   type HudPresenterInput
 } from "../ui/hud-presenters";
 import { getDummyVisualState, getPlayerVisualState, getRespawnFxState } from "../ui/scene-visuals";
-
-interface GameBalance {
-  movementSpeed: number;
-  dashMultiplier: number;
-  maxHealth: number;
-  hitStunMs: number;
-  bulletSpeed: number;
-  fireRateMs: number;
-  bulletDamage: number;
-  magazineSize: number;
-  reloadTimeMs: number;
-  reserveAmmo: number;
-  matchScoreToWin: number;
-  matchResetDelayMs: number;
-  roundStartDelayMs: number;
-  ammoPickupAmount: number;
-  ammoPickupRespawnMs: number;
-  healthPickupAmount: number;
-  healthPickupRespawnMs: number;
-  dummyMovementSpeed: number;
-  dummyEngageRange: number;
-  dummyRetreatRange: number;
-  dummyShootRange: number;
-  dummyLowHealthThreshold: number;
-  hazardDamage: number;
-  hazardTickMs: number;
-  coverPointRadius: number;
-  actorSkinSource: string;
-  actorSpritesheetPath: string;
-  actorFrameWidth: number;
-  actorFrameHeight: number;
-  progression: {
-    xpPerKill: number;
-    xpPerRoundClear: number;
-    levelCurve: readonly number[];
-  };
-  unlocks: {
-    defaultWeaponIds: readonly string[];
-    weaponRules: readonly WeaponUnlockRule[];
-  };
-  stages: readonly StageDefinition[];
-  bossWave?: BossWaveRules;
-  weapons?: Record<string, unknown>;
-}
-
-const DEFAULT_BOSS_WAVE_RULES: BossWaveRules = {
-  intervalRounds: 5,
-  firstBossRound: 5,
-  bossName: "Forge Titan",
-  bossHealth: 240,
-  bossSpeed: 115,
-  rewardExperience: 160,
-  rewardUnlockWeaponId: "airStrike",
-  rewardLabel: "Titan cache secured",
-  spawnLabel: "Boss Drop Zone"
-};
-
-type BalanceWeaponConfig = Partial<WeaponConfig> & {
-  readonly label?: string;
-  readonly salvoCount?: number;
-};
-
-interface BulletView {
-  sprite: Phaser.GameObjects.Rectangle;
-  velocityX: number;
-  velocityY: number;
-  damage: number;
-  owner: "player" | "dummy";
-  effectProfile: ImpactProfile;
-  projectileConfig: ProjectileConfig;
-  bouncesRemaining?: number;
-}
-
-type ImpactProfile = "carbine" | "scatter" | "bazooka" | "grenade" | "sniper" | "airStrike" | "dummy" | "pickup-ammo" | "pickup-health";
-
-interface ActiveAirStrikeView {
-  state: AirStrikeState;
-  owner: "player" | "dummy";
-}
-
-interface ImpactFxView {
-  flash: Phaser.GameObjects.Arc;
-  ring: Phaser.GameObjects.Arc;
-  rays: Phaser.GameObjects.Line[];
-  expiresAtMs: number;
-  durationMs: number;
-}
-
-interface ShotTrailView {
-  line: Phaser.GameObjects.Line;
-  expiresAtMs: number;
-  durationMs: number;
-}
-
-interface MovementFxView {
-  sprite: Phaser.GameObjects.Arc;
-  expiresAtMs: number;
-  durationMs: number;
-  driftX: number;
-  driftY: number;
-}
-
-interface ActorCollisionResolution {
-  blocked: boolean;
-  centerX: number;
-  centerY: number;
-}
-
-interface ObstacleView {
-  sprite: Phaser.GameObjects.Rectangle;
-  bounds: Rect;
-  visuals?: readonly Phaser.GameObjects.GameObject[];
-}
-
-interface PickupView {
-  sprite: Phaser.GameObjects.Image;
-  label: Phaser.GameObjects.Text;
-  available: boolean;
-  respawnAtMs: number | null;
-  baseX: number;
-  baseY: number;
-  amount: number;
-  respawnMs: number;
-}
-
-interface PlayerWeaponSlot {
-  readonly id: string;
-  readonly label: string;
-  readonly logic: WeaponLogic;
-  readonly bulletColor: number;
-  readonly bulletWidth: number;
-  readonly bulletHeight: number;
-  readonly pelletCount: number;
-  readonly spreadRadians: number;
-  readonly projectileConfig: ProjectileConfig;
-}
-
-interface GateView extends ObstacleView {
-  readonly id: string;
-  open: boolean;
-}
-
-interface HazardZoneView {
-  sprite: Phaser.GameObjects.Rectangle;
-  bounds: Rect;
-  logic: HazardZoneLogic;
-}
-
-interface CoverPointView {
-  sprite: Phaser.GameObjects.Arc;
-  label: Phaser.GameObjects.Text;
-}
-
-type CoverEffectId = "vision-jam" | "shield" | "repair";
-
-interface TerrainCrop {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface TeamSpawnTable {
-  BLUE: readonly SpawnPoint[];
-  RED: readonly SpawnPoint[];
-}
-
-interface MainSceneDebugSnapshot {
-  phase: string;
-  team: TeamId | "UNSET";
-  stage: string;
-  stageLabel: string;
-  spawn: string;
-  activeWeapon: string;
-  weaponSlot: number;
-  ammoInMagazine: number;
-  reserveAmmo: number;
-  playerHealth: number;
-  dummyHealth: number;
-  gateOpen: boolean;
-  roundNumber: number;
-  playerScore: number;
-  dummyScore: number;
-  progressionLevel: number;
-  progressionXp: number;
-  unlockedWeaponIds: readonly string[];
-  lastEvent: string;
-  playerX: number;
-  playerY: number;
-  playerHullAngle: number;
-}
-
-export interface MainSceneHudSnapshot {
-  readonly phase: string;
-  readonly team: TeamId | "UNSET";
-  readonly spawn: string;
-  readonly health: number;
-  readonly maxHealth: number;
-  readonly dummyHealth: number;
-  readonly dummyMaxHealth: number;
-  readonly weaponName: string;
-  readonly weaponSlot: number;
-  readonly ammoInMagazine: number;
-  readonly magazineSize: number;
-  readonly reserveAmmo: number;
-  readonly playerScore: number;
-  readonly dummyScore: number;
-  readonly scoreToWin: number;
-  readonly roundNumber: number;
-  readonly gateOpen: boolean;
-  readonly combatEvent: string;
-  readonly roundResult: string;
-  readonly matchResult: string;
-  readonly prompt: string;
-  readonly overlayVisible: boolean;
-  readonly overlayTitle: string;
-  readonly overlaySubtitle: string;
-}
-
-type DebugTeamSelection = TeamId;
+import { createPlayerWeaponSlots, createDummyWeaponSlots } from "./weapon-slot-factory";
+import {
+  createArenaPropTextures,
+  createActorSkins as createActorSkinsTextures,
+  createActorImage,
+  createTurretAnimations,
+  addArenaBackdrop,
+  addTerrainSurface,
+  getTurretAnimationKey,
+  playTurretFireAnimation,
+} from "./arena-textures";
+import type {
+  ActorCollisionResolution,
+  ActiveAirStrikeView,
+  BalanceWeaponConfig,
+  BulletView,
+  CoverEffectId,
+  CoverPointView,
+  DebugTeamSelection,
+  GateView,
+  GameBalance,
+  HazardZoneView,
+  ImpactFxView,
+  ImpactProfile,
+  MainSceneDebugSnapshot,
+  MovementFxView,
+  ObstacleView,
+  PickupView,
+  PlayerWeaponSlot,
+  ShotTrailView,
+  TeamSpawnTable,
+  TerrainCrop,
+} from "./scene-types";
+export type { MainSceneHudSnapshot, DebugTeamSelection } from "./scene-types";
+import {
+  RESPAWN_DELAY_MS, RESPAWN_FX_MS, AMMO_OVERDRIVE_MS,
+  ACTOR_HALF_SIZE, ACTOR_MIN_SEPARATION, ACTOR_COLLIDER_WIDTH, ACTOR_COLLIDER_HEIGHT,
+  COVER_VISION_RADIUS, MAX_BULLETS, MAX_IMPACT_EFFECTS, MAX_SHOT_TRAILS,
+  MAX_MOVEMENT_EFFECTS, MAX_FRAME_DELTA_MS, OBSTACLE_CONTACT_EPSILON,
+  ACTOR_BODY_SCALE, ACTOR_ROTATION_OFFSET, PLAYER_WEAPON_SCALE, DUMMY_WEAPON_SCALE,
+  BODY_TURN_RATE, TURRET_FRAME_WIDTH, TURRET_FRAME_HEIGHT,
+  CARBINE_TURRET_FRAMES, SCATTER_TURRET_FRAMES,
+  PLAYFIELD_MIN_X, PLAYFIELD_MAX_X, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y,
+  WEAPON_MACHINE_KEY, WEAPON_GUN_KEY,
+  GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY,
+  GROUND_TURRET_CARBINE_BLUE_KEY, GROUND_TURRET_CARBINE_RED_KEY,
+  GROUND_TURRET_SCATTER_BLUE_KEY, GROUND_TURRET_SCATTER_RED_KEY,
+  OBSTACLE_CORE_KEY, OBSTACLE_TOWER_KEY, OBSTACLE_BARRIER_KEY,
+  GATE_PANEL_KEY, VENT_PANEL_KEY, PICKUP_AMMO_KEY, PICKUP_HEALTH_KEY,
+  UNLOCK_NOTICE_DURATION_MS, DEFAULT_BOSS_WAVE_RULES,
+  STUCK_ESCAPE_THRESHOLD, SPIRAL_SCAN_MAX_STEPS, SPIRAL_SCAN_STEP_SIZE,
+} from "./scene-constants";
 
 export class MainScene extends Phaser.Scene {
-  private static readonly RESPAWN_DELAY_MS = 1600;
-  private static readonly RESPAWN_FX_MS = 900;
-  private static readonly AMMO_OVERDRIVE_MS = 6000;
-  private static readonly ACTOR_HALF_SIZE = 27;
-  private static readonly ACTOR_MIN_SEPARATION = 42;
-  private static readonly ACTOR_COLLIDER_WIDTH = 40;
-  private static readonly ACTOR_COLLIDER_HEIGHT = 40;
-  private static readonly COVER_VISION_RADIUS = 10;
-  private static readonly MAX_BULLETS = 96;
-  private static readonly MAX_IMPACT_EFFECTS = 72;
-  private static readonly MAX_SHOT_TRAILS = 72;
-  private static readonly MAX_MOVEMENT_EFFECTS = 56;
-  private static readonly MAX_FRAME_DELTA_MS = 50;
-  private static readonly OBSTACLE_CONTACT_EPSILON = 1.0;
-  private static readonly ACTOR_BODY_SCALE = 0.42;
-  private static readonly ACTOR_ROTATION_OFFSET = Math.PI / 2;
-  private static readonly PLAYER_WEAPON_SCALE = 0.64;
-  private static readonly DUMMY_WEAPON_SCALE = 0.6;
-  private static readonly BODY_TURN_RATE = Math.PI * 1.6;
-  private static readonly TURRET_FRAME_WIDTH = 128;
-  private static readonly TURRET_FRAME_HEIGHT = 128;
-  private static readonly CARBINE_TURRET_FRAMES = 8;
-  private static readonly SCATTER_TURRET_FRAMES = 11;
-  private static readonly PLAYFIELD_MIN_X = 28;
-  private static readonly PLAYFIELD_MAX_X = 932;
-  private static readonly PLAYFIELD_MIN_Y = 24;
-  private static readonly PLAYFIELD_MAX_Y = 516;
-  private static readonly WEAPON_MACHINE_KEY = "runtime-weapon-machine";
-  private static readonly WEAPON_GUN_KEY = "runtime-weapon-gun";
-  private static readonly GROUND_BODY_BLUE_KEY = "ground-body-blue";
-  private static readonly GROUND_BODY_RED_KEY = "ground-body-red";
-  private static readonly GROUND_TERRAIN_KEY = "ground-terrain";
-  private static readonly GROUND_TURRET_CARBINE_BLUE_KEY = "ground-turret-carbine-blue";
-  private static readonly GROUND_TURRET_CARBINE_RED_KEY = "ground-turret-carbine-red";
-  private static readonly GROUND_TURRET_SCATTER_BLUE_KEY = "ground-turret-scatter-blue";
-  private static readonly GROUND_TURRET_SCATTER_RED_KEY = "ground-turret-scatter-red";
-  private static readonly OBSTACLE_CORE_KEY = "arena-obstacle-core";
-  private static readonly OBSTACLE_TOWER_KEY = "arena-obstacle-tower";
-  private static readonly OBSTACLE_BARRIER_KEY = "arena-obstacle-barrier";
-  private static readonly GATE_PANEL_KEY = "arena-gate-panel";
-  private static readonly VENT_PANEL_KEY = "arena-vent-panel";
-  private static readonly PICKUP_AMMO_KEY = "arena-pickup-ammo";
-  private static readonly PICKUP_HEALTH_KEY = "arena-pickup-health";
-  private static readonly UNLOCK_NOTICE_DURATION_MS = 3200;
-
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: {
     up: Phaser.Input.Keyboard.Key;
@@ -448,10 +235,6 @@ export class MainScene extends Phaser.Scene {
   private suppressPointerFireUntilMs: number;
   private nextGateInteractionAtMs: number;
   private inputOverlayActive: boolean;
-  private static readonly STUCK_ESCAPE_THRESHOLD = 3;
-  private static readonly SPIRAL_SCAN_MAX_STEPS = 24;
-  private static readonly SPIRAL_SCAN_STEP_SIZE = 8;
-
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
     this.gameBalance = gameBalance;
@@ -464,14 +247,14 @@ export class MainScene extends Phaser.Scene {
       movementSpeed: gameBalance.dummyMovementSpeed,
       dashMultiplier: 1
     });
-    this.weaponSlots = this.createPlayerWeaponSlots(gameBalance);
+    this.weaponSlots = createPlayerWeaponSlots(gameBalance);
     this.weaponInventory = new WeaponInventoryLogic(
       this.weaponSlots.map((slot) => ({
         id: slot.id,
         label: slot.label
       }))
     );
-    this.dummyWeaponSlots = this.createDummyWeaponSlots(gameBalance);
+    this.dummyWeaponSlots = createDummyWeaponSlots(gameBalance);
     this.roundLogic = new RoundLogic(gameBalance.matchScoreToWin);
     this.dummyAiLogic = new DummyAiLogic({
       engageRange: gameBalance.dummyEngageRange,
@@ -620,7 +403,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (killGain.leveledUp || clearGain.leveledUp || bossGain.leveledUp || this.newlyUnlockedWeaponIds.length > 0) {
-      this.unlockNoticeUntilMs = now + MainScene.UNLOCK_NOTICE_DURATION_MS;
+      this.unlockNoticeUntilMs = now + UNLOCK_NOTICE_DURATION_MS;
     }
 
     this.progressionStorage.save(this.progressionState);
@@ -631,26 +414,26 @@ export class MainScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    this.load.image(MainScene.WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
-    this.load.image(MainScene.WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
-    this.load.image(MainScene.GROUND_BODY_BLUE_KEY, "/assets/runtime/sprites/ground-body-blue.png");
-    this.load.image(MainScene.GROUND_BODY_RED_KEY, "/assets/runtime/sprites/ground-body-red.png");
-    this.load.image(MainScene.GROUND_TERRAIN_KEY, "/assets/runtime/sprites/ground-terrain.png");
-    this.load.spritesheet(MainScene.GROUND_TURRET_CARBINE_BLUE_KEY, "/assets/runtime/sprites/ground-turret-carbine-blue.png", {
-      frameWidth: MainScene.TURRET_FRAME_WIDTH,
-      frameHeight: MainScene.TURRET_FRAME_HEIGHT
+    this.load.image(WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
+    this.load.image(WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
+    this.load.image(GROUND_BODY_BLUE_KEY, "/assets/runtime/sprites/ground-body-blue.png");
+    this.load.image(GROUND_BODY_RED_KEY, "/assets/runtime/sprites/ground-body-red.png");
+    this.load.image(GROUND_TERRAIN_KEY, "/assets/runtime/sprites/ground-terrain.png");
+    this.load.spritesheet(GROUND_TURRET_CARBINE_BLUE_KEY, "/assets/runtime/sprites/ground-turret-carbine-blue.png", {
+      frameWidth: TURRET_FRAME_WIDTH,
+      frameHeight: TURRET_FRAME_HEIGHT
     });
-    this.load.spritesheet(MainScene.GROUND_TURRET_CARBINE_RED_KEY, "/assets/runtime/sprites/ground-turret-carbine-red.png", {
-      frameWidth: MainScene.TURRET_FRAME_WIDTH,
-      frameHeight: MainScene.TURRET_FRAME_HEIGHT
+    this.load.spritesheet(GROUND_TURRET_CARBINE_RED_KEY, "/assets/runtime/sprites/ground-turret-carbine-red.png", {
+      frameWidth: TURRET_FRAME_WIDTH,
+      frameHeight: TURRET_FRAME_HEIGHT
     });
-    this.load.spritesheet(MainScene.GROUND_TURRET_SCATTER_BLUE_KEY, "/assets/runtime/sprites/ground-turret-scatter-blue.png", {
-      frameWidth: MainScene.TURRET_FRAME_WIDTH,
-      frameHeight: MainScene.TURRET_FRAME_HEIGHT
+    this.load.spritesheet(GROUND_TURRET_SCATTER_BLUE_KEY, "/assets/runtime/sprites/ground-turret-scatter-blue.png", {
+      frameWidth: TURRET_FRAME_WIDTH,
+      frameHeight: TURRET_FRAME_HEIGHT
     });
-    this.load.spritesheet(MainScene.GROUND_TURRET_SCATTER_RED_KEY, "/assets/runtime/sprites/ground-turret-scatter-red.png", {
-      frameWidth: MainScene.TURRET_FRAME_WIDTH,
-      frameHeight: MainScene.TURRET_FRAME_HEIGHT
+    this.load.spritesheet(GROUND_TURRET_SCATTER_RED_KEY, "/assets/runtime/sprites/ground-turret-scatter-red.png", {
+      frameWidth: TURRET_FRAME_WIDTH,
+      frameHeight: TURRET_FRAME_HEIGHT
     });
     if (this.gameBalance.actorSkinSource === "spritesheet") {
       this.load.spritesheet("actor-skins", this.gameBalance.actorSpritesheetPath, {
@@ -669,16 +452,16 @@ export class MainScene extends Phaser.Scene {
     this.crosshairVertical = this.add.rectangle(0, 0, 3, 20, 0xf8fbff, 0.95).setDepth(20);
     this.muzzleFlash = this.add.circle(0, 0, 8, 0xffd27a, 0.9).setDepth(8).setVisible(false);
 
-    this.createArenaPropTextures();
-    this.createActorSkins();
-    this.createTurretAnimations();
-    this.addArenaBackdrop();
+    createArenaPropTextures(this);
+    createActorSkinsTextures(this);
+    createTurretAnimations(this);
+    addArenaBackdrop(this);
     this.applyStageGeometry();
     this.gate = this.addGate(482, 430, 96, 24, 0xffc15d, { x: 448, y: 0, width: 96, height: 256 });
     this.hazardZone = this.addHazardZone(510, 138, 170, 46);
     this.addCoverPointMarkers();
     this.ammoPickup = {
-      sprite: this.add.image(160, 430, MainScene.PICKUP_AMMO_KEY).setScale(0.44).setDepth(4),
+      sprite: this.add.image(160, 430, PICKUP_AMMO_KEY).setScale(0.44).setDepth(4),
       label: this.add.text(160, 404, "AMMO", {
         color: "#9adfff",
         fontFamily: "monospace",
@@ -692,7 +475,7 @@ export class MainScene extends Phaser.Scene {
       respawnMs: this.gameBalance.ammoPickupRespawnMs
     };
     this.healthPickup = {
-      sprite: this.add.image(870, 430, MainScene.PICKUP_HEALTH_KEY).setScale(0.44).setDepth(4),
+      sprite: this.add.image(870, 430, PICKUP_HEALTH_KEY).setScale(0.44).setDepth(4),
       label: this.add.text(870, 404, "MED", {
         color: "#aaf5d6",
         fontFamily: "monospace",
@@ -707,20 +490,20 @@ export class MainScene extends Phaser.Scene {
     };
     this.applyStageContentToRuntime();
 
-    this.playerSprite = this.createActorImage("player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
-    this.targetDummy = this.createActorImage("dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
+    this.playerSprite = createActorImage(this, "player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
+    this.targetDummy = createActorImage(this, "dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
     this.playerWeaponSprite = this.add
-      .sprite(this.playerSprite.x, this.playerSprite.y, MainScene.GROUND_TURRET_CARBINE_BLUE_KEY, 0)
+      .sprite(this.playerSprite.x, this.playerSprite.y, GROUND_TURRET_CARBINE_BLUE_KEY, 0)
       .setDepth(6)
       .setOrigin(0.5, 0.72)
-      .setScale(MainScene.PLAYER_WEAPON_SCALE);
+      .setScale(PLAYER_WEAPON_SCALE);
     this.dummyWeaponSprite = this.add
-      .sprite(this.targetDummy.x, this.targetDummy.y, MainScene.GROUND_TURRET_CARBINE_RED_KEY, 0)
+      .sprite(this.targetDummy.x, this.targetDummy.y, GROUND_TURRET_CARBINE_RED_KEY, 0)
       .setDepth(6)
       .setOrigin(0.5, 0.72)
-      .setScale(MainScene.DUMMY_WEAPON_SCALE);
+      .setScale(DUMMY_WEAPON_SCALE);
     this.playerLogic.reset(0, 0);
-    this.dummyLogic.reset(this.spawnTable.RED[0].x - MainScene.ACTOR_HALF_SIZE, this.spawnTable.RED[0].y - MainScene.ACTOR_HALF_SIZE);
+    this.dummyLogic.reset(this.spawnTable.RED[0].x - ACTOR_HALF_SIZE, this.spawnTable.RED[0].y - ACTOR_HALF_SIZE);
     this.roundStartUntilMs = 0;
     this.respawnFxUntilMs = 0;
 
@@ -855,7 +638,7 @@ export class MainScene extends Phaser.Scene {
       this.playerBodyAngle = this.rotateAngleTowards(
         this.playerBodyAngle,
         desiredMoveAngle,
-        MainScene.BODY_TURN_RATE * deltaSeconds
+        BODY_TURN_RATE * deltaSeconds
       );
     }
 
@@ -870,20 +653,20 @@ export class MainScene extends Phaser.Scene {
     );
 
     let playerCenterX = Phaser.Math.Clamp(
-      this.playerLogic.state.positionX + MainScene.ACTOR_HALF_SIZE,
-      MainScene.PLAYFIELD_MIN_X,
-      MainScene.PLAYFIELD_MAX_X
+      this.playerLogic.state.positionX + ACTOR_HALF_SIZE,
+      PLAYFIELD_MIN_X,
+      PLAYFIELD_MAX_X
     );
     let playerCenterY = Phaser.Math.Clamp(
-      this.playerLogic.state.positionY + MainScene.ACTOR_HALF_SIZE,
-      MainScene.PLAYFIELD_MIN_Y,
-      MainScene.PLAYFIELD_MAX_Y
+      this.playerLogic.state.positionY + ACTOR_HALF_SIZE,
+      PLAYFIELD_MIN_Y,
+      PLAYFIELD_MAX_Y
     );
 
     this.updateDummyMovement(deltaSeconds, now);
 
     if (!this.roundLogic.state.isMatchOver && this.matchFlow.state.phase !== "stage-entry") {
-      this.playerLogic.updateAim(this.input.activePointer.worldX - MainScene.ACTOR_HALF_SIZE, this.input.activePointer.worldY - MainScene.ACTOR_HALF_SIZE, now);
+      this.playerLogic.updateAim(this.input.activePointer.worldX - ACTOR_HALF_SIZE, this.input.activePointer.worldY - ACTOR_HALF_SIZE, now);
     }
 
     // -- Weapon ticks --
@@ -952,7 +735,7 @@ export class MainScene extends Phaser.Scene {
       return 0;
     }
 
-    return Math.min(deltaMs, MainScene.MAX_FRAME_DELTA_MS) / 1000;
+    return Math.min(deltaMs, MAX_FRAME_DELTA_MS) / 1000;
   }
 
   public getDebugSnapshot(): MainSceneDebugSnapshot {
@@ -1058,7 +841,7 @@ export class MainScene extends Phaser.Scene {
 
     this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
     this.roundStartUntilMs = this.time.now + this.gameBalance.roundStartDelayMs;
-    this.respawnFxUntilMs = this.time.now + MainScene.RESPAWN_FX_MS;
+    this.respawnFxUntilMs = this.time.now + RESPAWN_FX_MS;
     this.lastCombatEvent = `DEPLOYING ${this.matchFlow.state.selectedTeam}`;
   }
 
@@ -1135,8 +918,8 @@ export class MainScene extends Phaser.Scene {
     if (attempt.projectile.trajectory === "aoe-call") {
       this.callPlayerAirStrikeAt(attempt.projectile, targetX, targetY);
       this.applyExplosionDamage(
-        Phaser.Math.Clamp(targetX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X),
-        Phaser.Math.Clamp(targetY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y),
+        Phaser.Math.Clamp(targetX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X),
+        Phaser.Math.Clamp(targetY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y),
         attempt.projectile.blastRadius ?? 44,
         attempt.projectile.blastDamage ?? attempt.damage,
         attempt.projectile.knockback ?? 0,
@@ -1150,8 +933,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public debugMovePlayerTo(x: number, y: number): void {
-    this.playerLogic.state.positionX = x - MainScene.ACTOR_HALF_SIZE;
-    this.playerLogic.state.positionY = y - MainScene.ACTOR_HALF_SIZE;
+    this.playerLogic.state.positionX = x - ACTOR_HALF_SIZE;
+    this.playerLogic.state.positionY = y - ACTOR_HALF_SIZE;
     this.playerSprite.setPosition(x, y);
   }
 
@@ -1165,8 +948,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   public debugMoveDummyTo(x: number, y: number): void {
-    this.dummyLogic.state.positionX = x - MainScene.ACTOR_HALF_SIZE;
-    this.dummyLogic.state.positionY = y - MainScene.ACTOR_HALF_SIZE;
+    this.dummyLogic.state.positionX = x - ACTOR_HALF_SIZE;
+    this.dummyLogic.state.positionY = y - ACTOR_HALF_SIZE;
     this.targetDummy.setPosition(x, y);
   }
 
@@ -1223,7 +1006,7 @@ export class MainScene extends Phaser.Scene {
     if (decision.confirmDeployment) {
       this.applySpawnAssignment(this.matchFlow.confirmTeamSelection(this.spawnTable));
       this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
-      this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
+      this.respawnFxUntilMs = now + RESPAWN_FX_MS;
     }
 
     if (decision.startCombat) {
@@ -1242,8 +1025,8 @@ export class MainScene extends Phaser.Scene {
 
   private applySpawnAssignment(assignment: SpawnAssignment): void {
     const deployment = createDeploymentViewState(assignment);
-    this.playerLogic.reset(assignment.playerSpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.playerSpawn.y - MainScene.ACTOR_HALF_SIZE);
-    this.dummyLogic.reset(assignment.dummySpawn.x - MainScene.ACTOR_HALF_SIZE, assignment.dummySpawn.y - MainScene.ACTOR_HALF_SIZE);
+    this.playerLogic.reset(assignment.playerSpawn.x - ACTOR_HALF_SIZE, assignment.playerSpawn.y - ACTOR_HALF_SIZE);
+    this.dummyLogic.reset(assignment.dummySpawn.x - ACTOR_HALF_SIZE, assignment.dummySpawn.y - ACTOR_HALF_SIZE);
     this.applyTeamVisuals(assignment.playerTeam, assignment.dummyTeam);
     this.currentDummyWeaponId = "carbine";
     this.lastDummyIntentKey = "chase:false";
@@ -1345,7 +1128,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private spawnPlayerProjectiles(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, bulletSpeed: number, damage: number): void {
-    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
+    playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
     const pelletCount = projectileConfig.pelletCount ?? activeWeapon.pelletCount;
     const spreadRadians = projectileConfig.spreadRadians ?? activeWeapon.spreadRadians;
     const pelletStart = -(pelletCount - 1) / 2;
@@ -1405,7 +1188,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private firePlayerBeam(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, damage: number): void {
-    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
+    playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, activeWeapon.id));
     const angle = this.playerLogic.state.aimAngleRadians;
     const origin = {
       x: this.playerSprite.x + Math.cos(angle) * 24,
@@ -1446,17 +1229,17 @@ export class MainScene extends Phaser.Scene {
   }
 
   private callPlayerAirStrike(projectileConfig: ProjectileConfig): void {
-    const targetX = Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
-    const targetY = Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+    const targetX = Phaser.Math.Clamp(this.input.activePointer.worldX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
+    const targetY = Phaser.Math.Clamp(this.input.activePointer.worldY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
 
     this.callPlayerAirStrikeAt(projectileConfig, targetX, targetY);
   }
 
   private callPlayerAirStrikeAt(projectileConfig: ProjectileConfig, targetX: number, targetY: number): void {
-    const clampedTargetX = Phaser.Math.Clamp(targetX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
-    const clampedTargetY = Phaser.Math.Clamp(targetY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+    const clampedTargetX = Phaser.Math.Clamp(targetX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
+    const clampedTargetY = Phaser.Math.Clamp(targetY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
 
-    this.playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, "airStrike"));
+    playTurretFireAnimation(this.playerWeaponSprite, this.getWeaponTurretTexture(this.currentPlayerTeam, "airStrike"));
     this.activeAirStrikes.push({
       owner: "player",
       state: createAirStrike(clampedTargetX, clampedTargetY, {
@@ -1509,7 +1292,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     const turretTexture = this.getWeaponTurretTexture(this.currentDummyTeam, activeWeapon.id);
-    this.playTurretFireAnimation(this.dummyWeaponSprite, turretTexture);
+    playTurretFireAnimation(this.dummyWeaponSprite, turretTexture);
 
     const pelletStart = -(activeWeapon.pelletCount - 1) / 2;
     for (let index = 0; index < activeWeapon.pelletCount; index += 1) {
@@ -1672,8 +1455,8 @@ export class MainScene extends Phaser.Scene {
 
     return {
       visible: radius > 0 && this.isCombatLive(this.time.now),
-      x: Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X),
-      y: Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y),
+      x: Phaser.Math.Clamp(this.input.activePointer.worldX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X),
+      y: Phaser.Math.Clamp(this.input.activePointer.worldY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y),
       radius
     };
   }
@@ -2135,14 +1918,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private trimBulletPool(): void {
-    while (this.bullets.length > MainScene.MAX_BULLETS) {
+    while (this.bullets.length > MAX_BULLETS) {
       const oldest = this.bullets.shift();
       oldest?.sprite.destroy();
     }
   }
 
   private trimImpactEffectPool(): void {
-    while (this.impactEffects.length > MainScene.MAX_IMPACT_EFFECTS) {
+    while (this.impactEffects.length > MAX_IMPACT_EFFECTS) {
       const oldest = this.impactEffects.shift();
       if (oldest === undefined) {
         return;
@@ -2156,14 +1939,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private trimShotTrailPool(): void {
-    while (this.shotTrails.length > MainScene.MAX_SHOT_TRAILS) {
+    while (this.shotTrails.length > MAX_SHOT_TRAILS) {
       const oldest = this.shotTrails.shift();
       oldest?.line.destroy();
     }
   }
 
   private trimMovementEffectPool(): void {
-    while (this.movementEffects.length > MainScene.MAX_MOVEMENT_EFFECTS) {
+    while (this.movementEffects.length > MAX_MOVEMENT_EFFECTS) {
       const oldest = this.movementEffects.shift();
       oldest?.sprite.destroy();
     }
@@ -2174,7 +1957,7 @@ export class MainScene extends Phaser.Scene {
     const deltaY = this.targetDummy.y - this.playerSprite.y;
     const rawDistance = Math.hypot(deltaX, deltaY);
 
-    if (rawDistance >= MainScene.ACTOR_MIN_SEPARATION) {
+    if (rawDistance >= ACTOR_MIN_SEPARATION) {
       return;
     }
 
@@ -2182,7 +1965,7 @@ export class MainScene extends Phaser.Scene {
     const fallbackAngle = this.playerLogic.state.aimAngleRadians;
     const normalX = rawDistance === 0 ? Math.cos(fallbackAngle) : deltaX / distance;
     const normalY = rawDistance === 0 ? Math.sin(fallbackAngle) : deltaY / distance;
-    const overlap = MainScene.ACTOR_MIN_SEPARATION - rawDistance;
+    const overlap = ACTOR_MIN_SEPARATION - rawDistance;
     const pushX = normalX * overlap * 0.5;
     const pushY = normalY * overlap * 0.5;
     const playerCenter = this.resolveStaticActorCenter(
@@ -2212,7 +1995,7 @@ export class MainScene extends Phaser.Scene {
 
     this.targetDummy.setTint(visual.tint);
     this.targetDummy.setAlpha(visual.alpha);
-    this.targetDummy.setScale(MainScene.ACTOR_BODY_SCALE * visual.scale);
+    this.targetDummy.setScale(ACTOR_BODY_SCALE * visual.scale);
   }
 
   private updateWeaponVisuals(): void {
@@ -2239,13 +2022,13 @@ export class MainScene extends Phaser.Scene {
     this.playerWeaponSprite
       .setPosition(this.playerSprite.x, this.playerSprite.y)
       .setRotation(this.getActorRotation(playerAngle))
-      .setScale(MainScene.PLAYER_WEAPON_SCALE * this.playerSprite.scaleX)
+      .setScale(PLAYER_WEAPON_SCALE * this.playerSprite.scaleX)
       .setAlpha(this.playerSprite.alpha);
 
     this.dummyWeaponSprite
       .setPosition(this.targetDummy.x, this.targetDummy.y)
       .setRotation(this.getActorRotation(dummyAngle))
-      .setScale(MainScene.DUMMY_WEAPON_SCALE * this.targetDummy.scaleX)
+      .setScale(DUMMY_WEAPON_SCALE * this.targetDummy.scaleX)
       .setAlpha(this.targetDummy.alpha);
   }
 
@@ -2436,12 +2219,12 @@ export class MainScene extends Phaser.Scene {
 
     this.playerSprite.setTint(visual.tint);
     this.playerSprite.setAlpha(visual.alpha);
-    this.playerSprite.setScale(MainScene.ACTOR_BODY_SCALE * visual.scale);
+    this.playerSprite.setScale(ACTOR_BODY_SCALE * visual.scale);
   }
 
   private updateCrosshair(now: number): void {
-    const pointerX = Phaser.Math.Clamp(this.input.activePointer.worldX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
-    const pointerY = Phaser.Math.Clamp(this.input.activePointer.worldY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+    const pointerX = Phaser.Math.Clamp(this.input.activePointer.worldX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
+    const pointerY = Phaser.Math.Clamp(this.input.activePointer.worldY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
     const canFight = this.isCombatLive(now) && !this.playerLogic.isDead() && !this.playerLogic.isStunned(now);
     const alpha = canFight ? 0.88 : 0.35;
     const color = canFight ? 0xd8f3ff : 0x7a8899;
@@ -2496,17 +2279,17 @@ export class MainScene extends Phaser.Scene {
       deltaSeconds,
       now
     );
-    this.dummyLogic.updateAim(this.playerSprite.x - MainScene.ACTOR_HALF_SIZE, this.playerSprite.y - MainScene.ACTOR_HALF_SIZE, now);
+    this.dummyLogic.updateAim(this.playerSprite.x - ACTOR_HALF_SIZE, this.playerSprite.y - ACTOR_HALF_SIZE, now);
 
     let dummyCenterX = Phaser.Math.Clamp(
-      this.dummyLogic.state.positionX + MainScene.ACTOR_HALF_SIZE,
-      MainScene.PLAYFIELD_MIN_X,
-      MainScene.PLAYFIELD_MAX_X
+      this.dummyLogic.state.positionX + ACTOR_HALF_SIZE,
+      PLAYFIELD_MIN_X,
+      PLAYFIELD_MAX_X
     );
     let dummyCenterY = Phaser.Math.Clamp(
-      this.dummyLogic.state.positionY + MainScene.ACTOR_HALF_SIZE,
-      MainScene.PLAYFIELD_MIN_Y,
-      MainScene.PLAYFIELD_MAX_Y
+      this.dummyLogic.state.positionY + ACTOR_HALF_SIZE,
+      PLAYFIELD_MIN_Y,
+      PLAYFIELD_MAX_Y
     );
     const collision = this.resolveActorObstacleCollision(
       dummyCenterX,
@@ -2525,8 +2308,8 @@ export class MainScene extends Phaser.Scene {
       this.lastDummySteerX = blockedSteer.moveX;
       this.lastDummySteerY = blockedSteer.moveY;
       this.dummySteerLockUntilMs = now + 220;
-      dummyCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
-      dummyCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
+      dummyCenterX = previousX + ACTOR_HALF_SIZE;
+      dummyCenterY = previousY + ACTOR_HALF_SIZE;
       this.lastDummyDecision = "strafe";
     }
 
@@ -2728,7 +2511,7 @@ export class MainScene extends Phaser.Scene {
     return {
       x: this.playerSprite.x * widthRatio,
       y: this.playerSprite.y * heightRatio,
-      radius: Math.max(10, MainScene.COVER_VISION_RADIUS * radiusRatio)
+      radius: Math.max(10, COVER_VISION_RADIUS * radiusRatio)
     };
   }
 
@@ -2754,7 +2537,7 @@ export class MainScene extends Phaser.Scene {
     for (const slot of this.weaponSlots) {
       slot.logic.restockAllAmmo(now);
     }
-    this.playerUnlimitedAmmoUntilMs = now + MainScene.AMMO_OVERDRIVE_MS;
+    this.playerUnlimitedAmmoUntilMs = now + AMMO_OVERDRIVE_MS;
 
     this.ammoPickup.available = false;
     this.ammoPickup.respawnAtMs = now + this.ammoPickup.respawnMs;
@@ -2806,7 +2589,7 @@ export class MainScene extends Phaser.Scene {
       matchWinner: this.roundLogic.state.matchWinner,
       now,
       matchResetDelayMs: this.gameBalance.matchResetDelayMs,
-      respawnDelayMs: MainScene.RESPAWN_DELAY_MS
+      respawnDelayMs: RESPAWN_DELAY_MS
     });
 
     if (plan.clearBullets) {
@@ -2839,7 +2622,7 @@ export class MainScene extends Phaser.Scene {
     this.hazardZone.logic.reset();
     this.applySpawnAssignment(this.matchFlow.redeploy(this.spawnTable));
     this.roundStartUntilMs = now + this.gameBalance.roundStartDelayMs;
-    this.respawnFxUntilMs = now + MainScene.RESPAWN_FX_MS;
+    this.respawnFxUntilMs = now + RESPAWN_FX_MS;
     this.matchConfirmReadyCueSent = false;
     this.playerSprite.setTint(0xffffff);
     this.playerSprite.setAlpha(1);
@@ -3017,157 +2800,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private getRespawnFxState(now: number) {
-    return getRespawnFxState(now, this.respawnFxUntilMs, MainScene.RESPAWN_FX_MS);
+    return getRespawnFxState(now, this.respawnFxUntilMs, RESPAWN_FX_MS);
   }
 
-  private createArenaPropTextures(): void {
-    this.createObstacleTexture(MainScene.OBSTACLE_CORE_KEY, 96, 96, 0xe6b35f, 0x8c5a21, 0xfff0ca);
-    this.createObstacleTexture(MainScene.OBSTACLE_TOWER_KEY, 96, 160, 0x5bb3d8, 0x214f7a, 0xd7f2ff);
-    this.createObstacleTexture(MainScene.OBSTACLE_BARRIER_KEY, 160, 64, 0x72cb8a, 0x2d6b42, 0xe0ffe8);
-    this.createGateTexture();
-    this.createVentTexture();
-    this.createPickupTexture(MainScene.PICKUP_AMMO_KEY, 0x6ce5ff, 0xd9f9ff, "A");
-    this.createPickupTexture(MainScene.PICKUP_HEALTH_KEY, 0x7cff9e, 0xeafff0, "+");
-  }
-
-  private createObstacleTexture(
-    textureKey: string,
-    width: number,
-    height: number,
-    fillColor: number,
-    shadowColor: number,
-    highlightColor: number
-  ): void {
-    if (this.textures.exists(textureKey)) {
-      return;
-    }
-
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, 0);
-    graphics.fillRect(0, 0, width, height);
-    graphics.fillStyle(shadowColor, 0.94);
-    graphics.fillRoundedRect(4, 6, width - 8, height - 10, 10);
-    graphics.fillStyle(fillColor, 0.96);
-    graphics.fillRoundedRect(6, 4, width - 12, height - 12, 10);
-    graphics.fillStyle(highlightColor, 0.78);
-    graphics.fillRoundedRect(12, 10, width - 24, Math.max(8, Math.floor(height * 0.16)), 6);
-    graphics.lineStyle(3, 0xffffff, 0.18);
-    graphics.strokeRoundedRect(6, 4, width - 12, height - 12, 10);
-    graphics.generateTexture(textureKey, width, height);
-    graphics.destroy();
-  }
-
-  private createGateTexture(): void {
-    if (this.textures.exists(MainScene.GATE_PANEL_KEY)) {
-      return;
-    }
-
-    const width = 128;
-    const height = 48;
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, 0);
-    graphics.fillRect(0, 0, width, height);
-    graphics.fillStyle(0x65462d, 0.94);
-    graphics.fillRoundedRect(4, 6, width - 8, height - 10, 8);
-    graphics.fillStyle(0xd59a47, 0.96);
-    graphics.fillRoundedRect(6, 4, width - 12, height - 12, 8);
-    graphics.fillStyle(0xffe3a0, 0.7);
-    graphics.fillRect(14, 12, width - 28, 6);
-    graphics.lineStyle(3, 0xffffff, 0.18);
-    graphics.strokeRoundedRect(6, 4, width - 12, height - 12, 8);
-    graphics.generateTexture(MainScene.GATE_PANEL_KEY, width, height);
-    graphics.destroy();
-  }
-
-  private createVentTexture(): void {
-    if (this.textures.exists(MainScene.VENT_PANEL_KEY)) {
-      return;
-    }
-
-    const width = 192;
-    const height = 64;
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, 0);
-    graphics.fillRect(0, 0, width, height);
-    graphics.fillStyle(0x6f2f94, 0.92);
-    graphics.fillRoundedRect(6, 6, width - 12, height - 12, 10);
-    graphics.fillStyle(0xc34cff, 0.28);
-    graphics.fillRoundedRect(10, 10, width - 20, height - 20, 8);
-    graphics.lineStyle(2, 0xffffff, 0.2);
-    for (let x = 18; x < width - 18; x += 18) {
-      graphics.lineBetween(x, 16, x, height - 16);
-    }
-    graphics.generateTexture(MainScene.VENT_PANEL_KEY, width, height);
-    graphics.destroy();
-  }
-
-  private createPickupTexture(textureKey: string, fillColor: number, highlightColor: number, glyph: string): void {
-    if (this.textures.exists(textureKey)) {
-      return;
-    }
-
-    const size = 48;
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, 0);
-    graphics.fillRect(0, 0, size, size);
-    graphics.fillStyle(0x12202a, 0.4);
-    graphics.fillCircle(size / 2, size / 2 + 3, 17);
-    graphics.fillStyle(fillColor, 1);
-    graphics.fillCircle(size / 2, size / 2, 16);
-    graphics.fillStyle(highlightColor, 0.86);
-    graphics.fillCircle(size / 2 - 5, size / 2 - 5, 6);
-    graphics.lineStyle(2, 0xffffff, 0.24);
-    graphics.strokeCircle(size / 2, size / 2, 16);
-    graphics.lineStyle(3, 0x0c1520, 0.72);
-
-    if (glyph === "+") {
-      graphics.lineBetween(size / 2, 13, size / 2, size - 13);
-      graphics.lineBetween(13, size / 2, size - 13, size / 2);
-    } else {
-      graphics.lineBetween(size / 2, 13, size / 2, size - 13);
-      graphics.lineBetween(size / 2, 13, size - 15, size / 2);
-    }
-
-    graphics.generateTexture(textureKey, size, size);
-    graphics.destroy();
-  }
-
-  private addArenaBackdrop(): void {
-    const playfieldWidth = MainScene.PLAYFIELD_MAX_X - MainScene.PLAYFIELD_MIN_X;
-    const playfieldHeight = MainScene.PLAYFIELD_MAX_Y - MainScene.PLAYFIELD_MIN_Y;
-    const playfieldCenterX = (MainScene.PLAYFIELD_MIN_X + MainScene.PLAYFIELD_MAX_X) * 0.5;
-    const playfieldCenterY = (MainScene.PLAYFIELD_MIN_Y + MainScene.PLAYFIELD_MAX_Y) * 0.5;
-
-    this.add.rectangle(480, 270, 960, 540, 0x0a121b, 0.02).setDepth(-2);
-    this.addTerrainSurface(
-      playfieldCenterX,
-      playfieldCenterY,
-      playfieldWidth,
-      playfieldHeight,
-      { x: 0, y: 0, width: 896, height: 640 },
-      0.94,
-      -1
-    );
-    this.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x10273a, 0.035).setDepth(0);
-    this.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x234f85, 0).setStrokeStyle(2, 0xa7ddff, 0.42).setDepth(1);
-  }
-
-  private addTerrainSurface(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    crop: TerrainCrop,
-    alpha: number,
-    depth: number
-  ): Phaser.GameObjects.Image {
-    return this.add
-      .image(x, y, MainScene.GROUND_TERRAIN_KEY)
-      .setCrop(crop.x, crop.y, crop.width, crop.height)
-      .setDisplaySize(width, height)
-      .setAlpha(alpha)
-      .setDepth(depth);
-  }
 
   private applyStageGeometry(): void {
     this.clearStageGeometry();
@@ -3288,11 +2923,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   private addObstacle(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): ObstacleView {
-    const visualKey = width > 140 ? MainScene.OBSTACLE_BARRIER_KEY : height > width ? MainScene.OBSTACLE_TOWER_KEY : MainScene.OBSTACLE_CORE_KEY;
+    const visualKey = width > 140 ? OBSTACLE_BARRIER_KEY : height > width ? OBSTACLE_TOWER_KEY : OBSTACLE_CORE_KEY;
     const visuals: Phaser.GameObjects.GameObject[] = [];
     visuals.push(this.add.rectangle(x + 6, y + 8, width, height, 0x0c1420, 0.26).setDepth(2));
     if (crop !== undefined) {
-      visuals.push(this.addTerrainSurface(x, y, width, height, crop, 0.92, 2));
+      visuals.push(addTerrainSurface(this, x, y, width, height, crop, 0.92, 2));
     }
     visuals.push(this.add.image(x, y, visualKey).setDisplaySize(width, height).setDepth(3).setAlpha(0.96));
     const sprite = this.add
@@ -3311,9 +2946,9 @@ export class MainScene extends Phaser.Scene {
   private addGate(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): GateView {
     this.add.rectangle(x + 5, y + 6, width, height, 0x0c1420, 0.22).setDepth(2);
     if (crop !== undefined) {
-      this.addTerrainSurface(x, y, width, height, crop, 0.9, 2);
+      addTerrainSurface(this, x, y, width, height, crop, 0.9, 2);
     }
-    this.add.image(x, y, MainScene.GATE_PANEL_KEY).setDisplaySize(width, height).setDepth(3).setAlpha(0.95);
+    this.add.image(x, y, GATE_PANEL_KEY).setDisplaySize(width, height).setDepth(3).setAlpha(0.95);
     const sprite = this.add
       .rectangle(x, y, width, height, color, crop === undefined ? 0.12 : 0.08)
       .setStrokeStyle(3, 0xffffff, crop === undefined ? 0.24 : 0.16)
@@ -3329,7 +2964,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private addHazardZone(x: number, y: number, width: number, height: number): HazardZoneView {
-    this.add.image(x, y, MainScene.VENT_PANEL_KEY).setDisplaySize(width, height).setDepth(2).setAlpha(0.92);
+    this.add.image(x, y, VENT_PANEL_KEY).setDisplaySize(width, height).setDepth(2).setAlpha(0.92);
     const sprite = this.add
       .rectangle(x, y, width, height, 0xc34cff, 0.26)
       .setStrokeStyle(3, 0xffffff, 0.42)
@@ -3369,266 +3004,33 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {
-    const weapons = (gameBalance.weapons ?? {}) as Record<string, BalanceWeaponConfig>;
-    return [
-      this.createWeaponSlot("carbine", "Carbine", this.mergeWeaponConfig({
-        fireRateMs: gameBalance.fireRateMs,
-        bulletSpeed: gameBalance.bulletSpeed,
-        damage: gameBalance.bulletDamage,
-        magazineSize: gameBalance.magazineSize,
-        reloadTimeMs: gameBalance.reloadTimeMs,
-        reserveAmmo: gameBalance.reserveAmmo
-      }, weapons.carbine), {
-        bulletColor: 0xfff27a,
-        bulletWidth: 10,
-        bulletHeight: 4,
-        pelletCount: 1,
-        spreadRadians: 0
-      }),
-      this.createWeaponSlot("scatter", "Scatter", this.mergeWeaponConfig({
-        fireRateMs: 620,
-        bulletSpeed: gameBalance.bulletSpeed * 0.82,
-        damage: 12,
-        magazineSize: 2,
-        reloadTimeMs: 1450,
-        reserveAmmo: 12
-      }, weapons.scatter), {
-        bulletColor: 0xffb86c,
-        bulletWidth: 8,
-        bulletHeight: 4,
-        pelletCount: 3,
-        spreadRadians: Phaser.Math.DegToRad(7)
-      }),
-      this.createWeaponSlot("bazooka", "Bazooka", this.mergeWeaponConfig({
-        fireRateMs: 1250,
-        bulletSpeed: gameBalance.bulletSpeed * 0.54,
-        damage: 45,
-        magazineSize: 1,
-        reloadTimeMs: 1700,
-        reserveAmmo: 5
-      }, weapons.bazooka), {
-        bulletColor: 0xff8f3f,
-        bulletWidth: 16,
-        bulletHeight: 8,
-        pelletCount: 1,
-        spreadRadians: 0
-      }),
-      this.createWeaponSlot("grenade", "Grenade", this.mergeWeaponConfig({
-        fireRateMs: 1100,
-        bulletSpeed: gameBalance.bulletSpeed * 0.66,
-        damage: 35,
-        magazineSize: 1,
-        reloadTimeMs: 1500,
-        reserveAmmo: 6
-      }, weapons.grenade), {
-        bulletColor: 0x7cff8a,
-        bulletWidth: 12,
-        bulletHeight: 12,
-        pelletCount: 1,
-        spreadRadians: 0
-      }),
-      this.createWeaponSlot("sniper", "Sniper", this.mergeWeaponConfig({
-        fireRateMs: 2000,
-        bulletSpeed: 0,
-        damage: 55,
-        magazineSize: 1,
-        reloadTimeMs: 1900,
-        reserveAmmo: 8
-      }, weapons.sniper), {
-        bulletColor: 0xdff8ff,
-        bulletWidth: 14,
-        bulletHeight: 3,
-        pelletCount: 1,
-        spreadRadians: 0
-      }),
-      this.createWeaponSlot("airStrike", "Air Strike", this.mergeWeaponConfig({
-        fireRateMs: 15000,
-        bulletSpeed: 0,
-        damage: 30,
-        magazineSize: 1,
-        reloadTimeMs: 0,
-        reserveAmmo: 3
-      }, weapons.airStrike), {
-        bulletColor: 0xfff06a,
-        bulletWidth: 18,
-        bulletHeight: 18,
-        pelletCount: 1,
-        spreadRadians: 0
-      })
-    ];
-  }
-
-  private createDummyWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {
-    return [
-      this.createWeaponSlot("carbine", "Dummy Carbine", {
-        fireRateMs: 900,
-        bulletSpeed: gameBalance.bulletSpeed * 0.75,
-        damage: 12,
-        magazineSize: 99,
-        reloadTimeMs: 1,
-        reserveAmmo: 999
-      }, {
-        bulletColor: 0xff8b8b,
-        bulletWidth: 10,
-        bulletHeight: 4,
-        pelletCount: 1,
-        spreadRadians: 0
-      }, {
-        trajectory: "linear",
-        speed: gameBalance.bulletSpeed * 0.75
-      }),
-      this.createWeaponSlot("scatter", "Dummy Scatter", {
-        fireRateMs: 1100,
-        bulletSpeed: gameBalance.bulletSpeed * 0.68,
-        damage: 8,
-        magazineSize: 99,
-        reloadTimeMs: 1,
-        reserveAmmo: 999
-      }, {
-        bulletColor: 0xffaf73,
-        bulletWidth: 8,
-        bulletHeight: 4,
-        pelletCount: 3,
-        spreadRadians: Phaser.Math.DegToRad(8)
-      }, {
-        trajectory: "linear",
-        speed: gameBalance.bulletSpeed * 0.68
-      })
-    ];
-  }
-
-  private mergeWeaponConfig(defaultConfig: WeaponConfig, balanceConfig: BalanceWeaponConfig | undefined): WeaponConfig {
-    return {
-      ...defaultConfig,
-      ...balanceConfig,
-      bulletSpeed: balanceConfig?.bulletSpeed ?? balanceConfig?.projectile?.speed ?? defaultConfig.bulletSpeed
-    };
-  }
-
-  private createWeaponSlot(
-    id: string,
-    label: string,
-    config: WeaponConfig,
-    view: {
-      readonly bulletColor: number;
-      readonly bulletWidth: number;
-      readonly bulletHeight: number;
-      readonly pelletCount: number;
-      readonly spreadRadians: number;
-    },
-    projectileConfig: ProjectileConfig = {
-      trajectory: "linear",
-      speed: config.bulletSpeed
-    }
-  ): PlayerWeaponSlot {
-    return {
-      id,
-      label,
-      logic: new WeaponLogic(config),
-      projectileConfig: config.projectile ?? projectileConfig,
-      ...view
-    };
-  }
-
-  private createActorSkins(): void {
-    this.createActorTexture("skin-player-blue", {
-      bodyColor: 0x4ec9ff,
-      headColor: 0xffffff,
-      accentColor: 0x1d6cb5,
-      weaponColor: 0xffcf4c
-    });
-    this.createActorTexture("skin-player-red", {
-      bodyColor: 0xff6d7a,
-      headColor: 0xfff3f3,
-      accentColor: 0xbe3348,
-      weaponColor: 0xffbf54
-    });
-    this.createActorTexture("skin-dummy-blue", {
-      bodyColor: 0x70d8ff,
-      headColor: 0xf8fdff,
-      accentColor: 0x1b6eb1,
-      weaponColor: 0xffd464
-    });
-    this.createActorTexture("skin-dummy-red", {
-      bodyColor: 0xff7a6d,
-      headColor: 0xfff2f2,
-      accentColor: 0xc14431,
-      weaponColor: 0xffd464
-    });
-  }
-
-  private createActorImage(actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
-    const textureKey = actor === "player" ? MainScene.GROUND_BODY_BLUE_KEY : MainScene.GROUND_BODY_RED_KEY;
-    return this.add.image(x, y, textureKey).setDepth(5).setScale(MainScene.ACTOR_BODY_SCALE);
-  }
-
-  private createTurretAnimations(): void {
-    this.ensureTurretAnimation(MainScene.GROUND_TURRET_CARBINE_BLUE_KEY, MainScene.CARBINE_TURRET_FRAMES, 18);
-    this.ensureTurretAnimation(MainScene.GROUND_TURRET_CARBINE_RED_KEY, MainScene.CARBINE_TURRET_FRAMES, 18);
-    this.ensureTurretAnimation(MainScene.GROUND_TURRET_SCATTER_BLUE_KEY, MainScene.SCATTER_TURRET_FRAMES, 22);
-    this.ensureTurretAnimation(MainScene.GROUND_TURRET_SCATTER_RED_KEY, MainScene.SCATTER_TURRET_FRAMES, 22);
-  }
-
-  private ensureTurretAnimation(textureKey: string, frameCount: number, frameRate: number): void {
-    const animationKey = this.getTurretAnimationKey(textureKey);
-
-    if (this.anims.exists(animationKey)) {
-      return;
-    }
-
-    this.anims.create({
-      key: animationKey,
-      frames: this.anims.generateFrameNumbers(textureKey, {
-        start: 0,
-        end: frameCount - 1
-      }),
-      frameRate,
-      repeat: 0
-    });
-  }
-
   private applyTeamVisuals(playerTeam: TeamId, dummyTeam: TeamId): void {
     this.currentPlayerTeam = playerTeam;
     this.currentDummyTeam = dummyTeam;
 
     if (this.playerSprite !== undefined) {
-      this.playerSprite.setTexture(playerTeam === "BLUE" ? MainScene.GROUND_BODY_BLUE_KEY : MainScene.GROUND_BODY_RED_KEY);
+      this.playerSprite.setTexture(playerTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
     }
 
     if (this.targetDummy !== undefined) {
-      this.targetDummy.setTexture(dummyTeam === "BLUE" ? MainScene.GROUND_BODY_BLUE_KEY : MainScene.GROUND_BODY_RED_KEY);
+      this.targetDummy.setTexture(dummyTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
     }
   }
 
   private getWeaponTurretTexture(team: TeamId, weaponId: string): string {
     const isScatter = weaponId === "scatter";
     if (team === "RED") {
-      return isScatter ? MainScene.GROUND_TURRET_SCATTER_RED_KEY : MainScene.GROUND_TURRET_CARBINE_RED_KEY;
+      return isScatter ? GROUND_TURRET_SCATTER_RED_KEY : GROUND_TURRET_CARBINE_RED_KEY;
     }
-    return isScatter ? MainScene.GROUND_TURRET_SCATTER_BLUE_KEY : MainScene.GROUND_TURRET_CARBINE_BLUE_KEY;
+    return isScatter ? GROUND_TURRET_SCATTER_BLUE_KEY : GROUND_TURRET_CARBINE_BLUE_KEY;
   }
 
   private getActorRotation(angleRadians: number): number {
-    return angleRadians + MainScene.ACTOR_ROTATION_OFFSET;
+    return angleRadians + ACTOR_ROTATION_OFFSET;
   }
 
   private getActorCollisionBounds(centerX: number, centerY: number) {
-    return createCenteredRect(centerX, centerY, MainScene.ACTOR_COLLIDER_WIDTH, MainScene.ACTOR_COLLIDER_HEIGHT);
-  }
-
-  private getTurretAnimationKey(textureKey: string): string {
-    return `${textureKey}-fire`;
-  }
-
-  private playTurretFireAnimation(sprite: Phaser.GameObjects.Sprite, textureKey: string): void {
-    const animationKey = this.getTurretAnimationKey(textureKey);
-
-    if (sprite.texture.key !== textureKey) {
-      sprite.setTexture(textureKey, 0);
-    }
-
-    sprite.play(animationKey, true);
+    return createCenteredRect(centerX, centerY, ACTOR_COLLIDER_WIDTH, ACTOR_COLLIDER_HEIGHT);
   }
 
   private updateDummyBodyAngle(moveX: number, moveY: number, deltaSeconds: number): void {
@@ -3640,7 +3042,7 @@ export class MainScene extends Phaser.Scene {
     this.dummyBodyAngle = this.rotateAngleTowards(
       this.dummyBodyAngle,
       this.resolveHullAngle(this.dummyBodyAngle, desiredMoveAngle),
-      MainScene.BODY_TURN_RATE * deltaSeconds
+      BODY_TURN_RATE * deltaSeconds
     );
   }
 
@@ -3661,53 +3063,6 @@ export class MainScene extends Phaser.Scene {
     }
 
     return current + Math.sign(delta) * maxStep;
-  }
-
-  private createActorTexture(
-    textureKey: string,
-    palette: {
-      readonly bodyColor: number;
-      readonly headColor: number;
-      readonly accentColor: number;
-      readonly weaponColor: number;
-    }
-  ): void {
-    if (this.textures.exists(textureKey)) {
-      return;
-    }
-
-    const isDummy = textureKey.includes("dummy");
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, 0);
-    graphics.fillRect(0, 0, 48, 48);
-    graphics.fillStyle(0x102030, 0.28);
-    graphics.fillEllipse(24, 33, 26, 14);
-    graphics.fillStyle(palette.accentColor, 1);
-    graphics.fillCircle(24, 24, 17);
-    graphics.lineStyle(3, 0xffffff, 0.95);
-    graphics.strokeCircle(24, 24, 17);
-    graphics.fillStyle(palette.bodyColor, 1);
-
-    if (isDummy) {
-      graphics.fillRoundedRect(13, 13, 22, 22, 8);
-      graphics.fillStyle(palette.headColor, 1);
-      graphics.fillCircle(24, 24, 7);
-      graphics.fillStyle(palette.weaponColor, 1);
-      graphics.fillRoundedRect(24, 21, 15, 6, 3);
-      graphics.lineStyle(2, 0x203040, 0.45);
-      graphics.strokeRoundedRect(13, 13, 22, 22, 8);
-    } else {
-      graphics.fillTriangle(11, 14, 11, 34, 34, 24);
-      graphics.fillStyle(palette.headColor, 1);
-      graphics.fillCircle(20, 24, 6);
-      graphics.fillStyle(palette.weaponColor, 1);
-      graphics.fillRoundedRect(29, 21, 12, 6, 3);
-      graphics.lineStyle(2, 0x203040, 0.45);
-      graphics.strokeTriangle(11, 14, 11, 34, 34, 24);
-    }
-
-    graphics.generateTexture(textureKey, 48, 48);
-    graphics.destroy();
   }
 
   private resolvePlayerObstacleCollision(
@@ -3747,29 +3102,29 @@ export class MainScene extends Phaser.Scene {
       };
     }
 
-    const xOnlyBounds = this.getActorCollisionBounds(centerX, previousY + MainScene.ACTOR_HALF_SIZE);
-    const yOnlyBounds = this.getActorCollisionBounds(previousX + MainScene.ACTOR_HALF_SIZE, centerY);
+    const xOnlyBounds = this.getActorCollisionBounds(centerX, previousY + ACTOR_HALF_SIZE);
+    const yOnlyBounds = this.getActorCollisionBounds(previousX + ACTOR_HALF_SIZE, centerY);
     const canKeepX = !this.getActiveObstacles().some((obstacle) => intersectsRect(xOnlyBounds, obstacle.bounds));
     const canKeepY = !this.getActiveObstacles().some((obstacle) => intersectsRect(yOnlyBounds, obstacle.bounds));
 
     if (canKeepX) {
-      actorLogic.state.positionX = centerX - MainScene.ACTOR_HALF_SIZE;
+      actorLogic.state.positionX = centerX - ACTOR_HALF_SIZE;
       actorLogic.state.positionY = previousY;
       if (isPlayer) { this.playerConsecutiveBlockedFrames = 0; } else { this.dummyConsecutiveBlockedFrames = 0; }
       return {
         blocked: false,
         centerX,
-        centerY: previousY + MainScene.ACTOR_HALF_SIZE
+        centerY: previousY + ACTOR_HALF_SIZE
       };
     }
 
     if (canKeepY) {
       actorLogic.state.positionX = previousX;
-      actorLogic.state.positionY = centerY - MainScene.ACTOR_HALF_SIZE;
+      actorLogic.state.positionY = centerY - ACTOR_HALF_SIZE;
       if (isPlayer) { this.playerConsecutiveBlockedFrames = 0; } else { this.dummyConsecutiveBlockedFrames = 0; }
       return {
         blocked: false,
-        centerX: previousX + MainScene.ACTOR_HALF_SIZE,
+        centerX: previousX + ACTOR_HALF_SIZE,
         centerY
       };
     }
@@ -3777,8 +3132,8 @@ export class MainScene extends Phaser.Scene {
     const overlapResolution = this.resolveObstacleOverlap(attemptedBounds);
 
     if (overlapResolution !== null) {
-      actorLogic.state.positionX = overlapResolution.centerX - MainScene.ACTOR_HALF_SIZE;
-      actorLogic.state.positionY = overlapResolution.centerY - MainScene.ACTOR_HALF_SIZE;
+      actorLogic.state.positionX = overlapResolution.centerX - ACTOR_HALF_SIZE;
+      actorLogic.state.positionY = overlapResolution.centerY - ACTOR_HALF_SIZE;
       if (isPlayer) { this.playerConsecutiveBlockedFrames = 0; } else { this.dummyConsecutiveBlockedFrames = 0; }
       return {
         blocked: false,
@@ -3792,14 +3147,14 @@ export class MainScene extends Phaser.Scene {
     const blockedFrames = isPlayer ? this.playerConsecutiveBlockedFrames : this.dummyConsecutiveBlockedFrames;
 
     // Safety spiral escape: if stuck for too many consecutive frames, scan outward for a valid position
-    if (blockedFrames > MainScene.STUCK_ESCAPE_THRESHOLD) {
-      const escapePrevCenterX = previousX + MainScene.ACTOR_HALF_SIZE;
-      const escapePrevCenterY = previousY + MainScene.ACTOR_HALF_SIZE;
+    if (blockedFrames > STUCK_ESCAPE_THRESHOLD) {
+      const escapePrevCenterX = previousX + ACTOR_HALF_SIZE;
+      const escapePrevCenterY = previousY + ACTOR_HALF_SIZE;
       const spiralResult = this.findSpiralEscapePosition(escapePrevCenterX, escapePrevCenterY);
 
       if (spiralResult !== null) {
-        actorLogic.state.positionX = spiralResult.centerX - MainScene.ACTOR_HALF_SIZE;
-        actorLogic.state.positionY = spiralResult.centerY - MainScene.ACTOR_HALF_SIZE;
+        actorLogic.state.positionX = spiralResult.centerX - ACTOR_HALF_SIZE;
+        actorLogic.state.positionY = spiralResult.centerY - ACTOR_HALF_SIZE;
         if (isPlayer) { this.playerConsecutiveBlockedFrames = 0; } else { this.dummyConsecutiveBlockedFrames = 0; }
         return {
           blocked: false,
@@ -3818,8 +3173,8 @@ export class MainScene extends Phaser.Scene {
 
     return {
       blocked: true,
-      centerX: previousX + MainScene.ACTOR_HALF_SIZE,
-      centerY: previousY + MainScene.ACTOR_HALF_SIZE
+      centerX: previousX + ACTOR_HALF_SIZE,
+      centerY: previousY + ACTOR_HALF_SIZE
     };
   }
 
@@ -3836,10 +3191,10 @@ export class MainScene extends Phaser.Scene {
 
     for (const obstacle of overlappingObstacles) {
       const bounds = obstacle.bounds;
-      const leftPush = bounds.x - (targetBounds.x + targetBounds.width) - MainScene.OBSTACLE_CONTACT_EPSILON;
-      const rightPush = bounds.x + bounds.width - targetBounds.x + MainScene.OBSTACLE_CONTACT_EPSILON;
-      const topPush = bounds.y - (targetBounds.y + targetBounds.height) - MainScene.OBSTACLE_CONTACT_EPSILON;
-      const bottomPush = bounds.y + bounds.height - targetBounds.y + MainScene.OBSTACLE_CONTACT_EPSILON;
+      const leftPush = bounds.x - (targetBounds.x + targetBounds.width) - OBSTACLE_CONTACT_EPSILON;
+      const rightPush = bounds.x + bounds.width - targetBounds.x + OBSTACLE_CONTACT_EPSILON;
+      const topPush = bounds.y - (targetBounds.y + targetBounds.height) - OBSTACLE_CONTACT_EPSILON;
+      const bottomPush = bounds.y + bounds.height - targetBounds.y + OBSTACLE_CONTACT_EPSILON;
 
       const translations = [
         { x: leftPush, y: 0 },
@@ -3855,13 +3210,13 @@ export class MainScene extends Phaser.Scene {
       for (const translation of translations) {
         const candidateCenterX = Phaser.Math.Clamp(
           targetCenterX + translation.x,
-          MainScene.PLAYFIELD_MIN_X,
-          MainScene.PLAYFIELD_MAX_X
+          PLAYFIELD_MIN_X,
+          PLAYFIELD_MAX_X
         );
         const candidateCenterY = Phaser.Math.Clamp(
           targetCenterY + translation.y,
-          MainScene.PLAYFIELD_MIN_Y,
-          MainScene.PLAYFIELD_MAX_Y
+          PLAYFIELD_MIN_Y,
+          PLAYFIELD_MAX_Y
         );
         const candidateBounds = this.getActorCollisionBounds(candidateCenterX, candidateCenterY);
 
@@ -3891,7 +3246,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private findSpiralEscapePosition(originX: number, originY: number): { centerX: number; centerY: number } | null {
-    const step = MainScene.SPIRAL_SCAN_STEP_SIZE;
+    const step = SPIRAL_SCAN_STEP_SIZE;
     let x = 0;
     let y = 0;
     let dx = step;
@@ -3900,20 +3255,20 @@ export class MainScene extends Phaser.Scene {
     let segmentPassed = 0;
     let turnsMade = 0;
 
-    for (let i = 0; i < MainScene.SPIRAL_SCAN_MAX_STEPS; i++) {
+    for (let i = 0; i < SPIRAL_SCAN_MAX_STEPS; i++) {
       x += dx;
       y += dy;
       segmentPassed++;
 
       const candidateX = Phaser.Math.Clamp(
         originX + x,
-        MainScene.PLAYFIELD_MIN_X,
-        MainScene.PLAYFIELD_MAX_X
+        PLAYFIELD_MIN_X,
+        PLAYFIELD_MAX_X
       );
       const candidateY = Phaser.Math.Clamp(
         originY + y,
-        MainScene.PLAYFIELD_MIN_Y,
-        MainScene.PLAYFIELD_MAX_Y
+        PLAYFIELD_MIN_Y,
+        PLAYFIELD_MAX_Y
       );
       const candidateBounds = this.getActorCollisionBounds(candidateX, candidateY);
 
@@ -3943,8 +3298,8 @@ export class MainScene extends Phaser.Scene {
     targetCenterX: number,
     targetCenterY: number
   ): { x: number; y: number } {
-    const clampedCenterX = Phaser.Math.Clamp(targetCenterX, MainScene.PLAYFIELD_MIN_X, MainScene.PLAYFIELD_MAX_X);
-    const clampedCenterY = Phaser.Math.Clamp(targetCenterY, MainScene.PLAYFIELD_MIN_Y, MainScene.PLAYFIELD_MAX_Y);
+    const clampedCenterX = Phaser.Math.Clamp(targetCenterX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
+    const clampedCenterY = Phaser.Math.Clamp(targetCenterY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
     const targetBounds = this.getActorCollisionBounds(clampedCenterX, clampedCenterY);
 
     if (this.getActiveObstacles().some((obstacle) => intersectsRect(targetBounds, obstacle.bounds))) {
@@ -3954,8 +3309,8 @@ export class MainScene extends Phaser.Scene {
       };
     }
 
-    actorLogic.state.positionX = clampedCenterX - MainScene.ACTOR_HALF_SIZE;
-    actorLogic.state.positionY = clampedCenterY - MainScene.ACTOR_HALF_SIZE;
+    actorLogic.state.positionX = clampedCenterX - ACTOR_HALF_SIZE;
+    actorLogic.state.positionY = clampedCenterY - ACTOR_HALF_SIZE;
 
     return {
       x: clampedCenterX,
