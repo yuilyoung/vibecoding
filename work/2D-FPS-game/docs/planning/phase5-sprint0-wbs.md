@@ -2,7 +2,7 @@
 
 - Date: 2026-04-16
 - Owner: ultron
-- Status: pending
+- Status: complete
 - Handoff: `../../../../docs/handoffs/current-handoff.json`
 
 ## Summary
@@ -28,14 +28,14 @@ interface SceneRuntimeState {
 
 | ID | Work | Approx Lines | Depends | Status |
 |----|------|-------------|---------|--------|
-| T0 | SceneRuntimeState 공유 상태 객체 정의 | ~80 | — | pending |
-| T1 | VfxController — 이펙트 풀(impact/trail/movement) 생성/업데이트/트림 | ~300 | T0 | pending |
-| T2 | ActorCollisionResolver — 장애물 충돌, 슬라이드, 나선형 탈출 | ~250 | T0 | pending |
-| T3 | StageGeometryManager — 장애물/게이트/해저드/픽업 배치/상호작용 | ~400 | T0, T2 | pending |
-| T4 | DummyActorController — 더미 AI 이동/커버/조향/회전 | ~350 | T0, T2 | pending |
-| T5 | CombatController — 사격/재장전/탄환 업데이트/공습/무기 전환 | ~500 | T0, T1, T2 | pending |
-| T6 | TODO(bug) 핫픽스 2건 | ~20 | — | pending |
-| T7 | 검증 게이트 + execution report | — | T1~T6 | pending |
+| T0 | SceneRuntimeState 공유 상태 객체 정의 | ~80 | — | complete |
+| T1 | VfxController — 이펙트 풀(impact/trail/movement) 생성/업데이트/트림 | ~300 | T0 | complete |
+| T2 | ActorCollisionResolver — 장애물 충돌, 슬라이드, 나선형 탈출 | ~250 | T0 | complete |
+| T3 | StageGeometryManager — 장애물/게이트/해저드/픽업 배치/상호작용 | ~400 | T0, T2 | complete |
+| T4 | DummyActorController — 더미 AI 이동/커버/조향/회전 | ~350 | T0, T2 | complete |
+| T5 | CombatController — 사격/재장전/탄환 업데이트/공습/무기 전환 | ~500 | T0, T1, T2 | complete |
+| T6 | TODO(bug) 핫픽스 2건 | ~20 | — | complete |
+| T7 | 검증 게이트 + execution report | — | T1~T6 | complete |
 
 ## Dependency Graph
 

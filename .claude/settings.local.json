@@ -71,7 +71,19 @@
       "Bash(curl -sL https://raw.githubusercontent.com/piercelamb/deep-plan/main/plugin.json)",
       "Bash(curl -sL https://raw.githubusercontent.com/piercelamb/deep-project/main/plugin.json)",
       "Bash(curl -sL https://raw.githubusercontent.com/piercelamb/deep-implement/main/plugin.json)",
-      "Bash(curl -sL https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/plugin.json)"
+      "Bash(curl -sL https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/plugin.json)",
+      "Bash(GIT_EDITOR=true git rebase:*)",
+      "Bash(GIT_EDITOR=\"true\" git rebase:*)",
+      "Bash(cp work/2D-FPS-game/docs/handoffs/current-handoff.json docs/handoffs/current-handoff.json)",
+      "Bash(cp work/2D-FPS-game/docs/handoffs/current-execution-report.md docs/handoffs/current-execution-report.md)",
+      "Bash(wc -l work/2D-FPS-game/src/scenes/MainScene.ts work/2D-FPS-game/src/domain/*/*.ts)",
+      "Bash(wc:*)",
+      "Bash(mkdir -p /c/Users/yuiy/.claude/agents)",
+      "Bash(cp /c/Users/yuiy/Documents/Dev/ai-project/work/2D-FPS-game/.claude/agents/*.md /c/Users/yuiy/.claude/agents/)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npm run type-check)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npm run build)"
     ]
   }
 }

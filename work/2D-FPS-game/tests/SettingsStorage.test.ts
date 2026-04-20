@@ -160,9 +160,7 @@ describe("SettingsStorage", () => {
       }
     });
 
-    it("propagates quota-exceeded errors from save() (no swallow) so the caller can react", () => {
-      // TODO(bug): save() has no try/catch — a thrown setItem will crash MainScene's settings flow.
-      // Documenting actual behavior so a future Phase 4 hardening pass can wrap it.
+    it("swallows quota-exceeded errors from save() so the settings flow keeps running", () => {
       const throwingStorage = {
         getItem(): string | null {
           return null;
@@ -176,6 +174,7 @@ describe("SettingsStorage", () => {
       };
 
       const adapter = createSettingsStorage(throwingStorage, "settings:test");
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       expect(() =>
         adapter.save({
@@ -184,7 +183,10 @@ describe("SettingsStorage", () => {
           mouseSensitivity: 1,
           tutorialDismissed: false
         })
-      ).toThrow(/QuotaExceeded/);
+      ).not.toThrow();
+      expect(warnSpy).toHaveBeenCalledWith("[SettingsStorage] save failed:", expect.any(Error));
+
+      warnSpy.mockRestore();
     });
 
     it("rejects payloads missing the version field", () => {

@@ -51,6 +51,7 @@ export function createSettingsStorage(
 
         storage.setItem(key, JSON.stringify(payload));
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.warn("[SettingsStorage] save failed:", err);
       }
     },

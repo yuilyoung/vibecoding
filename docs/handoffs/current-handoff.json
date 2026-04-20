@@ -3,7 +3,7 @@
   "timestamp": "2026-04-16",
   "from": "vision",
   "to": "ultron",
-  "status": "pending",
+  "status": "complete",
   "previousPhase": {
     "id": "phase-4-play-loop-polish",
     "status": "complete",
@@ -24,16 +24,13 @@
     "implemented": [
       "Phase 1~4 완료 — 6종 무기, AI, 진행도, 피드백, 보스 웨이브, 튜토리얼, 설정 UI",
       "1차 추출 완료: scene-types.ts, scene-constants.ts, weapon-slot-factory.ts, arena-textures.ts",
-      "MainScene 현재 3320줄, 테스트 38파일/206개 + E2E 14개 pass"
+      "Phase 5 Sprint 0 완료: MainScene 3320줄 → 800줄",
+      "SceneRuntimeState + VFX/Collision/Stage/Dummy/Combat/HUD/MatchFlow/Audio/Visual/Debug/Bootstrap helpers 추출 완료",
+      "CameraFeedbackLogic 미지원 kind EMPTY_RESULT 처리 완료",
+      "SettingsStorage.save() try/catch 처리 완료",
+      "type-check, lint, 40파일/219 unit tests, build, 14 E2E pass"
     ],
-    "missing": [
-      "VfxController 추출 (~300줄) — 이펙트 풀 관리",
-      "ActorCollisionResolver 추출 (~250줄) — 충돌/탈출 로직",
-      "StageGeometryManager 추출 (~400줄) — 스테이지 장애물/게이트/해저드/픽업",
-      "DummyActorController 추출 (~350줄) — 더미 AI 이동/커버/조향",
-      "CombatController 추출 (~500줄) — 사격/재장전/탄환/공습",
-      "TODO(bug) 2건 핫픽스: CameraFeedbackLogic 미지원 kind 크래시, SettingsStorage save try/catch"
-    ]
+    "missing": []
   },
   "files": {
     "create": [
@@ -41,7 +38,19 @@
       "src/scenes/actor-collision.ts",
       "src/scenes/stage-geometry.ts",
       "src/scenes/dummy-controller.ts",
-      "src/scenes/combat-controller.ts"
+      "src/scenes/combat-controller.ts",
+      "src/scenes/hud-controller.ts",
+      "src/scenes/match-flow-controller.ts",
+      "src/scenes/audio-feedback-controller.ts",
+      "src/scenes/visual-controller.ts",
+      "src/scenes/actor-visuals.ts",
+      "src/scenes/debug-controller.ts",
+      "src/scenes/scene-bootstrap.ts",
+      "src/scenes/input-bindings.ts",
+      "src/scenes/damage-number-renderer.ts",
+      "src/domain/feedback/DamageNumberLogic.ts",
+      "src/domain/feedback/SpriteHitFeedback.ts",
+      "src/ui/LowHpVignette.ts"
     ],
     "modify": [
       "src/scenes/MainScene.ts",

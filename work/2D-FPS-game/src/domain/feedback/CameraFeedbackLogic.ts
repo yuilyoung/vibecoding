@@ -23,89 +23,48 @@ export interface CameraFeedbackResult {
 
 interface CameraFeedbackProfile {
   readonly priority: number;
-  readonly shake: CameraShake;
-  readonly flash: CameraFlash;
+  readonly shake: CameraShake | null;
+  readonly flash: CameraFlash | null;
   readonly hitPauseMs: number;
 }
 
+// Brawl Stars benchmark: no camera flash, no shake/pause for normal combat.
 const FEEDBACK_PROFILES: Record<CameraFeedbackEventKind, CameraFeedbackProfile> = {
   fire: {
     priority: 1,
-    shake: {
-      amplitude: 0.3,
-      durationMs: 20
-    },
-    flash: {
-      color: 0xfff2d6,
-      alpha: 0.04,
-      durationMs: 18
-    },
+    shake: null,
+    flash: null,
     hitPauseMs: 0
   },
   hit: {
     priority: 2,
-    shake: {
-      amplitude: 0.8,
-      durationMs: 36
-    },
-    flash: {
-      color: 0xffd59e,
-      alpha: 0.06,
-      durationMs: 30
-    },
-    hitPauseMs: 6
+    shake: null,
+    flash: null,
+    hitPauseMs: 0
   },
   explosion: {
     priority: 3,
-    shake: {
-      amplitude: 1.8,
-      durationMs: 70
-    },
-    flash: {
-      color: 0xffc06a,
-      alpha: 0.10,
-      durationMs: 55
-    },
-    hitPauseMs: 12
+    shake: { amplitude: 0.8, durationMs: 50 },
+    flash: null,
+    hitPauseMs: 0
   },
   airStrike: {
     priority: 4,
-    shake: {
-      amplitude: 2.4,
-      durationMs: 90
-    },
-    flash: {
-      color: 0xffefaa,
-      alpha: 0.12,
-      durationMs: 70
-    },
-    hitPauseMs: 16
+    shake: { amplitude: 1.2, durationMs: 70 },
+    flash: null,
+    hitPauseMs: 8
   },
   critical: {
     priority: 5,
-    shake: {
-      amplitude: 1.4,
-      durationMs: 55
-    },
-    flash: {
-      color: 0xff7b7b,
-      alpha: 0.08,
-      durationMs: 45
-    },
-    hitPauseMs: 10
+    shake: null,
+    flash: null,
+    hitPauseMs: 0
   },
   death: {
     priority: 6,
-    shake: {
-      amplitude: 3.2,
-      durationMs: 120
-    },
-    flash: {
-      color: 0xffffff,
-      alpha: 0.16,
-      durationMs: 100
-    },
-    hitPauseMs: 22
+    shake: { amplitude: 1.5, durationMs: 80 },
+    flash: null,
+    hitPauseMs: 12
   }
 };
 
@@ -140,15 +99,8 @@ export function resolveCameraFeedback(
   }
 
   return {
-    shake: {
-      amplitude: strongestProfile.shake.amplitude,
-      durationMs: strongestProfile.shake.durationMs
-    },
-    flash: {
-      color: strongestProfile.flash.color,
-      alpha: strongestProfile.flash.alpha,
-      durationMs: strongestProfile.flash.durationMs
-    },
+    shake: strongestProfile.shake ? { ...strongestProfile.shake } : null,
+    flash: strongestProfile.flash ? { ...strongestProfile.flash } : null,
     hitPauseMs: strongestProfile.hitPauseMs
   };
 }
