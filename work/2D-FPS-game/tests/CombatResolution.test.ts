@@ -1,6 +1,42 @@
-import { resolveBulletCollision, resolveHazardOutcome } from "../src/domain/combat/CombatResolution";
+import { resolveBulletCollision, resolveDamage, resolveHazardOutcome } from "../src/domain/combat/CombatResolution";
 
 describe("CombatResolution", () => {
+  it("resolves critical damage when rng rolls below crit chance", () => {
+    const result = resolveDamage(10, 0.25, 2, () => 0.24);
+
+    expect(result).toEqual({
+      damage: 20,
+      isCritical: true
+    });
+  });
+
+  it("resolves non-critical damage when rng rolls above crit chance", () => {
+    const result = resolveDamage(10, 0.25, 2, () => 0.26);
+
+    expect(result).toEqual({
+      damage: 10,
+      isCritical: false
+    });
+  });
+
+  it("treats rng equal to crit chance as non-critical", () => {
+    const result = resolveDamage(10, 0.25, 2, () => 0.25);
+
+    expect(result).toEqual({
+      damage: 10,
+      isCritical: false
+    });
+  });
+
+  it("applies the configured critical multiplier to base damage", () => {
+    const result = resolveDamage(18, 0.5, 1.75, () => 0.1);
+
+    expect(result).toEqual({
+      damage: 31.5,
+      isCritical: true
+    });
+  });
+
   it("resolves a player bullet hit on the dummy", () => {
     const result = resolveBulletCollision({
       owner: "player",

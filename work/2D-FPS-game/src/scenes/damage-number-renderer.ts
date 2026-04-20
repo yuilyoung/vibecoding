@@ -1,7 +1,8 @@
 import type Phaser from "phaser";
 import type { DamageNumberConfig } from "../domain/feedback/DamageNumberLogic";
 
-const POOL_SIZE = 12;
+// Air-strike clusters can spawn several overlapping damage numbers in one burst.
+const POOL_SIZE = 20;
 
 export class DamageNumberRenderer {
   private pool: Phaser.GameObjects.Text[] = [];

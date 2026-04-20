@@ -280,14 +280,11 @@ export class MainScene extends Phaser.Scene {
       recordDummyHit: (now) => {
         this.dummyHitFeedback = recordHit(this.dummyHitFeedback, now);
       },
-      // TODO: plumb an isCritical signal from weapon/damage resolution when
-      // critical-hit logic lands. For now every number renders in the
-      // non-critical profile.
-      spawnDamageNumber: (x, y, damage, isCritical) => {
+      spawnDamageNumber: (x, y, damage, isCritical, isSelfHarm) => {
         if (damage <= 0 || this.damageNumberRenderer === undefined) {
           return;
         }
-        this.damageNumberRenderer.spawn(x, y - 12, resolveDamageNumber(Math.round(damage), isCritical));
+        this.damageNumberRenderer.spawn(x, y - 12, resolveDamageNumber(Math.round(damage), isCritical, isSelfHarm));
       },
       playPlayerHitFeedback: () => {
         if (!this.playerLogic.isDead()) {

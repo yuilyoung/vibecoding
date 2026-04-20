@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { createCenteredRect, intersectsRect } from "../domain/collision/CollisionLogic";
 import { advanceAirStrike, createAirStrike } from "../domain/combat/AirStrikeLogic";
 import { castBeam } from "../domain/combat/BeamLogic";
-import { resolveBulletCollision } from "../domain/combat/CombatResolution";
+import { resolveBulletCollision, resolveDamage } from "../domain/combat/CombatResolution";
 import {
   canDummyFire,
   canInterruptReload,
@@ -58,7 +58,7 @@ export interface CombatControllerDeps {
   readonly recordDummyHit: (now: number) => void;
   readonly playPlayerHitFeedback: () => void;
   readonly playDummyHitFeedback: () => void;
-  readonly spawnDamageNumber: (x: number, y: number, damage: number, isCritical: boolean) => void;
+  readonly spawnDamageNumber: (x: number, y: number, damage: number, isCritical: boolean, isSelfHarm: boolean) => void;
 }
 
 export class CombatController {
@@ -199,6 +199,8 @@ export class CombatController {
         velocityX: Math.cos(angle) * attempt.bulletSpeed,
         velocityY: Math.sin(angle) * attempt.bulletSpeed,
         damage: attempt.damage,
+        critChance: activeWeapon.critChance,
+        critMultiplier: activeWeapon.critMultiplier,
         owner: "dummy",
         effectProfile: activeWeapon.id === "scatter" ? "scatter" : "dummy",
         projectileConfig: activeWeapon.projectileConfig,
@@ -295,16 +297,27 @@ export class CombatController {
       bullet.bouncesRemaining = runtimeFrame.projectile.bouncesRemaining;
 
       const dummyCoverProtected = frame.hitDummy && bullet.owner === "player" && this.deps.hasDummyCoverProtection(now);
-      const appliedDamage = frame.hitDummy && bullet.owner === "player"
-        ? dummyCoverProtected
-          ? 0
-          : bullet.damage
-        : bullet.damage;
+      let appliedDamage = bullet.damage;
+      let isCritical = false;
+
+      if (frame.hitDummy && bullet.owner === "player") {
+        if (dummyCoverProtected) {
+          appliedDamage = 0;
+        } else {
+          const damageResult = this.resolveWeaponDamage(bullet.damage, bullet.critChance, bullet.critMultiplier);
+          appliedDamage = damageResult.damage;
+          isCritical = damageResult.isCritical;
+        }
+      } else if (frame.hitPlayer && bullet.owner === "dummy") {
+        const damageResult = this.resolveWeaponDamage(bullet.damage, bullet.critChance, bullet.critMultiplier);
+        appliedDamage = damageResult.damage;
+        isCritical = damageResult.isCritical;
+      }
 
       if (frame.hitDummy && bullet.owner === "player" && !dummyCoverProtected) {
         this.state.dummyLogic.takeDamage(appliedDamage);
         this.deps.recordDummyHit(now);
-        this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, false);
+        this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, false);
         if (!this.state.dummyLogic.isDead()) {
           this.deps.playDummyHitFeedback();
         }
@@ -325,7 +338,7 @@ export class CombatController {
       if (frame.hitPlayer && bullet.owner === "dummy") {
         this.state.playerLogic.takeDamage(appliedDamage, this.deps.gameBalance.hitStunMs, now);
         this.deps.recordPlayerHit(now);
-        this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, false);
+        this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, true);
         if (!this.state.playerLogic.isDead()) {
           this.deps.playPlayerHitFeedback();
         }
@@ -377,7 +390,10 @@ export class CombatController {
           bullet.projectileConfig.blastRadius,
           bullet.projectileConfig.blastDamage ?? bullet.damage,
           bullet.projectileConfig.knockback ?? 0,
-          bullet.owner
+          bullet.owner,
+          false,
+          bullet.critChance,
+          bullet.critMultiplier
         );
       }
 
@@ -397,7 +413,17 @@ export class CombatController {
       for (const blast of result.blasts) {
         this.vfx.spawnImpactEffect(blast.x, blast.y, "airStrike");
         this.deps.triggerCameraFeedback({ kind: "explosion" });
-        this.applyExplosionDamage(blast.x, blast.y, blast.radius, blast.damage, blast.knockback, airStrike.owner, true);
+        this.applyExplosionDamage(
+          blast.x,
+          blast.y,
+          blast.radius,
+          blast.damage,
+          blast.knockback,
+          airStrike.owner,
+          true,
+          airStrike.critChance,
+          airStrike.critMultiplier
+        );
       }
 
       if (airStrike.state.completed) {
@@ -413,7 +439,9 @@ export class CombatController {
     damage: number,
     knockback: number,
     owner: "player" | "dummy",
-    ignoreCover = false
+    ignoreCover = false,
+    critChance = 0,
+    critMultiplier = 1
   ): void {
     const playerSprite = this.requirePlayerSprite();
     const targetDummy = this.requireTargetDummy();
@@ -433,10 +461,13 @@ export class CombatController {
 
     for (const result of results) {
       if (owner === "player" && result.id === "dummy" && !this.state.dummyLogic.isDead()) {
-        const appliedDamage = !ignoreCover && this.deps.hasDummyCoverProtection(this.scene.time.now) ? 0 : result.damage;
+        const damageResult = !ignoreCover && this.deps.hasDummyCoverProtection(this.scene.time.now)
+          ? { damage: 0, isCritical: false }
+          : this.resolveWeaponDamage(result.damage, critChance, critMultiplier);
+        const appliedDamage = damageResult.damage;
         this.state.dummyLogic.takeDamage(appliedDamage);
         this.deps.recordDummyHit(this.scene.time.now);
-        this.deps.spawnDamageNumber(targetDummy.x, targetDummy.y, appliedDamage, false);
+        this.deps.spawnDamageNumber(targetDummy.x, targetDummy.y, appliedDamage, damageResult.isCritical, false);
         if (!this.state.dummyLogic.isDead()) {
           this.deps.playDummyHitFeedback();
         }
@@ -452,9 +483,10 @@ export class CombatController {
       }
 
       if (owner === "dummy" && result.id === "player" && !this.state.playerLogic.isDead()) {
-        this.state.playerLogic.takeDamage(result.damage, this.deps.gameBalance.hitStunMs, this.scene.time.now);
+        const damageResult = this.resolveWeaponDamage(result.damage, critChance, critMultiplier);
+        this.state.playerLogic.takeDamage(damageResult.damage, this.deps.gameBalance.hitStunMs, this.scene.time.now);
         this.deps.recordPlayerHit(this.scene.time.now);
-        this.deps.spawnDamageNumber(playerSprite.x, playerSprite.y, result.damage, false);
+        this.deps.spawnDamageNumber(playerSprite.x, playerSprite.y, damageResult.damage, damageResult.isCritical, true);
         if (!this.state.playerLogic.isDead()) {
           this.deps.playPlayerHitFeedback();
         }
@@ -543,7 +575,7 @@ export class CombatController {
     }
 
     if (attempt.projectile.trajectory === "aoe-call") {
-      this.callPlayerAirStrikeAt(attempt.projectile, targetX, targetY);
+      this.callPlayerAirStrikeAt(activeWeapon, attempt.projectile, targetX, targetY);
       this.applyExplosionDamage(
         Phaser.Math.Clamp(targetX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X),
         Phaser.Math.Clamp(targetY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y),
@@ -551,7 +583,9 @@ export class CombatController {
         attempt.projectile.blastDamage ?? attempt.damage,
         attempt.projectile.knockback ?? 0,
         "player",
-        true
+        true,
+        activeWeapon.critChance,
+        activeWeapon.critMultiplier
       );
     } else {
       this.resolvePlayerWeaponFire(activeWeapon, attempt.projectile, attempt.bulletSpeed, attempt.damage);
@@ -623,6 +657,10 @@ export class CombatController {
     this.vfx.clearCombatFx();
   }
 
+  private resolveWeaponDamage(damage: number, critChance: number, critMultiplier: number): { damage: number; isCritical: boolean } {
+    return resolveDamage(damage, critChance, critMultiplier);
+  }
+
   private resolvePlayerWeaponFire(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, bulletSpeed: number, damage: number): void {
     if (projectileConfig.trajectory === "beam") {
       this.firePlayerBeam(activeWeapon, projectileConfig, damage);
@@ -630,7 +668,7 @@ export class CombatController {
     }
 
     if (projectileConfig.trajectory === "aoe-call") {
-      this.callPlayerAirStrike(projectileConfig);
+      this.callPlayerAirStrike(activeWeapon, projectileConfig);
       return;
     }
 
@@ -665,6 +703,8 @@ export class CombatController {
         velocityX: Math.cos(angle) * bulletSpeed,
         velocityY: Math.sin(angle) * bulletSpeed,
         damage,
+        critChance: activeWeapon.critChance,
+        critMultiplier: activeWeapon.critMultiplier,
         owner: "player",
         effectProfile: this.vfx.getImpactProfile(activeWeapon.id),
         projectileConfig,
@@ -711,10 +751,11 @@ export class CombatController {
     this.vfx.spawnImpactEffect(hit.hitPoint.x, hit.hitPoint.y, "sniper");
 
     if (hit.kind === "actor" && hit.targetId === "dummy" && !this.deps.hasDummyCoverProtection(this.scene.time.now)) {
-      const beamDamage = projectileConfig.blastDamage ?? damage;
+      const damageResult = this.resolveWeaponDamage(projectileConfig.blastDamage ?? damage, activeWeapon.critChance, activeWeapon.critMultiplier);
+      const beamDamage = damageResult.damage;
       this.state.dummyLogic.takeDamage(beamDamage);
       this.deps.recordDummyHit(this.scene.time.now);
-      this.deps.spawnDamageNumber(hit.hitPoint.x, hit.hitPoint.y, beamDamage, false);
+      this.deps.spawnDamageNumber(hit.hitPoint.x, hit.hitPoint.y, beamDamage, damageResult.isCritical, false);
       if (!this.state.dummyLogic.isDead()) {
         this.deps.playDummyHitFeedback();
       }
@@ -734,21 +775,23 @@ export class CombatController {
     }
   }
 
-  private callPlayerAirStrike(projectileConfig: ProjectileConfig): void {
+  private callPlayerAirStrike(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig): void {
     const pointer = this.deps.activePointer();
     const targetX = Phaser.Math.Clamp(pointer.worldX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
     const targetY = Phaser.Math.Clamp(pointer.worldY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
 
-    this.callPlayerAirStrikeAt(projectileConfig, targetX, targetY);
+    this.callPlayerAirStrikeAt(activeWeapon, projectileConfig, targetX, targetY);
   }
 
-  private callPlayerAirStrikeAt(projectileConfig: ProjectileConfig, targetX: number, targetY: number): void {
+  private callPlayerAirStrikeAt(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, targetX: number, targetY: number): void {
     const clampedTargetX = Phaser.Math.Clamp(targetX, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X);
     const clampedTargetY = Phaser.Math.Clamp(targetY, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y);
 
     playTurretFireAnimation(this.requirePlayerWeaponSprite(), this.deps.getWeaponTurretTexture(this.state.currentPlayerTeam, "airStrike"));
     this.state.activeAirStrikes.push({
       owner: "player",
+      critChance: activeWeapon.critChance,
+      critMultiplier: activeWeapon.critMultiplier,
       state: createAirStrike(clampedTargetX, clampedTargetY, {
         blastCount: projectileConfig.aoeCount ?? 5,
         blastDelayMs: projectileConfig.aoeIntervalMs ?? 320,

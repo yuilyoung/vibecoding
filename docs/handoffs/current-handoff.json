@@ -1,87 +1,99 @@
 {
-  "id": "phase-5-sprint0-mainscene-decomposition",
-  "timestamp": "2026-04-16",
+  "id": "phase-5-sprint1-crit-system",
+  "timestamp": "2026-04-20",
   "from": "vision",
   "to": "ultron",
   "status": "complete",
   "previousPhase": {
-    "id": "phase-4-play-loop-polish",
+    "id": "phase-5-sprint0-mainscene-decomposition",
     "status": "complete",
-    "completedAt": "2026-04-15"
+    "completedAt": "2026-04-19"
   },
-  "scope": "Phase 5 Sprint 0 — MainScene 3320줄 god-class를 5개 헬퍼 모듈로 분해. 비전이 1차로 scene-types, scene-constants, weapon-slot-factory, arena-textures를 추출 완료 (3965→3320). 울트론은 나머지 5개 모듈을 추출하여 MainScene을 ~800줄 오케스트레이터로 축소한다.",
+  "scope": "Phase 5 Sprint 1 — Critical Hit System & DamageNumber 색 구분. Sprint 0에서 결선된 VFX 피드백의 남은 TODO(isCritical 하드코딩)를 해소한다. 무기 config에 crit 필드를 추가하고, CombatResolution이 crit 판정을 반환하며, 5개 damage application site에서 DamageNumberRenderer까지 isCritical을 플러밍한다. 더불어 자-가해(플레이어 피격) vs 적-가해(플레이어 가격) 데미지 숫자 색을 구분하여 시각 가독성을 올린다.",
   "constraints": [
-    "기존 206 유닛 + 14 E2E 전부 pass 유지",
+    "기존 219 유닛 + 14 E2E 전부 pass 유지 (회귀 없음)",
     "npm run type-check && lint && test && build && test:e2e 전부 통과",
-    "추출된 모듈은 src/scenes/ 하위에 위치 (Phaser 의존 허용)",
-    "MainScene의 debug* 공개 메서드는 E2E 계약이므로 시그니처 유지 (내부는 위임 가능)",
-    "각 모듈 추출 후 반드시 type-check + test 통과 확인 후 다음 추출 진행",
-    "SceneRuntimeState 공유 상태 객체 패턴 적용 — MainScene이 소유, 헬퍼에 참조 전달",
-    "빌드 사이즈 목표(최대 청크 < 800 kB, gzip < 250 kB) 유지",
-    "Phase 4까지 도메인 인터페이스 호환 유지"
+    "TDD — CombatResolution crit 분기는 단위 테스트 먼저 작성",
+    "crit 값은 assets/data/game-balance.json에 선언 (코드 하드코딩 금지)",
+    "crit RNG는 주입 가능한 (rng: () => number) 형태로 도메인 함수에 전달 — 테스트에서 seed 고정 가능",
+    "MainScene public debug 시그니처 유지 (E2E 계약): debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot 등",
+    "DamageNumber pool 용량(현 12) 재검토 — 다탄종 동시 사격 프로파일에서 clip 발생 시 20으로 확장",
+    "domain/ 하위 도메인 로직은 Phaser 의존 금지",
+    "빌드 청크 < 800 kB, gzip < 250 kB 유지"
   ],
   "currentState": {
     "implemented": [
-      "Phase 1~4 완료 — 6종 무기, AI, 진행도, 피드백, 보스 웨이브, 튜토리얼, 설정 UI",
-      "1차 추출 완료: scene-types.ts, scene-constants.ts, weapon-slot-factory.ts, arena-textures.ts",
-      "Phase 5 Sprint 0 완료: MainScene 3320줄 → 800줄",
-      "SceneRuntimeState + VFX/Collision/Stage/Dummy/Combat/HUD/MatchFlow/Audio/Visual/Debug/Bootstrap helpers 추출 완료",
-      "CameraFeedbackLogic 미지원 kind EMPTY_RESULT 처리 완료",
-      "SettingsStorage.save() try/catch 처리 완료",
-      "type-check, lint, 40파일/219 unit tests, build, 14 E2E pass"
+      "Phase 5 Sprint 0 완료 — MainScene 865줄, 13 scene helper 분리",
+      "DamageNumberRenderer 결선 완료 (bullet→dummy, bullet→player, explosion→dummy, explosion→player, beam hit 5개 사이트)",
+      "SpriteHitFeedback tint pass (0xff6a6a, 70ms) 적용",
+      "LowHpVignette 매 프레임 (hp/maxHp) 업데이트",
+      "resolveDamageNumber에 isCritical 파라미터 인터페이스는 이미 존재 (호출측이 false로 고정)"
     ],
-    "missing": []
+    "gaps": [
+      "combat-controller.ts가 spawnDamageNumber 호출 시 isCritical 하드코딩 false (MainScene 콜백 TODO 주석)",
+      "무기별 critChance/critMultiplier 데이터 미정의",
+      "CombatResolution API가 isCritical 반환 안 함",
+      "자-가해와 적-가해 데미지 숫자가 동일 색(white/gold) — 혼란 가능",
+      "DamageNumber pool 12슬롯 — 스캐터+에어스트라이크 동시 발동 시 재사용 clip 가능성"
+    ]
   },
   "files": {
     "create": [
-      "src/scenes/vfx-controller.ts",
-      "src/scenes/actor-collision.ts",
-      "src/scenes/stage-geometry.ts",
-      "src/scenes/dummy-controller.ts",
-      "src/scenes/combat-controller.ts",
-      "src/scenes/hud-controller.ts",
-      "src/scenes/match-flow-controller.ts",
-      "src/scenes/audio-feedback-controller.ts",
-      "src/scenes/visual-controller.ts",
-      "src/scenes/actor-visuals.ts",
-      "src/scenes/debug-controller.ts",
-      "src/scenes/scene-bootstrap.ts",
-      "src/scenes/input-bindings.ts",
-      "src/scenes/damage-number-renderer.ts",
-      "src/domain/feedback/DamageNumberLogic.ts",
-      "src/domain/feedback/SpriteHitFeedback.ts",
-      "src/ui/LowHpVignette.ts"
+      "work/2D-FPS-game/tests/CritSystem.test.ts"
     ],
     "modify": [
-      "src/scenes/MainScene.ts",
-      "src/domain/feedback/CameraFeedbackLogic.ts",
-      "src/domain/settings/SettingsStorage.ts"
+      "work/2D-FPS-game/assets/data/game-balance.json",
+      "work/2D-FPS-game/src/domain/combat/CombatResolution.ts",
+      "work/2D-FPS-game/src/domain/feedback/DamageNumberLogic.ts",
+      "work/2D-FPS-game/src/scenes/combat-controller.ts",
+      "work/2D-FPS-game/src/scenes/MainScene.ts",
+      "work/2D-FPS-game/src/scenes/damage-number-renderer.ts",
+      "work/2D-FPS-game/tests/CombatResolution.test.ts",
+      "work/2D-FPS-game/tests/DamageNumberLogic.test.ts"
     ]
   },
   "acceptance": [
-    "MainScene.ts가 ~800줄 이하의 얇은 오케스트레이터로 축소",
-    "5개 헬퍼 모듈(vfx-controller, actor-collision, stage-geometry, dummy-controller, combat-controller) 생성",
-    "SceneRuntimeState 공유 상태 패턴으로 헬퍼 간 상태 접근 일원화",
-    "CameraFeedbackLogic 미지원 kind에 EMPTY_RESULT 폴백 추가",
-    "SettingsStorage.save()에 try/catch 추가로 QuotaExceededError 하드닝",
-    "기존 206 유닛 + 14 E2E 회귀 없음",
-    "npm run type-check && lint && test && build && test:e2e 전부 pass",
-    "docs/handoffs/current-execution-report.md 갱신"
+    "game-balance.json: 무기별 critChance(0~1) + critMultiplier(>=1) 필드 추가, GameBalanceWeapons 스키마 타입 체크 통과",
+    "CombatResolution: resolveDamage가 { damage, isCritical } 반환 (RNG 주입 가능, crit 시 damage *= critMultiplier)",
+    "combat-controller의 5개 damage application site에서 isCritical이 spawnDamageNumber 콜백까지 전달",
+    "크리티컬 피격 시 기존 gold(#ffcc00) 큰 텍스트(18px, floatDistance 35)가 표시됨",
+    "자-가해(플레이어가 피격당함) 데미지 숫자: 색 구분 (예: #ff8844 orange — 설계값은 vfx-tuner 권장 유지)",
+    "적-가해(플레이어가 가격) 데미지 숫자: 기존 white(#ffffff) / critical gold(#ffcc00) 유지",
+    "DamageNumberLogic: resolveDamageNumber가 isSelfHarm 파라미터 추가 수용",
+    "단위 테스트: crit 분기(rng seed 고정), 자-가해 색, 기존 white/gold 회귀 모두 커버",
+    "기존 219 유닛 + 14 E2E 회귀 없음 — 게이트 5종 전부 pass",
+    "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks 섹션 필수)",
+    "work/2D-FPS-game/docs/planning/phase5-sprint1-wbs.md 생성 (doc-writer 에이전트 권장, 200줄 이하)"
   ],
   "priority": [
-    "1. SceneRuntimeState 공유 상태 객체 정의",
-    "2. T1 VfxController — CombatController 의존이므로 선추출",
-    "3. T2 ActorCollisionResolver — Dummy/Combat 의존이므로 선추출",
-    "4. T3 StageGeometryManager — 장애물/게이트/해저드/픽업 통합",
-    "5. T4 DummyActorController — AI 이동/커버 로직",
-    "6. T5 CombatController — 최고 결합도, 마지막 추출",
-    "7. T6 TODO(bug) 핫픽스 2건",
-    "8. T7 검증 게이트"
+    "1. TDD — tests/CritSystem.test.ts 또는 CombatResolution.test.ts 확장: crit 분기 단위 테스트 먼저 작성 (rng seed 고정)",
+    "2. game-balance.json에 무기별 critChance/critMultiplier 필드 추가 + 스키마 타입 체크",
+    "3. CombatResolution 구현 — RNG 주입형 { damage, isCritical } 반환",
+    "4. combat-controller에서 resolveDamage 호출 지점 수정 → isCritical 캡처 → spawnDamageNumber 전달",
+    "5. MainScene의 spawnDamageNumber 콜백 시그니처 확장 (isCritical, isSelfHarm)",
+    "6. DamageNumberLogic.resolveDamageNumber에 isSelfHarm 분기 추가 + 테스트",
+    "7. damage-number-renderer pool 크기 재검토 (로그로 clip 발생 여부 확인 후 12→20)",
+    "8. 검증 게이트 5종 실행 + execution report 갱신"
+  ],
+  "risks": [
+    {
+      "risk": "crit RNG 주입 방식이 기존 CombatResolution 호출처 다수에 영향",
+      "mitigation": "기본 인자로 Math.random을 넘겨 기존 호출처는 그대로 동작하도록 유지, 테스트만 seed 주입"
+    },
+    {
+      "risk": "자-가해 판정 기준이 코드 전반에 흩어져 있을 수 있음",
+      "mitigation": "damage application site에서 target이 player인지 dummy인지로 결정 — combat-controller 내부 분기 충분"
+    },
+    {
+      "risk": "crit 확률 밸런스 미튜닝으로 과/부족 노출",
+      "mitigation": "1차 기본값 critChance=0.15, critMultiplier=1.8 제안. 플레이테스트 후 조정"
+    }
   ],
   "references": {
-    "wbs": "work/2D-FPS-game/docs/planning/phase5-sprint0-wbs.md",
-    "tasks": "work/2D-FPS-game/docs/planning/phase5-sprint0-tasks.json",
+    "previousHandoff": "archived — Sprint 0 complete (이 파일이 덮어씀)",
+    "previousExecutionReport": "docs/handoffs/current-execution-report.md",
     "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
-    "previousExecutionReport": "docs/handoffs/current-execution-report.md"
+    "sprint0Wbs": "work/2D-FPS-game/docs/planning/phase5-sprint0-wbs.md",
+    "vfxTuningParams": "f9d343a 커밋 메시지 — DamageNumber/HitFlash/LowHpVignette 튜닝 기준값"
   }
 }

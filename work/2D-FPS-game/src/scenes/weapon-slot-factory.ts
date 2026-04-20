@@ -4,6 +4,9 @@ import type { WeaponConfig } from "../domain/combat/WeaponLogic";
 import type { ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { BalanceWeaponConfig, GameBalance, PlayerWeaponSlot } from "./scene-types";
 
+const DEFAULT_CRIT_CHANCE = 0.15;
+const DEFAULT_CRIT_MULTIPLIER = 1.8;
+
 function mergeWeaponConfig(defaultConfig: WeaponConfig, balanceConfig: BalanceWeaponConfig | undefined): WeaponConfig {
   return {
     ...defaultConfig,
@@ -33,6 +36,8 @@ function createWeaponSlot(
     label,
     logic: new WeaponLogic(config),
     projectileConfig: config.projectile ?? projectileConfig,
+    critChance: config.critChance ?? DEFAULT_CRIT_CHANCE,
+    critMultiplier: config.critMultiplier ?? DEFAULT_CRIT_MULTIPLIER,
     ...view
   };
 }

@@ -33,6 +33,27 @@ export interface HazardResolutionResult {
   readonly roundWinner: CombatRoundWinner | null;
 }
 
+export interface DamageResolutionResult {
+  readonly damage: number;
+  readonly isCritical: boolean;
+}
+
+export type DamageRng = () => number;
+
+export function resolveDamage(
+  damage: number,
+  critChance: number,
+  critMultiplier: number,
+  rng: DamageRng = Math.random
+): DamageResolutionResult {
+  const isCritical = rng() < critChance;
+
+  return {
+    damage: isCritical ? damage * critMultiplier : damage,
+    isCritical
+  };
+}
+
 export function resolveBulletCollision(input: BulletResolutionInput): BulletResolutionResult {
   if (input.hitDummy && input.owner === "player") {
     return {

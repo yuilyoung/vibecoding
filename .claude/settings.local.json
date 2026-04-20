@@ -83,7 +83,8 @@
       "Bash(NODE_OPTIONS=--max-old-space-size=4096 npm run type-check)",
       "Bash(NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1)",
       "Bash(NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line)",
-      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npm run build)"
+      "Bash(NODE_OPTIONS=--max-old-space-size=4096 npm run build)",
+      "Bash(gh pr create --base master --head phase5-sprint0-mainscene-decompose --title 'refactor: Phase 5 Sprint 0 — MainScene decomposition + combat feedback VFX' --body ' *)"
     ]
   }
 }

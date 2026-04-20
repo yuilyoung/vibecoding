@@ -4,6 +4,8 @@ export interface WeaponConfig {
   readonly fireRateMs: number;
   readonly bulletSpeed: number;
   readonly damage: number;
+  readonly critChance?: number;
+  readonly critMultiplier?: number;
   readonly magazineSize: number;
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;

@@ -1,0 +1,118 @@
+{
+  "phase": "phase-5-sprint1",
+  "name": "Critical Hit System and DamageNumber color distinction",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "wbs": "./phase5-sprint1-wbs.md",
+  "created": "2026-04-20",
+  "status": "complete",
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "game-balance.json crit schema extension",
+      "assignee": "ultron",
+      "status": "complete",
+      "description": "assets/data/game-balance.json의 각 무기(pistol, assault, shotgun, sniper, smg, 기타)에 critChance(0~1), critMultiplier(>=1) 필드 추가. 기본값 critChance=0.15, critMultiplier=1.8. GameBalanceWeapons 타입 스키마 갱신 — type-check 통과 확인.",
+      "files": [
+        "assets/data/game-balance.json",
+        "src/domain/balance/GameBalanceWeapons.ts"
+      ],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "CombatResolution crit API + TDD",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T0"],
+      "description": "resolveDamage가 { damage, isCritical } 반환으로 변경. rng: () => number 인자 추가, 기본값 Math.random. 신규 tests/CritSystem.test.ts 또는 기존 tests/CombatResolution.test.ts 확장 — seed 고정 stub rng로 crit(rng<critChance), non-crit(rng>=critChance), 경계값(rng===critChance), critMultiplier 적용 damage 계산 커버. Phaser 의존 금지(순수 도메인).",
+      "files": [
+        "src/domain/combat/CombatResolution.ts",
+        "tests/CombatResolution.test.ts",
+        "tests/CritSystem.test.ts"
+      ],
+      "acceptance": ["A2", "A8"]
+    },
+    {
+      "id": "T2",
+      "subject": "combat-controller 5-site isCritical plumbing",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1"],
+      "description": "src/scenes/combat-controller.ts의 5개 damage application site — bullet→dummy, bullet→player, explosion→dummy, explosion→player, beam hit — 에서 resolveDamage 반환값을 분해하여 isCritical을 spawnDamageNumber 콜백까지 전달. 하드코딩된 false 전부 제거. target이 player인지 dummy인지로 isSelfHarm 플래그도 함께 산출.",
+      "files": [
+        "src/scenes/combat-controller.ts"
+      ],
+      "acceptance": ["A3", "A4"]
+    },
+    {
+      "id": "T3",
+      "subject": "MainScene spawnDamageNumber callback expansion",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T2"],
+      "description": "src/scenes/MainScene.ts의 spawnDamageNumber 콜백 시그니처를 (x, y, amount, isCritical, isSelfHarm)로 확장. combat-controller에서 전달된 두 플래그를 DamageNumberRenderer로 넘김. MainScene public debug 시그니처(debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot)는 변경 금지.",
+      "files": [
+        "src/scenes/MainScene.ts"
+      ],
+      "acceptance": ["A3", "A5"]
+    },
+    {
+      "id": "T4",
+      "subject": "DamageNumberLogic self-harm branch + tests",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T0"],
+      "description": "src/domain/feedback/DamageNumberLogic.ts의 resolveDamageNumber에 isSelfHarm 파라미터 추가. 분기: 적-가해=white(#ffffff) / crit gold(#ffcc00, 18px, floatDistance 35), 자-가해=orange(#ff8844) / crit 시 gold 규칙 우선. tests/DamageNumberLogic.test.ts 확장 — self-harm 색, enemy-harm crit gold, enemy-harm 기본 white 회귀 커버.",
+      "files": [
+        "src/domain/feedback/DamageNumberLogic.ts",
+        "tests/DamageNumberLogic.test.ts"
+      ],
+      "acceptance": ["A5", "A6", "A7", "A8"]
+    },
+    {
+      "id": "T5",
+      "subject": "damage-number-renderer pool capacity review",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T3"],
+      "description": "src/scenes/damage-number-renderer.ts pool 용량(현 12) 검토. 스캐터+에어스트라이크 동시 사격 시나리오에서 slot 재사용 clip 발생 여부 계측. 발생 시 POOL_SIZE 12→20 확장, 미발생 시 현행 유지 + 판단 근거 코멘트 추가.",
+      "files": [
+        "src/scenes/damage-number-renderer.ts"
+      ],
+      "acceptance": ["운영 판단"]
+    },
+    {
+      "id": "T6",
+      "subject": "Verification gates and execution report",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1", "T2", "T3", "T4", "T5"],
+      "description": "검증 게이트 5종 실행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. 전부 pass 확인 — 기존 219 unit + 14 E2E 회귀 없음. 빌드 청크 <800 kB, gzip <250 kB 재확인. docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks 섹션).",
+      "files": [
+        "docs/handoffs/current-execution-report.md"
+      ],
+      "acceptance": ["A9", "A10"]
+    }
+  ],
+  "dependencyGraph": {
+    "T0": [],
+    "T1": ["T0"],
+    "T2": ["T1"],
+    "T3": ["T2"],
+    "T4": ["T0"],
+    "T5": ["T3"],
+    "T6": ["T1", "T2", "T3", "T4", "T5"]
+  },
+  "acceptanceMap": {
+    "A1": "game-balance.json critChance(0~1) + critMultiplier(>=1) 필드 추가, GameBalanceWeapons 스키마 타입 체크 통과",
+    "A2": "CombatResolution.resolveDamage가 { damage, isCritical } 반환 (RNG 주입 가능, crit 시 damage *= critMultiplier)",
+    "A3": "combat-controller의 5개 damage application site에서 isCritical이 spawnDamageNumber 콜백까지 전달",
+    "A4": "크리티컬 피격 시 gold(#ffcc00) 큰 텍스트(18px, floatDistance 35) 표시",
+    "A5": "자-가해(플레이어가 피격) 데미지 숫자 색 구분 (#ff8844 orange 권장)",
+    "A6": "적-가해(플레이어가 가격) 데미지 숫자: 기존 white(#ffffff) / critical gold(#ffcc00) 유지",
+    "A7": "DamageNumberLogic.resolveDamageNumber가 isSelfHarm 파라미터 추가 수용",
+    "A8": "단위 테스트: crit 분기(rng seed 고정), 자-가해 색, 기존 white/gold 회귀 모두 커버",
+    "A9": "기존 219 유닛 + 14 E2E 회귀 없음 — 게이트 5종 전부 pass",
+    "A10": "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks)"
+  }
+}

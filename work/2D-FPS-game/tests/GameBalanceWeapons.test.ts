@@ -6,6 +6,8 @@ interface BalanceWeapon {
   readonly label: string;
   readonly fireRateMs: number;
   readonly damage: number;
+  readonly critChance: number;
+  readonly critMultiplier: number;
   readonly magazineSize: number;
   readonly reloadTimeMs: number;
   readonly reserveAmmo: number;
@@ -38,6 +40,14 @@ describe("game-balance weapons", () => {
       "beam",
       "aoe-call"
     ]));
+  });
+
+  it("defines critical hit tuning for every weapon", () => {
+    for (const weapon of Object.values(weapons)) {
+      expect(weapon.critChance).toBeGreaterThanOrEqual(0);
+      expect(weapon.critChance).toBeLessThanOrEqual(1);
+      expect(weapon.critMultiplier).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("can hydrate WeaponLogic with projectile configs", () => {

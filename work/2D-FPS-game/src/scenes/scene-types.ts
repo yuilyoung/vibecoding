@@ -64,6 +64,8 @@ export interface BulletView {
   velocityX: number;
   velocityY: number;
   damage: number;
+  critChance: number;
+  critMultiplier: number;
   owner: "player" | "dummy";
   effectProfile: ImpactProfile;
   projectileConfig: ProjectileConfig;
@@ -75,6 +77,8 @@ export type ImpactProfile = "carbine" | "scatter" | "bazooka" | "grenade" | "sni
 export interface ActiveAirStrikeView {
   state: AirStrikeState;
   owner: "player" | "dummy";
+  critChance: number;
+  critMultiplier: number;
 }
 
 export interface ImpactFxView {
@@ -132,6 +136,8 @@ export interface PlayerWeaponSlot {
   readonly pelletCount: number;
   readonly spreadRadians: number;
   readonly projectileConfig: ProjectileConfig;
+  readonly critChance: number;
+  readonly critMultiplier: number;
 }
 
 export interface GateView extends ObstacleView {
