@@ -1,8 +1,9 @@
 import gameBalance from "../assets/data/game-balance.json";
+import { StageContentSpawner } from "../src/domain/map/StageContentSpawner";
 import {
-  StageContentSpawner
-} from "../src/domain/map/StageContentSpawner";
-import type { StageDefinitionWithContent } from "../src/domain/map/StageContentDefinition";
+  normalizeStageContentDefinition,
+  type StageDefinitionWithContent
+} from "../src/domain/map/StageContentDefinition";
 
 const stages = gameBalance.stages as unknown as readonly StageDefinitionWithContent[];
 
@@ -10,14 +11,15 @@ describe("StageContentSpawner", () => {
   it("creates a stable active plan for the current stage", () => {
     const spawner = new StageContentSpawner();
     const plan = spawner.spawn(stages[0]);
+    const normalizedContent = normalizeStageContentDefinition(stages[0].content);
 
     expect(plan).toEqual({
       stageId: "foundry",
       stageLabel: "Foundry",
-      hazards: stages[0].content.hazards,
-      pickups: stages[0].content.pickups,
-      gates: stages[0].content.gates,
-      mapObjects: stages[0].content.mapObjects
+      hazards: normalizedContent.hazards,
+      pickups: normalizedContent.pickups,
+      gates: normalizedContent.gates,
+      mapObjects: normalizedContent.mapObjects
     });
     expect(spawner.getActivePlan()).toBe(plan);
   });
@@ -91,6 +93,27 @@ describe("StageContentSpawner", () => {
             kind: "barrel",
             x: 320.4,
             y: 220.9
+          },
+          {
+            id: "drain-bounce",
+            kind: "bounce-wall",
+            x: 440.9,
+            y: 120.3,
+            angleDegrees: 14.7
+          },
+          {
+            id: "drain-tele-a",
+            kind: "teleporter",
+            x: 180.9,
+            y: 160.2,
+            pairId: "pair-z"
+          },
+          {
+            id: "drain-tele-b",
+            kind: "teleporter",
+            x: 520.5,
+            y: 300.8,
+            pairId: " pair-z "
           }
         ]
       }
@@ -143,16 +166,93 @@ describe("StageContentSpawner", () => {
           id: "drain-mine",
           kind: "mine",
           x: 204,
-          y: 88
+          y: 88,
+          angleDegrees: undefined,
+          pairId: undefined
         },
         {
           id: "drain-barrel",
           kind: "barrel",
           x: 320,
-          y: 220
+          y: 220,
+          angleDegrees: undefined,
+          pairId: undefined
+        },
+        {
+          id: "drain-bounce",
+          kind: "bounce-wall",
+          x: 440,
+          y: 120,
+          angleDegrees: 14,
+          pairId: undefined
+        },
+        {
+          id: "drain-tele-a",
+          kind: "teleporter",
+          x: 180,
+          y: 160,
+          angleDegrees: undefined,
+          pairId: "pair-z"
+        },
+        {
+          id: "drain-tele-b",
+          kind: "teleporter",
+          x: 520,
+          y: 300,
+          angleDegrees: undefined,
+          pairId: "pair-z"
         }
       ]
     });
+  });
+
+  it("preserves stage-specific map object fields in the active plan", () => {
+    const spawner = new StageContentSpawner();
+    const plan = spawner.spawn(stages[1]);
+
+    expect(plan.mapObjects).toContainEqual({
+      id: "relay-bounce-wall-a",
+      kind: "bounce-wall",
+      x: 480,
+      y: 238,
+      angleDegrees: 0,
+      pairId: undefined
+    });
+    expect(plan.mapObjects).toContainEqual({
+      id: "relay-teleporter-a",
+      kind: "teleporter",
+      x: 220,
+      y: 356,
+      angleDegrees: undefined,
+      pairId: "relay-alpha"
+    });
+    expect(plan.mapObjects).toContainEqual({
+      id: "relay-teleporter-b",
+      kind: "teleporter",
+      x: 744,
+      y: 184,
+      angleDegrees: undefined,
+      pairId: "relay-alpha"
+    });
+  });
+
+  it("fails fast when raw content violates advanced map object validation", () => {
+    const spawner = new StageContentSpawner();
+    const stage = {
+      ...stages[0],
+      content: {
+        hazards: [],
+        pickups: [],
+        gates: [],
+        mapObjects: [
+          { id: "bad-bounce", kind: "bounce-wall", x: 10, y: 20 },
+          { id: "bad-tele-a", kind: "teleporter", x: 30, y: 40, pairId: "solo" }
+        ]
+      }
+    } as unknown as StageDefinitionWithContent;
+
+    expect(() => spawner.spawn(stage)).toThrow();
+    expect(spawner.getActivePlan()).toBeNull();
   });
 
   describe("edge cases (Phase 3 QA audit)", () => {
@@ -275,10 +375,17 @@ describe("StageContentSpawner", () => {
       expect(plan.gates).toHaveLength(1);
       expect(plan.gates[0]).toMatchObject({ id: "g-dup", kind: "door", label: "First Gate" });
       expect(plan.mapObjects).toHaveLength(1);
-      expect(plan.mapObjects[0]).toMatchObject({ id: "m-dup", kind: "mine", x: 1, y: 2 });
+      expect(plan.mapObjects[0]).toEqual({
+        id: "m-dup",
+        kind: "mine",
+        x: 1,
+        y: 2,
+        angleDegrees: undefined,
+        pairId: undefined
+      });
     });
 
-    it("caps map objects in the active plan by kind", () => {
+    it("allows valid edge-stage plans with capped legacy map objects", () => {
       const spawner = new StageContentSpawner();
       const stage = {
         ...baseStage,
@@ -287,13 +394,13 @@ describe("StageContentSpawner", () => {
           pickups: [],
           gates: [],
           mapObjects: [
-            ...Array.from({ length: 13 }, (_, index) => ({
+            ...Array.from({ length: 12 }, (_, index) => ({
               id: `mine-${index}`,
               kind: "mine",
               x: index,
               y: index
             })),
-            ...Array.from({ length: 17 }, (_, index) => ({
+            ...Array.from({ length: 16 }, (_, index) => ({
               id: `barrel-${index}`,
               kind: "barrel",
               x: index,

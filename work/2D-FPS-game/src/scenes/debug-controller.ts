@@ -13,6 +13,7 @@ import { ACTOR_HALF_SIZE } from "./scene-constants";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { DebugTeamSelection, MainSceneDebugSnapshot, PlayerWeaponSlot } from "./scene-types";
 import type { VfxController } from "./vfx-controller";
+import type { MapObjectState } from "../domain/map/MapObjectLogic";
 
 export interface DebugControllerDeps {
   readonly matchFlow: MatchFlowLogic;
@@ -28,6 +29,15 @@ export interface DebugControllerDeps {
   readonly getUnlockState: () => UnlockState;
   readonly getLastSpawnSummary: () => string;
   readonly getMapObjectDebugSummary: () => MapObjectDebugSummary;
+  readonly getMapObjectStates: () => readonly MapObjectState[];
+  readonly getProjectileSnapshot: () => readonly {
+    x: number;
+    y: number;
+    velocityX: number;
+    velocityY: number;
+    owner: "player" | "dummy";
+    trajectory: string;
+  }[];
   readonly isRoundStarting: (now: number) => boolean;
   readonly getActorRotation: (angleRadians: number) => number;
   readonly applyGateToggle: () => void;
@@ -85,6 +95,21 @@ export class DebugController {
       activeAirStrikes: this.deps.runtimeState.activeAirStrikes.length,
       ...this.deps.vfxController.getRuntimeStats(now)
     };
+  }
+
+  public getMapObjectStates(): readonly MapObjectState[] {
+    return this.deps.getMapObjectStates();
+  }
+
+  public getProjectileSnapshot(): readonly {
+    x: number;
+    y: number;
+    velocityX: number;
+    velocityY: number;
+    owner: "player" | "dummy";
+    trajectory: string;
+  }[] {
+    return this.deps.getProjectileSnapshot();
   }
 
   public debugEnterStage(): void {

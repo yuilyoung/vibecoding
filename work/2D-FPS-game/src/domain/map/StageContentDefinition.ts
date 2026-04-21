@@ -3,12 +3,21 @@ import type { StageDefinition } from "./StageDefinition";
 export type StageHazardKind = "lava" | "steam" | "electric" | "toxic" | "pressure" | "sludge";
 export type StagePickupKind = "health" | "ammo" | "boost";
 export type StageGateKind = "door" | "barrier" | "switch";
-export type StageMapObjectKind = "mine" | "barrel" | "crate";
+export type StageMapObjectKind =
+  | "mine"
+  | "barrel"
+  | "crate"
+  | "cover"
+  | "bounce-wall"
+  | "teleporter";
 
 const MAP_OBJECT_CAPS: Readonly<Record<StageMapObjectKind, number>> = {
   mine: 12,
   barrel: 16,
-  crate: Number.POSITIVE_INFINITY
+  crate: Number.POSITIVE_INFINITY,
+  cover: 20,
+  "bounce-wall": 16,
+  teleporter: 8
 };
 
 export interface StageHazardDefinition {
@@ -50,6 +59,8 @@ export interface StageMapObjectDefinition {
   readonly kind: StageMapObjectKind;
   readonly x: number;
   readonly y: number;
+  readonly angleDegrees?: number;
+  readonly pairId?: string;
 }
 
 export interface StageContentDefinition {
@@ -121,7 +132,7 @@ function normalizeGates(value: unknown): StageGateDefinition[] {
 }
 
 function normalizeMapObjects(value: unknown): StageMapObjectDefinition[] {
-  return capMapObjectsByKind(normalizeUniqueById(value, normalizeMapObjectDefinition));
+  return validateMapObjects(normalizeUniqueById(value, normalizeMapObjectDefinition));
 }
 
 function normalizeUniqueById<T extends { readonly id: string }>(
@@ -226,7 +237,9 @@ function normalizeMapObjectDefinition(entry: unknown): StageMapObjectDefinition 
     id,
     kind,
     x: normalizeCoordinate(record?.x),
-    y: normalizeCoordinate(record?.y)
+    y: normalizeCoordinate(record?.y),
+    angleDegrees: kind === "bounce-wall" ? normalizeAngleDegrees(record?.angleDegrees) : undefined,
+    pairId: kind === "teleporter" ? normalizeOptionalId(record?.pairId) ?? undefined : undefined
   };
 }
 
@@ -287,41 +300,87 @@ function isStageMapObjectDefinition(entry: unknown): entry is StageMapObjectDefi
     isStageMapObjectKind(record.kind) &&
     isId(record.id) &&
     isFiniteNumber(record.x) &&
-    isFiniteNumber(record.y)
+    isFiniteNumber(record.y) &&
+    (record.kind !== "bounce-wall" || isFiniteNumber(record.angleDegrees)) &&
+    (record.kind !== "teleporter" || isId(record.pairId))
   );
 }
 
-function capMapObjectsByKind(mapObjects: readonly StageMapObjectDefinition[]): StageMapObjectDefinition[] {
+function validateMapObjects(mapObjects: readonly StageMapObjectDefinition[]): StageMapObjectDefinition[] {
   const counts: Record<StageMapObjectKind, number> = {
     mine: 0,
     barrel: 0,
-    crate: 0
+    crate: 0,
+    cover: 0,
+    "bounce-wall": 0,
+    teleporter: 0
   };
-  const capped: StageMapObjectDefinition[] = [];
+  const teleporterPairs = new Map<string, number>();
 
   for (const mapObject of mapObjects) {
-    if (counts[mapObject.kind] >= MAP_OBJECT_CAPS[mapObject.kind]) {
-      continue;
+    counts[mapObject.kind] += 1;
+
+    if (counts[mapObject.kind] > MAP_OBJECT_CAPS[mapObject.kind]) {
+      throw new Error(
+        `Stage content exceeds ${mapObject.kind} cap of ${MAP_OBJECT_CAPS[mapObject.kind]}.`
+      );
     }
 
-    counts[mapObject.kind] += 1;
-    capped.push(mapObject);
+    if (mapObject.kind === "bounce-wall" && mapObject.angleDegrees === undefined) {
+      throw new Error(`Bounce wall "${mapObject.id}" requires angleDegrees.`);
+    }
+
+    if (mapObject.kind === "teleporter") {
+      if (mapObject.pairId === undefined) {
+        throw new Error(`Teleporter "${mapObject.id}" requires pairId.`);
+      }
+
+      teleporterPairs.set(mapObject.pairId, (teleporterPairs.get(mapObject.pairId) ?? 0) + 1);
+    }
   }
 
-  return capped;
+  for (const [pairId, count] of teleporterPairs) {
+    if (count !== 2) {
+      throw new Error(`Teleporter pair "${pairId}" must contain exactly 2 teleporters.`);
+    }
+  }
+
+  return [...mapObjects];
 }
 
 function isWithinMapObjectCaps(mapObjects: readonly StageMapObjectDefinition[]): boolean {
   const counts: Record<StageMapObjectKind, number> = {
     mine: 0,
     barrel: 0,
-    crate: 0
+    crate: 0,
+    cover: 0,
+    "bounce-wall": 0,
+    teleporter: 0
   };
+  const teleporterPairs = new Map<string, number>();
 
   for (const mapObject of mapObjects) {
     counts[mapObject.kind] += 1;
 
     if (counts[mapObject.kind] > MAP_OBJECT_CAPS[mapObject.kind]) {
+      return false;
+    }
+
+    if (mapObject.kind === "bounce-wall" && mapObject.angleDegrees === undefined) {
+      return false;
+    }
+
+    if (mapObject.kind === "teleporter") {
+      if (mapObject.pairId === undefined) {
+        return false;
+      }
+
+      teleporterPairs.set(mapObject.pairId, (teleporterPairs.get(mapObject.pairId) ?? 0) + 1);
+    }
+  }
+
+  for (const count of teleporterPairs.values()) {
+    if (count !== 2) {
       return false;
     }
   }
@@ -365,6 +424,10 @@ function normalizeDimension(value: unknown): number {
 
 function normalizeValue(value: unknown): number {
   return normalizeInteger(value, 0, 0);
+}
+
+function normalizeAngleDegrees(value: unknown): number {
+  return normalizeInteger(value, 0, -360);
 }
 
 function normalizeInteger(value: unknown, fallback: number, minimum: number): number {
@@ -415,7 +478,7 @@ function normalizeGateKind(value: unknown): StageGateKind | null {
 }
 
 function normalizeMapObjectKind(value: unknown): StageMapObjectKind | null {
-  return normalizeKind(value, ["mine", "barrel", "crate"]);
+  return normalizeKind(value, ["mine", "barrel", "crate", "cover", "bounce-wall", "teleporter"]);
 }
 
 function normalizeKind<T extends string>(value: unknown, kinds: readonly T[]): T | null {

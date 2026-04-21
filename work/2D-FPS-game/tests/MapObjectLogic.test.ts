@@ -49,6 +49,66 @@ describe("MapObjectLogic", () => {
     expect(object.active).toBe(true);
   });
 
+  it("creates a cover map object with Sprint 2 defaults", () => {
+    const object = createMapObject({
+      id: "cover-1",
+      kind: "cover",
+      x: 200,
+      y: 150
+    });
+
+    expect(object).toEqual({
+      id: "cover-1",
+      kind: "cover",
+      x: 200,
+      y: 150,
+      hp: 60,
+      active: true
+    });
+  });
+
+  it("creates a bounce-wall map object with angle and reflection metadata", () => {
+    const object = createMapObject({
+      id: "bounce-1",
+      kind: "bounce-wall",
+      x: 220,
+      y: 180,
+      angleDegrees: 90,
+      reflectionsRemaining: 3
+    });
+
+    expect(object).toMatchObject({
+      id: "bounce-1",
+      kind: "bounce-wall",
+      hp: 1,
+      active: true,
+      angleDegrees: 90,
+      reflectionsRemaining: 3
+    });
+  });
+
+  it("creates a teleporter map object with pairing metadata", () => {
+    const object = createMapObject({
+      id: "teleporter-a",
+      kind: "teleporter",
+      x: 320,
+      y: 200,
+      pairId: "alpha",
+      cooldownUntil: 500,
+      cooldownMs: 1500
+    });
+
+    expect(object).toMatchObject({
+      id: "teleporter-a",
+      kind: "teleporter",
+      hp: 1,
+      active: true,
+      pairId: "alpha",
+      cooldownUntil: 500,
+      cooldownMs: 1500
+    });
+  });
+
   it("reduces hp when damaged below the destroy threshold", () => {
     const object = createMapObject({
       id: "crate-1",
@@ -117,5 +177,24 @@ describe("MapObjectLogic", () => {
     const damaged = damageMapObject(inactive, 15);
 
     expect(damaged).toBe(inactive);
+  });
+
+  it("destroys bounce walls when reflection durability is exhausted by damage", () => {
+    const wall = createMapObject({
+      id: "bounce-1",
+      kind: "bounce-wall",
+      x: 220,
+      y: 180,
+      hp: 1,
+      reflectionsRemaining: 1
+    });
+
+    const damaged = damageMapObject(wall, 1);
+
+    expect(damaged).toMatchObject({
+      hp: 0,
+      active: false,
+      reflectionsRemaining: 1
+    });
   });
 });

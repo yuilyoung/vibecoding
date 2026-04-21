@@ -2,7 +2,12 @@ import { createMapObject, destroyMapObject } from "../src/domain/map/MapObjectLo
 import { advanceMapObjects } from "../src/domain/map/MapObjectRuntime";
 import type { GameBalanceMapObjects } from "../src/scenes/scene-types";
 
-const config: GameBalanceMapObjects = {
+const config: GameBalanceMapObjects & {
+  teleporter: {
+    radius: number;
+    cooldownMs: number;
+  };
+} = {
   barrel: {
     hp: 40,
     blastRadius: 80,
@@ -24,6 +29,21 @@ const config: GameBalanceMapObjects = {
       ammo: 0.4,
       boost: 0.2
     }
+  },
+  cover: {
+    hp: 60,
+    width: 48,
+    height: 16,
+    blocksBullets: true
+  },
+  bounceWall: {
+    width: 48,
+    height: 8,
+    maxReflections: 3
+  },
+  teleporter: {
+    radius: 24,
+    cooldownMs: 1500
   }
 };
 
@@ -64,5 +84,85 @@ describe("MapObjectRuntime", () => {
     ]);
     expect(advanceMapObjects(0, 16, [], [crate], config, () => 0.5).drops[0].type).toBe("ammo");
     expect(advanceMapObjects(0, 16, [], [crate], config, () => 0.9).drops[0].type).toBe("boost");
+  });
+
+  it("returns teleports without breaking the existing triggered and drops arrays", () => {
+    const teleporterA = createMapObject({
+      id: "tp-a",
+      kind: "teleporter",
+      x: 100,
+      y: 100,
+      pairId: "alpha",
+      cooldownMs: 1500
+    });
+    const teleporterB = createMapObject({
+      id: "tp-b",
+      kind: "teleporter",
+      x: 280,
+      y: 200,
+      pairId: "alpha",
+      cooldownMs: 1500
+    });
+
+    const result = advanceMapObjects(
+      1_000,
+      16,
+      [{ id: "player", x: 100, y: 100 }],
+      [teleporterA, teleporterB],
+      config
+    );
+
+    expect(result.triggered).toEqual([]);
+    expect(result.drops).toEqual([]);
+    expect(result.teleports).toEqual([
+      {
+        actorId: "player",
+        fromId: "tp-a",
+        toId: "tp-b",
+        x: 280,
+        y: 200,
+        cooldownUntil: 2_500
+      }
+    ]);
+  });
+
+  it("updates teleporter cooldowns and blocks immediate re-entry on the next tick", () => {
+    const teleporterA = createMapObject({
+      id: "tp-a",
+      kind: "teleporter",
+      x: 100,
+      y: 100,
+      pairId: "alpha",
+      cooldownMs: 1500
+    });
+    const teleporterB = createMapObject({
+      id: "tp-b",
+      kind: "teleporter",
+      x: 280,
+      y: 200,
+      pairId: "alpha",
+      cooldownMs: 1500
+    });
+
+    const first = advanceMapObjects(
+      1_000,
+      16,
+      [{ id: "player", x: 100, y: 100 }],
+      [teleporterA, teleporterB],
+      config
+    );
+    const second = advanceMapObjects(
+      1_100,
+      16,
+      [{ id: "player", x: 280, y: 200 }],
+      first.objects,
+      config
+    );
+
+    expect(first.objects).toMatchObject([
+      { id: "tp-a", cooldownUntil: 2_500 },
+      { id: "tp-b", cooldownUntil: 2_500 }
+    ]);
+    expect(second.teleports).toEqual([]);
   });
 });

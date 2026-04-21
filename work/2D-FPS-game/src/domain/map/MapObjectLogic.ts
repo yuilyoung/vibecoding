@@ -1,4 +1,4 @@
-export type MapObjectKind = "barrel" | "mine" | "crate";
+export type MapObjectKind = "barrel" | "mine" | "crate" | "cover" | "bounce-wall" | "teleporter";
 
 export interface MapObjectState {
   readonly id: string;
@@ -9,6 +9,11 @@ export interface MapObjectState {
   readonly active: boolean;
   readonly armedAt?: number;
   readonly fuseStartedAt?: number;
+  readonly pairId?: string;
+  readonly angleDegrees?: number;
+  readonly reflectionsRemaining?: number;
+  readonly cooldownUntil?: number;
+  readonly cooldownMs?: number;
 }
 
 export interface CreateMapObjectInput {
@@ -20,16 +25,38 @@ export interface CreateMapObjectInput {
   readonly active?: boolean;
   readonly armedAt?: number;
   readonly fuseStartedAt?: number;
+  readonly pairId?: string;
+  readonly angleDegrees?: number;
+  readonly reflectionsRemaining?: number;
+  readonly cooldownUntil?: number;
+  readonly cooldownMs?: number;
 }
 
 const DEFAULT_HP_BY_KIND: Record<MapObjectKind, number> = {
   barrel: 60,
   mine: 25,
-  crate: 40
+  crate: 40,
+  cover: 60,
+  "bounce-wall": 1,
+  teleporter: 1
 };
+
+const DEFAULT_REFLECTIONS_REMAINING = 3;
+const DEFAULT_TELEPORTER_COOLDOWN_MS = 1_500;
 
 export function createMapObject(input: CreateMapObjectInput): MapObjectState {
   const hp = normalizeHp(input.hp ?? DEFAULT_HP_BY_KIND[input.kind]);
+  const pairId = normalizeOptionalString(input.pairId);
+  const angleDegrees = normalizeAngleDegrees(input.angleDegrees);
+  const reflectionsRemaining =
+    input.kind === "bounce-wall"
+      ? normalizeCounter(input.reflectionsRemaining, DEFAULT_REFLECTIONS_REMAINING)
+      : undefined;
+  const cooldownUntil = normalizeCooldownUntil(input.cooldownUntil);
+  const cooldownMs =
+    input.kind === "teleporter"
+      ? normalizeCounter(input.cooldownMs, DEFAULT_TELEPORTER_COOLDOWN_MS)
+      : undefined;
 
   return {
     id: input.id,
@@ -39,7 +66,12 @@ export function createMapObject(input: CreateMapObjectInput): MapObjectState {
     hp,
     active: (input.active ?? true) && hp > 0,
     armedAt: input.armedAt,
-    fuseStartedAt: input.fuseStartedAt
+    fuseStartedAt: input.fuseStartedAt,
+    ...(pairId !== undefined ? { pairId } : {}),
+    ...(angleDegrees !== undefined ? { angleDegrees } : {}),
+    ...(reflectionsRemaining !== undefined ? { reflectionsRemaining } : {}),
+    ...(cooldownUntil !== undefined ? { cooldownUntil } : {}),
+    ...(cooldownMs !== undefined ? { cooldownMs } : {})
   };
 }
 
@@ -71,4 +103,37 @@ export function destroyMapObject(object: MapObjectState): MapObjectState {
 
 function normalizeHp(hp: number): number {
   return Math.max(0, hp);
+}
+
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeAngleDegrees(value: number | undefined): number | undefined {
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return value as number;
+}
+
+function normalizeCounter(value: number | undefined, fallback: number): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.floor(value as number));
+}
+
+function normalizeCooldownUntil(value: number | undefined): number | undefined {
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return value;
 }

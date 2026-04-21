@@ -1,9 +1,11 @@
 import type { GameBalanceMapObjects } from "../../scenes/scene-types";
 import { destroyMapObject, type MapObjectState } from "./MapObjectLogic";
+import { resolveTeleport } from "./TeleporterLogic";
 
 export type MapObjectDropType = "health" | "ammo" | "boost";
 
 export interface MapObjectActor {
+  readonly id?: string;
   readonly x: number;
   readonly y: number;
 }
@@ -15,24 +17,56 @@ export interface MapObjectDrop {
   readonly y: number;
 }
 
+export interface MapObjectTeleport {
+  readonly actorId: string;
+  readonly fromId: string;
+  readonly toId: string;
+  readonly x: number;
+  readonly y: number;
+  readonly cooldownUntil: number;
+}
+
 export interface MapObjectTickResult {
   readonly objects: readonly MapObjectState[];
   readonly triggered: readonly string[];
   readonly drops: readonly MapObjectDrop[];
+  readonly teleports: readonly MapObjectTeleport[];
 }
+
+type MapObjectRuntimeConfig = GameBalanceMapObjects & {
+  readonly teleporter?: {
+    readonly radius: number;
+    readonly cooldownMs: number;
+  };
+};
 
 export function advanceMapObjects(
   now: number,
   _dt: number,
   actors: readonly MapObjectActor[],
   objects: readonly MapObjectState[],
-  config: GameBalanceMapObjects,
+  config: MapObjectRuntimeConfig,
   rng: () => number = Math.random
 ): MapObjectTickResult {
   const triggered: string[] = [];
   const drops: MapObjectDrop[] = [];
+  const teleports: Array<{
+    actorId: string;
+    fromId: string;
+    toId: string;
+    x: number;
+    y: number;
+    cooldownUntil: number;
+  }> = [];
 
   const nextObjects = objects.map((object) => {
+    if (object.kind === "teleporter" && object.cooldownMs === undefined && config.teleporter !== undefined) {
+      return {
+        ...object,
+        cooldownMs: config.teleporter.cooldownMs
+      };
+    }
+
     if (object.kind === "mine") {
       return advanceMine(now, actors, object, config.mine, triggered);
     }
@@ -49,10 +83,52 @@ export function advanceMapObjects(
     return object;
   });
 
+  let teleporterAwareObjects = nextObjects;
+  const teleporterRadius = config.teleporter?.radius;
+
+  if (teleporterRadius !== undefined) {
+    actors.forEach((actor, actorIndex) => {
+      const resolution = resolveTeleport(
+        {
+          id: actor.id ?? `actor-${actorIndex}`,
+          x: actor.x,
+          y: actor.y
+        },
+        teleporterAwareObjects,
+        now,
+        teleporterRadius
+      );
+
+      if (resolution === null) {
+        return;
+      }
+
+      teleports.push({
+        actorId: actor.id ?? `actor-${actorIndex}`,
+        fromId: resolution.sourceId,
+        toId: resolution.destinationId,
+        x: resolution.x,
+        y: resolution.y,
+        cooldownUntil: resolution.cooldownUntil
+      });
+      teleporterAwareObjects = teleporterAwareObjects.map((object) => {
+        if (object.id !== resolution.sourceId && object.id !== resolution.destinationId) {
+          return object;
+        }
+
+        return {
+          ...object,
+          cooldownUntil: resolution.cooldownUntil
+        };
+      });
+    });
+  }
+
   return {
-    objects: nextObjects,
+    objects: teleporterAwareObjects,
     triggered,
-    drops
+    drops,
+    teleports
   };
 }
 

@@ -255,25 +255,7 @@ export class MainScene extends Phaser.Scene {
       isPlayerSprintDown: () => this.moveKeys?.sprint.isDown === true
     });
     this.mapObjectController = new MapObjectController(this, {
-      gameBalanceMapObjects: this.gameBalance.mapObjects,
-      onMineTriggered: (_id, state) => {
-        if (state === undefined) {
-          return;
-        }
-        this.vfxController.spawnImpactEffect(state.x, state.y, "grenade");
-        this.combatController.applyExplosionDamage(
-          state.x,
-          state.y,
-          this.gameBalance.mapObjects.mine.blastRadius,
-          this.gameBalance.mapObjects.mine.blastDamage,
-          0,
-          "player"
-        );
-      },
-      onDrop: (drop) => {
-        this.vfxController.spawnImpactEffect(drop.x, drop.y, drop.type === "ammo" ? "pickup-ammo" : "pickup-health");
-        this.runtimeState.lastCombatEvent = `${drop.type.toUpperCase()} DROP`;
-      }
+      gameBalanceMapObjects: this.gameBalance.mapObjects
     });
     this.visualController = new VisualController(this, this.runtimeState, {
       getActiveWeaponId: () => this.combatController.getActiveWeaponSlot().id,
@@ -321,7 +303,8 @@ export class MainScene extends Phaser.Scene {
       },
       getMapObjectCollisionRects: () => this.mapObjectController.getActiveCollisionRects(),
       damageMapObject: (id, damage) => this.mapObjectController.damageObject(id, damage),
-      destroyMapObject: (id) => this.mapObjectController.destroyObject(id)
+      destroyMapObject: (id) => this.mapObjectController.destroyObject(id),
+      setMapObjectState: (id, state) => this.mapObjectController.setObjectState(id, state)
     });
     this.dummyActorController = new DummyActorController(this, this.runtimeState, this.actorCollisionResolver, {
       dummyAiLogic: this.dummyAiLogic,
@@ -483,6 +466,15 @@ export class MainScene extends Phaser.Scene {
       getUnlockState: () => this.unlockState,
       getLastSpawnSummary: () => this.lastSpawnSummary,
       getMapObjectDebugSummary: () => this.mapObjectController.getDebugSummary(),
+      getMapObjectStates: () => this.mapObjectController.getStates(),
+      getProjectileSnapshot: () => this.runtimeState.bullets.map((bullet) => ({
+        x: bullet.sprite.x,
+        y: bullet.sprite.y,
+        velocityX: bullet.velocityX,
+        velocityY: bullet.velocityY,
+        owner: bullet.owner,
+        trajectory: bullet.projectileConfig.trajectory
+      })),
       isRoundStarting: (now) => this.matchFlowController.isRoundStarting(now),
       getActorRotation: (angleRadians) => this.visualController.getActorRotation(angleRadians),
       applyGateToggle: () => this.stageGeometry.toggleGate(),
@@ -592,6 +584,15 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.targetDummy = this.targetDummy;
     this.runtimeState.playerWeaponSprite = this.playerWeaponSprite;
     this.runtimeState.dummyWeaponSprite = this.dummyWeaponSprite;
+    this.mapObjectController.wireSideEffects({
+      actors: [
+        { id: "player", logic: this.playerLogic, sprite: this.playerSprite },
+        { id: "dummy", logic: this.dummyLogic, sprite: this.targetDummy }
+      ],
+      vfxController: this.vfxController,
+      combatController: this.combatController,
+      runtimeState: this.runtimeState
+    });
     this.playerLogic.reset(0, 0);
     this.dummyLogic.reset(this.spawnTable.RED[0].x - ACTOR_HALF_SIZE, this.spawnTable.RED[0].y - ACTOR_HALF_SIZE);
     this.roundStartUntilMs = 0;
@@ -701,10 +702,7 @@ export class MainScene extends Phaser.Scene {
     // spawn frame (move on fire + move on updateBullets in the same tick).
     this.combatController.updateProjectiles(deltaSeconds, now);
     this.combatController.updateAirStrikes(frameDeltaMs);
-    this.mapObjectController.advance(now, frameDeltaMs, [
-      { x: this.playerSprite.x, y: this.playerSprite.y },
-      { x: this.targetDummy.x, y: this.targetDummy.y }
-    ]);
+    this.mapObjectController.advanceTick(now, frameDeltaMs);
 
     // -- Fire: spawn new bullets (will be advanced next frame) --
     this.combatController.handlePlayerFire(now);
@@ -813,6 +811,8 @@ export class MainScene extends Phaser.Scene {
   public debugFire(): void { this.debugController.debugFire(this.time.now); }
 
   public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); }
+  public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); }
+  public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); }
 
   public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); }
 

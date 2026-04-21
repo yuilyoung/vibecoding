@@ -1,9 +1,8 @@
 {
-  "ctx": "vision handoff",
-  "handoffId": "phase-2-sprint2-advanced-map-objects",
-  "reportPresent": false,
-  "syncedAt": "2026-04-21T00:00:00.000Z",
+  "ctx": "ultron postflight",
+  "reportPresent": true,
+  "syncedAt": "2026-04-21T12:55:27.091Z",
   "planner": "vision",
   "executor": "ultron",
-  "hasVerificationSection": false
+  "hasVerificationSection": true
 }

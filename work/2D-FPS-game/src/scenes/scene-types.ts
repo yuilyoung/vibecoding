@@ -34,6 +34,21 @@ export interface GameBalanceMapObjects {
       readonly boost: number;
     };
   };
+  readonly cover: {
+    readonly hp: number;
+    readonly width: number;
+    readonly height: number;
+    readonly blocksBullets: boolean;
+  };
+  readonly bounceWall: {
+    readonly width: number;
+    readonly height: number;
+    readonly maxReflections: number;
+  };
+  readonly teleporter: {
+    readonly radius: number;
+    readonly cooldownMs: number;
+  };
 }
 
 export interface GameBalance {

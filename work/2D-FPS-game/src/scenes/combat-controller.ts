@@ -14,6 +14,8 @@ import {
 import { resolveChainExplosion, resolveExplosion } from "../domain/combat/ExplosionLogic";
 import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
+import { reflectProjectileOffWall } from "../domain/map/BounceWallLogic";
+import { isBulletBlocked } from "../domain/map/CoverLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import type { CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
@@ -63,6 +65,7 @@ export interface CombatControllerDeps {
   readonly getMapObjectCollisionRects: () => readonly MapObjectCollisionRect[];
   readonly damageMapObject: (id: string, damage: number) => MapObjectDamageResult | null;
   readonly destroyMapObject: (id: string) => MapObjectDamageResult | null;
+  readonly setMapObjectState: (id: string, state: MapObjectCollisionRect["state"]) => MapObjectCollisionRect["state"] | null;
 }
 
 export class CombatController {
@@ -263,10 +266,12 @@ export class CombatController {
 
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
+      const previousX = bullet.sprite.x;
+      const previousY = bullet.sprite.y;
       const runtimeFrame = advanceProjectile({
         projectile: {
-          x: bullet.sprite.x,
-          y: bullet.sprite.y,
+          x: previousX,
+          y: previousY,
           width: bullet.sprite.width,
           height: bullet.sprite.height,
           velocityX: bullet.velocityX,
@@ -301,11 +306,46 @@ export class CombatController {
       bullet.velocityY = runtimeFrame.projectile.velocityY;
       bullet.bouncesRemaining = runtimeFrame.projectile.bouncesRemaining;
 
-      const dummyCoverProtected = frame.hitDummy && bullet.owner === "player" && this.deps.hasDummyCoverProtection(now);
+      if (frame.hitMapObject?.kind === "bounce-wall") {
+        const reflection = reflectProjectileOffWall({
+          x: previousX,
+          y: previousY,
+          width: bullet.sprite.width,
+          height: bullet.sprite.height,
+          velocityX: bullet.velocityX,
+          velocityY: bullet.velocityY,
+          trajectory: bullet.projectileConfig.trajectory,
+          bouncesRemaining: bullet.bouncesRemaining ?? 0
+        }, frame.hitMapObject.state);
+
+        if (reflection.kind === "reflected") {
+          this.deps.setMapObjectState(frame.hitMapObject.id, reflection.wall);
+          bullet.sprite.x = previousX;
+          bullet.sprite.y = previousY;
+          bullet.velocityX = reflection.projectile.velocityX;
+          bullet.velocityY = reflection.projectile.velocityY;
+          bullet.bouncesRemaining = reflection.projectile.bouncesRemaining;
+          this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
+          this.deps.emitSoundCue({ kind: "deflect", mode: "ricochet" });
+          continue;
+        }
+      }
+
+      const hitActiveCover = frame.hitMapObject?.kind === "cover" &&
+        isBulletBlocked(frame.hitMapObject.state, {
+          prevX: previousX,
+          prevY: previousY,
+          x: frame.nextX,
+          y: frame.nextY
+        });
+      const hitDummy = hitActiveCover ? false : frame.hitDummy;
+      const hitPlayer = hitActiveCover ? false : frame.hitPlayer;
+
+      const dummyCoverProtected = hitDummy && bullet.owner === "player" && this.deps.hasDummyCoverProtection(now);
       let appliedDamage = bullet.damage;
       let isCritical = false;
 
-      if (frame.hitDummy && bullet.owner === "player") {
+      if (hitDummy && bullet.owner === "player") {
         if (dummyCoverProtected) {
           appliedDamage = 0;
         } else {
@@ -313,13 +353,13 @@ export class CombatController {
           appliedDamage = damageResult.damage;
           isCritical = damageResult.isCritical;
         }
-      } else if (frame.hitPlayer && bullet.owner === "dummy") {
+      } else if (hitPlayer && bullet.owner === "dummy") {
         const damageResult = this.resolveWeaponDamage(bullet.damage, bullet.critChance, bullet.critMultiplier);
         appliedDamage = damageResult.damage;
         isCritical = damageResult.isCritical;
       }
 
-      if (frame.hitDummy && bullet.owner === "player" && !dummyCoverProtected) {
+      if (hitDummy && bullet.owner === "player" && !dummyCoverProtected) {
         this.state.dummyLogic.takeDamage(appliedDamage);
         this.deps.recordDummyHit(now);
         this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, false);
@@ -328,7 +368,7 @@ export class CombatController {
         }
       }
 
-      if (frame.hitDummy && bullet.owner === "player" && dummyCoverProtected) {
+      if (hitDummy && bullet.owner === "player" && dummyCoverProtected) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile === "scatter" ? "scatter" : "carbine");
         this.vfx.spawnShotTrail(
           frame.nextX,
@@ -340,7 +380,7 @@ export class CombatController {
         );
       }
 
-      if (frame.hitPlayer && bullet.owner === "dummy") {
+      if (hitPlayer && bullet.owner === "dummy") {
         this.state.playerLogic.takeDamage(appliedDamage, this.deps.gameBalance.hitStunMs, now);
         this.deps.recordPlayerHit(now);
         this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, true);
@@ -349,7 +389,7 @@ export class CombatController {
         }
       }
 
-      if (frame.hitMapObject !== null) {
+      if (frame.hitMapObject !== null && frame.hitMapObject.kind !== "bounce-wall") {
         const result = this.deps.damageMapObject(frame.hitMapObject.id, bullet.damage);
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
         if (result?.destroyed === true && result.after.kind === "barrel") {
@@ -359,9 +399,9 @@ export class CombatController {
 
       const bulletResolution = resolveBulletCollision({
         owner: bullet.owner,
-        hitDummy: frame.hitDummy,
-        hitPlayer: frame.hitPlayer,
-        hitObstacle: frame.hitObstacle || frame.hitMapObject !== null,
+        hitDummy,
+        hitPlayer,
+        hitObstacle: frame.hitObstacle || hitActiveCover || (frame.hitMapObject !== null && frame.hitMapObject.kind !== "bounce-wall"),
         outOfBounds: frame.outOfBounds,
         damage: bullet.damage,
         appliedDamage,
@@ -375,7 +415,7 @@ export class CombatController {
 
       if (dummyCoverProtected) {
         this.deps.emitSoundCue({ kind: "deflect", mode: "shield" });
-      } else if (frame.hitObstacle) {
+      } else if (frame.hitObstacle || hitActiveCover) {
         this.deps.emitSoundCue({ kind: "deflect", mode: "ricochet" });
       }
 
@@ -391,11 +431,11 @@ export class CombatController {
         this.deps.scheduleResetAfterRound(now);
       }
 
-      if (frame.hitObstacle) {
+      if (frame.hitObstacle || hitActiveCover) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
       }
 
-      if ((frame.hitObstacle || frame.hitDummy || frame.hitPlayer || frame.hitMapObject !== null || frame.outOfBounds) && bullet.projectileConfig.blastRadius !== undefined) {
+      if ((frame.hitObstacle || hitDummy || hitPlayer || frame.hitMapObject !== null || frame.outOfBounds) && bullet.projectileConfig.blastRadius !== undefined) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
         this.applyExplosionDamage(
           frame.nextX,

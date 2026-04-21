@@ -75,6 +75,21 @@
         "ammo": 0.4,
         "boost": 0.2
       }
+    },
+    "cover": {
+      "hp": 60,
+      "width": 48,
+      "height": 16,
+      "blocksBullets": true
+    },
+    "bounceWall": {
+      "width": 48,
+      "height": 8,
+      "maxReflections": 3
+    },
+    "teleporter": {
+      "radius": 24,
+      "cooldownMs": 1500
     }
   },
   "weapons": {
@@ -272,7 +287,9 @@
         "mapObjects": [
           { "id": "foundry-barrel-a", "kind": "barrel", "x": 430, "y": 222 },
           { "id": "foundry-barrel-b", "kind": "barrel", "x": 488, "y": 224 },
-          { "id": "foundry-crate-a", "kind": "crate", "x": 612, "y": 430 }
+          { "id": "foundry-crate-a", "kind": "crate", "x": 612, "y": 430 },
+          { "id": "foundry-cover-a", "kind": "cover", "x": 352, "y": 118 },
+          { "id": "foundry-cover-b", "kind": "cover", "x": 592, "y": 252 }
         ]
       }
     },
@@ -371,7 +388,13 @@
           { "id": "relay-mine-b", "kind": "mine", "x": 480, "y": 270 },
           { "id": "relay-mine-c", "kind": "mine", "x": 616, "y": 268 },
           { "id": "relay-crate-a", "kind": "crate", "x": 216, "y": 178 },
-          { "id": "relay-crate-b", "kind": "crate", "x": 746, "y": 360 }
+          { "id": "relay-crate-b", "kind": "crate", "x": 746, "y": 360 },
+          { "id": "relay-cover-a", "kind": "cover", "x": 310, "y": 204 },
+          { "id": "relay-cover-b", "kind": "cover", "x": 648, "y": 204 },
+          { "id": "relay-cover-c", "kind": "cover", "x": 478, "y": 336 },
+          { "id": "relay-bounce-wall-a", "kind": "bounce-wall", "x": 480, "y": 238, "angleDegrees": 0 },
+          { "id": "relay-teleporter-a", "kind": "teleporter", "x": 220, "y": 356, "pairId": "relay-alpha" },
+          { "id": "relay-teleporter-b", "kind": "teleporter", "x": 744, "y": 184, "pairId": "relay-alpha" }
         ]
       }
     },
@@ -470,7 +493,11 @@
           { "id": "drain-barrel-f", "kind": "barrel", "x": 656, "y": 316 },
           { "id": "drain-mine-a", "kind": "mine", "x": 330, "y": 270 },
           { "id": "drain-mine-b", "kind": "mine", "x": 630, "y": 270 },
-          { "id": "drain-crate-a", "kind": "crate", "x": 480, "y": 444 }
+          { "id": "drain-crate-a", "kind": "crate", "x": 480, "y": 444 },
+          { "id": "drain-cover-a", "kind": "cover", "x": 320, "y": 214 },
+          { "id": "drain-cover-b", "kind": "cover", "x": 640, "y": 326 },
+          { "id": "drain-bounce-wall-a", "kind": "bounce-wall", "x": 432, "y": 110, "angleDegrees": 20 },
+          { "id": "drain-bounce-wall-b", "kind": "bounce-wall", "x": 530, "y": 430, "angleDegrees": -20 }
         ]
       }
     }

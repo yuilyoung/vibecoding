@@ -47,11 +47,13 @@ describe("StageContentDefinition", () => {
           locked,
           targetStageId
         })),
-        mapObjects: stage.content.mapObjects.map(({ id, kind, x, y }) => ({
+        mapObjects: stage.content.mapObjects.map(({ id, kind, x, y, angleDegrees, pairId }) => ({
           id,
           kind,
           x,
-          y
+          y,
+          angleDegrees,
+          pairId
         }))
       }))
     ).toEqual([
@@ -118,12 +120,13 @@ describe("StageContentDefinition", () => {
             targetStageId: "storm-drain"
           }
         ],
-        mapObjects: normalizedStages[0].content.mapObjects.map(({ id, kind, x, y }) => ({
-          id,
-          kind,
-          x,
-          y
-        }))
+        mapObjects: [
+          { id: "foundry-barrel-a", kind: "barrel", x: 430, y: 222, angleDegrees: undefined, pairId: undefined },
+          { id: "foundry-barrel-b", kind: "barrel", x: 488, y: 224, angleDegrees: undefined, pairId: undefined },
+          { id: "foundry-crate-a", kind: "crate", x: 612, y: 430, angleDegrees: undefined, pairId: undefined },
+          { id: "foundry-cover-a", kind: "cover", x: 352, y: 118, angleDegrees: undefined, pairId: undefined },
+          { id: "foundry-cover-b", kind: "cover", x: 592, y: 252, angleDegrees: undefined, pairId: undefined }
+        ]
       },
       {
         hazards: [
@@ -188,12 +191,23 @@ describe("StageContentDefinition", () => {
             targetStageId: "storm-drain"
           }
         ],
-        mapObjects: normalizedStages[1].content.mapObjects.map(({ id, kind, x, y }) => ({
-          id,
-          kind,
-          x,
-          y
-        }))
+        mapObjects: [
+          { id: "relay-barrel-a", kind: "barrel", x: 424, y: 196, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-barrel-b", kind: "barrel", x: 476, y: 196, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-barrel-c", kind: "barrel", x: 536, y: 340, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-barrel-d", kind: "barrel", x: 588, y: 340, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-mine-a", kind: "mine", x: 344, y: 268, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-mine-b", kind: "mine", x: 480, y: 270, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-mine-c", kind: "mine", x: 616, y: 268, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-crate-a", kind: "crate", x: 216, y: 178, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-crate-b", kind: "crate", x: 746, y: 360, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-cover-a", kind: "cover", x: 310, y: 204, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-cover-b", kind: "cover", x: 648, y: 204, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-cover-c", kind: "cover", x: 478, y: 336, angleDegrees: undefined, pairId: undefined },
+          { id: "relay-bounce-wall-a", kind: "bounce-wall", x: 480, y: 238, angleDegrees: 0, pairId: undefined },
+          { id: "relay-teleporter-a", kind: "teleporter", x: 220, y: 356, angleDegrees: undefined, pairId: "relay-alpha" },
+          { id: "relay-teleporter-b", kind: "teleporter", x: 744, y: 184, angleDegrees: undefined, pairId: "relay-alpha" }
+        ]
       },
       {
         hazards: [
@@ -258,14 +272,139 @@ describe("StageContentDefinition", () => {
             targetStageId: "relay-yard"
           }
         ],
-        mapObjects: normalizedStages[2].content.mapObjects.map(({ id, kind, x, y }) => ({
-          id,
-          kind,
-          x,
-          y
-        }))
+        mapObjects: [
+          { id: "drain-barrel-a", kind: "barrel", x: 410, y: 226, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-barrel-b", kind: "barrel", x: 464, y: 226, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-barrel-c", kind: "barrel", x: 518, y: 226, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-barrel-d", kind: "barrel", x: 548, y: 316, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-barrel-e", kind: "barrel", x: 602, y: 316, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-barrel-f", kind: "barrel", x: 656, y: 316, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-mine-a", kind: "mine", x: 330, y: 270, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-mine-b", kind: "mine", x: 630, y: 270, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-crate-a", kind: "crate", x: 480, y: 444, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-cover-a", kind: "cover", x: 320, y: 214, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-cover-b", kind: "cover", x: 640, y: 326, angleDegrees: undefined, pairId: undefined },
+          { id: "drain-bounce-wall-a", kind: "bounce-wall", x: 432, y: 110, angleDegrees: 20, pairId: undefined },
+          { id: "drain-bounce-wall-b", kind: "bounce-wall", x: 530, y: 430, angleDegrees: -20, pairId: undefined }
+        ]
       }
     ]);
+  });
+
+  it("normalizes new map object kinds with stage-specific fields", () => {
+    const normalized = normalizeStageContentDefinition({
+      mapObjects: [
+        {
+          id: "cover-alpha",
+          kind: "cover",
+          x: 10.8,
+          y: 20.2
+        },
+        {
+          id: "bounce-alpha",
+          kind: "bounce-wall",
+          x: 30.6,
+          y: 40.4,
+          angleDegrees: 44.9
+        },
+        {
+          id: "teleporter-a",
+          kind: "teleporter",
+          x: 50.1,
+          y: 60.9,
+          pairId: " pair-a "
+        },
+        {
+          id: "teleporter-b",
+          kind: "teleporter",
+          x: 70.5,
+          y: 80.3,
+          pairId: "pair-a"
+        }
+      ]
+    });
+
+    expect(normalized.mapObjects).toEqual([
+      {
+        id: "cover-alpha",
+        kind: "cover",
+        x: 10,
+        y: 20,
+        angleDegrees: undefined,
+        pairId: undefined
+      },
+      {
+        id: "bounce-alpha",
+        kind: "bounce-wall",
+        x: 30,
+        y: 40,
+        angleDegrees: 44,
+        pairId: undefined
+      },
+      {
+        id: "teleporter-a",
+        kind: "teleporter",
+        x: 50,
+        y: 60,
+        angleDegrees: undefined,
+        pairId: "pair-a"
+      },
+      {
+        id: "teleporter-b",
+        kind: "teleporter",
+        x: 70,
+        y: 80,
+        angleDegrees: undefined,
+        pairId: "pair-a"
+      }
+    ]);
+  });
+
+  it("rejects cap overflow and invalid pair definitions", () => {
+    expect(() =>
+      normalizeStageContentDefinition({
+        mapObjects: Array.from({ length: 21 }, (_, index) => ({
+          id: `cover-${index}`,
+          kind: "cover",
+          x: index,
+          y: index
+        }))
+      })
+    ).toThrow("cover cap of 20");
+
+    expect(() =>
+      normalizeStageContentDefinition({
+        mapObjects: [
+          { id: "bounce-a", kind: "bounce-wall", x: 0, y: 0 },
+          { id: "tele-a", kind: "teleporter", x: 10, y: 10, pairId: "solo" },
+          { id: "tele-b", kind: "teleporter", x: 20, y: 20, pairId: "pair" },
+          { id: "tele-c", kind: "teleporter", x: 30, y: 30, pairId: "pair" }
+        ]
+      })
+    ).toThrow();
+  });
+
+  it("reports invalid stage content when required map object fields are missing", () => {
+    expect(
+      isStageContentDefinition({
+        hazards: [],
+        pickups: [],
+        gates: [],
+        mapObjects: [{ id: "bounce-a", kind: "bounce-wall", x: 0, y: 0 }]
+      })
+    ).toBe(false);
+
+    expect(
+      isStageContentDefinition({
+        hazards: [],
+        pickups: [],
+        gates: [],
+        mapObjects: [
+          { id: "tele-a", kind: "teleporter", x: 0, y: 0, pairId: "pair-1" },
+          { id: "tele-b", kind: "teleporter", x: 10, y: 10, pairId: "pair-2" }
+        ]
+      })
+    ).toBe(false);
   });
 
   it("normalizes malformed entries into stable stage content", () => {
@@ -386,60 +525,50 @@ describe("StageContentDefinition", () => {
           id: "mine-alpha",
           kind: "mine",
           x: 71,
-          y: 18
+          y: 18,
+          angleDegrees: undefined,
+          pairId: undefined
         },
         {
           id: "barrel-alpha",
           kind: "barrel",
           x: 16,
-          y: 29
+          y: 29,
+          angleDegrees: undefined,
+          pairId: undefined
         },
         {
           id: "broken",
           kind: "crate",
           x: 0,
-          y: 0
+          y: 0,
+          angleDegrees: undefined,
+          pairId: undefined
         }
       ]
     });
   });
 
-  it("caps normalized map objects by kind", () => {
-    const normalized = normalizeStageContentDefinition({
-      mapObjects: [
-        ...Array.from({ length: 13 }, (_, index) => ({
-          id: `mine-${index}`,
-          kind: "mine",
-          x: index,
-          y: index
-        })),
-        ...Array.from({ length: 17 }, (_, index) => ({
-          id: `barrel-${index}`,
-          kind: "barrel",
-          x: index,
-          y: index
-        }))
-      ]
-    });
-
-    expect(normalized.mapObjects.filter((mapObject) => mapObject.kind === "mine")).toHaveLength(12);
-    expect(normalized.mapObjects.filter((mapObject) => mapObject.kind === "barrel")).toHaveLength(16);
-    expect(isStageContentDefinition(normalized)).toBe(true);
+  it("marks valid capped content as a stage content definition", () => {
     expect(
-      isStageContentDefinition({
-        hazards: [],
-        pickups: [],
-        gates: [],
-        mapObjects: [
-          ...normalized.mapObjects,
-          {
-            id: "extra-mine",
-            kind: "mine",
-            x: 0,
-            y: 0
-          }
-        ]
-      })
-    ).toBe(false);
+      isStageContentDefinition(
+        normalizeStageContentDefinition({
+          mapObjects: [
+            ...Array.from({ length: 12 }, (_, index) => ({
+              id: `mine-${index}`,
+              kind: "mine",
+              x: index,
+              y: index
+            })),
+            ...Array.from({ length: 16 }, (_, index) => ({
+              id: `barrel-${index}`,
+              kind: "barrel",
+              x: index,
+              y: index
+            }))
+          ]
+        })
+      )
+    ).toBe(true);
   });
 });

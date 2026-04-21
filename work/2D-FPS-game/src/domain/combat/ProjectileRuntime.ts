@@ -331,7 +331,7 @@ function resolveVelocity(
   };
 }
 
-function reflectVelocity(
+export function reflectVelocity(
   projectile: ProjectileRuntimeState,
   nextBounds: Rect,
   obstacles: readonly Rect[]

@@ -1,27 +1,25 @@
-# Execution Report - phase-2-sprint1-map-objects
+# Execution Report - phase-2-sprint2-advanced-map-objects
 
-- **Handoff ID:** phase-2-sprint1-map-objects
+- **Handoff ID:** phase-2-sprint2-advanced-map-objects
 - **From:** ultron
 - **To:** vision / pm
-- **Date:** 2026-04-20
+- **Date:** 2026-04-21
 - **Status:** complete
 
 ## Summary
 
-Phase 2 Sprint 1 Map Objects MVP is complete. The game now has barrel, mine, and crate map objects backed by balance data, pure domain logic, runtime ticking, stage placement, Phaser primitive rendering, combat damage wiring, debug snapshot reporting, and E2E coverage.
+Phase 2 Sprint 2 Advanced Map Objects is complete. The Phaser prototype now supports destructible cover, bounce walls, and paired teleporters on top of the Sprint 1 barrel/mine/crate baseline, with pure domain logic, stage-data validation, controller rendering, combat/runtime wiring, debug hooks, and browser coverage.
 
 ## Changes
 
-- Added `mapObjects` balance tuning for barrels, mines, and crates in `assets/data/game-balance.json`.
-- Added stage map-object placement for all three stages.
-- Added pure domain logic in `MapObjectLogic` and runtime ticking/drop selection in `MapObjectRuntime`.
-- Strengthened `resolveChainExplosion` with deterministic traversal, cycle prevention, and max-depth capping.
-- Extended `StageContentDefinition` and `StageContentSpawner` with `mapObjects`, validation, dedupe, and caps.
-- Added `MapObjectController` for Phaser primitive map-object visuals, collision rects, damage/destruction, mine triggering, crate drops, and debug summary.
-- Wired `combat-controller` projectile/explosion paths to damage map objects and trigger barrel chains.
-- Wired `MainScene` lifecycle/update/shutdown delegation and added `getDebugSnapshot().mapObjects`.
-- Added `tests/e2e/map-objects.spec.ts` for barrel destruction, barrel chaining, and crate drop behavior.
-- Made the Phase 3 smoke pickup step deterministic by using the existing debug/update hooks instead of relying on wall-clock timing.
+- Extended `assets/data/game-balance.json` and `scene-types.ts` with `cover`, `bounceWall`, and `teleporter` config while preserving Sprint 1 tuning.
+- Expanded `MapObjectLogic`, `MapObjectRuntime`, `StageContentDefinition`, and related tests for new kinds, cooldown/durability metadata, pair validation, and conservative stage placements.
+- Added pure domain modules `CoverLogic`, `BounceWallLogic`, and `TeleporterLogic`.
+- Exported `ProjectileRuntime.reflectVelocity` for bounce-wall reuse.
+- Expanded `MapObjectController` to render cover, bounce walls, and teleporters, preserve per-object state, and report richer debug summaries.
+- Wired `combat-controller` to block bullets on active cover, reflect shots on bounce walls, and preserve existing barrel/mine/crate paths.
+- Wired `MainScene` to apply teleporter movement results and expose `debugGetMapObjectStates()` / `debugGetProjectileSnapshot()` for deterministic browser checks.
+- Added `tests/e2e/map-objects-sprint2.spec.ts` covering cover destruction flow, bounce-wall interaction, and teleporter cooldown behavior.
 
 ## Verification
 
@@ -29,15 +27,15 @@ Phase 2 Sprint 1 Map Objects MVP is complete. The game now has barrel, mine, and
 |------|---------|--------|
 | Type check | `npm run type-check` | pass |
 | Lint | `npm run lint` | pass |
-| Focused tests | `npm test -- MapObjectLogic MapObjectRuntime ChainExplosion StageContentDefinition StageContentSpawner GameBalanceWeapons` | pass, **6 files / 35 tests** |
-| Unit tests | `npx vitest run --maxWorkers 1` | pass, **43 files / 249 tests** |
+| Focused tests | `npx vitest run tests/MapObjectLogic.test.ts tests/MapObjectRuntime.test.ts tests/CoverLogic.test.ts tests/BounceWallLogic.test.ts tests/TeleporterLogic.test.ts tests/StageContentDefinition.test.ts tests/StageContentSpawner.test.ts tests/ProjectileRuntime.test.ts` | pass, **8 files / 50 tests** |
+| Unit tests | `npx vitest run --maxWorkers 1` | pass, **46 files / 271 tests** |
 | Build | `npm run build` | pass |
-| E2E | `npx playwright test --reporter=line` | pass, **17 tests** |
+| E2E | `npx playwright test --reporter=line` | pass, **20 tests** |
 
 Build size check: largest emitted chunk is `dist/assets/phaser-gameobjects-Blmgf9UG.js` at **260.49 kB**, gzip **71.63 kB**, below the 800 kB / 250 kB thresholds.
 
 ## Risks
 
-- Crate drops currently emit lightweight runtime drop feedback and debug counts; richer pickup-pool persistence/collection can be expanded in the next sprint.
-- Barrel chain explosions use the configured `chainDelayMs`, so tests wait for Phaser delayed calls rather than only manual update ticks.
-- The map-object visuals are primitive placeholders by design; final art remains out of scope for this sprint.
+- Bounce-wall browser coverage currently proves durable wall interaction through reflected-wall state rather than persisting a dedicated reflected-projectile event log.
+- Teleporter VFX uses the existing impact effect path; a bespoke teleport visual/audio pass remains follow-up work.
+- Final authored visuals for all Sprint 1 and Sprint 2 map objects remain out of scope.

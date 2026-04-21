@@ -4,7 +4,7 @@
   "handoff": "../../../../docs/handoffs/current-handoff.json",
   "wbs": "./phase2-sprint2-advanced-map-objects-wbs.md",
   "created": "2026-04-21",
-  "status": "planned",
+  "status": "complete",
   "previousSprint": {
     "id": "phase-2-sprint1-map-objects",
     "tasks": "./phase2-sprint1-tasks.json",
@@ -16,7 +16,7 @@
       "id": "T0",
       "subject": "game-balance.json mapObjects schema extension (cover / bounce-wall / teleporter)",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "description": "assets/data/game-balance.json의 기존 mapObjects 섹션에 cover, bounceWall, teleporter 3종 추가. cover(hp=60, width=48, height=16, blocksBullets=true), bounceWall(width=48, height=8, maxReflections=3), teleporter(radius=24, cooldownMs=1500). angleDegrees와 pairId는 스테이지 배치 쪽에서 설정하므로 기본 스키마에는 포함하지 않는다. GameBalanceMapObjects 타입을 확장해 신규 3종 필드를 선언하고 type-check 통과 확인. 기존 barrel/mine/crate 필드는 변경 금지.",
       "files": [
         "assets/data/game-balance.json",
@@ -28,7 +28,7 @@
       "id": "T1",
       "subject": "MapObjectKind union expansion + Sprint 1 regression guard",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T0"],
       "description": "src/domain/map/MapObjectLogic.ts의 MapObjectKind 유니온을 'barrel' | 'mine' | 'crate' | 'cover' | 'bounce-wall' | 'teleporter'로 확장. MapObjectState에 신규 선택적 필드 추가: pairId?(teleporter), angleDegrees?(bounce-wall), reflectionsRemaining?(bounce-wall), cooldownUntil?(teleporter). createMapObject/damageMapObject/destroyMapObject 3함수는 신규 kind에서도 동일하게 동작(순수 함수 계약 유지). tests/MapObjectLogic.test.ts 확장 — 신규 3종 생성·damage·멱등성 케이스 추가. 기존 Sprint 1 테스트(6 files / 35 tests) 회귀 0건 확인.",
       "files": [
@@ -41,7 +41,7 @@
       "id": "T2",
       "subject": "CoverLogic pure domain + TDD",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T1"],
       "description": "src/domain/map/CoverLogic.ts 신규. isBulletBlocked(cover: MapObjectState, bullet: { x, y, prevX, prevY }) → boolean 순수 함수. 활성 cover(active=true, hp>0)는 bullet 선분이 cover AABB(width×height)를 교차할 때 true, destroyed 상태(active=false 또는 hp<=0)는 false. 폭발 피해는 별도 경로이므로 isBulletBlocked 대상 아님(damageMapObject 재사용). tests/CoverLogic.test.ts 선행 — AABB 정확성, 활성/비활성 분기, 선분이 경계에 접할 때 처리, 여러 bullet 교차 계산 커버.",
       "files": [
@@ -54,7 +54,7 @@
       "id": "T3",
       "subject": "BounceWallLogic — reuse ProjectileRuntime.reflectVelocity",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T1"],
       "description": "src/domain/map/BounceWallLogic.ts 신규. reflectProjectileOffWall(projectile, wall) 함수가 내부적으로 ProjectileRuntime.reflectVelocity를 재사용해 반사 속도를 계산하고 wall.reflectionsRemaining을 1 감소시킨 새 wall 상태를 함께 반환. reflectionsRemaining이 0이 되면 wall을 destroyed 상태로 전환. linear/arc/bounce 3종 궤적 모두 반사 가능(bounce 궤적의 bouncesRemaining은 감소시키지 않음 — wall 쪽 카운터만 사용). tests/BounceWallLogic.test.ts 선행 — angleDegrees별 반사 각 정확성, maxReflections 초과 시 파괴, linear/arc/bounce 3종 궤적 반사 커버, reflectVelocity 재호출 중복 구현 없음 확인.",
       "files": [
@@ -67,7 +67,7 @@
       "id": "T4",
       "subject": "TeleporterLogic — deterministic pair routing with cooldown",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T1"],
       "description": "src/domain/map/TeleporterLogic.ts 신규. resolveTeleport(actor, teleporters, now) → { x, y, cooldownUntil, sourceId, destinationId } | null 순수 함수. 로직: (1) actor가 radius 내 진입한 활성 teleporter 탐색, (2) 동일 pairId의 상대 teleporter 탐색(정확히 1개 매칭 필수), (3) source/destination 양쪽 모두 cooldownUntil > now면 null, (4) 결과는 destination 좌표 + cooldownUntil = now + cooldownMs. RNG 불필요(완전 결정적). tests/TeleporterLogic.test.ts 선행 — 기본 이동, cooldown 중 재진입 거부, pair 미존재 시 null, 동시 pair 진입 시 양쪽 cooldown 처리, pairId 3쌍 이상 공존 시 정확한 매칭 커버.",
       "files": [
@@ -80,7 +80,7 @@
       "id": "T5",
       "subject": "MapObjectRuntime.advanceMapObjects teleports[] extension",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T4"],
       "description": "src/domain/map/MapObjectRuntime.ts의 advanceMapObjects 반환 타입에 teleports: readonly { actorId, fromId, toId, x, y, cooldownUntil }[] 필드 추가. tick 내부에서 TeleporterLogic.resolveTeleport를 actors×teleporters로 평가해 teleports[] 반환. 기존 triggered[]/drops[] 필드는 타입·동작 불변. tests/MapObjectRuntime.test.ts 확장 — 텔레포터 진입 tick에서 teleports[] 생성, cooldown 적용으로 다음 tick에 재진입 차단, 다중 액터 동시 진입 시 양쪽 처리 커버.",
       "files": [
@@ -93,7 +93,7 @@
       "id": "T6",
       "subject": "StageContentDefinition + Spawner — new kinds, caps, teleporter pair validation",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T1"],
       "description": "src/domain/map/StageContentDefinition.ts의 StageMapObjectDefinition을 확장해 cover/bounce-wall/teleporter를 허용. 선택 필드: angleDegrees(bounce-wall 필수), pairId(teleporter 필수). 스테이지당 상한: cover ≤ 20, bounce-wall ≤ 16, teleporter pair ≤ 4. teleporter 검증: 동일 pairId가 스테이지 내에 정확히 2개 존재해야 pass(0 또는 3+는 에러). StageContentSpawner 확장 — 신규 3종을 MapObjectState로 변환(pairId/angleDegrees/reflectionsRemaining 초기화). tests/StageContentDefinition.test.ts·StageContentSpawner.test.ts 확장 — 정상 배치, 각 상한 초과 에러, teleporter pair 불일치 에러, Sprint 1 기존 배치 회귀 없음 확인. 3개 스테이지에 보수적 기본 배치 추가: stage-1 cover×2, stage-2 cover×3/bounceWall×1/teleporter×2(pair 1조), stage-3 cover×2/bounceWall×2.",
       "files": [
@@ -108,7 +108,7 @@
       "id": "T7",
       "subject": "combat-controller wiring — cover block / bounce reflect / teleport move",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T2", "T3", "T5"],
       "description": "src/scenes/combat-controller.ts 확장 — 3가지 경로 추가. (a) bullet tick에서 활성 cover와 선분 교차 시 CoverLogic.isBulletBlocked=true면 투사체 제거 + damageMapObject 호출(총알 데미지만큼 cover HP 감소). (b) bullet이 bounce-wall과 충돌하면 BounceWallLogic.reflectProjectileOffWall로 반사 속도 교체 후 projectile 상태 유지(궤적 타입 불변, bouncesRemaining 불변). reflectionsRemaining 0 도달 시 wall destroyed 처리. (c) actor 위치 업데이트 tick에서 MapObjectRuntime이 반환한 teleports[]를 소비해 해당 actor 좌표 강제 이동 + 시각적 피드백 호출(VfxController). 플레이어/더미 양쪽 경로 대응. 기존 barrel/mine/crate 분기 회귀 금지.",
       "files": [
@@ -120,7 +120,7 @@
       "id": "T8",
       "subject": "map-object-controller render expansion + debug summary",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T5", "T6"],
       "description": "src/scenes/map-object-controller.ts 확장 — 신규 3종 Phaser primitive 렌더 추가. cover 진갈색 48×16 Rectangle(hp 기반 알파), bounce-wall 청색 48×8 Rectangle(angleDegrees로 회전 적용), teleporter 시안 반경 24 Circle + pairId 2자리 라벨 텍스트. 내부 updateMapObjects 루프에서 Sprint 1 로직(barrel/mine/crate 블링크/폭발/드롭)은 완전 보존. debug summary의 typeBreakdown에 cover/bounce-wall/teleporter 키 추가 집계. destroy 시 공용 파티클 경로 재사용. Phase 의존은 controller 내부로 한정 유지(domain/ 비의존 원칙 고수).",
       "files": [
@@ -132,7 +132,7 @@
       "id": "T9",
       "subject": "MainScene delegation (≤ +2 lines) + getDebugSnapshot typeBreakdown keys",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T7", "T8"],
       "description": "src/scenes/MainScene.ts는 map-object-controller 호출 인자에 신규 3종 설정(balance + stage 배치)을 전달하는 최소 배선만 수행. 공개 debug 시그니처(debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot) 완전 불변. getDebugSnapshot().mapObjects.typeBreakdown에 cover/bounce-wall/teleporter 세 키가 포함되도록 controller 집계를 단순 통과. 총 라인 수 900 이하 엄수 — 현재 898줄이므로 최대 +2줄. 초과 시 기존 헬퍼 함수로 분리해 controller 내부로 이동. 기존 Sprint 1 배선·update·shutdown 경로 회귀 0건.",
       "files": [
@@ -144,7 +144,7 @@
       "id": "T10",
       "subject": "E2E tests/e2e/map-objects-sprint2.spec.ts",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T9"],
       "description": "tests/e2e/map-objects-sprint2.spec.ts 신규 — Playwright 3 시나리오. (1) cover 뒤 더미를 향해 debugFireAt으로 총알 발사 → 더미 hp 감소 없음 확인 → cover hp 소진까지 연사 → 그 이후 더미 hp 감소 확인. (2) bounce-wall 앞에 debugFireAt으로 linear 총알 발사 → projectile velocity 부호 반전 확인 + 반사 후 다른 방향 액터 피격. (3) teleporter pair A에 player 위치 강제 진입(debug helper 또는 기존 경로) → 플레이어 좌표가 pair B로 이동 확인 → cooldownMs 내 재진입 시 이동 발생하지 않음. 기존 17 E2E 회귀 0건 — 기존 spec 파일은 건드리지 않음.",
       "files": [
@@ -156,7 +156,7 @@
       "id": "T11",
       "subject": "Verification gates + execution report + postflight sync",
       "assignee": "ultron",
-      "status": "pending",
+      "status": "complete",
       "depends": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"],
       "description": "검증 게이트 5종 실행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. 전부 pass — Sprint 1 포함 249 unit + 17 E2E 회귀 없음. 목표: ≥ 46 files / ≥ 265 unit tests, ≥ 20 E2E. 빌드 청크 < 800 kB, gzip < 250 kB 재확인(A13). docs/handoffs/current-execution-report.md 갱신(Summary / Changes / Verification / Risks)(A14). work/2D-FPS-game/docs/planning/phase2-sprint2-advanced-map-objects-wbs.md 200줄 이하 최종 확인(A15). npm run codex-postflight로 execution-status.json 자동 sync.",
       "files": [
