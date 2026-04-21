@@ -4,7 +4,7 @@ import {
 } from "../src/domain/map/StageContentSpawner";
 import type { StageDefinitionWithContent } from "../src/domain/map/StageContentDefinition";
 
-const stages = gameBalance.stages as readonly StageDefinitionWithContent[];
+const stages = gameBalance.stages as unknown as readonly StageDefinitionWithContent[];
 
 describe("StageContentSpawner", () => {
   it("creates a stable active plan for the current stage", () => {
@@ -16,7 +16,8 @@ describe("StageContentSpawner", () => {
       stageLabel: "Foundry",
       hazards: stages[0].content.hazards,
       pickups: stages[0].content.pickups,
-      gates: stages[0].content.gates
+      gates: stages[0].content.gates,
+      mapObjects: stages[0].content.mapObjects
     });
     expect(spawner.getActivePlan()).toBe(plan);
   });
@@ -77,6 +78,20 @@ describe("StageContentSpawner", () => {
             label: " Drain Hatch ",
             targetStageId: "foundry"
           }
+        ],
+        mapObjects: [
+          {
+            id: "drain-mine",
+            kind: "mine",
+            x: 204.8,
+            y: 88.6
+          },
+          {
+            id: "drain-barrel",
+            kind: "barrel",
+            x: 320.4,
+            y: 220.9
+          }
         ]
       }
     } as unknown as StageDefinitionWithContent;
@@ -122,6 +137,20 @@ describe("StageContentSpawner", () => {
           label: "Drain Hatch",
           targetStageId: "foundry"
         }
+      ],
+      mapObjects: [
+        {
+          id: "drain-mine",
+          kind: "mine",
+          x: 204,
+          y: 88
+        },
+        {
+          id: "drain-barrel",
+          kind: "barrel",
+          x: 320,
+          y: 220
+        }
       ]
     });
   });
@@ -136,7 +165,7 @@ describe("StageContentSpawner", () => {
       const spawner = new StageContentSpawner();
       const stage = {
         ...baseStage,
-        content: { hazards: [], pickups: [], gates: [] }
+        content: { hazards: [], pickups: [], gates: [], mapObjects: [] }
       } as unknown as StageDefinitionWithContent;
 
       const plan = spawner.spawn(stage);
@@ -145,6 +174,7 @@ describe("StageContentSpawner", () => {
       expect(plan.hazards).toEqual([]);
       expect(plan.pickups).toEqual([]);
       expect(plan.gates).toEqual([]);
+      expect(plan.mapObjects).toEqual([]);
       expect(spawner.getActivePlan()).toBe(plan);
     });
 
@@ -218,6 +248,20 @@ describe("StageContentSpawner", () => {
               locked: true,
               label: "Second Gate"
             }
+          ],
+          mapObjects: [
+            {
+              id: "m-dup",
+              kind: "mine",
+              x: 1,
+              y: 2
+            },
+            {
+              id: "m-dup",
+              kind: "barrel",
+              x: 9,
+              y: 9
+            }
           ]
         }
       } as unknown as StageDefinitionWithContent;
@@ -230,6 +274,39 @@ describe("StageContentSpawner", () => {
       expect(plan.pickups[0]).toMatchObject({ id: "p-dup", kind: "health", label: "First Pickup" });
       expect(plan.gates).toHaveLength(1);
       expect(plan.gates[0]).toMatchObject({ id: "g-dup", kind: "door", label: "First Gate" });
+      expect(plan.mapObjects).toHaveLength(1);
+      expect(plan.mapObjects[0]).toMatchObject({ id: "m-dup", kind: "mine", x: 1, y: 2 });
+    });
+
+    it("caps map objects in the active plan by kind", () => {
+      const spawner = new StageContentSpawner();
+      const stage = {
+        ...baseStage,
+        content: {
+          hazards: [],
+          pickups: [],
+          gates: [],
+          mapObjects: [
+            ...Array.from({ length: 13 }, (_, index) => ({
+              id: `mine-${index}`,
+              kind: "mine",
+              x: index,
+              y: index
+            })),
+            ...Array.from({ length: 17 }, (_, index) => ({
+              id: `barrel-${index}`,
+              kind: "barrel",
+              x: index,
+              y: index
+            }))
+          ]
+        }
+      } as unknown as StageDefinitionWithContent;
+
+      const plan = spawner.spawn(stage);
+
+      expect(plan.mapObjects.filter((mapObject) => mapObject.kind === "mine")).toHaveLength(12);
+      expect(plan.mapObjects.filter((mapObject) => mapObject.kind === "barrel")).toHaveLength(16);
     });
 
     it("clears the active plan and leaves no stale references on stage transition cleanup", () => {
@@ -244,10 +321,11 @@ describe("StageContentSpawner", () => {
       // After clear, spawning a fresh stage must not leak prior content.
       const next = spawner.spawn({
         ...baseStage,
-        content: { hazards: [], pickups: [], gates: [] }
+        content: { hazards: [], pickups: [], gates: [], mapObjects: [] }
       } as unknown as StageDefinitionWithContent);
 
       expect(next.hazards).toEqual([]);
+      expect(next.mapObjects).toEqual([]);
       expect(spawner.getActivePlan()).toBe(next);
     });
   });

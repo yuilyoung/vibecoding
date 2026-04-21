@@ -35,6 +35,8 @@ export interface ChainExplosionInput {
   readonly maxDepth: number;
 }
 
+const MAX_CHAIN_EXPLOSION_DEPTH = 5;
+
 export function resolveExplosion(input: ExplosionInput): readonly ExplosionHit[] {
   if (input.blastRadius <= 0 || input.baseDamage <= 0) {
     return [];
@@ -69,18 +71,23 @@ export function resolveExplosion(input: ExplosionInput): readonly ExplosionHit[]
 
 export function resolveChainExplosion(input: ChainExplosionInput): readonly string[] {
   const origin = input.objects.find((object) => object.id === input.originId);
+  const maxDepth = Math.min(Math.floor(input.maxDepth), MAX_CHAIN_EXPLOSION_DEPTH);
 
-  if (origin === undefined || input.maxDepth <= 0) {
+  if (origin === undefined || !Number.isFinite(input.maxDepth) || maxDepth <= 0) {
     return [];
   }
 
   const triggered = new Set<string>([origin.id]);
   let frontier = [origin];
 
-  for (let depth = 0; depth < input.maxDepth && frontier.length > 0; depth += 1) {
+  for (let depth = 0; depth < maxDepth && frontier.length > 0; depth += 1) {
     const nextFrontier: ExplosiveObject[] = [];
 
     for (const active of frontier) {
+      if (!Number.isFinite(active.triggerRadius) || active.triggerRadius <= 0) {
+        continue;
+      }
+
       for (const candidate of input.objects) {
         if (triggered.has(candidate.id)) {
           continue;

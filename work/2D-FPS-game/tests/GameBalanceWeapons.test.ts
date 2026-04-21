@@ -71,3 +71,30 @@ describe("game-balance weapons", () => {
     });
   });
 });
+
+describe("game-balance map objects", () => {
+  it("defines barrel, mine, and crate tuning", () => {
+    expect(gameBalance.mapObjects.barrel).toMatchObject({
+      hp: 40,
+      blastRadius: 80,
+      blastDamage: 40,
+      triggerRadius: 70,
+      chainDelayMs: 150
+    });
+    expect(gameBalance.mapObjects.mine).toMatchObject({
+      armDelayMs: 500,
+      proximityRadius: 40,
+      fuseMs: 1000,
+      blastRadius: 50,
+      blastDamage: 50
+    });
+    expect(gameBalance.mapObjects.crate.hp).toBe(25);
+  });
+
+  it("keeps the crate drop table normalized", () => {
+    const total = Object.values(gameBalance.mapObjects.crate.dropTable)
+      .reduce((sum, chance) => sum + chance, 0);
+
+    expect(total).toBeCloseTo(1);
+  });
+});

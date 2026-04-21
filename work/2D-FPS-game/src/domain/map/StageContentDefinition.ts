@@ -3,6 +3,13 @@ import type { StageDefinition } from "./StageDefinition";
 export type StageHazardKind = "lava" | "steam" | "electric" | "toxic" | "pressure" | "sludge";
 export type StagePickupKind = "health" | "ammo" | "boost";
 export type StageGateKind = "door" | "barrier" | "switch";
+export type StageMapObjectKind = "mine" | "barrel" | "crate";
+
+const MAP_OBJECT_CAPS: Readonly<Record<StageMapObjectKind, number>> = {
+  mine: 12,
+  barrel: 16,
+  crate: Number.POSITIVE_INFINITY
+};
 
 export interface StageHazardDefinition {
   readonly id: string;
@@ -38,10 +45,18 @@ export interface StageGateDefinition {
   readonly targetStageId?: string;
 }
 
+export interface StageMapObjectDefinition {
+  readonly id: string;
+  readonly kind: StageMapObjectKind;
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface StageContentDefinition {
   readonly hazards: readonly StageHazardDefinition[];
   readonly pickups: readonly StagePickupDefinition[];
   readonly gates: readonly StageGateDefinition[];
+  readonly mapObjects: readonly StageMapObjectDefinition[];
 }
 
 export interface StageDefinitionWithContent extends StageDefinition {
@@ -51,7 +66,8 @@ export interface StageDefinitionWithContent extends StageDefinition {
 export const EMPTY_STAGE_CONTENT: StageContentDefinition = {
   hazards: [],
   pickups: [],
-  gates: []
+  gates: [],
+  mapObjects: []
 };
 
 export function createStageContentDefinition(
@@ -69,7 +85,8 @@ export function normalizeStageContentDefinition(content: unknown): StageContentD
   return {
     hazards: normalizeHazards(source.hazards),
     pickups: normalizePickups(source.pickups),
-    gates: normalizeGates(source.gates)
+    gates: normalizeGates(source.gates),
+    mapObjects: normalizeMapObjects(source.mapObjects)
   };
 }
 
@@ -84,7 +101,10 @@ export function isStageContentDefinition(content: unknown): content is StageCont
     Array.isArray(content.pickups) &&
     content.pickups.every(isStagePickupDefinition) &&
     Array.isArray(content.gates) &&
-    content.gates.every(isStageGateDefinition)
+    content.gates.every(isStageGateDefinition) &&
+    Array.isArray(content.mapObjects) &&
+    content.mapObjects.every(isStageMapObjectDefinition) &&
+    isWithinMapObjectCaps(content.mapObjects)
   );
 }
 
@@ -98,6 +118,10 @@ function normalizePickups(value: unknown): StagePickupDefinition[] {
 
 function normalizeGates(value: unknown): StageGateDefinition[] {
   return normalizeUniqueById(value, normalizeGateDefinition);
+}
+
+function normalizeMapObjects(value: unknown): StageMapObjectDefinition[] {
+  return capMapObjectsByKind(normalizeUniqueById(value, normalizeMapObjectDefinition));
 }
 
 function normalizeUniqueById<T extends { readonly id: string }>(
@@ -189,6 +213,23 @@ function normalizeGateDefinition(entry: unknown): StageGateDefinition | null {
   };
 }
 
+function normalizeMapObjectDefinition(entry: unknown): StageMapObjectDefinition | null {
+  const record = asRecord(entry);
+  const id = normalizeId(record?.id);
+  const kind = normalizeMapObjectKind(record?.kind);
+
+  if (id === null || kind === null) {
+    return null;
+  }
+
+  return {
+    id,
+    kind,
+    x: normalizeCoordinate(record?.x),
+    y: normalizeCoordinate(record?.y)
+  };
+}
+
 function isStageHazardDefinition(entry: unknown): entry is StageHazardDefinition {
   const record = asRecord(entry);
 
@@ -236,6 +277,56 @@ function isStageGateDefinition(entry: unknown): entry is StageGateDefinition {
     isLabel(record.label) &&
     (record.targetStageId === undefined || isId(record.targetStageId))
   );
+}
+
+function isStageMapObjectDefinition(entry: unknown): entry is StageMapObjectDefinition {
+  const record = asRecord(entry);
+
+  return (
+    record !== null &&
+    isStageMapObjectKind(record.kind) &&
+    isId(record.id) &&
+    isFiniteNumber(record.x) &&
+    isFiniteNumber(record.y)
+  );
+}
+
+function capMapObjectsByKind(mapObjects: readonly StageMapObjectDefinition[]): StageMapObjectDefinition[] {
+  const counts: Record<StageMapObjectKind, number> = {
+    mine: 0,
+    barrel: 0,
+    crate: 0
+  };
+  const capped: StageMapObjectDefinition[] = [];
+
+  for (const mapObject of mapObjects) {
+    if (counts[mapObject.kind] >= MAP_OBJECT_CAPS[mapObject.kind]) {
+      continue;
+    }
+
+    counts[mapObject.kind] += 1;
+    capped.push(mapObject);
+  }
+
+  return capped;
+}
+
+function isWithinMapObjectCaps(mapObjects: readonly StageMapObjectDefinition[]): boolean {
+  const counts: Record<StageMapObjectKind, number> = {
+    mine: 0,
+    barrel: 0,
+    crate: 0
+  };
+
+  for (const mapObject of mapObjects) {
+    counts[mapObject.kind] += 1;
+
+    if (counts[mapObject.kind] > MAP_OBJECT_CAPS[mapObject.kind]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function normalizeId(value: unknown): string | null {
@@ -323,6 +414,10 @@ function normalizeGateKind(value: unknown): StageGateKind | null {
   return normalizeKind(value, ["door", "barrier", "switch"]);
 }
 
+function normalizeMapObjectKind(value: unknown): StageMapObjectKind | null {
+  return normalizeKind(value, ["mine", "barrel", "crate"]);
+}
+
 function normalizeKind<T extends string>(value: unknown, kinds: readonly T[]): T | null {
   if (typeof value !== "string") {
     return null;
@@ -342,4 +437,8 @@ function isStagePickupKind(value: unknown): value is StagePickupKind {
 
 function isStageGateKind(value: unknown): value is StageGateKind {
   return normalizeGateKind(value) !== null;
+}
+
+function isStageMapObjectKind(value: unknown): value is StageMapObjectKind {
+  return normalizeMapObjectKind(value) !== null;
 }

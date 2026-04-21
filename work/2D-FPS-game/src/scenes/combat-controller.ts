@@ -11,7 +11,7 @@ import {
   canPlayerUseCombatInteraction,
   type CombatAvailabilityInput,
 } from "../domain/combat/CombatRuntime";
-import { resolveExplosion } from "../domain/combat/ExplosionLogic";
+import { resolveChainExplosion, resolveExplosion } from "../domain/combat/ExplosionLogic";
 import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
@@ -23,6 +23,7 @@ import { MAX_BULLETS, PLAYFIELD_MAX_X, PLAYFIELD_MAX_Y, PLAYFIELD_MIN_X, PLAYFIE
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { GameBalance, PlayerWeaponSlot } from "./scene-types";
 import type { VfxController } from "./vfx-controller";
+import type { MapObjectCollisionRect, MapObjectDamageResult } from "./map-object-controller";
 
 export interface CombatControllerMoveKeys {
   reload: Phaser.Input.Keyboard.Key;
@@ -59,6 +60,9 @@ export interface CombatControllerDeps {
   readonly playPlayerHitFeedback: () => void;
   readonly playDummyHitFeedback: () => void;
   readonly spawnDamageNumber: (x: number, y: number, damage: number, isCritical: boolean, isSelfHarm: boolean) => void;
+  readonly getMapObjectCollisionRects: () => readonly MapObjectCollisionRect[];
+  readonly damageMapObject: (id: string, damage: number) => MapObjectDamageResult | null;
+  readonly destroyMapObject: (id: string) => MapObjectDamageResult | null;
 }
 
 export class CombatController {
@@ -287,7 +291,8 @@ export class CombatController {
         outOfBounds: runtimeFrame.expired,
         hitObstacle: runtimeFrame.hitObstacle,
         hitPlayer: playerBounds !== null && intersectsRect(projectileBounds, playerBounds),
-        hitDummy: dummyBounds !== null && intersectsRect(projectileBounds, dummyBounds)
+        hitDummy: dummyBounds !== null && intersectsRect(projectileBounds, dummyBounds),
+        hitMapObject: this.findHitMapObject(projectileBounds)
       };
 
       bullet.sprite.x = frame.nextX;
@@ -344,11 +349,19 @@ export class CombatController {
         }
       }
 
+      if (frame.hitMapObject !== null) {
+        const result = this.deps.damageMapObject(frame.hitMapObject.id, bullet.damage);
+        this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
+        if (result?.destroyed === true && result.after.kind === "barrel") {
+          this.triggerBarrelChain(result.after.id, result.after);
+        }
+      }
+
       const bulletResolution = resolveBulletCollision({
         owner: bullet.owner,
         hitDummy: frame.hitDummy,
         hitPlayer: frame.hitPlayer,
-        hitObstacle: frame.hitObstacle,
+        hitObstacle: frame.hitObstacle || frame.hitMapObject !== null,
         outOfBounds: frame.outOfBounds,
         damage: bullet.damage,
         appliedDamage,
@@ -382,7 +395,7 @@ export class CombatController {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
       }
 
-      if ((frame.hitObstacle || frame.hitDummy || frame.hitPlayer || frame.outOfBounds) && bullet.projectileConfig.blastRadius !== undefined) {
+      if ((frame.hitObstacle || frame.hitDummy || frame.hitPlayer || frame.hitMapObject !== null || frame.outOfBounds) && bullet.projectileConfig.blastRadius !== undefined) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
         this.applyExplosionDamage(
           frame.nextX,
@@ -501,6 +514,8 @@ export class CombatController {
         }
       }
     }
+
+    this.applyExplosionDamageToMapObjects(centerX, centerY, radius, damage);
 
     if (!dummyWasDead && this.state.dummyLogic.isDead() && !this.deps.isMatchOver()) {
       this.deps.triggerCameraFeedback({ kind: "death" });
@@ -648,6 +663,10 @@ export class CombatController {
     this.state.playerUnlimitedAmmoUntilMs = now + durationMs;
   }
 
+  public triggerMapObjectExplosion(id: string): void {
+    this.triggerBarrelChain(id);
+  }
+
   public clearBullets(): void {
     for (const bullet of this.state.bullets) {
       bullet.sprite.destroy();
@@ -659,6 +678,80 @@ export class CombatController {
 
   private resolveWeaponDamage(damage: number, critChance: number, critMultiplier: number): { damage: number; isCritical: boolean } {
     return resolveDamage(damage, critChance, critMultiplier);
+  }
+
+  private findHitMapObject(projectileBounds: { x: number; y: number; width: number; height: number }): MapObjectCollisionRect | null {
+    return this.deps.getMapObjectCollisionRects()
+      .find((mapObject) => intersectsRect(projectileBounds, mapObject.rect)) ?? null;
+  }
+
+  private applyExplosionDamageToMapObjects(centerX: number, centerY: number, radius: number, damage: number): void {
+    const hits = resolveExplosion({
+      centerX,
+      centerY,
+      blastRadius: radius,
+      baseDamage: damage,
+      knockback: 0,
+      targets: this.deps.getMapObjectCollisionRects().map((mapObject) => ({
+        id: mapObject.id,
+        x: mapObject.state.x,
+        y: mapObject.state.y
+      }))
+    });
+
+    for (const hit of hits) {
+      const result = this.deps.damageMapObject(hit.id, hit.damage);
+      if (result?.destroyed === true && result.after.kind === "barrel") {
+        this.triggerBarrelChain(result.after.id, result.after);
+      }
+    }
+  }
+
+  private triggerBarrelChain(originId: string, originState?: { readonly id: string; readonly x: number; readonly y: number }): void {
+    const activeBarrels = this.deps.getMapObjectCollisionRects()
+      .filter((mapObject) => mapObject.kind === "barrel")
+      .map((mapObject) => ({
+        id: mapObject.id,
+        x: mapObject.state.x,
+        y: mapObject.state.y,
+        triggerRadius: this.deps.gameBalance.mapObjects.barrel.triggerRadius
+      }));
+    const barrels = originState === undefined || activeBarrels.some((barrel) => barrel.id === originState.id)
+      ? activeBarrels
+      : [
+        {
+          id: originState.id,
+          x: originState.x,
+          y: originState.y,
+          triggerRadius: this.deps.gameBalance.mapObjects.barrel.triggerRadius
+        },
+        ...activeBarrels
+      ];
+    const triggered = resolveChainExplosion({ originId, objects: barrels, maxDepth: 5 });
+
+    triggered.forEach((id, index) => {
+      const scheduleExplosion = () => {
+        const state = this.deps.destroyMapObject(id)?.after ?? this.deps.getMapObjectCollisionRects().find((object) => object.id === id)?.state;
+        if (state === undefined) {
+          return;
+        }
+        this.vfx.spawnImpactEffect(state.x, state.y, "bazooka");
+        this.applyExplosionDamage(
+          state.x,
+          state.y,
+          this.deps.gameBalance.mapObjects.barrel.blastRadius,
+          this.deps.gameBalance.mapObjects.barrel.blastDamage,
+          0,
+          "player"
+        );
+      };
+
+      if (index === 0) {
+        scheduleExplosion();
+      } else {
+        this.scene.time.delayedCall(this.deps.gameBalance.mapObjects.barrel.chainDelayMs * index, scheduleExplosion);
+      }
+    });
   }
 
   private resolvePlayerWeaponFire(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, bulletSpeed: number, damage: number): void {

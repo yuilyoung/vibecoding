@@ -5,15 +5,20 @@ import {
   type StageDefinitionWithContent
 } from "../src/domain/map/StageContentDefinition";
 
-const stages = gameBalance.stages as readonly StageDefinitionWithContent[];
+const stages = gameBalance.stages as unknown as readonly StageDefinitionWithContent[];
 
 describe("StageContentDefinition", () => {
   it("defines distinct schema-complete content for all three stages", () => {
+    const normalizedStages = stages.map((stage) => ({
+      ...stage,
+      content: normalizeStageContentDefinition(stage.content)
+    }));
+
     expect(stages).toHaveLength(3);
-    expect(stages.every((stage) => isStageContentDefinition(stage.content))).toBe(true);
+    expect(normalizedStages.every((stage) => isStageContentDefinition(stage.content))).toBe(true);
 
     expect(
-      stages.map((stage) => ({
+      normalizedStages.map((stage) => ({
         hazards: stage.content.hazards.map(({ id, kind, x, y, width, height, damage, tickMs }) => ({
           id,
           kind,
@@ -41,6 +46,12 @@ describe("StageContentDefinition", () => {
           height,
           locked,
           targetStageId
+        })),
+        mapObjects: stage.content.mapObjects.map(({ id, kind, x, y }) => ({
+          id,
+          kind,
+          x,
+          y
         }))
       }))
     ).toEqual([
@@ -106,7 +117,13 @@ describe("StageContentDefinition", () => {
             locked: false,
             targetStageId: "storm-drain"
           }
-        ]
+        ],
+        mapObjects: normalizedStages[0].content.mapObjects.map(({ id, kind, x, y }) => ({
+          id,
+          kind,
+          x,
+          y
+        }))
       },
       {
         hazards: [
@@ -170,7 +187,13 @@ describe("StageContentDefinition", () => {
             locked: false,
             targetStageId: "storm-drain"
           }
-        ]
+        ],
+        mapObjects: normalizedStages[1].content.mapObjects.map(({ id, kind, x, y }) => ({
+          id,
+          kind,
+          x,
+          y
+        }))
       },
       {
         hazards: [
@@ -234,7 +257,13 @@ describe("StageContentDefinition", () => {
             locked: false,
             targetStageId: "relay-yard"
           }
-        ]
+        ],
+        mapObjects: normalizedStages[2].content.mapObjects.map(({ id, kind, x, y }) => ({
+          id,
+          kind,
+          x,
+          y
+        }))
       }
     ]);
   });
@@ -290,6 +319,27 @@ describe("StageContentDefinition", () => {
           targetStageId: "relay-yard",
           label: " North Gate "
         }
+      ],
+      mapObjects: [
+        {
+          id: "mine-alpha",
+          kind: "mine",
+          x: 71.9,
+          y: 18.2
+        },
+        {
+          id: "mine-alpha",
+          kind: "mine",
+          x: 99,
+          y: 99
+        },
+        {
+          id: "barrel-alpha",
+          kind: "barrel",
+          x: 16.4,
+          y: 29.7
+        },
+        { id: "broken", kind: "crate", x: 0, y: 0 }
       ]
     });
 
@@ -330,7 +380,66 @@ describe("StageContentDefinition", () => {
           label: "North Gate",
           targetStageId: "relay-yard"
         }
+      ],
+      mapObjects: [
+        {
+          id: "mine-alpha",
+          kind: "mine",
+          x: 71,
+          y: 18
+        },
+        {
+          id: "barrel-alpha",
+          kind: "barrel",
+          x: 16,
+          y: 29
+        },
+        {
+          id: "broken",
+          kind: "crate",
+          x: 0,
+          y: 0
+        }
       ]
     });
+  });
+
+  it("caps normalized map objects by kind", () => {
+    const normalized = normalizeStageContentDefinition({
+      mapObjects: [
+        ...Array.from({ length: 13 }, (_, index) => ({
+          id: `mine-${index}`,
+          kind: "mine",
+          x: index,
+          y: index
+        })),
+        ...Array.from({ length: 17 }, (_, index) => ({
+          id: `barrel-${index}`,
+          kind: "barrel",
+          x: index,
+          y: index
+        }))
+      ]
+    });
+
+    expect(normalized.mapObjects.filter((mapObject) => mapObject.kind === "mine")).toHaveLength(12);
+    expect(normalized.mapObjects.filter((mapObject) => mapObject.kind === "barrel")).toHaveLength(16);
+    expect(isStageContentDefinition(normalized)).toBe(true);
+    expect(
+      isStageContentDefinition({
+        hazards: [],
+        pickups: [],
+        gates: [],
+        mapObjects: [
+          ...normalized.mapObjects,
+          {
+            id: "extra-mine",
+            kind: "mine",
+            x: 0,
+            y: 0
+          }
+        ]
+      })
+    ).toBe(false);
   });
 });

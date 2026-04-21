@@ -53,6 +53,30 @@
     "rewardLabel": "Titan cache secured",
     "spawnLabel": "Boss Drop Zone"
   },
+  "mapObjects": {
+    "barrel": {
+      "hp": 40,
+      "blastRadius": 80,
+      "blastDamage": 40,
+      "triggerRadius": 70,
+      "chainDelayMs": 150
+    },
+    "mine": {
+      "armDelayMs": 500,
+      "proximityRadius": 40,
+      "fuseMs": 1000,
+      "blastRadius": 50,
+      "blastDamage": 50
+    },
+    "crate": {
+      "hp": 25,
+      "dropTable": {
+        "health": 0.4,
+        "ammo": 0.4,
+        "boost": 0.2
+      }
+    }
+  },
   "weapons": {
     "carbine": {
       "label": "Carbine",
@@ -244,6 +268,11 @@
             "label": "Service Door",
             "targetStageId": "storm-drain"
           }
+        ],
+        "mapObjects": [
+          { "id": "foundry-barrel-a", "kind": "barrel", "x": 430, "y": 222 },
+          { "id": "foundry-barrel-b", "kind": "barrel", "x": 488, "y": 224 },
+          { "id": "foundry-crate-a", "kind": "crate", "x": 612, "y": 430 }
         ]
       }
     },
@@ -332,6 +361,17 @@
             "label": "South Switch",
             "targetStageId": "storm-drain"
           }
+        ],
+        "mapObjects": [
+          { "id": "relay-barrel-a", "kind": "barrel", "x": 424, "y": 196 },
+          { "id": "relay-barrel-b", "kind": "barrel", "x": 476, "y": 196 },
+          { "id": "relay-barrel-c", "kind": "barrel", "x": 536, "y": 340 },
+          { "id": "relay-barrel-d", "kind": "barrel", "x": 588, "y": 340 },
+          { "id": "relay-mine-a", "kind": "mine", "x": 344, "y": 268 },
+          { "id": "relay-mine-b", "kind": "mine", "x": 480, "y": 270 },
+          { "id": "relay-mine-c", "kind": "mine", "x": 616, "y": 268 },
+          { "id": "relay-crate-a", "kind": "crate", "x": 216, "y": 178 },
+          { "id": "relay-crate-b", "kind": "crate", "x": 746, "y": 360 }
         ]
       }
     },
@@ -420,6 +460,17 @@
             "label": "Access Barrier",
             "targetStageId": "relay-yard"
           }
+        ],
+        "mapObjects": [
+          { "id": "drain-barrel-a", "kind": "barrel", "x": 410, "y": 226 },
+          { "id": "drain-barrel-b", "kind": "barrel", "x": 464, "y": 226 },
+          { "id": "drain-barrel-c", "kind": "barrel", "x": 518, "y": 226 },
+          { "id": "drain-barrel-d", "kind": "barrel", "x": 548, "y": 316 },
+          { "id": "drain-barrel-e", "kind": "barrel", "x": 602, "y": 316 },
+          { "id": "drain-barrel-f", "kind": "barrel", "x": 656, "y": 316 },
+          { "id": "drain-mine-a", "kind": "mine", "x": 330, "y": 270 },
+          { "id": "drain-mine-b", "kind": "mine", "x": 630, "y": 270 },
+          { "id": "drain-crate-a", "kind": "crate", "x": 480, "y": 444 }
         ]
       }
     }

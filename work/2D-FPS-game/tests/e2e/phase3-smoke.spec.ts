@@ -44,6 +44,7 @@ interface Phase3Scene {
   debugSetPlayerAimAngle(angleRadians: number): void;
   debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void;
   debugRegisterPlayerRoundWin(): void;
+  update(time: number, delta: number): void;
 }
 
 const withScene = async <T>(page: Page, action: (scene: Phase3Scene) => T): Promise<T> => {
@@ -154,9 +155,12 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
   // Move the player onto the ammo pickup; lastEvent should reflect the pickup.
   await withScene(page, (scene: Phase3Scene) => scene.debugSelectWeaponSlot(1));
   const beforeAmmo = await readHud(page);
-  await withScene(page, (scene: Phase3Scene) => scene.debugMovePlayerTo(160, 430));
-  // Give the scene a tick to detect intersection + run handleAmmoPickup.
-  await page.waitForTimeout(200);
+  await withScene(page, (scene: Phase3Scene) => {
+    scene.debugForceCombatLive();
+    scene.debugMoveDummyTo(820, 120);
+    scene.debugMovePlayerTo(160, 430);
+    scene.update(0, 100);
+  });
   const afterAmmo = await readHud(page);
   const ammoPickupRegistered =
     afterAmmo.lastEvent !== beforeAmmo.lastEvent ||

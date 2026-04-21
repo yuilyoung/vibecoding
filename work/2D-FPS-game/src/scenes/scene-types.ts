@@ -5,10 +5,36 @@ import type { ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { Rect } from "../domain/collision/CollisionLogic";
 import type { HazardZoneLogic } from "../domain/map/HazardZoneLogic";
 import type { WeaponLogic } from "../domain/combat/WeaponLogic";
+import type { MapObjectDebugSummary } from "./map-object-controller";
 import type { WeaponUnlockRule } from "../domain/progression/UnlockLogic";
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import type { BossWaveRules } from "../domain/round/BossWaveLogic";
 import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
+
+export interface GameBalanceMapObjects {
+  readonly barrel: {
+    readonly hp: number;
+    readonly blastRadius: number;
+    readonly blastDamage: number;
+    readonly triggerRadius: number;
+    readonly chainDelayMs: number;
+  };
+  readonly mine: {
+    readonly armDelayMs: number;
+    readonly proximityRadius: number;
+    readonly fuseMs: number;
+    readonly blastRadius: number;
+    readonly blastDamage: number;
+  };
+  readonly crate: {
+    readonly hp: number;
+    readonly dropTable: {
+      readonly health: number;
+      readonly ammo: number;
+      readonly boost: number;
+    };
+  };
+}
 
 export interface GameBalance {
   movementSpeed: number;
@@ -51,6 +77,7 @@ export interface GameBalance {
   };
   stages: readonly StageDefinition[];
   bossWave?: BossWaveRules;
+  mapObjects: GameBalanceMapObjects;
   weapons?: Record<string, unknown>;
 }
 
@@ -193,6 +220,7 @@ export interface MainSceneDebugSnapshot {
   playerX: number;
   playerY: number;
   playerHullAngle: number;
+  mapObjects: MapObjectDebugSummary;
 }
 
 export interface MainSceneHudSnapshot {

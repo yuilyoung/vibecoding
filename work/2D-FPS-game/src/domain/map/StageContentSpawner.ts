@@ -3,6 +3,7 @@ import type {
   StageDefinitionWithContent,
   StageGateDefinition,
   StageHazardDefinition,
+  StageMapObjectDefinition,
   StagePickupDefinition
 } from "./StageContentDefinition";
 import { normalizeStageContentDefinition } from "./StageContentDefinition";
@@ -14,6 +15,7 @@ export interface StageContentSpawnPlan {
   readonly hazards: readonly StageHazardDefinition[];
   readonly pickups: readonly StagePickupDefinition[];
   readonly gates: readonly StageGateDefinition[];
+  readonly mapObjects: readonly StageMapObjectDefinition[];
 }
 
 export class StageContentSpawner {
@@ -31,7 +33,8 @@ export class StageContentSpawner {
       stageLabel: stage.label,
       hazards: [...stageContent.hazards],
       pickups: [...stageContent.pickups],
-      gates: [...stageContent.gates]
+      gates: [...stageContent.gates],
+      mapObjects: [...stageContent.mapObjects]
     };
 
     this.activePlan = plan;

@@ -1,0 +1,174 @@
+{
+  "phase": "phase-2-sprint1",
+  "name": "Map Objects MVP — Barrel / Mine / Crate (Brawl Stars 방향)",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "wbs": "./phase2-sprint1-map-objects-wbs.md",
+  "created": "2026-04-20",
+  "status": "complete",
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "game-balance.json mapObjects schema extension",
+      "assignee": "ultron",
+      "status": "complete",
+      "description": "assets/data/game-balance.json에 mapObjects 섹션 신규 추가 — barrel(hp=40, blastRadius=80, blastDamage=40, triggerRadius=70, chainDelayMs=150), mine(armDelayMs=500, proximityRadius=40, fuseMs=1000, blastRadius=50, blastDamage=50), crate(hp=25, dropTable={health:0.4, ammo:0.4, boost:0.2}). GameBalanceMapObjects 타입 스키마 신규 정의 후 type-check 통과 확인. dropTable 확률 합 1.0 검증.",
+      "files": [
+        "assets/data/game-balance.json",
+        "src/domain/balance/GameBalanceMapObjects.ts"
+      ],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "MapObjectLogic pure domain + TDD",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T0"],
+      "description": "src/domain/map/MapObjectLogic.ts 신규. MapObjectKind = 'barrel' | 'mine' | 'crate'. MapObjectState(id, kind, x, y, hp, active, armedAt?, fuseStartedAt?). createMapObject/damageMapObject/destroyMapObject 순수 함수. 이미 destroy된 오브젝트 damage는 멱등 유지. tests/MapObjectLogic.test.ts 선행 — 3종 타입 생성, hp 감소 체인, 경계값(hp=0, hp<0), 멱등성 커버. Phaser 의존 금지.",
+      "files": [
+        "src/domain/map/MapObjectLogic.ts",
+        "tests/MapObjectLogic.test.ts"
+      ],
+      "acceptance": ["A2"]
+    },
+    {
+      "id": "T2",
+      "subject": "MapObjectRuntime tick — mine proximity/fuse + crate drop (TDD)",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1"],
+      "description": "src/domain/map/MapObjectRuntime.ts 신규. advanceMapObjects(now, dt, actors, objects, rng=Math.random) → { triggered[], drops[] }. 지뢰: armDelayMs 경과 후 actor proximityRadius 진입 → fuseMs 카운트다운 → 만료 시 triggered 포함. 크레이트: hp<=0 상태면 rng로 dropTable에서 한 종류 선택. tests/MapObjectRuntime.test.ts 선행 — stub rng로 지뢰 arm→proximity→fuse 경로, proximity 벗어났을 때 fuse cancel 여부, crate drop 결정성 커버.",
+      "files": [
+        "src/domain/map/MapObjectRuntime.ts",
+        "tests/MapObjectRuntime.test.ts"
+      ],
+      "acceptance": ["A3", "A5"]
+    },
+    {
+      "id": "T3",
+      "subject": "resolveChainExplosion wiring + tests",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1"],
+      "description": "기존 src/domain/combat/ExplosionLogic.ts의 resolveChainExplosion(현재 미사용)을 결선 가능하도록 보강 — 필요 시 triggered 순서(depth 순) 보장 테스트 추가. tests/ChainExplosion.test.ts 신규 — 드럼통 2개 체인, 드럼통 3개 연쇄(A→B→C, B의 triggerRadius로 C 포함), maxDepth 5 초과 시 차단, 순환 방지(set 멱등), triggerRadius 미달 시 체인 안 함 커버. 실제 scene 결선은 T6에서 수행.",
+      "files": [
+        "src/domain/combat/ExplosionLogic.ts",
+        "tests/ChainExplosion.test.ts",
+        "tests/ExplosionLogic.test.ts"
+      ],
+      "acceptance": ["A4"]
+    },
+    {
+      "id": "T4",
+      "subject": "StageContentDefinition + StageContentSpawner mapObjects field",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1"],
+      "description": "src/domain/map/StageContentDefinition.ts에 StageMapObjectDefinition(id, kind, x, y) 타입 추가, StageContentDefinition.mapObjects 필드 추가. EMPTY_STAGE_CONTENT에도 mapObjects: [] 포함. StageContentSpawner에 spawnMapObjects 경로 확장. 스테이지당 mine ≤ 12, barrel ≤ 16 상한 검증. tests/StageContentDefinition.test.ts·StageContentSpawner.test.ts 확장 — mapObjects 배치 정상 동작 + 상한 초과 시 에러 커버. 3개 스테이지 기본 배치 예시: stage-1 barrel×2/crate×1, stage-2 barrel×4/mine×3/crate×2, stage-3 barrel×6/mine×2/crate×1.",
+      "files": [
+        "src/domain/map/StageContentDefinition.ts",
+        "src/domain/map/StageContentSpawner.ts",
+        "tests/StageContentDefinition.test.ts",
+        "tests/StageContentSpawner.test.ts"
+      ],
+      "acceptance": ["운영"]
+    },
+    {
+      "id": "T5",
+      "subject": "map-object-controller.ts — Phaser layer",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T2", "T3", "T4"],
+      "description": "src/scenes/map-object-controller.ts 신규 — combat-controller 패턴 준수. 책임: (1) StageContentSpawner에서 받은 mapObjects를 Phaser primitive 렌더링(barrel 적색 24×24 Rectangle, mine 황색 radius=8 Circle + 500ms blink tween, crate 갈색 20×20 Rectangle), (2) 투사체/폭발과 충돌 배선, (3) 매 tick MapObjectRuntime.advanceMapObjects 호출 및 triggered/drops 처리, (4) 폭발 시 VfxController + 카메라 셰이크 연동. MainScene은 controller 생성·update·destroy만 호출.",
+      "files": [
+        "src/scenes/map-object-controller.ts"
+      ],
+      "acceptance": ["A6"]
+    },
+    {
+      "id": "T6",
+      "subject": "combat-controller damage paths + crate drop → PickupLogic",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T2", "T3", "T5"],
+      "description": "src/scenes/combat-controller.ts 확장 — 기존 bullet/explosion 경로에 mapObject hit 분기 추가. 드럼통 hp<=0 시 resolveChainExplosion으로 triggered set 계산 → 각 id를 chainDelayMs(150ms) × index 간격으로 resolveExplosion 순차 스케줄(scene.time.delayedCall). 체인 폭발이 actors(player/dummy)에도 데미지·넉백 적용. 크레이트 hp<=0 → MapObjectRuntime이 반환한 drops를 기존 PickupLogic.spawn에 위임. 플레이어 투사체/더미 투사체/에어스트라이크 양측 경로 대응.",
+      "files": [
+        "src/scenes/combat-controller.ts"
+      ],
+      "acceptance": ["A4", "A5"]
+    },
+    {
+      "id": "T7",
+      "subject": "MainScene delegation + getDebugSnapshot.mapObjects",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T5", "T6"],
+      "description": "src/scenes/MainScene.ts에 map-object-controller 등록(create/update/shutdown 수명 주기). getDebugSnapshot에 mapObjects 필드 추가 — { total, active, destroyed, typeBreakdown: { barrel, mine, crate } }. 공개 debug 시그니처(debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot)는 변경 금지 — getDebugSnapshot는 필드 추가만(하위 호환). 총 라인 수 900 이하 유지, 순증 30줄 이내 목표.",
+      "files": [
+        "src/scenes/MainScene.ts"
+      ],
+      "acceptance": ["A7", "A10"]
+    },
+    {
+      "id": "T8",
+      "subject": "E2E tests/e2e/map-objects.spec.ts",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T7"],
+      "description": "tests/e2e/map-objects.spec.ts 신규 — Playwright 3 시나리오. (1) debugFireAt으로 드럼통 좌표 피격 → snapshot.mapObjects.destroyed >= 1 (화면 렌더링 Rectangle 제거 확인). (2) 드럼통 2개를 triggerRadius 내 인접 배치한 stage 선택 → 하나 피격 → 두 개 모두 destroyed 확인 (chainDelayMs만큼 wait 후). (3) 크레이트 destroy → pickup pool에서 spawn 1↑ 확인 (snapshot.pickups.active). 기존 14 E2E 회귀 없음.",
+      "files": [
+        "tests/e2e/map-objects.spec.ts"
+      ],
+      "acceptance": ["A8"]
+    },
+    {
+      "id": "T9",
+      "subject": "Verification gates and execution report",
+      "assignee": "ultron",
+      "status": "complete",
+      "depends": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"],
+      "description": "검증 게이트 5종 실행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. 전부 pass — 기존 226 unit + 14 E2E 회귀 없음. 빌드 청크 <800 kB, gzip <250 kB 재확인. docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks). npm run codex-postflight로 execution-status.json 자동 sync.",
+      "files": [
+        "docs/handoffs/current-execution-report.md"
+      ],
+      "acceptance": ["A9", "A11"]
+    }
+  ],
+  "dependencyGraph": {
+    "T0": [],
+    "T1": ["T0"],
+    "T2": ["T1"],
+    "T3": ["T1"],
+    "T4": ["T1"],
+    "T5": ["T2", "T3", "T4"],
+    "T6": ["T2", "T3", "T5"],
+    "T7": ["T5", "T6"],
+    "T8": ["T7"],
+    "T9": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
+  },
+  "acceptanceMap": {
+    "A1": "game-balance.json mapObjects 섹션 추가 — barrel/mine/crate 기본값, GameBalanceMapObjects 스키마 타입 체크 통과",
+    "A2": "MapObjectLogic: createMapObject/damageMapObject/destroyMapObject 순수 함수, 이미 destroy된 오브젝트 damage는 멱등, 3종 타입 모두 커버",
+    "A3": "MapObjectRuntime.advanceMapObjects가 { triggered[], drops[] } 반환 — 지뢰 arm/proximity/fuse, 크레이트 drop 선택 결정적(rng 주입)",
+    "A4": "resolveChainExplosion이 combat-controller에 결선 — 드럼통 피격 시 triggered set을 chainDelayMs 간격 순차 스케줄, maxDepth 5 초과 차단",
+    "A5": "크레이트 destroy 시 PickupLogic에 픽업 1개 spawn, 드롭 종류 rng 주입으로 결정적",
+    "A6": "map-object-controller가 3종 오브젝트 primitive 렌더링(barrel 적색 24×24, mine 황색 blink, crate 갈색 20×20), MainScene은 위임만",
+    "A7": "MainScene.getDebugSnapshot에 mapObjects 필드 추가 ({ total, active, destroyed, typeBreakdown })",
+    "A8": "E2E 3 시나리오 통과 — 드럼통 단일 파괴, 드럼통 체인 2개, 크레이트 drop",
+    "A9": "기존 226 유닛 + 14 E2E 회귀 없음 — 게이트 5종 전부 pass",
+    "A10": "MainScene.ts 라인 수 900 이하, 빌드 청크 < 800 kB, gzip < 250 kB",
+    "A11": "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks)",
+    "A12": "work/2D-FPS-game/docs/planning/phase2-sprint1-map-objects-wbs.md 생성 (200줄 이하) — 완료됨"
+  },
+  "scopeOutOfSprint1": [
+    "파괴 가능 엄폐물 (hp 보유 + 투사체 통과 불가)",
+    "바운스 벽 (bounce 탄도 전용 반사 표면)",
+    "텔레포터 (쌍 배치, 진입 시 상대 지점 순간이동)",
+    "맵 오브젝트 전용 비주얼 에셋 (Phase 통합 아트 패스로 이연)"
+  ],
+  "references": {
+    "previousSprintTasks": "./phase5-sprint1-tasks.json",
+    "gameDirection": "../development/game-direction.md",
+    "environmentSystemsSpec": "../development/environment-systems.md"
+  }
+}

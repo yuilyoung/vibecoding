@@ -8,6 +8,7 @@ import type { StageDefinition } from "../domain/map/StageDefinition";
 import { getPhaseLabel } from "../ui/hud-presenters";
 import type { CombatController } from "./combat-controller";
 import type { MatchFlowController } from "./match-flow-controller";
+import type { MapObjectDebugSummary } from "./map-object-controller";
 import { ACTOR_HALF_SIZE } from "./scene-constants";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { DebugTeamSelection, MainSceneDebugSnapshot, PlayerWeaponSlot } from "./scene-types";
@@ -26,6 +27,7 @@ export interface DebugControllerDeps {
   readonly getProgressionState: () => ProgressionState;
   readonly getUnlockState: () => UnlockState;
   readonly getLastSpawnSummary: () => string;
+  readonly getMapObjectDebugSummary: () => MapObjectDebugSummary;
   readonly isRoundStarting: (now: number) => boolean;
   readonly getActorRotation: (angleRadians: number) => number;
   readonly applyGateToggle: () => void;
@@ -66,7 +68,8 @@ export class DebugController {
       lastEvent: this.deps.runtimeState.lastCombatEvent,
       playerX: playerSprite.x,
       playerY: playerSprite.y,
-      playerHullAngle: this.deps.runtimeState.playerBodyAngle
+      playerHullAngle: this.deps.runtimeState.playerBodyAngle,
+      mapObjects: this.deps.getMapObjectDebugSummary()
     };
   }
 
