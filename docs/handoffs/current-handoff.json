@@ -1,122 +1,137 @@
 {
-  "id": "phase-2-sprint1-map-objects",
-  "timestamp": "2026-04-20",
+  "id": "phase-2-sprint2-advanced-map-objects",
+  "timestamp": "2026-04-21",
   "from": "vision",
   "to": "ultron",
-  "status": "complete",
+  "status": "planned",
   "previousPhase": {
-    "id": "phase-5-sprint1-crit-system",
+    "id": "phase-2-sprint1-map-objects",
     "status": "complete",
     "completedAt": "2026-04-20"
   },
-  "scope": "Phase 2 Sprint 1 — Brawl Stars 방향 맵 오브젝트 MVP. 드럼통(barrel, 체인 폭발), 지뢰(mine, 근접 트리거), 보급 상자(crate, 파괴 시 픽업 드롭) 3종을 게임에 도입한다. 기존 ExplosionLogic.resolveChainExplosion(정의만 되어 있고 미사용)을 결선하고, 기존 PickupLogic을 재사용해 크레이트 드롭을 구현한다. 파괴 가능 엄폐물, 바운스 벽, 텔레포터는 Sprint 2 범위로 이연한다.",
+  "scope": "Phase 2 Sprint 2 — 고급 맵 오브젝트 3종 도입. Sprint 1의 barrel/mine/crate 위에 파괴 가능 엄폐물(cover, 총알 차단 + HP), 바운스 벽(bounce-wall, 투사체 반사면), 텔레포터(teleporter, 쌍 이동)를 추가한다. 기존 MapObjectLogic/MapObjectRuntime/map-object-controller 구조를 확장하는 형태로 진행하며, 기존 ProjectileRuntime.reflectVelocity와 bounce 궤적 로직을 재사용한다. 드럼통·지뢰·상자와 동일한 수명 주기·렌더 파이프라인을 유지한다.",
   "constraints": [
-    "기존 226 유닛 + 14 E2E 전부 pass 유지 (회귀 없음)",
+    "기존 Sprint 1 포함 249 유닛 + 17 E2E 전부 pass 유지 (회귀 없음)",
     "npm run type-check && lint && test && build && test:e2e 5종 게이트 전부 통과",
-    "TDD — MapObjectLogic / MapObjectRuntime / ChainExplosion 도메인 테스트를 구현 전에 작성",
-    "모든 밸런스 값은 assets/data/game-balance.json에 선언 (코드 하드코딩 금지)",
-    "RNG는 주입 가능한 (rng: () => number) 형태 — 지뢰 트리거/크레이트 드롭 모두 테스트에서 seed 고정 가능",
-    "domain/ 하위 도메인 로직은 Phaser 의존 금지 — 스프라이트는 src/scenes/map-object-controller.ts에서 관리",
-    "MainScene 공개 debug 시그니처 유지 (E2E 계약): debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot",
-    "MainScene.ts 총 라인 수 900 이하 유지 — 신규 로직은 map-object-controller에 위임",
-    "기존 HazardZoneLogic, StageContentSpawner 패턴을 따름 — 신규 오브젝트 타입도 동일한 spawn/despawn 수명 주기",
+    "TDD — CoverLogic / BounceWallLogic / TeleporterLogic / 확장된 MapObjectRuntime / E2E 전부 구현 전 테스트 선행",
+    "모든 밸런스 값은 assets/data/game-balance.json mapObjects 섹션에 추가 (코드 하드코딩 금지)",
+    "domain/ 하위 도메인 로직은 Phaser 의존 금지 — 렌더·충돌은 src/scenes/map-object-controller.ts에서만 처리",
+    "MainScene 공개 debug 시그니처 완전 불변: debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot",
+    "MainScene.ts 총 라인 수 900 이하 엄수 — 현재 898줄이므로 신규 로직은 반드시 map-object-controller / combat-controller로 위임 (MainScene 순증 ≤ 2줄)",
+    "MapObjectLogic MapObjectKind 유니온을 barrel|mine|crate|cover|bounce-wall|teleporter로 확장하되 기존 3종 동작은 완전 보존",
+    "ProjectileRuntime.reflectVelocity를 재사용해 바운스 벽 반사를 처리 — 동일 반사 알고리즘 중복 구현 금지",
+    "텔레포터는 결정적(RNG 불필요) — pairId로 쌍 매칭, 단방향 cooldownMs 락으로 무한 핑퐁 방지",
+    "파괴 가능 엄폐물은 활성 상태에서 총알/폭발 투과 차단, destroyed 후에는 투과 허용",
     "빌드 청크 < 800 kB, gzip < 250 kB 유지",
-    "체인 폭발 maxDepth 5 고정 (ExplosionLogic 기존 계약)",
-    "자-가해 색 구분, isCritical 플래그 기존 경로와 호환 — 크리티컬 시스템에 영향 없음"
+    "스테이지당 오브젝트 상한: cover ≤ 20, bounce-wall ≤ 16, teleporter pair ≤ 4 (StageContentDefinition 검증)",
+    "기존 barrel/mine/crate 동작·시각·수치 변경 금지 — 어떤 회귀도 불가"
   ],
   "currentState": {
     "implemented": [
-      "Phase 5 Sprint 1 완료 — crit 시스템 + DamageNumber 색 구분",
-      "ExplosionLogic.resolveExplosion은 combat-controller / AirStrikeLogic에서 활용 중",
-      "ExplosionLogic.resolveChainExplosion은 정의만 있고 호출처 없음 (deadcode 상태)",
-      "StageContentDefinition은 hazards/pickups/gates만 지원",
-      "PickupLogic은 health/ammo/boost 3종 픽업 spawn·consume 완비"
+      "Phase 2 Sprint 1 완료 — barrel(체인 폭발), mine(근접 트리거), crate(픽업 드롭) 3종 MVP",
+      "MapObjectLogic(createMapObject/damageMapObject/destroyMapObject), MapObjectRuntime(advanceMapObjects) 순수 도메인 완비",
+      "map-object-controller가 Phaser primitive 렌더 + PickupLogic 연동 + debug summary 제공",
+      "combat-controller가 bullet/explosion → mapObject 피격 경로, 체인 폭발 chainDelayMs 순차 스케줄 처리 중",
+      "ProjectileRuntime이 bounce 궤적용 reflectVelocity 구현 보유 (장애물 반사 알고리즘 재사용 가능)",
+      "getDebugSnapshot.mapObjects = { total, active, destroyed, typeBreakdown } 확립"
     ],
     "gaps": [
-      "맵에 파괴 가능 상호작용 오브젝트가 없음 — 브롤스타즈 핵심 긴장감 결손",
-      "체인 폭발 API가 런타임에 연결되지 않아 실제 게임플레이에 반영 안 됨",
-      "지뢰·크레이트 같은 수동 배치형 오브젝트 수명 주기가 없음"
+      "맵에 투과 차단형 상호작용 오브젝트(파괴 가능 엄폐물)가 없음 — 전술적 은폐/돌파 게임플레이 결손",
+      "현재 bounce 궤적은 맵 경계/정적 장애물만 반사 — 플레이어 배치형 반사 표면(바운스 벽) 부재",
+      "맵 이동 숏컷(텔레포터) 부재 — 스테이지 회전·포지셔닝 다양성 제한"
     ]
   },
   "files": {
     "create": [
-      "work/2D-FPS-game/src/domain/map/MapObjectLogic.ts",
-      "work/2D-FPS-game/src/domain/map/MapObjectRuntime.ts",
-      "work/2D-FPS-game/src/scenes/map-object-controller.ts",
-      "work/2D-FPS-game/tests/MapObjectLogic.test.ts",
-      "work/2D-FPS-game/tests/MapObjectRuntime.test.ts",
-      "work/2D-FPS-game/tests/ChainExplosion.test.ts",
-      "work/2D-FPS-game/tests/e2e/map-objects.spec.ts",
-      "work/2D-FPS-game/docs/planning/phase2-sprint1-map-objects-wbs.md"
+      "work/2D-FPS-game/src/domain/map/CoverLogic.ts",
+      "work/2D-FPS-game/src/domain/map/BounceWallLogic.ts",
+      "work/2D-FPS-game/src/domain/map/TeleporterLogic.ts",
+      "work/2D-FPS-game/tests/CoverLogic.test.ts",
+      "work/2D-FPS-game/tests/BounceWallLogic.test.ts",
+      "work/2D-FPS-game/tests/TeleporterLogic.test.ts",
+      "work/2D-FPS-game/tests/e2e/map-objects-sprint2.spec.ts",
+      "work/2D-FPS-game/docs/planning/phase2-sprint2-advanced-map-objects-wbs.md"
     ],
     "modify": [
       "work/2D-FPS-game/assets/data/game-balance.json",
-      "work/2D-FPS-game/src/domain/combat/ExplosionLogic.ts",
+      "work/2D-FPS-game/src/domain/map/MapObjectLogic.ts",
+      "work/2D-FPS-game/src/domain/map/MapObjectRuntime.ts",
       "work/2D-FPS-game/src/domain/map/StageContentDefinition.ts",
       "work/2D-FPS-game/src/domain/map/StageContentSpawner.ts",
       "work/2D-FPS-game/src/scenes/combat-controller.ts",
+      "work/2D-FPS-game/src/scenes/map-object-controller.ts",
       "work/2D-FPS-game/src/scenes/MainScene.ts",
+      "work/2D-FPS-game/tests/MapObjectLogic.test.ts",
+      "work/2D-FPS-game/tests/MapObjectRuntime.test.ts",
       "work/2D-FPS-game/tests/StageContentDefinition.test.ts",
-      "work/2D-FPS-game/tests/StageContentSpawner.test.ts",
-      "work/2D-FPS-game/tests/ExplosionLogic.test.ts"
+      "work/2D-FPS-game/tests/StageContentSpawner.test.ts"
     ]
   },
   "acceptance": [
-    "game-balance.json: mapObjects 섹션 추가 — barrel/mine/crate 기본값 (barrel hp=40 blastRadius=80 blastDamage=40 triggerRadius=70 chainDelayMs=150, mine armDelayMs=500 proximityRadius=40 fuseMs=1000 blastRadius=50 blastDamage=50, crate hp=25 dropTable={health:0.4,ammo:0.4,boost:0.2}). GameBalanceMapObjects 타입 체크 통과",
-    "MapObjectLogic: createMapObject/damageMapObject/destroyMapObject가 순수 함수. 이미 destroy된 오브젝트에 대한 damage는 멱등. 3종 타입 모두 커버",
-    "MapObjectRuntime.advanceMapObjects(now, dt, actors, objects, rng)가 {triggered[], drops[]} 반환. 지뢰: armDelayMs 경과 후 액터 proximityRadius 진입 시 fuseMs 카운트다운, 만료 시 triggered에 포함. 크레이트: destroy 상태면 rng로 drop 1개 결정",
-    "resolveChainExplosion이 combat-controller에서 결선 — 드럼통 피격 시 triggered set 계산, 각 오브젝트마다 resolveExplosion을 chainDelayMs 간격으로 순차 스케줄. maxDepth 5 초과 차단 확인",
-    "크레이트 destroy 시 기존 PickupLogic에 픽업 1개 spawn. 드롭 종류는 rng 주입으로 결정적 (테스트에서 seed 고정)",
-    "map-object-controller가 3종 오브젝트 스프라이트 렌더링 (primitive: barrel 적색 24×24 사각, mine 황색 16 원 + 500ms blink, crate 갈색 20×20 사각). MainScene은 controller를 위임만",
-    "MainScene.getDebugSnapshot에 mapObjects 필드 추가 — { total, active, destroyed, typeBreakdown } 요약",
-    "E2E: debugFireAt으로 드럼통 좌표 피격 → mapObjects.destroyed 1↑. 드럼통 2개 체인 시나리오 → 2개 모두 destroyed. 크레이트 destroy → 픽업 pool에서 spawn 1↑",
-    "기존 226 유닛 + 14 E2E 회귀 없음 — 게이트 5종 전부 pass",
-    "MainScene.ts 총 라인 수 900 이하, 빌드 청크 < 800 kB, gzip < 250 kB",
+    "game-balance.json mapObjects에 cover(hp=60, width=48, height=16, blocksBullets=true), bounceWall(width=48, height=8, angleDegrees, maxReflections=3), teleporter(radius=24, cooldownMs=1500) 섹션 추가 — GameBalanceMapObjects 타입 체크 통과",
+    "MapObjectKind 유니온을 barrel|mine|crate|cover|bounce-wall|teleporter로 확장. 기존 barrel/mine/crate 테스트(현 6 files / 35 tests) 전수 회귀 없음",
+    "CoverLogic 순수 함수: 활성 상태에서 isBulletBlocked(cover, bullet) = true, destroyed 상태에서는 false. 폭발 피해는 normal damageMapObject 경로로 처리되며 hp 소진 시 자동 비활성",
+    "BounceWallLogic 순수 함수: reflectProjectileOffWall(projectile, wall)가 ProjectileRuntime.reflectVelocity를 재사용해 반사 속도 계산. linear/arc/bounce 3종 궤적 모두 지원. maxReflections 초과 시 파괴(passthrough) 처리",
+    "TeleporterLogic 순수 함수: resolveTeleport(actor, teleporters, now)가 pairId 일치하는 상대 지점으로 { x, y, cooldownUntil } 반환. cooldown 중이거나 pair 미존재면 null. 무한 핑퐁 방지용 cooldownMs 락 준수",
+    "MapObjectRuntime.advanceMapObjects 확장: 텔레포터 proximity tick (actors × teleporters) → {teleports[]} 필드 추가. 기존 triggered/drops 필드와 타입 호환",
+    "StageContentDefinition 확장: mapObjects 필드가 cover/bounce-wall/teleporter 허용. teleporter 배치는 pairId가 동일 스테이지에 정확히 2개 존재해야 pass (검증 실패 시 명확한 에러). 스테이지당 cover ≤ 20, bounce-wall ≤ 16, teleporter pair ≤ 4",
+    "combat-controller 결선: (a) bullet 경로가 활성 cover에 부딪히면 blocked 처리 + damageMapObject 호출, (b) bullet이 bounce-wall에 부딪히면 BounceWallLogic으로 반사하고 projectile 궤적 유지, (c) 액터 움직임 tick에서 MapObjectRuntime.teleports[]를 받아 해당 액터 위치 갱신",
+    "map-object-controller 렌더 확장: cover 갈색 48×16 직사각(hp 기반 투명도), bounce-wall 청색 48×8 회전 직사각(angleDegrees 반영), teleporter 시안 반경 24 원 + pairId 2자리 라벨. 기존 barrel/mine/crate 렌더 동작 불변",
+    "MainScene.getDebugSnapshot().mapObjects.typeBreakdown에 cover, bounce-wall, teleporter 3개 키 추가. MainScene.ts 총 라인 수 ≤ 900 엄수 (현재 898 → 최대 +2줄)",
+    "E2E tests/e2e/map-objects-sprint2.spec.ts 3 시나리오: (a) cover 뒤 액터에게 쏜 총알이 cover hp 소진 전까지 차단됨, (b) bounce-wall 전방에 쏜 linear 탄이 반사되어 다른 방향 액터 피격, (c) 텔레포터 pair A 진입 시 액터 좌표가 pair B로 이동 + cooldownMs 동안 재진입 락",
+    "검증 게이트 5종 전부 pass: type-check, lint, unit (≥ 46 files / ≥ 265 tests), build, E2E (≥ 20 tests). 기존 테스트 회귀 0건",
+    "빌드 청크 < 800 kB, gzip < 250 kB 유지",
     "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks 섹션 필수)",
-    "work/2D-FPS-game/docs/planning/phase2-sprint1-map-objects-wbs.md 생성 (200줄 이하)"
+    "work/2D-FPS-game/docs/planning/phase2-sprint2-advanced-map-objects-wbs.md 생성 (200줄 이하, Sprint 1 WBS와 동일 구조)"
   ],
   "priority": [
-    "1. WBS 작성 (doc-writer) — phase2-sprint1-map-objects-wbs.md",
-    "2. TDD 테스트 선행 — tests/MapObjectLogic.test.ts, MapObjectRuntime.test.ts, ChainExplosion.test.ts",
-    "3. T0: game-balance.json mapObjects 섹션 + 스키마 타입",
-    "4. T1: MapObjectLogic 순수 도메인 구현",
-    "5. T2: MapObjectRuntime tick (지뢰 근접/퓨즈, 크레이트 drop 선택) + RNG 주입",
-    "6. T3: ExplosionLogic.resolveChainExplosion combat-controller 결선 (chainDelayMs 순차 스케줄)",
-    "7. T4: StageContentDefinition/Spawner에 mapObjects 필드 확장 + 3개 스테이지 배치 예시",
-    "8. T5: src/scenes/map-object-controller.ts 신규 (Phaser primitive 렌더)",
-    "9. T6: combat-controller에 bullet/explosion → mapObject 피격 경로 + 크레이트 drop → PickupLogic 스폰",
-    "10. T7: MainScene 위임 + getDebugSnapshot 확장 (debug 공개 시그니처 불변)",
-    "11. T8: E2E tests/e2e/map-objects.spec.ts (3 시나리오)",
-    "12. T9: 검증 게이트 5종 실행 + execution report 갱신"
+    "1. WBS 작성 (doc-writer) — phase2-sprint2-advanced-map-objects-wbs.md (200줄 이하)",
+    "2. TDD 테스트 선행 — tests/CoverLogic.test.ts, BounceWallLogic.test.ts, TeleporterLogic.test.ts 기본 케이스",
+    "3. T0: game-balance.json mapObjects 섹션 확장 + GameBalanceMapObjects 타입 확장",
+    "4. T1: MapObjectKind 유니온 확장 + MapObjectLogic 기존 3종 회귀 없음 확인",
+    "5. T2: CoverLogic 순수 구현 (isBulletBlocked, damage 경로 재사용)",
+    "6. T3: BounceWallLogic 구현 — ProjectileRuntime.reflectVelocity 재사용, maxReflections 감소 로직",
+    "7. T4: TeleporterLogic 구현 — pairId 매칭, cooldownMs 락, 결정적 이동",
+    "8. T5: MapObjectRuntime.advanceMapObjects에 teleports[] 반환 확장",
+    "9. T6: StageContentDefinition/Spawner 확장 — 신규 3종 허용 + 스테이지 캡 + teleporter pair 검증",
+    "10. T7: combat-controller 결선 — bullet vs cover 차단, bullet vs bounce-wall 반사, actor tick vs teleporter 이동",
+    "11. T8: map-object-controller 렌더 확장 — primitive 3종 추가 + debug summary 확장",
+    "12. T9: MainScene 위임 배선 (≤ 2줄 순증), getDebugSnapshot typeBreakdown 키 추가",
+    "13. T10: E2E tests/e2e/map-objects-sprint2.spec.ts 3 시나리오",
+    "14. T11: 검증 게이트 5종 실행 + execution report 갱신"
   ],
   "risks": [
     {
-      "risk": "체인 폭발이 동시에 많은 드럼통을 트리거할 경우 프레임 스파이크",
-      "mitigation": "resolveChainExplosion이 이미 maxDepth 5로 상한. 각 오브젝트 폭발은 chainDelayMs(150ms) 간격 스케줄로 분산 — 동일 프레임 집중 폭발 방지"
+      "risk": "MainScene이 이미 898줄 — 신규 로직 추가 시 900 라인 캡 초과 우려",
+      "mitigation": "MainScene은 map-object-controller 생성 인자에 신규 3종 설정 전달만 담당. 모든 조건 분기·렌더·debug 집계는 controller 내부에서 처리해 순증 2줄 이내 유지. 초과 발생 시 controller 분할 리팩터 우선"
     },
     {
-      "risk": "지뢰 근접 판정이 매 프레임 O(mines × actors) — 맵에 지뢰가 많아지면 CPU 부담",
-      "mitigation": "스테이지당 지뢰 개수를 12개 상한으로 제한(StageContentDefinition 검증). 액터도 보통 2~8명이므로 최대 96 거리 계산/프레임 — 무시 가능 수준"
+      "risk": "bounce-wall 반사가 기존 ProjectileRuntime bounce 궤적(bounceCount)과 충돌 — 이중 카운트 또는 무한 반사",
+      "mitigation": "bounce-wall 반사는 projectile.bouncesRemaining을 감소시키지 않는 별도 경로로 처리. linear/arc도 반사되지만 궤적 타입은 유지. maxReflections는 wall 쪽 카운터로 관리해 무한 루프 방지"
     },
     {
-      "risk": "크레이트 drop이 기존 PickupLogic과 RNG 상태를 공유하면 테스트 결정성 훼손",
-      "mitigation": "MapObjectRuntime에 주입된 rng와 PickupLogic RNG는 독립 seed 유지. 크레이트 drop 결과는 { type, x, y }만 계산하고 실제 스폰은 controller에서 PickupLogic.spawn에 위임"
+      "risk": "텔레포터 pair가 같은 tick에 양쪽 동시 진입 시 액터들이 서로 엇갈려 무한 순환",
+      "mitigation": "cooldownUntil 필드를 teleport 완료 시점에 각 텔레포터에 설정. 도착지 텔레포터도 cooldownMs 동안 비활성 → 도착 즉시 재이동 불가. 테스트로 동시 진입 케이스 검증"
     },
     {
-      "risk": "MainScene.ts 라인 수가 이미 862줄 — map-object 결선 후 900 초과 우려",
-      "mitigation": "모든 런타임 로직을 map-object-controller.ts로 분리, MainScene은 controller 생성/update 호출만 추가 — 순증 30줄 이내 목표"
+      "risk": "cover가 폭발 피해 투과 허용 여부 해석 모호 — 현실감 vs 게임플레이",
+      "mitigation": "Sprint 2는 단순화 — cover는 총알만 차단, 폭발은 범위 피해로 정상 적용(damageMapObject 경로). 향후 Sprint 3에서 ExplosionLogic에 coverReduction 도입 여부 별도 논의"
     },
     {
-      "risk": "드럼통 시각이 기존 엄폐 스프라이트와 구분 불가하면 플레이어 혼란",
-      "mitigation": "Sprint 1은 placeholder primitive(색·도형 차별화)로 기능 우선. 최종 비주얼 에셋 패스는 Phase 2 종료 후 별도 Phase(통합 아트 패스)에서 진행 — 본 Sprint 범위 외"
+      "risk": "StageContentDefinition의 teleporter pair 검증이 런타임 실패로 이어져 기존 스테이지 로딩 깨짐",
+      "mitigation": "신규 3종은 기본 스테이지에서 전부 optional (빈 배열 허용). 3개 스테이지 기본 정의에는 Sprint 2에서 teleporter pair 1조, cover 2개, bounce-wall 1개만 보수적 배치. 검증 실패는 스테이지 단위로 격리"
+    },
+    {
+      "risk": "신규 primitive 렌더 3종이 Sprint 1 primitive와 색상·크기 겹쳐 시각 구분 불가",
+      "mitigation": "Sprint 1: barrel 적색 / mine 황색 / crate 갈색 20×20 / Sprint 2: cover 진갈색 48×16(가로로 길게) / bounce-wall 청색 48×8(얇고 각도 있음) / teleporter 시안 원(24 반경). 색상과 형상 모두 차별화. 최종 아트는 Phase 통합 아트 패스로 이연"
     }
   ],
   "references": {
-    "previousHandoff": "archived — phase-5-sprint1-crit-system complete (이 파일이 덮어씀)",
+    "previousHandoff": "archived — phase-2-sprint1-map-objects complete (이 파일이 덮어씀)",
     "previousExecutionReport": "docs/handoffs/current-execution-report.md",
-    "gameDirection": "work/2D-FPS-game/docs/development/game-direction.md",
+    "sprint1Wbs": "work/2D-FPS-game/docs/planning/phase2-sprint1-map-objects-wbs.md",
     "environmentSystemsSpec": "work/2D-FPS-game/docs/development/environment-systems.md",
-    "weaponSystemsSpec": "work/2D-FPS-game/docs/development/weapon-systems.md",
+    "gameDirection": "work/2D-FPS-game/docs/development/game-direction.md",
     "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md"
   }
 }
