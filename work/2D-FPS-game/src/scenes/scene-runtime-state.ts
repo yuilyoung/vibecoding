@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import type { DummyAiDecision, CoverPoint } from "../domain/ai/DummyAiLogic";
+import type { WindState } from "../domain/environment/WindLogic";
 import type { PlayerLogic } from "../domain/player/PlayerLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
 import type {
@@ -36,6 +37,7 @@ export interface SceneRuntimeState {
   healthPickup?: PickupView;
   readonly dummyCoverPoints: CoverPoint[];
   readonly coverPointViews: CoverPointView[];
+  currentWind: WindState;
   pendingBulletClear: boolean;
   lastCombatEvent: string;
   recentImpactEffectUntilMs: number;

@@ -15,8 +15,11 @@ import {
   type HudOverlayState,
   type HudProgressionSnapshot,
   type HudSnapshot,
+  type HudWindChangedDetail,
   type HudWeaponSlotSnapshot,
-  type HudWeaponUnlockSnapshot
+  type HudWeaponUnlockSnapshot,
+  WIND_CHANGED_EVENT,
+  readLatestHudWind
 } from "../ui/hud-events";
 import { buildHudSnapshot, buildMatchOverlayState, type HudPresenterInput } from "../ui/hud-presenters";
 import { COVER_VISION_RADIUS, PLAYFIELD_MAX_X, PLAYFIELD_MAX_Y, PLAYFIELD_MIN_X, PLAYFIELD_MIN_Y } from "./scene-constants";
@@ -56,6 +59,8 @@ export interface HudControllerDeps {
 }
 
 export class HudController {
+  private windState = readLatestHudWind();
+
   private overlayState: HudOverlayState = {
     visible: false,
     title: "",
@@ -66,7 +71,9 @@ export class HudController {
     private readonly scene: Phaser.Scene,
     private readonly state: SceneRuntimeState,
     private readonly deps: HudControllerDeps
-  ) {}
+  ) {
+    window.addEventListener(WIND_CHANGED_EVENT, this.handleWindChanged as EventListener);
+  }
 
   public getHudSnapshot(now = this.scene.time.now, movementBlocked = false): HudSnapshot {
     return buildHudSnapshot(this.createHudPresenterInput(now, movementBlocked), this.overlayState);
@@ -112,6 +119,17 @@ export class HudController {
       coverVisionX: 480,
       coverVisionY: 270,
       coverVisionRadius: 72,
+      wind: {
+        visible: true,
+        angleDegrees: this.windState.angleDegrees,
+        strength: this.windState.strength,
+        arrowSizePx: 24,
+        pips: [1, 2, 3].map((index) => ({
+          index,
+          active: this.windState.strength >= index,
+          color: this.windState.strength >= 3 ? "#ff5f5f" : this.windState.strength >= 2 ? "#ffd166" : "#5eead4"
+        }))
+      },
       overlay: { visible: false, title: "", subtitle: "" }
     };
 
@@ -185,9 +203,14 @@ export class HudController {
       progression: this.createHudProgressionSnapshot(),
       weaponUnlock: this.createHudWeaponUnlockSnapshot(now),
       areaPreview: this.createHudAreaPreviewSnapshot(),
-      blastPreview: this.createHudBlastPreviewSnapshot(activeWeapon)
+      blastPreview: this.createHudBlastPreviewSnapshot(activeWeapon),
+      wind: this.windState
     };
   }
+
+  private readonly handleWindChanged = (event: CustomEvent<HudWindChangedDetail>): void => {
+    this.windState = event.detail;
+  };
 
   private createWeaponHudSlots(activeIndex: number, now = this.scene.time.now): readonly HudWeaponSlotSnapshot[] {
     return this.deps.weaponSlots.map((slot, index) => ({

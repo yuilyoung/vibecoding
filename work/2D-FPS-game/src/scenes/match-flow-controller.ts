@@ -7,7 +7,7 @@ import { selectNextStage, type StageRotationState } from "../domain/map/StageRot
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
 import { MatchFlowLogic, type SpawnAssignment, type TeamId } from "../domain/round/MatchFlowLogic";
-import { planRoundReset, resolveBossWaveOverlay, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
+import { planRoundReset, resolveBossWaveOverlay, resolveRoundStartWind, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
@@ -16,6 +16,8 @@ import type { GameBalance, PlayerWeaponSlot, TeamSpawnTable } from "./scene-type
 import { ACTOR_HALF_SIZE, RESPAWN_DELAY_MS, RESPAWN_FX_MS, UNLOCK_NOTICE_DURATION_MS } from "./scene-constants";
 import { getRespawnFxState } from "../ui/scene-visuals";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
+import { publishWindChanged, type HudWindChangedDetail } from "../ui/hud-events";
+import { createWindState, rotateWind, type WindState } from "../domain/environment/WindLogic";
 
 export interface MatchFlowStageInput {
   confirmPressed: boolean;
@@ -82,9 +84,13 @@ export interface MatchFlowControllerDeps {
   readonly applyStageGeometry: () => void;
   readonly applyStageContentToRuntime: () => void;
   readonly emitSoundCue: (event: SoundCueEvent) => void;
+  readonly getCurrentWind: () => WindState;
+  readonly setCurrentWind: (wind: WindState) => void;
 }
 
 export class MatchFlowController {
+  private lastBroadcastWind: HudWindChangedDetail | null = null;
+
   public constructor(private readonly deps: MatchFlowControllerDeps) {}
 
   public rotateStageForNextMatch(): void {
@@ -97,6 +103,7 @@ export class MatchFlowController {
     state.spawnTable = this.createSpawnTableFromStage(state.currentStage);
     this.deps.applyStageGeometry();
     this.deps.applyStageContentToRuntime();
+    this.applyRoundWind();
   }
 
   public registerPlayerRoundWin(now: number): void {
@@ -172,6 +179,7 @@ export class MatchFlowController {
 
     const state = this.deps.getState();
     this.applySpawnAssignment(this.deps.matchFlow.confirmTeamSelection(state.spawnTable));
+    this.applyRoundWind();
     state.roundStartUntilMs = now + this.deps.gameBalance.roundStartDelayMs;
     state.respawnFxUntilMs = now + RESPAWN_FX_MS;
     this.deps.setLastCombatEvent(`DEPLOYING ${this.deps.matchFlow.state.selectedTeam}`);
@@ -186,6 +194,7 @@ export class MatchFlowController {
     this.deps.matchFlow.startCombat();
     this.deps.emitSoundCue({ kind: "match-start" });
     this.deps.setLastCombatEvent("COMBAT LIVE");
+    this.broadcastRoundSnapshotWind();
   }
 
   public debugForceMatchOver(winner: "PLAYER" | "DUMMY", now: number): void {
@@ -197,6 +206,7 @@ export class MatchFlowController {
     this.deps.matchFlow.enterMatchOver();
     this.deps.getState().matchConfirmAtMs = now;
     this.deps.setLastCombatEvent(`${winner} LOCKED`);
+    this.broadcastRoundSnapshotWind();
   }
 
   public debugForceBossRound(): void {
@@ -231,6 +241,7 @@ export class MatchFlowController {
 
     if (decision.confirmDeployment) {
       this.applySpawnAssignment(this.deps.matchFlow.confirmTeamSelection(state.spawnTable));
+      this.applyRoundWind();
       state.roundStartUntilMs = now + this.deps.gameBalance.roundStartDelayMs;
       state.respawnFxUntilMs = now + RESPAWN_FX_MS;
     }
@@ -272,6 +283,7 @@ export class MatchFlowController {
     this.resetRoundState(now);
     state.roundResetAtMs = null;
     this.deps.setLastCombatEvent("REDEPLOYED");
+    this.broadcastRoundSnapshotWind();
   }
 
   public handleMatchConfirm(now: number): void {
@@ -299,6 +311,7 @@ export class MatchFlowController {
     state.matchConfirmAtMs = null;
     state.roundResetAtMs = null;
     this.deps.setLastCombatEvent("SELECT TEAM FOR NEXT MATCH");
+    this.broadcastRoundSnapshotWind();
   }
 
   public scheduleResetAfterRound(now: number): void {
@@ -327,6 +340,8 @@ export class MatchFlowController {
     if (plan.combatEvent !== null) {
       this.deps.setLastCombatEvent(plan.combatEvent);
     }
+
+    this.broadcastRoundSnapshotWind();
   }
 
   public resetRoundState(now: number): void {
@@ -352,6 +367,7 @@ export class MatchFlowController {
     this.deps.setLastDummySteerX(1);
     this.deps.setLastDummySteerY(0);
     this.deps.setDummySteerLockUntilMs(0);
+    this.applyRoundWind();
   }
 
   public getMatchConfirmStatus(now: number): string {
@@ -397,5 +413,41 @@ export class MatchFlowController {
       BLUE: stage.blueSpawns,
       RED: stage.redSpawns
     };
+  }
+
+  private broadcastRoundSnapshotWind(): void {
+    const nextWind = this.deps.getCurrentWind();
+
+    if (
+      this.lastBroadcastWind !== null &&
+      this.lastBroadcastWind.angleDegrees === nextWind.angleDegrees &&
+      this.lastBroadcastWind.strength === nextWind.strength
+    ) {
+      return;
+    }
+
+    publishWindChanged(nextWind);
+    this.lastBroadcastWind = nextWind;
+  }
+
+  private applyRoundWind(): void {
+    const state = this.deps.getState();
+    if (!this.deps.gameBalance.wind.enabled) {
+      this.deps.setCurrentWind(createWindState({ angleDegrees: 0, strength: 0 }));
+      this.broadcastRoundSnapshotWind();
+      return;
+    }
+
+    const decision = resolveRoundStartWind({
+      stage: state.currentStage,
+      previousWind: this.lastBroadcastWind === null ? null : this.deps.getCurrentWind(),
+      rng: Math.random,
+      windConfig: this.deps.gameBalance.wind,
+      createWindState,
+      rotateWind
+    });
+
+    this.deps.setCurrentWind(decision.wind);
+    this.broadcastRoundSnapshotWind();
   }
 }

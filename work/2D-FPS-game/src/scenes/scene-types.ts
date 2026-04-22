@@ -10,6 +10,7 @@ import type { WeaponUnlockRule } from "../domain/progression/UnlockLogic";
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import type { BossWaveRules } from "../domain/round/BossWaveLogic";
 import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
+import type { WindState } from "../domain/environment/WindLogic";
 
 export interface GameBalanceMapObjects {
   readonly barrel: {
@@ -49,6 +50,15 @@ export interface GameBalanceMapObjects {
     readonly radius: number;
     readonly cooldownMs: number;
   };
+}
+
+export interface GameBalanceWind {
+  readonly enabled: boolean;
+  readonly strengthRange: readonly [number, number];
+  readonly angleStepDegrees: number;
+  readonly rotationMode: "perRound";
+  readonly defaultMultiplier: number;
+  readonly forceScale: number;
 }
 
 export interface GameBalance {
@@ -92,6 +102,7 @@ export interface GameBalance {
   };
   stages: readonly StageDefinition[];
   bossWave?: BossWaveRules;
+  wind: GameBalanceWind;
   mapObjects: GameBalanceMapObjects;
   weapons?: Record<string, unknown>;
 }
@@ -235,6 +246,10 @@ export interface MainSceneDebugSnapshot {
   playerX: number;
   playerY: number;
   playerHullAngle: number;
+  wind: WindState & {
+    forceX: number;
+    forceY: number;
+  };
   mapObjects: MapObjectDebugSummary;
 }
 

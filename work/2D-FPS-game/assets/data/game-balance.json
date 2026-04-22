@@ -53,6 +53,14 @@
     "rewardLabel": "Titan cache secured",
     "spawnLabel": "Boss Drop Zone"
   },
+  "wind": {
+    "enabled": true,
+    "strengthRange": [0, 3],
+    "angleStepDegrees": 15,
+    "rotationMode": "perRound",
+    "defaultMultiplier": 1.0,
+    "forceScale": 240
+  },
   "mapObjects": {
     "barrel": {
       "hp": 40,

@@ -1,25 +1,26 @@
-# Execution Report - phase-2-sprint2-advanced-map-objects
+# Execution Report - phase-6-sprint1-wind-system
 
-- **Handoff ID:** phase-2-sprint2-advanced-map-objects
+- **Handoff ID:** phase-6-sprint1-wind-system
 - **From:** ultron
 - **To:** vision / pm
-- **Date:** 2026-04-21
+- **Date:** 2026-04-22
 - **Status:** complete
 
 ## Summary
 
-Phase 2 Sprint 2 Advanced Map Objects is complete. The Phaser prototype now supports destructible cover, bounce walls, and paired teleporters on top of the Sprint 1 barrel/mine/crate baseline, with pure domain logic, stage-data validation, controller rendering, combat/runtime wiring, debug hooks, and browser coverage.
+Phase 6 Sprint 1 Wind System is complete. The Phaser prototype now supports deterministic round-based wind selection, optional stage wind overrides, 2D wind force application for arc and bounce projectiles, HUD wind updates, and browser-visible wind debug state while preserving prior Sprint 2 combat and map-object behavior.
 
 ## Changes
 
-- Extended `assets/data/game-balance.json` and `scene-types.ts` with `cover`, `bounceWall`, and `teleporter` config while preserving Sprint 1 tuning.
-- Expanded `MapObjectLogic`, `MapObjectRuntime`, `StageContentDefinition`, and related tests for new kinds, cooldown/durability metadata, pair validation, and conservative stage placements.
-- Added pure domain modules `CoverLogic`, `BounceWallLogic`, and `TeleporterLogic`.
-- Exported `ProjectileRuntime.reflectVelocity` for bounce-wall reuse.
-- Expanded `MapObjectController` to render cover, bounce walls, and teleporters, preserve per-object state, and report richer debug summaries.
-- Wired `combat-controller` to block bullets on active cover, reflect shots on bounce walls, and preserve existing barrel/mine/crate paths.
-- Wired `MainScene` to apply teleporter movement results and expose `debugGetMapObjectStates()` / `debugGetProjectileSnapshot()` for deterministic browser checks.
-- Added `tests/e2e/map-objects-sprint2.spec.ts` covering cover destruction flow, bounce-wall interaction, and teleporter cooldown behavior.
+- Extended `assets/data/game-balance.json`, `scene-types.ts`, and `StageDefinition.ts` with wind config and optional stage wind metadata.
+- Added pure domain `WindLogic.ts` with `createWindState`, `rotateWind`, and `computeForce`.
+- Expanded `ProjectileRuntime` from `windX` to `windX`/`windY`, applying wind only to `arc` and `bounce` trajectories through existing `windMultiplier`.
+- Added round-start wind selection helpers to `MatchFlowOrchestrator`, including stage override precedence and wind snapshot payload support.
+- Added `currentWind` to `SceneRuntimeState` and wired `combat-controller` to compute and forward wind force into projectile advancement.
+- Wired `match-flow-controller` to roll wind on deployment and round reset, update runtime wind, and broadcast `WIND_CHANGED`.
+- Extended HUD event/presenter/controller flow to render wind arrow plus 3-step strength pips without direct `MainScene` UI mutation.
+- Extended debug snapshots with `wind: { angleDegrees, strength, forceX, forceY }` while keeping `MainScene.ts` under 900 lines.
+- Added `tests/StageDefinition.test.ts`, `tests/WindLogic.test.ts`, and `tests/e2e/wind-system.spec.ts`, plus expanded `ProjectileRuntime` and `MatchFlowOrchestrator` coverage.
 
 ## Verification
 
@@ -27,43 +28,16 @@ Phase 2 Sprint 2 Advanced Map Objects is complete. The Phaser prototype now supp
 |------|---------|--------|
 | Type check | `npm run type-check` | pass |
 | Lint | `npm run lint` | pass |
-| Focused tests | `npx vitest run tests/MapObjectLogic.test.ts tests/MapObjectRuntime.test.ts tests/CoverLogic.test.ts tests/BounceWallLogic.test.ts tests/TeleporterLogic.test.ts tests/StageContentDefinition.test.ts tests/StageContentSpawner.test.ts tests/ProjectileRuntime.test.ts` | pass, **8 files / 50 tests** |
-| Unit tests | `npx vitest run --maxWorkers 1` | pass, **46 files / 271 tests** |
+| Focused unit | `npx vitest run tests/StageDefinition.test.ts tests/WindLogic.test.ts tests/ProjectileRuntime.test.ts tests/MatchFlowOrchestrator.test.ts --maxWorkers 1` | pass, **4 files / 27 tests** |
+| Unit tests | `npx vitest run --maxWorkers 1` | pass, **49 files / 286 tests** |
 | Build | `npm run build` | pass |
-| E2E | `npx playwright test --reporter=line` | pass, **20 tests** |
+| Focused E2E | `npx playwright test tests/e2e/wind-system.spec.ts --reporter=line` | pass, **3 tests** |
+| E2E | `npx playwright test --reporter=line` | pass, **23 tests** |
 
 Build size check: largest emitted chunk is `dist/assets/phaser-gameobjects-Blmgf9UG.js` at **260.49 kB**, gzip **71.63 kB**, below the 800 kB / 250 kB thresholds.
 
 ## Risks
 
-- Bounce-wall browser coverage currently proves durable wall interaction through reflected-wall state rather than persisting a dedicated reflected-projectile event log.
-- Teleporter VFX uses the existing impact effect path; a bespoke teleport visual/audio pass remains follow-up work.
-- Final authored visuals for all Sprint 1 and Sprint 2 map objects remain out of scope.
-
-## Hotfix: Round-Reset Bullet Clear Race
-
-### Summary
-
-Addressed a critical freeze where round-reset logic could clear the shared bullet array while `CombatController.updateProjectiles()` was still iterating through it.
-
-### Root Cause
-
-`MatchFlowController` can request `clearBullets()` on the same frame that a projectile resolves a round-ending hit. The old implementation destroyed sprites and truncated `state.bullets` immediately, so the still-active projectile loop could read `undefined` and crash on `bullet.sprite`.
-
-### Changes
-
-- Added `pendingBulletClear` to `SceneRuntimeState` so bullet cleanup can be requested without mutating the array mid-tick.
-- Changed `CombatController.clearBullets()` to mark pending cleanup only, and added `flushPendingBulletClear()` to perform the actual sprite destruction and VFX cleanup at a safe tick boundary.
-- Flushed pending bullet cleanup in `MainScene` immediately after round-reset and match-confirm handling.
-- Kept the `bullet === undefined` guard inside `updateProjectiles()` as a defensive fallback.
-- Added `tests/CombatController.test.ts` to lock the defer-and-flush contract and the no-truncate-before-flush behavior.
-
-### Verification
-
-| Gate | Command | Result |
-|------|---------|--------|
-| Type check | `npm run type-check` | pass |
-| Lint | `npm run lint` | pass |
-| Unit tests | `npx vitest run --maxWorkers 1` | pass, **47 files / 273 tests** |
-| Build | `npm run build` | pass |
-| Focused browser regression | `npx playwright test tests/e2e/gameplay.spec.ts tests/e2e/map-objects.spec.ts tests/e2e/map-objects-sprint2.spec.ts --reporter=line` | pass, **10 tests** |
+- Wind rotation currently uses runtime `Math.random` at the scene boundary; deterministic domain coverage exists, but browser-visible wind values remain runtime-seeded outside tests.
+- HUD wind rendering is data-complete through `hud-events` and `hud-presenters`, but final art polish for the arrow and pips remains a later visual pass.
+- Weather systems remain out of scope for Sprint 1 and are still deferred to the next environment sprint.

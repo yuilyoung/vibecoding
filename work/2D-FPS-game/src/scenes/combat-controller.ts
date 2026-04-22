@@ -16,6 +16,7 @@ import { advanceProjectile, type ProjectileConfig } from "../domain/combat/Proje
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { reflectProjectileOffWall } from "../domain/map/BounceWallLogic";
 import { isBulletBlocked } from "../domain/map/CoverLogic";
+import { computeForce } from "../domain/environment/WindLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import type { CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
@@ -264,6 +265,7 @@ export class CombatController {
     const playerAlive = !this.state.playerLogic.isDead();
     const dummyBounds = dummyAlive ? this.collisionResolver.getActorCollisionBounds(targetDummy.x, targetDummy.y) : null;
     const playerBounds = playerAlive ? this.collisionResolver.getActorCollisionBounds(playerSprite.x, playerSprite.y) : null;
+    const windForce = computeForce(this.state.currentWind, this.deps.gameBalance.wind.forceScale);
 
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
@@ -291,7 +293,9 @@ export class CombatController {
         deltaSeconds,
         arenaWidth: 960,
         arenaHeight: 540,
-        obstacles: activeObstacles.map((obstacle) => obstacle.bounds)
+        obstacles: activeObstacles.map((obstacle) => obstacle.bounds),
+        windX: windForce.x,
+        windY: windForce.y
       });
       const projectileBounds = createCenteredRect(
         runtimeFrame.projectile.x,
@@ -718,6 +722,22 @@ export class CombatController {
 
   public clearBullets(): void {
     requestBulletClear(this.state);
+  }
+
+  public getWindDebugState(): {
+    angleDegrees: number;
+    strength: number;
+    forceX: number;
+    forceY: number;
+  } {
+    const force = computeForce(this.state.currentWind, this.deps.gameBalance.wind.forceScale);
+
+    return {
+      angleDegrees: this.state.currentWind.angleDegrees,
+      strength: this.state.currentWind.strength,
+      forceX: force.x,
+      forceY: force.y
+    };
   }
 
   public flushPendingBulletClear(): void {

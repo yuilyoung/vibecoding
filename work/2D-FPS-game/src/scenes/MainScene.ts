@@ -223,6 +223,7 @@ export class MainScene extends Phaser.Scene {
       stageObstacleViews: this.stageObstacleViews,
       dummyCoverPoints: this.dummyCoverPoints,
       coverPointViews: this.coverPointViews,
+      currentWind: { angleDegrees: 0, strength: 0 },
       pendingBulletClear: false,
       lastCombatEvent: "READY",
       recentImpactEffectUntilMs: 0,
@@ -334,9 +335,7 @@ export class MainScene extends Phaser.Scene {
       getCoverLabel: (index) => this.dummyActorController.getCoverLabel(index),
       isCoverActive: (index) => this.dummyActorController.getActiveCoverIndexForActor(this.targetDummy.x, this.targetDummy.y) === index,
       shouldHighlightCover: () => this.dummyActorController.shouldHighlightCover(),
-      suppressPointerFireUntil: (untilMs) => {
-        this.runtimeState.suppressPointerFireUntilMs = untilMs;
-      }
+      suppressPointerFireUntil: (untilMs) => { this.runtimeState.suppressPointerFireUntilMs = untilMs; }
     });
     this.hudController = new HudController(this, this.runtimeState, {
       gameBalance: this.gameBalance,
@@ -364,9 +363,7 @@ export class MainScene extends Phaser.Scene {
       getHealthPickupStatus: (now) => this.stageGeometry.getHealthPickupStatus(now),
       getMatchConfirmAtMs: () => this.matchConfirmAtMs,
       getMatchConfirmReadyCueSent: () => this.matchConfirmReadyCueSent,
-      setMatchConfirmReadyCueSent: (sent) => {
-        this.matchConfirmReadyCueSent = sent;
-      },
+      setMatchConfirmReadyCueSent: (sent) => { this.matchConfirmReadyCueSent = sent; },
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
       enterMatchOver: () => this.matchFlow.enterMatchOver(),
       getCoverEffectId: (index) => this.dummyActorController.getCoverEffectId(index)
@@ -391,40 +388,20 @@ export class MainScene extends Phaser.Scene {
       isConfirmDown: () => this.moveKeys !== undefined && (
         Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm) || this.moveKeys.confirm.isDown
       ),
-      setLastCombatEvent: (event) => {
-        this.runtimeState.lastCombatEvent = event;
-      },
-      setCurrentDummyWeaponId: (weaponId) => {
-        this.runtimeState.currentDummyWeaponId = weaponId;
-      },
-      setLastDummyIntentKey: (key) => {
-        this.runtimeState.lastDummyIntentKey = key;
-      },
-      setLastActiveWeaponReloading: (value) => {
-        this.runtimeState.lastActiveWeaponReloading = value;
-      },
-      setPlayerBodyAngle: (angle) => {
-        this.runtimeState.playerBodyAngle = angle;
-      },
-      setDummyBodyAngle: (angle) => {
-        this.runtimeState.dummyBodyAngle = angle;
-      },
+      setLastCombatEvent: (event) => { this.runtimeState.lastCombatEvent = event; },
+      setCurrentDummyWeaponId: (weaponId) => { this.runtimeState.currentDummyWeaponId = weaponId; },
+      setLastDummyIntentKey: (key) => { this.runtimeState.lastDummyIntentKey = key; },
+      setLastActiveWeaponReloading: (value) => { this.runtimeState.lastActiveWeaponReloading = value; },
+      setPlayerBodyAngle: (angle) => { this.runtimeState.playerBodyAngle = angle; },
+      setDummyBodyAngle: (angle) => { this.runtimeState.dummyBodyAngle = angle; },
       setLastDummyDecision: (decision) => {
         const normalizedDecision: DummyAiDecision["mode"] = decision === "hold-cover" ? "cover" : decision;
         this.runtimeState.lastDummyDecision = normalizedDecision;
       },
-      setLastDummyShouldFire: (value) => {
-        this.runtimeState.lastDummyShouldFire = value;
-      },
-      setLastDummySteerX: (value) => {
-        this.runtimeState.lastDummySteerX = value;
-      },
-      setLastDummySteerY: (value) => {
-        this.runtimeState.lastDummySteerY = value;
-      },
-      setDummySteerLockUntilMs: (value) => {
-        this.runtimeState.dummySteerLockUntilMs = value;
-      },
+      setLastDummyShouldFire: (value) => { this.runtimeState.lastDummyShouldFire = value; },
+      setLastDummySteerX: (value) => { this.runtimeState.lastDummySteerX = value; },
+      setLastDummySteerY: (value) => { this.runtimeState.lastDummySteerY = value; },
+      setDummySteerLockUntilMs: (value) => { this.runtimeState.dummySteerLockUntilMs = value; },
       applyTeamVisuals: (playerTeam, dummyTeam) => this.visualController.applyTeamVisuals(playerTeam, dummyTeam),
       getActorRotation: (angleRadians) => this.visualController.getActorRotation(angleRadians),
       setPlayerSpriteDeployment: (x, y, rotation) => {
@@ -435,9 +412,7 @@ export class MainScene extends Phaser.Scene {
         this.targetDummy.setPosition(x, y);
         this.targetDummy.setRotation(rotation);
       },
-      resetActorVisuals: () => {
-        this.visualController.resetActorVisuals();
-      },
+      resetActorVisuals: () => { this.visualController.resetActorVisuals(); },
       applyGateDeployment: (open) => {
         this.gate.open = open;
         this.gate.sprite.setAlpha(1);
@@ -451,7 +426,9 @@ export class MainScene extends Phaser.Scene {
         this.stageGeometry.applyStageContent(this.activeStageContentPlan);
         this.mapObjectController.applyMapObjects(this.activeStageContentPlan.mapObjects);
       },
-      emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event)
+      emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
+      getCurrentWind: () => this.runtimeState.currentWind,
+      setCurrentWind: (wind) => { this.runtimeState.currentWind = wind; }
     });
     this.debugController = new DebugController({
       matchFlow: this.matchFlow,

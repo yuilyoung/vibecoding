@@ -34,6 +34,37 @@ export interface BossWaveOverlayDecision {
   readonly combatEvent: string | null;
 }
 
+export interface WindStateLike {
+  readonly angleDegrees: number;
+  readonly strength: number;
+}
+
+export interface WindConfigLike {
+  readonly enabled: boolean;
+  readonly strengthRange: readonly [number, number];
+  readonly angleStepDegrees: number;
+  readonly rotationMode: string;
+  readonly defaultMultiplier: number;
+  readonly forceScale: number;
+}
+
+export interface RoundStartWindInput {
+  readonly stage: StageDefinition;
+  readonly previousWind: WindStateLike | null;
+  readonly rng: () => number;
+  readonly windConfig: WindConfigLike;
+}
+
+export interface RoundSnapshot<TWind extends WindStateLike = WindStateLike> {
+  readonly wind: TWind;
+}
+
+export interface RoundStartWindDecision<TWind extends WindStateLike = WindStateLike> {
+  readonly wind: TWind;
+  readonly snapshot: RoundSnapshot<TWind>;
+  readonly source: "stage-override" | "rotation";
+}
+
 export function resolveStageFlow(input: StageFlowInput): StageFlowDecision {
   if (input.phase === "stage-entry") {
     if (!input.confirmPressed) {
@@ -169,4 +200,58 @@ function isBossWaveRound(roundNumber: number, plan: BossWaveSpawnPlan): boolean 
   }
 
   return (roundNumber - plan.firstBossRound) % plan.intervalRounds === 0;
+}
+
+export function resolveRoundStartWind<TWind extends WindStateLike = WindStateLike>(
+  input: RoundStartWindInput & {
+    readonly createWindState: (wind: WindStateLike) => TWind;
+    readonly rotateWind: (previous: WindStateLike | null, rng: () => number, config: WindConfigLike) => TWind;
+  }
+): RoundStartWindDecision<TWind> {
+  const stageWind = readStageWindOverride(input.stage);
+  if (stageWind !== null) {
+    const wind = input.createWindState(stageWind);
+
+    return {
+      wind,
+      snapshot: createRoundSnapshot({ wind }),
+      source: "stage-override"
+    };
+  }
+
+  const wind = input.rotateWind(input.previousWind, input.rng, input.windConfig);
+
+  return {
+    wind,
+    snapshot: createRoundSnapshot({ wind }),
+    source: "rotation"
+  };
+}
+
+export function createRoundSnapshot<TWind extends WindStateLike>(input: {
+  readonly wind: TWind;
+}): RoundSnapshot<TWind> {
+  return {
+    wind: input.wind
+  };
+}
+
+function readStageWindOverride(stage: StageDefinition): WindStateLike | null {
+  const candidate = (stage as StageDefinition & {
+    readonly wind?: Partial<WindStateLike> | null;
+  }).wind;
+
+  if (
+    candidate === undefined ||
+    candidate === null ||
+    typeof candidate.angleDegrees !== "number" ||
+    typeof candidate.strength !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    angleDegrees: candidate.angleDegrees,
+    strength: candidate.strength
+  };
 }

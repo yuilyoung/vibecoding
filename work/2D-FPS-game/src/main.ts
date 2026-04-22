@@ -9,6 +9,7 @@ import {
   type TutorialSignal
 } from "./domain/tutorial/TutorialOverlayLogic";
 import { MainScene } from "./scenes/MainScene";
+import type { GameBalance } from "./scenes/scene-types";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
   applySettingsPanelDraft,
@@ -237,7 +238,7 @@ if (gameContainer === null) {
   throw new Error("Missing #game-root element.");
 }
 
-const mainScene = new MainScene(gameBalance);
+const mainScene = new MainScene(gameBalance as unknown as GameBalance);
 const hudElements = {
   teamChip: queryText("#team-chip"),
   phaseChip: queryText("#phase-chip"),

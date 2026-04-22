@@ -1,4 +1,5 @@
 import {
+  advanceProjectile,
   castBeam,
   createProjectileRuntimeState,
   planAoeCall,
@@ -33,7 +34,7 @@ describe("ProjectileRuntime", () => {
     expect(result.shouldExplode).toBe(false);
   });
 
-  it("applies gravity and wind to arc projectiles", () => {
+  it("applies gravity and both wind axes to arc projectiles", () => {
     const config: ProjectileConfig = {
       trajectory: "arc",
       speed: 100,
@@ -55,20 +56,21 @@ describe("ProjectileRuntime", () => {
       deltaSeconds: 1,
       obstacles: [],
       arenaBounds,
-      windX: 40
+      windX: 40,
+      windY: -20
     });
 
     expect(result.projectile.velocityX).toBe(120);
-    expect(result.projectile.velocityY).toBe(300);
+    expect(result.projectile.velocityY).toBe(290);
     expect(result.projectile.x).toBe(120);
-    expect(result.projectile.y).toBe(300);
+    expect(result.projectile.y).toBe(290);
   });
 
-  it("reflects bounce projectiles before exploding on the final blocked step", () => {
-    const config: ProjectileConfig = { trajectory: "bounce", speed: 100, bounceCount: 1 };
+  it("applies wind to bounce projectiles before exploding on the final blocked step", () => {
+    const config: ProjectileConfig = { trajectory: "bounce", speed: 100, bounceCount: 1, windMultiplier: 0.5 };
     const projectile = createProjectileRuntimeState({
       x: 40,
-      y: 100,
+      y: 40,
       angleRadians: 0,
       width: 8,
       height: 8,
@@ -79,29 +81,59 @@ describe("ProjectileRuntime", () => {
       projectile,
       config,
       deltaSeconds: 0.2,
-      obstacles: [{ x: 56, y: 80, width: 10, height: 40 }],
-      arenaBounds
+      obstacles: [{ x: 56, y: 16, width: 10, height: 80 }],
+      arenaBounds,
+      windX: 20,
+      windY: 30
     });
 
     expect(bounced.hitObstacle).toBe(true);
     expect(bounced.shouldExplode).toBe(false);
     expect(bounced.projectile.bouncesRemaining).toBe(0);
-    expect(bounced.projectile.velocityX).toBe(-100);
+    expect(bounced.projectile.velocityX).toBe(-102);
+    expect(bounced.projectile.velocityY).toBe(3);
 
     const finalHit = stepProjectile({
       projectile: {
         ...bounced.projectile,
         x: 40,
-        y: 100,
+        y: 40,
         velocityX: 100
       },
       config,
       deltaSeconds: 0.2,
-      obstacles: [{ x: 56, y: 80, width: 10, height: 40 }],
+      obstacles: [{ x: 56, y: 16, width: 10, height: 80 }],
       arenaBounds
     });
 
     expect(finalHit.shouldExplode).toBe(true);
+  });
+
+  it("ignores wind inputs for linear projectiles", () => {
+    const config: ProjectileConfig = { trajectory: "linear", speed: 100, windMultiplier: 0.75 };
+    const projectile = createProjectileRuntimeState({
+      x: 10,
+      y: 20,
+      angleRadians: 0,
+      width: 8,
+      height: 8,
+      config
+    });
+
+    const result = stepProjectile({
+      projectile,
+      config,
+      deltaSeconds: 0.5,
+      obstacles: [],
+      arenaBounds,
+      windX: 80,
+      windY: -60
+    });
+
+    expect(result.projectile.velocityX).toBe(100);
+    expect(result.projectile.velocityY).toBe(0);
+    expect(result.projectile.x).toBe(60);
+    expect(result.projectile.y).toBe(20);
   });
 
   it("steers homing projectiles toward the nearest valid target with a turn clamp", () => {
@@ -130,6 +162,38 @@ describe("ProjectileRuntime", () => {
         { x: 80, y: 100, valid: false },
         { x: 100, y: 220 }
       ]
+    });
+
+    expect(result.projectile.velocityX).toBeCloseTo(70.710678);
+    expect(result.projectile.velocityY).toBeCloseTo(70.710678);
+  });
+
+  it("keeps homing projectiles immune to wind inputs", () => {
+    const config: ProjectileConfig = {
+      trajectory: "homing",
+      speed: 100,
+      homingStrength: 1,
+      homingMaxTurnRate: Math.PI / 2,
+      windMultiplier: 1
+    };
+    const projectile = createProjectileRuntimeState({
+      x: 100,
+      y: 100,
+      angleRadians: 0,
+      width: 8,
+      height: 8,
+      config
+    });
+
+    const result = stepProjectile({
+      projectile,
+      config,
+      deltaSeconds: 0.5,
+      obstacles: [],
+      arenaBounds,
+      target: { x: 100, y: 220 },
+      windX: 999,
+      windY: 999
     });
 
     expect(result.projectile.velocityX).toBeCloseTo(70.710678);
@@ -170,5 +234,76 @@ describe("ProjectileRuntime", () => {
     expect(impacts[1].triggerAtMs).toBe(1120);
     expect(impacts[2].triggerAtMs).toBe(1240);
     expect(Math.hypot(impacts[1].x - 400, impacts[1].y - 240)).toBeCloseTo(30);
+  });
+
+  it("expires beam and aoe-call projectiles without wind side effects", () => {
+    const beamResult = advanceProjectile({
+      projectile: {
+        x: 10,
+        y: 20,
+        width: 8,
+        height: 8,
+        velocityX: 100,
+        velocityY: 5
+      },
+      config: {
+        trajectory: "beam",
+        speed: 100,
+        windMultiplier: 1
+      },
+      deltaSeconds: 1,
+      arenaWidth: 960,
+      arenaHeight: 540,
+      windX: 200,
+      windY: 300
+    });
+
+    const aoeResult = advanceProjectile({
+      projectile: {
+        x: 30,
+        y: 40,
+        width: 8,
+        height: 8,
+        velocityX: 0,
+        velocityY: 0
+      },
+      config: {
+        trajectory: "aoe-call",
+        speed: 0,
+        windMultiplier: 1
+      },
+      deltaSeconds: 1,
+      arenaWidth: 960,
+      arenaHeight: 540,
+      windX: 200,
+      windY: 300
+    });
+
+    expect(beamResult).toEqual({
+      projectile: {
+        x: 10,
+        y: 20,
+        width: 8,
+        height: 8,
+        velocityX: 100,
+        velocityY: 5
+      },
+      hitObstacle: false,
+      bounced: false,
+      expired: true
+    });
+    expect(aoeResult).toEqual({
+      projectile: {
+        x: 30,
+        y: 40,
+        width: 8,
+        height: 8,
+        velocityX: 0,
+        velocityY: 0
+      },
+      hitObstacle: false,
+      bounced: false,
+      expired: true
+    });
   });
 });

@@ -1,6 +1,10 @@
+import { vi } from "vitest";
 import gameBalance from "../assets/data/game-balance.json";
+import type { StageDefinition } from "../src/domain/map/StageDefinition";
 import {
+  createRoundSnapshot,
   planRoundReset,
+  resolveRoundStartWind,
   resolveBossWaveOverlay,
   resolveStageFlow
 } from "../src/domain/round/MatchFlowOrchestrator";
@@ -124,5 +128,123 @@ describe("MatchFlowOrchestrator", () => {
 
     expect(bossWave.visible).toBe(false);
     expect(bossWave.combatEvent).toBeNull();
+  });
+
+  it("prefers stage wind overrides over rotation", () => {
+    const createWindState = vi.fn((wind: { angleDegrees: number; strength: number }) => ({
+      ...wind,
+      tag: "override"
+    }));
+    const rotateWind = vi.fn(() => ({
+      angleDegrees: 15,
+      strength: 1,
+      tag: "rotation"
+    }));
+    const stage = {
+      ...gameBalance.stages[0],
+      wind: { angleDegrees: 180, strength: 2 }
+    } as StageDefinition & {
+      readonly wind: { angleDegrees: number; strength: number };
+    };
+
+    const decision = resolveRoundStartWind({
+      stage,
+      previousWind: { angleDegrees: 45, strength: 1 },
+      rng: () => 0.9,
+      windConfig: {
+        enabled: true,
+        strengthRange: [0, 3],
+        angleStepDegrees: 15,
+        rotationMode: "perRound",
+        defaultMultiplier: 1,
+        forceScale: 240
+      },
+      createWindState,
+      rotateWind
+    });
+
+    expect(decision.source).toBe("stage-override");
+    expect(decision.wind).toEqual({ angleDegrees: 180, strength: 2, tag: "override" });
+    expect(decision.snapshot.wind).toEqual(decision.wind);
+    expect(createWindState).toHaveBeenCalledWith({ angleDegrees: 180, strength: 2 });
+    expect(rotateWind).not.toHaveBeenCalled();
+  });
+
+  it("rotates wind deterministically when no stage override is present", () => {
+    const createWindState = vi.fn((wind: { angleDegrees: number; strength: number }) => wind);
+    const rotateWind = vi.fn(
+      (
+        previous: { angleDegrees: number; strength: number } | null,
+        rng: () => number,
+        config: { angleStepDegrees: number }
+      ) => {
+        const stepIndex = Math.floor(rng() * 4);
+        const strength = previous === null ? 0 : previous.strength + 1;
+
+        return {
+          angleDegrees: stepIndex * config.angleStepDegrees,
+          strength
+        };
+      }
+    );
+    const rngValues = [0.2, 0.8];
+    let rngIndex = 0;
+    const rng = () => rngValues[rngIndex++] ?? 0;
+    const stage = gameBalance.stages[0] as StageDefinition;
+
+    const first = resolveRoundStartWind({
+      stage,
+      previousWind: null,
+      rng,
+      windConfig: {
+        enabled: true,
+        strengthRange: [0, 3],
+        angleStepDegrees: 15,
+        rotationMode: "perRound",
+        defaultMultiplier: 1,
+        forceScale: 240
+      },
+      createWindState,
+      rotateWind
+    });
+    const second = resolveRoundStartWind({
+      stage,
+      previousWind: first.wind,
+      rng,
+      windConfig: {
+        enabled: true,
+        strengthRange: [0, 3],
+        angleStepDegrees: 15,
+        rotationMode: "perRound",
+        defaultMultiplier: 1,
+        forceScale: 240
+      },
+      createWindState,
+      rotateWind
+    });
+
+    expect(first).toMatchObject({
+      source: "rotation",
+      wind: { angleDegrees: 0, strength: 0 },
+      snapshot: { wind: { angleDegrees: 0, strength: 0 } }
+    });
+    expect(second).toMatchObject({
+      source: "rotation",
+      wind: { angleDegrees: 45, strength: 1 },
+      snapshot: { wind: { angleDegrees: 45, strength: 1 } }
+    });
+    expect(createWindState).not.toHaveBeenCalled();
+    expect(rotateWind).toHaveBeenNthCalledWith(1, null, rng, expect.objectContaining({ angleStepDegrees: 15 }));
+    expect(rotateWind).toHaveBeenNthCalledWith(2, first.wind, rng, expect.objectContaining({ angleStepDegrees: 15 }));
+  });
+
+  it("builds round snapshots that carry the selected wind payload", () => {
+    const snapshot = createRoundSnapshot({
+      wind: { angleDegrees: 300, strength: 3, source: "test" }
+    });
+
+    expect(snapshot).toEqual({
+      wind: { angleDegrees: 300, strength: 3, source: "test" }
+    });
   });
 });

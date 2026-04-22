@@ -1,4 +1,22 @@
 export const HUD_SNAPSHOT_EVENT = "fps-hud-snapshot";
+export const WIND_CHANGED_EVENT = "fps-hud-wind-changed";
+
+export interface HudWindChangedDetail {
+  readonly angleDegrees: number;
+  readonly strength: number;
+}
+
+export interface HudWindPipSnapshot {
+  readonly index: number;
+  readonly active: boolean;
+  readonly color: string;
+}
+
+export interface HudWindSnapshot extends HudWindChangedDetail {
+  readonly visible: boolean;
+  readonly arrowSizePx: number;
+  readonly pips: readonly HudWindPipSnapshot[];
+}
 
 export interface HudOverlayState {
   readonly visible: boolean;
@@ -95,5 +113,32 @@ export interface HudSnapshot {
   readonly weaponUnlock?: HudWeaponUnlockSnapshot;
   readonly areaPreview?: HudAreaPreviewSnapshot;
   readonly blastPreview?: HudBlastPreviewSnapshot;
+  readonly wind?: HudWindSnapshot;
   readonly overlay: HudOverlayState;
+}
+
+let latestHudWind: HudWindChangedDetail = {
+  angleDegrees: 0,
+  strength: 0
+};
+
+export function publishWindChanged(detail: HudWindChangedDetail): void {
+  latestHudWind = sanitizeHudWindChangedDetail(detail);
+  window.dispatchEvent(new CustomEvent< HudWindChangedDetail>(WIND_CHANGED_EVENT, {
+    detail: latestHudWind
+  }));
+}
+
+export function readLatestHudWind(): HudWindChangedDetail {
+  return latestHudWind;
+}
+
+function sanitizeHudWindChangedDetail(detail: HudWindChangedDetail): HudWindChangedDetail {
+  const angleDegrees = Number.isFinite(detail.angleDegrees) ? detail.angleDegrees : 0;
+  const strength = Number.isFinite(detail.strength) ? Math.max(0, Math.min(3, detail.strength)) : 0;
+
+  return {
+    angleDegrees,
+    strength
+  };
 }

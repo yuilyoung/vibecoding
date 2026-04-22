@@ -45,6 +45,7 @@ export interface ProjectileStepInput {
   };
   readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
+  readonly windY?: number;
 }
 
 export interface ProjectileStepResult {
@@ -110,7 +111,8 @@ export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult
     deltaSeconds,
     input.target,
     input.homingTargets,
-    input.windX ?? 0
+    input.windX ?? 0,
+    input.windY ?? 0
   );
   const nextX = input.projectile.x + velocity.x * deltaSeconds;
   const nextY = input.projectile.y + velocity.y * deltaSeconds;
@@ -119,7 +121,15 @@ export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult
   const outOfBounds = !intersectsRect(nextBounds, input.arenaBounds);
 
   if (input.projectile.trajectory === "bounce" && hitObstacle && input.projectile.bouncesRemaining > 0) {
-    const bouncedVelocity = reflectVelocity(input.projectile, nextBounds, input.obstacles);
+    const bouncedVelocity = reflectVelocity(
+      {
+        ...input.projectile,
+        velocityX: velocity.x,
+        velocityY: velocity.y
+      },
+      nextBounds,
+      input.obstacles
+    );
     return {
       projectile: {
         ...input.projectile,
@@ -167,6 +177,7 @@ export interface ProjectileRuntimeInput {
   readonly target?: { readonly x: number; readonly y: number } | null;
   readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
+  readonly windY?: number;
 }
 
 export interface ProjectileRuntimeResult {
@@ -198,7 +209,8 @@ export function advanceProjectile(input: ProjectileRuntimeInput): ProjectileRunt
     arenaBounds: { x: 0, y: 0, width: input.arenaWidth, height: input.arenaHeight },
     target: input.target ?? undefined,
     homingTargets: input.homingTargets,
-    windX: input.windX
+    windX: input.windX,
+    windY: input.windY
   });
   const bounced = result.projectile.bouncesRemaining < (input.projectile.bouncesRemaining ?? input.config.bounceCount ?? 0);
 
@@ -293,12 +305,18 @@ function resolveVelocity(
   deltaSeconds: number,
   target: ProjectileStepInput["target"],
   homingTargets: readonly HomingTarget[] | undefined,
-  windX: number
+  windX: number,
+  windY: number
 ): { x: number; y: number } {
+  if (projectile.trajectory === "bounce") {
+    return applyWind(projectile, config, deltaSeconds, windX, windY);
+  }
+
   if (projectile.trajectory === "arc") {
+    const windAdjusted = applyWind(projectile, config, deltaSeconds, windX, windY);
     return {
-      x: projectile.velocityX + windX * (config.windMultiplier ?? 0) * deltaSeconds,
-      y: projectile.velocityY + (config.gravity ?? 0) * deltaSeconds
+      x: windAdjusted.x,
+      y: windAdjusted.y + (config.gravity ?? 0) * deltaSeconds
     };
   }
 
@@ -328,6 +346,27 @@ function resolveVelocity(
   return {
     x: projectile.velocityX,
     y: projectile.velocityY
+  };
+}
+
+function applyWind(
+  projectile: ProjectileRuntimeState,
+  config: ProjectileConfig,
+  deltaSeconds: number,
+  windX: number,
+  windY: number
+): { x: number; y: number } {
+  const multiplier = config.windMultiplier ?? 0;
+  if (multiplier === 0) {
+    return {
+      x: projectile.velocityX,
+      y: projectile.velocityY
+    };
+  }
+
+  return {
+    x: projectile.velocityX + windX * multiplier * deltaSeconds,
+    y: projectile.velocityY + windY * multiplier * deltaSeconds
   };
 }
 

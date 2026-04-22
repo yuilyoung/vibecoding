@@ -79,6 +79,7 @@ export class DebugController {
       playerX: playerSprite.x,
       playerY: playerSprite.y,
       playerHullAngle: this.deps.runtimeState.playerBodyAngle,
+      wind: this.deps.combatController.getWindDebugState(),
       mapObjects: this.deps.getMapObjectDebugSummary()
     };
   }

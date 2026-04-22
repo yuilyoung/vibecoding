@@ -7,6 +7,7 @@ import type {
   HudOverlayState,
   HudProgressionSnapshot,
   HudSnapshot,
+  HudWindSnapshot,
   HudWeaponSlotSnapshot,
   HudWeaponUnlockSnapshot
 } from "./hud-events";
@@ -53,6 +54,10 @@ export interface HudPresenterInput {
   readonly weaponUnlock?: HudWeaponUnlockSnapshot;
   readonly areaPreview?: HudAreaPreviewSnapshot;
   readonly blastPreview?: HudBlastPreviewSnapshot;
+  readonly wind?: {
+    readonly angleDegrees: number;
+    readonly strength: number;
+  };
   readonly bossWave?: BossWaveOverlayDecision;
 }
 
@@ -226,9 +231,34 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     weaponUnlock: input.weaponUnlock,
     areaPreview: input.areaPreview,
     blastPreview: input.blastPreview,
+    wind: buildHudWindSnapshot(input.wind),
     overlay: {
       ...overlay,
       subtitle: overlay.subtitle || getPromptText(input)
     }
+  };
+}
+
+function buildHudWindSnapshot(wind: HudPresenterInput["wind"]): HudWindSnapshot {
+  const inputStrength = wind?.strength;
+  const inputAngleDegrees = wind?.angleDegrees;
+  const strength = typeof inputStrength === "number" && Number.isFinite(inputStrength)
+    ? Math.max(0, Math.min(3, inputStrength))
+    : 0;
+  const angleDegrees = typeof inputAngleDegrees === "number" && Number.isFinite(inputAngleDegrees)
+    ? inputAngleDegrees
+    : 0;
+  const pipColor = strength >= 3 ? "#ff5f5f" : strength >= 2 ? "#ffd166" : "#5eead4";
+
+  return {
+    visible: true,
+    angleDegrees,
+    strength,
+    arrowSizePx: 24,
+    pips: [1, 2, 3].map((index) => ({
+      index,
+      active: strength >= index,
+      color: pipColor
+    }))
   };
 }
