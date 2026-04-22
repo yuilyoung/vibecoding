@@ -36,6 +36,7 @@ export interface SceneRuntimeState {
   healthPickup?: PickupView;
   readonly dummyCoverPoints: CoverPoint[];
   readonly coverPointViews: CoverPointView[];
+  pendingBulletClear: boolean;
   lastCombatEvent: string;
   recentImpactEffectUntilMs: number;
   lastDummyDecision: DummyAiDecision["mode"];

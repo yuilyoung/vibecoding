@@ -223,6 +223,7 @@ export class MainScene extends Phaser.Scene {
       stageObstacleViews: this.stageObstacleViews,
       dummyCoverPoints: this.dummyCoverPoints,
       coverPointViews: this.coverPointViews,
+      pendingBulletClear: false,
       lastCombatEvent: "READY",
       recentImpactEffectUntilMs: 0,
       lastDummyDecision: "chase",
@@ -507,6 +508,7 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.dummyBodyAngle = 0;
     this.runtimeState.lastDummyIntentKey = "chase:false";
     this.runtimeState.lastActiveWeaponReloading = false;
+    this.runtimeState.pendingBulletClear = false;
     this.runtimeState.playerConsecutiveBlockedFrames = 0;
     this.runtimeState.dummyConsecutiveBlockedFrames = 0;
     this.runtimeState.suppressPointerFireUntilMs = 0;
@@ -718,7 +720,7 @@ export class MainScene extends Phaser.Scene {
     // -- Round / match state (depends on deaths above) --
     this.matchFlowController.handleRoundReset(now);
     this.matchFlowController.handleMatchConfirm(now);
-
+    this.combatController.flushPendingBulletClear();
     // === RESOLVE === (collision resolution, actor separation)
     const playerCollision = this.actorCollisionResolver.resolveActorObstacleCollision(
       playerCenterX,

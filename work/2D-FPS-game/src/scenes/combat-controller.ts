@@ -19,6 +19,7 @@ import { isBulletBlocked } from "../domain/map/CoverLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import type { CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
+import { flushPendingBulletClear, requestBulletClear } from "./combat-bullet-clear";
 import { playTurretFireAnimation } from "./arena-textures";
 import type { ActorCollisionResolver } from "./actor-collision";
 import { MAX_BULLETS, PLAYFIELD_MAX_X, PLAYFIELD_MAX_Y, PLAYFIELD_MIN_X, PLAYFIELD_MIN_Y } from "./scene-constants";
@@ -266,6 +267,14 @@ export class CombatController {
 
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
+
+      // Round-reset paths can clear the shared bullet array while this loop is
+      // still unwinding from the projectile that ended the round. Skip any
+      // slots that disappeared mid-frame instead of dereferencing `undefined`.
+      if (bullet === undefined) {
+        continue;
+      }
+
       const previousX = bullet.sprite.x;
       const previousY = bullet.sprite.y;
       const runtimeFrame = advanceProjectile({
@@ -708,12 +717,11 @@ export class CombatController {
   }
 
   public clearBullets(): void {
-    for (const bullet of this.state.bullets) {
-      bullet.sprite.destroy();
-    }
+    requestBulletClear(this.state);
+  }
 
-    this.state.bullets.length = 0;
-    this.vfx.clearCombatFx();
+  public flushPendingBulletClear(): void {
+    flushPendingBulletClear(this.state, () => this.vfx.clearCombatFx());
   }
 
   private resolveWeaponDamage(damage: number, critChance: number, critMultiplier: number): { damage: number; isCritical: boolean } {

@@ -39,3 +39,31 @@ Build size check: largest emitted chunk is `dist/assets/phaser-gameobjects-Blmgf
 - Bounce-wall browser coverage currently proves durable wall interaction through reflected-wall state rather than persisting a dedicated reflected-projectile event log.
 - Teleporter VFX uses the existing impact effect path; a bespoke teleport visual/audio pass remains follow-up work.
 - Final authored visuals for all Sprint 1 and Sprint 2 map objects remain out of scope.
+
+## Hotfix: Round-Reset Bullet Clear Race
+
+### Summary
+
+Addressed a critical freeze where round-reset logic could clear the shared bullet array while `CombatController.updateProjectiles()` was still iterating through it.
+
+### Root Cause
+
+`MatchFlowController` can request `clearBullets()` on the same frame that a projectile resolves a round-ending hit. The old implementation destroyed sprites and truncated `state.bullets` immediately, so the still-active projectile loop could read `undefined` and crash on `bullet.sprite`.
+
+### Changes
+
+- Added `pendingBulletClear` to `SceneRuntimeState` so bullet cleanup can be requested without mutating the array mid-tick.
+- Changed `CombatController.clearBullets()` to mark pending cleanup only, and added `flushPendingBulletClear()` to perform the actual sprite destruction and VFX cleanup at a safe tick boundary.
+- Flushed pending bullet cleanup in `MainScene` immediately after round-reset and match-confirm handling.
+- Kept the `bullet === undefined` guard inside `updateProjectiles()` as a defensive fallback.
+- Added `tests/CombatController.test.ts` to lock the defer-and-flush contract and the no-truncate-before-flush behavior.
+
+### Verification
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Type check | `npm run type-check` | pass |
+| Lint | `npm run lint` | pass |
+| Unit tests | `npx vitest run --maxWorkers 1` | pass, **47 files / 273 tests** |
+| Build | `npm run build` | pass |
+| Focused browser regression | `npx playwright test tests/e2e/gameplay.spec.ts tests/e2e/map-objects.spec.ts tests/e2e/map-objects-sprint2.spec.ts --reporter=line` | pass, **10 tests** |
