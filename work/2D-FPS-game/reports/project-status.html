@@ -3,30 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>프로젝트 현황 보고서 — 4v4 2D FPS</title>
+  <title>프로젝트 현황 보고서 — 2D FPS · Phase 6 Sprint 1 complete</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
     body { font-family: 'Noto Sans KR', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
     .progress-bar { transition: width 0.8s ease; }
     .badge-done { background: #d1fae5; color: #065f46; }
     .badge-progress { background: #dbeafe; color: #1e40af; }
     .badge-waiting { background: #f3f4f6; color: #374151; }
     .badge-blocked { background: #fee2e2; color: #991b1b; }
+    .badge-complete { background: #ede9fe; color: #5b21b6; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <!-- Header -->
   <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-8 py-6 shadow-lg">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <div>
         <div class="text-xs uppercase tracking-widest text-slate-400 mb-1">PM 에이전트 보고 · 비전(오케스트레이터) 수신</div>
-        <h1 class="text-2xl font-bold">Unity 4v4 2D FPS — 프로젝트 현황 보고서</h1>
-        <p class="text-slate-400 text-sm mt-1">보고 일자: 2026-04-05 &nbsp;|&nbsp; 현재 단계: M0 완료 / M1 착수 가능</p>
+        <h1 class="text-2xl font-bold">2D FPS — 프로젝트 현황 보고서</h1>
+        <p class="text-slate-400 text-sm mt-1">보고 일자: 2026-04-22 &nbsp;|&nbsp; 현재 단계: Phase 6 Sprint 1 — Wind System <span class="bg-emerald-600/30 text-emerald-300 px-2 py-0.5 rounded mono text-xs ml-1">complete</span></p>
       </div>
       <div class="text-right">
-        <div class="text-4xl font-black text-emerald-400">10%</div>
+        <div class="text-4xl font-black text-emerald-400">94%</div>
         <div class="text-slate-400 text-xs mt-1">전체 진행률</div>
       </div>
     </div>
@@ -34,272 +35,186 @@
 
   <main class="max-w-6xl mx-auto px-8 py-10 space-y-10">
 
-    <!-- KPI Cards -->
+    <!-- 프로젝트 개요 -->
     <section>
-      <h2 class="text-lg font-semibold text-slate-700 mb-4">핵심 지표</h2>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">프로젝트 개요</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-emerald-500">
-          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">PRD 검증 점수</div>
-          <div class="text-3xl font-black text-emerald-600">93<span class="text-lg font-normal text-gray-400">/100</span></div>
-          <div class="text-xs text-emerald-600 mt-1">v1.1 승인 완료</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">현재 단계</div>
+          <div class="text-lg font-black text-emerald-600">Phase 6 Sprint 1</div>
+          <div class="text-xs text-emerald-600 mt-1">Wind System · complete</div>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
-          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">완료 산출물</div>
-          <div class="text-3xl font-black text-blue-600">14<span class="text-lg font-normal text-gray-400">개</span></div>
-          <div class="text-xs text-blue-600 mt-1">기획 9 + 아키텍처 5</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">단위 테스트</div>
+          <div class="text-3xl font-black text-blue-600">286<span class="text-lg font-normal text-gray-400">개</span></div>
+          <div class="text-xs text-blue-600 mt-1">49 files · 전체 pass</div>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-purple-500">
-          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">전체 일정</div>
-          <div class="text-3xl font-black text-purple-600">20<span class="text-lg font-normal text-gray-400">주</span></div>
-          <div class="text-xs text-purple-600 mt-1">~2026-08-23 출시 목표</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">E2E 테스트</div>
+          <div class="text-3xl font-black text-purple-600">23<span class="text-lg font-normal text-gray-400">개</span></div>
+          <div class="text-xs text-purple-600 mt-1">+3: wind-system.spec.ts</div>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-orange-500">
-          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">총 태스크</div>
-          <div class="text-3xl font-black text-orange-600">111<span class="text-lg font-normal text-gray-400">개</span></div>
-          <div class="text-xs text-orange-600 mt-1">전체 약 379h 예상</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">빌드 최대 청크</div>
+          <div class="text-2xl font-black text-orange-600">260.49<span class="text-sm font-normal text-gray-400">kB</span></div>
+          <div class="text-xs text-orange-600 mt-1">gzip 71.63 kB · 임계 이하</div>
         </div>
+      </div>
+      <div class="mt-4 bg-white rounded-xl shadow p-5">
+        <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">목표 및 현황</div>
+        <p class="text-sm text-gray-700">2D FPS 라이트 프로토타입 — 결정적 라운드 기반 바람 시스템(wind angle/strength → 2D force)을 Phase 6 Sprint 1에서 도입 완료. ProjectileRuntime의 <span class="mono text-xs">windX/windY</span>가 arc/bounce 탄도에만 영향을 주며, MainScene.ts는 877줄(900 캡 준수). 다음 스프린트는 Weather 시스템(rain/fog/sandstorm/storm) 예정.</p>
       </div>
     </section>
 
-    <!-- Milestone Timeline -->
+    <!-- 로드맵 타임라인 -->
     <section>
-      <h2 class="text-lg font-semibold text-slate-700 mb-4">마일스톤 타임라인</h2>
-      <div class="bg-white rounded-xl shadow p-6 space-y-4">
-        <!-- M0 -->
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">로드맵 타임라인 (Phase 1 → Phase 6 Sprint 1 complete · Phase 6 Sprint 2 대기)</h2>
+      <div class="bg-white rounded-xl shadow p-6 space-y-3">
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 1–2</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow ring-2 ring-emerald-300"></div>
-            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
-          </div>
-          <div class="flex-1 pb-4">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-800">M0 — 사전 준비</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료</span>
-            </div>
-            <p class="text-sm text-gray-500 mt-0.5">환경 세팅, 기획 완료, 아키텍처 설계 / 완료일: 2026-04-18</p>
-            <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-              <div class="progress-bar bg-emerald-500 h-1.5 rounded-full" style="width:100%"></div>
-            </div>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-gray-400 mono">Phase 1–3</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-3 h-3 rounded-full bg-emerald-500"></div><div class="w-0.5 h-8 bg-gray-200 mt-1"></div></div>
+          <div class="flex-1 pb-3">
+            <div class="flex items-center gap-2"><span class="font-semibold text-gray-800">Phase 1~3</span><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료</span></div>
+            <p class="text-sm text-gray-500 mt-0.5">코어 루프(이동·사격·HP·탄도) · 무기 파이프라인(linear/arc/bounce/beam/homing/aoe-call) · 라운드 플로우</p>
           </div>
         </div>
-        <!-- M1 -->
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 3–5</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow ring-2 ring-blue-300 animate-pulse"></div>
-            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
-          </div>
-          <div class="flex-1 pb-4">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-800">M1 — 코어 프로토타입</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-progress font-medium">착수 대기</span>
-            </div>
-            <p class="text-sm text-gray-500 mt-0.5">단일 씬 이동·사격·충돌 구현 / 예상 완료: 2026-05-09</p>
-            <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-              <div class="progress-bar bg-blue-400 h-1.5 rounded-full" style="width:0%"></div>
-            </div>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-gray-400 mono">Phase 4</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-3 h-3 rounded-full bg-emerald-500"></div><div class="w-0.5 h-8 bg-gray-200 mt-1"></div></div>
+          <div class="flex-1 pb-3">
+            <div class="flex items-center gap-2"><span class="font-semibold text-gray-800">Phase 4 — UX & Boss</span><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료</span></div>
+            <p class="text-sm text-gray-500 mt-0.5">ESC 설정 · 튜토리얼 오버레이 · Boss wave · 매치 오버 우선순위 · phase4-smoke E2E</p>
           </div>
         </div>
-        <!-- M2 -->
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 6–9</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
-            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
-          </div>
-          <div class="flex-1 pb-4">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-600">M2 — MVP</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
-            </div>
-            <p class="text-sm text-gray-400 mt-0.5">로컬 4v4 대전 가능 상태 / 예상 완료: 2026-06-06</p>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-gray-400 mono">Phase 5 S0·S1</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-3 h-3 rounded-full bg-emerald-500"></div><div class="w-0.5 h-8 bg-gray-200 mt-1"></div></div>
+          <div class="flex-1 pb-3">
+            <div class="flex items-center gap-2"><span class="font-semibold text-gray-800">Phase 5 Sprint 0 · Sprint 1</span><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료</span></div>
+            <p class="text-sm text-gray-500 mt-0.5">무기 밸런스 리밸런싱 · XP/unlock/스테이지 로테이션 · HUD 프리젠터 정리</p>
           </div>
         </div>
-        <!-- M3 -->
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 10–13</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
-            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
-          </div>
-          <div class="flex-1 pb-4">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-600">M3 — 네트워크 통합</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
-            </div>
-            <p class="text-sm text-gray-400 mt-0.5">UGS Relay 멀티플레이 동기화 / 예상 완료: 2026-07-04</p>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-gray-400 mono">Phase 2 S1·S2</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-3 h-3 rounded-full bg-emerald-500"></div><div class="w-0.5 h-8 bg-gray-200 mt-1"></div></div>
+          <div class="flex-1 pb-3">
+            <div class="flex items-center gap-2"><span class="font-semibold text-gray-800">Phase 2 Sprint 1 · Sprint 2 — Map Objects</span><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">완료 (2026-04-21)</span></div>
+            <p class="text-sm text-gray-500 mt-0.5">barrel · mine · crate (S1) / cover · bounce-wall · teleporter (S2)</p>
           </div>
         </div>
-        <!-- M4 -->
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 14–17</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
-            <div class="w-0.5 h-10 bg-gray-200 mt-1"></div>
-          </div>
-          <div class="flex-1 pb-4">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-600">M4 — 콘텐츠 & 폴리시</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
-            </div>
-            <p class="text-sm text-gray-400 mt-0.5">맵 2종, 무기 3종, 사운드, 완성 UI / 예상 완료: 2026-08-01</p>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-emerald-600 mono">Phase 6 S1</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-emerald-300"></div><div class="w-0.5 h-8 bg-gray-200 mt-1"></div></div>
+          <div class="flex-1 pb-3">
+            <div class="flex items-center gap-2"><span class="font-semibold text-emerald-700">Phase 6 Sprint 1 — Wind System</span><span class="text-xs px-2 py-0.5 rounded-full badge-complete font-medium">complete · 2026-04-22</span></div>
+            <p class="text-sm text-gray-500 mt-0.5">WindLogic · ProjectileRuntime 2D · MatchFlowOrchestrator round wind · HUD 화살표 · debug snapshot</p>
           </div>
         </div>
-        <!-- M5 -->
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-28 text-right">
-            <span class="text-xs font-semibold text-gray-400">Week 18–20</span>
-          </div>
-          <div class="flex-shrink-0 flex flex-col items-center">
-            <div class="w-4 h-4 rounded-full bg-gray-300 border-2 border-white shadow"></div>
-          </div>
+          <div class="flex-shrink-0 w-32 text-right"><span class="text-xs font-semibold text-gray-400 mono">Phase 6 S2</span></div>
+          <div class="flex-shrink-0 flex flex-col items-center"><div class="w-3 h-3 rounded-full bg-gray-300"></div></div>
           <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-gray-600">M5 — QA & 릴리즈</span>
-              <span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">대기</span>
-            </div>
-            <p class="text-sm text-gray-400 mt-0.5">버그 수정, E2E 테스트, 출시 빌드 / 예상 완료: 2026-08-23</p>
+            <div class="flex items-center gap-2"><span class="font-semibold text-gray-600">Phase 6 Sprint 2 — Weather</span><span class="text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">착수 대기</span></div>
+            <p class="text-sm text-gray-400 mt-0.5">rain / fog / sandstorm / storm + movementMultiplier · visionRange · wind rotation 결정화</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- PRD + Artifacts -->
+    <!-- 에이전트별 현황 -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">에이전트별 현황</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-emerald-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">app-developer</div>
+          <div class="font-semibold text-gray-800">Wind 도메인 구현</div>
+          <p class="text-xs text-gray-500 mt-1">WindLogic · ProjectileRuntime 2D · MatchFlowOrchestrator · scene-runtime-state · combat-controller</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-done font-medium">Sprint 1 complete</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-emerald-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">frontend (HUD)</div>
+          <div class="font-semibold text-gray-800">HUD Wind 렌더</div>
+          <p class="text-xs text-gray-500 mt-1">hud-events.WIND_CHANGED · hud-presenters 화살표/3-pip · match-flow-controller 브로드캐스트</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-done font-medium">데이터 파이프 complete · 아트 폴리시 Sprint 2</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-emerald-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">qa</div>
+          <div class="font-semibold text-gray-800">테스트 49 files / 286 tests / 23 E2E</div>
+          <p class="text-xs text-gray-500 mt-1">WindLogic · StageDefinition · ProjectileRuntime · MatchFlowOrchestrator 확장 + wind-system.spec.ts 3 시나리오</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-done font-medium">전체 pass · 회귀 0</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-purple-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">pm</div>
+          <div class="font-semibold text-gray-800">보고서·대시보드</div>
+          <p class="text-xs text-gray-500 mt-1">reports/project-status.html + dashboard/index.html 갱신 · 비전 통합 보고</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-progress font-medium">본 사이클 진행</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">doc-writer</div>
+          <div class="font-semibold text-gray-800">MD 보고서 · WBS · execution report</div>
+          <p class="text-xs text-gray-500 mt-1">docs/reports/project-status.md (PM 지시) · docs/planning/phase6-sprint1-wbs.md · execution-report.md</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-progress font-medium">MD 작성 요청 발송</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-gray-300">
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">architect · devops · git-manager · code-reviewer · backend</div>
+          <div class="font-semibold text-gray-600">대기</div>
+          <p class="text-xs text-gray-400 mt-1">Sprint 2 Weather 착수 시 architect 재활성 · 기타 에이전트는 현 사이클 개입 없음</p>
+          <span class="inline-block mt-2 text-xs px-2 py-0.5 rounded-full badge-waiting font-medium">idle</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 진행 중 + 완료 + 블로킹 + 다음 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- PRD 검증 -->
+
       <section>
-        <h2 class="text-lg font-semibold text-slate-700 mb-4">PRD 검증 상세 (v1.1)</h2>
-        <div class="bg-white rounded-xl shadow p-6 space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">완전성</span>
-            <span class="text-sm font-semibold text-emerald-700">23/25</span>
-          </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:92%"></div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">명확성</span>
-            <span class="text-sm font-semibold text-emerald-700">23/25</span>
-          </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:92%"></div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">실현 가능성</span>
-            <span class="text-sm font-semibold text-emerald-700">19/20</span>
-          </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="progress-bar bg-emerald-500 h-2 rounded-full" style="width:95%"></div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">측정 가능성</span>
-            <span class="text-sm font-semibold text-yellow-600">14/15</span>
-          </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="progress-bar bg-yellow-400 h-2 rounded-full" style="width:93%"></div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">사용자 중심</span>
-            <span class="text-sm font-semibold text-yellow-600">14/15</span>
-          </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="progress-bar bg-yellow-400 h-2 rounded-full" style="width:93%"></div>
-          </div>
-          <div class="border-t pt-3 mt-3 flex justify-between items-center">
-            <span class="font-bold text-gray-700">총점</span>
-            <span class="text-xl font-black text-emerald-600">93 / 100 — 승인</span>
-          </div>
+        <h2 class="text-lg font-semibold text-slate-700 mb-4">진행 중인 작업</h2>
+        <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
+          <div class="text-sm">현재 진행 중인 구현 작업 없음</div>
+          <div class="text-xs mt-1 text-gray-500">Phase 6 Sprint 1 complete · Sprint 2 착수 승인 대기</div>
         </div>
       </section>
 
-      <!-- 완료 산출물 -->
       <section>
-        <h2 class="text-lg font-semibold text-slate-700 mb-4">완료 산출물 목록</h2>
-        <div class="bg-white rounded-xl shadow p-6">
-          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">기획 (doc/planning/)</p>
-          <ul class="space-y-1 mb-4">
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> persona.md — 페르소나</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> milestone.md — 마일스톤</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> prd.md (v1.1) — PRD 승인</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> prd-validation.md — 검증 결과</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> wbs.md — 작업 분류 체계</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> fsd.md — 기능 상세 설계</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> mvp.md — MVP 범위 정의</li>
-          </ul>
-          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">아키텍처 (doc/architecture/)</p>
-          <ul class="space-y-1">
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> system-architecture.md — C4 모델</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> erd.md — 데이터 모델</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> api-contract.md — API 계약</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> adr.md — 아키텍처 결정 기록</li>
-            <li class="flex items-center gap-2 text-sm"><span class="text-emerald-500">✓</span> scene-structure.md — 씬 구조</li>
-          </ul>
+        <h2 class="text-lg font-semibold text-slate-700 mb-4">블로킹 이슈</h2>
+        <div class="bg-white rounded-xl shadow p-6 text-center text-emerald-600">
+          <div class="text-sm font-semibold">블로킹 없음</div>
+          <div class="text-xs mt-1 text-gray-500">5대 게이트 전원 pass · 회귀 0</div>
         </div>
       </section>
     </div>
 
-    <!-- Risk -->
     <section>
-      <h2 class="text-lg font-semibold text-slate-700 mb-4">위험 요소 현황</h2>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">완료 목록 — Phase 6 Sprint 1 (T0~T9)</h2>
       <div class="bg-white rounded-xl shadow overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
-              <th class="px-4 py-3 text-left">위험 요소</th>
-              <th class="px-4 py-3 text-center">영향도</th>
-              <th class="px-4 py-3 text-left">현황 및 대응</th>
+              <th class="px-4 py-3 text-center w-14">ID</th>
+              <th class="px-4 py-3 text-left">태스크</th>
+              <th class="px-4 py-3 text-left">주요 산출물</th>
+              <th class="px-4 py-3 text-center">상태</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">네트워크 동기화 복잡도</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-semibold">높음</span></td>
-              <td class="px-4 py-3 text-gray-500">M3 착수 전 NGO + UGS Relay PoC 필요</td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">WebGL 빌드 네트워크 제약</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-semibold">높음</span></td>
-              <td class="px-4 py-3 text-gray-500">UGS Relay 사용으로 대응 방안 확정</td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">멀티플레이 버그 재현 어려움</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
-              <td class="px-4 py-3 text-gray-500">자동화 테스트 환경 설계 예정</td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">UGS 서비스 장애</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
-              <td class="px-4 py-3 text-gray-500">LAN 폴백 경로 설계 필요</td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">요구사항 변경</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-semibold">중간</span></td>
-              <td class="px-4 py-3 text-gray-500">MVP 범위 고정, 추가 기능 M4 이후 반영</td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">Unity 버전 호환성</td>
-              <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-semibold">낮음</span></td>
-              <td class="px-4 py-3 text-gray-500">Unity 2022 LTS 버전 고정</td>
-            </tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T0</td><td class="px-4 py-2">game-balance.json wind 섹션 + StageDefinition.wind optional</td><td class="px-4 py-2 mono text-xs text-gray-500">assets/data/game-balance.json · src/domain/map/StageDefinition.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T1</td><td class="px-4 py-2">WindLogic 순수 함수 3종 + TDD</td><td class="px-4 py-2 mono text-xs text-gray-500">src/domain/environment/WindLogic.ts · tests/WindLogic.test.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T2</td><td class="px-4 py-2">ProjectileRuntime windY 확장 + arc/bounce 적용</td><td class="px-4 py-2 mono text-xs text-gray-500">src/domain/combat/ProjectileRuntime.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T3</td><td class="px-4 py-2">MatchFlowOrchestrator 라운드 wind + stage override</td><td class="px-4 py-2 mono text-xs text-gray-500">src/domain/round/MatchFlowOrchestrator.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T4</td><td class="px-4 py-2">scene-runtime-state + combat-controller 결선</td><td class="px-4 py-2 mono text-xs text-gray-500">src/scenes/scene-runtime-state.ts · combat-controller.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T5</td><td class="px-4 py-2">hud-events WIND_CHANGED + 화살표/3-pip + 브로드캐스트</td><td class="px-4 py-2 mono text-xs text-gray-500">src/ui/hud-events.ts · hud-presenters.ts · match-flow-controller.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T6</td><td class="px-4 py-2">MainScene.getDebugSnapshot.wind 추가 (877줄, 900 캡)</td><td class="px-4 py-2 mono text-xs text-gray-500">src/scenes/MainScene.ts · hud-controller.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T7</td><td class="px-4 py-2">E2E wind-system.spec.ts 3 시나리오</td><td class="px-4 py-2 mono text-xs text-gray-500">tests/e2e/wind-system.spec.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T8</td><td class="px-4 py-2">단위 테스트 확장 (ProjectileRuntime, MatchFlowOrchestrator, StageDefinition)</td><td class="px-4 py-2 mono text-xs text-gray-500">tests/*.test.ts</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center mono text-gray-400">T9</td><td class="px-4 py-2">5대 게이트 + execution report + postflight sync</td><td class="px-4 py-2 mono text-xs text-gray-500">docs/handoffs/current-execution-report.md</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">complete</span></td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Next Tasks -->
+    <!-- 다음 작업 -->
     <section>
-      <h2 class="text-lg font-semibold text-slate-700 mb-4">다음 단계 — M1 착수 태스크 (우선순위 순)</h2>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">다음 작업 — Phase 6 Sprint 2 (Weather Systems) 우선순위</h2>
       <div class="bg-white rounded-xl shadow overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
@@ -307,26 +222,52 @@
               <th class="px-4 py-3 text-center w-12">#</th>
               <th class="px-4 py-3 text-left">태스크</th>
               <th class="px-4 py-3 text-center">담당</th>
-              <th class="px-4 py-3 text-center">예상</th>
+              <th class="px-4 py-3 text-center">비고</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.1</td><td class="px-4 py-2">Unity 2022 LTS 프로젝트 생성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.2</td><td class="px-4 py-2">Git 저장소 초기화 및 브랜치 전략 정의</td><td class="px-4 py-2 text-center"><span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">devops</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.3</td><td class="px-4 py-2">GitHub Actions CI 파이프라인 구성</td><td class="px-4 py-2 text-center"><span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">devops</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">1.2.4</td><td class="px-4 py-2">Unity Test Runner 설정</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">1h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.1</td><td class="px-4 py-2">PlayerMovement 스크립트 작성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">6h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.2</td><td class="px-4 py-2">캐릭터 회전 (마우스 조준) 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">3h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.1.4</td><td class="px-4 py-2">HP 시스템 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.2.1</td><td class="px-4 py-2">BulletController 스크립트 작성</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">5h</td></tr>
-            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-400 font-mono">2.2.2</td><td class="px-4 py-2">발사 로직 (WeaponController) 구현</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500">4h</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-blue-600 font-black">1</td><td class="px-4 py-2">Weather 도메인 모델(rain/fog/sandstorm/storm) + WeatherLogic.ts 순수 함수</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">WindLogic 패턴 재사용</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-blue-600 font-black">2</td><td class="px-4 py-2">game-balance.json weather 섹션 + GameBalanceWeather 타입</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">T0 의존성</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-blue-600 font-black">3</td><td class="px-4 py-2">movementMultiplier / visionRange 환경 변수 런타임 적용</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">combat-controller 확장</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-blue-600 font-black">4</td><td class="px-4 py-2">Weather 파티클·오버레이 렌더 + HUD Weather 인디케이터</td><td class="px-4 py-2 text-center"><span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded text-xs">frontend</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">hud-events.WEATHER_CHANGED</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-500 font-black">5</td><td class="px-4 py-2">Wind rotation RNG 결정화 — Math.random → MatchFlowOrchestrator rng 통일</td><td class="px-4 py-2 text-center"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">app-dev</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">Sprint 1 잔여 리스크 #1</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-500 font-black">6</td><td class="px-4 py-2">HUD 바람 화살표 아트 폴리시</td><td class="px-4 py-2 text-center"><span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded text-xs">frontend</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">Sprint 1 잔여 리스크 #2</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-500 font-black">7</td><td class="px-4 py-2">tests/e2e/weather-system.spec.ts + WeatherLogic 단위 테스트</td><td class="px-4 py-2 text-center"><span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">qa</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">4 시나리오 목표</td></tr>
+            <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-center text-gray-500 font-black">8</td><td class="px-4 py-2">phase6-sprint2 WBS + tasks.json + execution report</td><td class="px-4 py-2 text-center"><span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded text-xs">pm + doc-writer</span></td><td class="px-4 py-2 text-center text-gray-500 text-xs">Sprint 1 구조 재사용</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Verification -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-700 mb-4">검증 게이트 결과</h2>
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-3 text-left">Gate</th>
+              <th class="px-4 py-3 text-left">Command</th>
+              <th class="px-4 py-3 text-center">Result</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-4 py-2 font-medium">Type check</td><td class="px-4 py-2 mono text-xs text-gray-500">npm run type-check</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">pass</span></td></tr>
+            <tr><td class="px-4 py-2 font-medium">Lint</td><td class="px-4 py-2 mono text-xs text-gray-500">npm run lint</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">pass</span></td></tr>
+            <tr><td class="px-4 py-2 font-medium">Unit</td><td class="px-4 py-2 mono text-xs text-gray-500">npx vitest run --maxWorkers 1</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">pass · 49 files / 286 tests</span></td></tr>
+            <tr><td class="px-4 py-2 font-medium">Build</td><td class="px-4 py-2 mono text-xs text-gray-500">npm run build</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">pass · 260.49 kB / gzip 71.63 kB</span></td></tr>
+            <tr><td class="px-4 py-2 font-medium">E2E</td><td class="px-4 py-2 mono text-xs text-gray-500">npx playwright test --reporter=line</td><td class="px-4 py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full badge-done font-medium">pass · 23 tests</span></td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <footer class="text-center text-xs text-gray-400 pt-4 pb-8 border-t border-gray-200">
-      보고서 생성: pm 에이전트 · 2026-04-05 · Unity 4v4 2D FPS 프로젝트
+      보고서 생성: pm 에이전트 · 2026-04-22 · Phase 6 Sprint 1 — Wind System complete
+      <div class="mt-1">
+        <a href="../docs/reports/project-status.md" class="hover:text-gray-600 transition-colors">텍스트 보고서 (MD)</a> ·
+        <a href="../dashboard/index.html" class="hover:text-gray-600 transition-colors">비전 대시보드</a>
+      </div>
     </footer>
   </main>
 </body>
