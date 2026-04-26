@@ -7,6 +7,7 @@ import type {
   HudOverlayState,
   HudProgressionSnapshot,
   HudSnapshot,
+  HudWeatherSnapshot,
   HudWindSnapshot,
   HudWeaponSlotSnapshot,
   HudWeaponUnlockSnapshot
@@ -57,6 +58,13 @@ export interface HudPresenterInput {
   readonly wind?: {
     readonly angleDegrees: number;
     readonly strength: number;
+  };
+  readonly weather?: {
+    readonly type: "clear" | "rain" | "fog" | "sandstorm" | "storm";
+    readonly movementMultiplier: number;
+    readonly visionRange: number;
+    readonly windStrengthMultiplier: number;
+    readonly minesDisabled: boolean;
   };
   readonly bossWave?: BossWaveOverlayDecision;
 }
@@ -232,6 +240,7 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     areaPreview: input.areaPreview,
     blastPreview: input.blastPreview,
     wind: buildHudWindSnapshot(input.wind),
+    weather: buildHudWeatherSnapshot(input.weather),
     overlay: {
       ...overlay,
       subtitle: overlay.subtitle || getPromptText(input)
@@ -262,3 +271,40 @@ function buildHudWindSnapshot(wind: HudPresenterInput["wind"]): HudWindSnapshot 
     }))
   };
 }
+
+function buildHudWeatherSnapshot(weather: HudPresenterInput["weather"]): HudWeatherSnapshot {
+  const type = weather?.type ?? "clear";
+
+  return {
+    visible: true,
+    type,
+    label: WEATHER_LABELS[type],
+    icon: WEATHER_ICONS[type],
+    movementMultiplier: typeof weather?.movementMultiplier === "number" && Number.isFinite(weather.movementMultiplier)
+      ? Math.max(0, weather.movementMultiplier)
+      : 1,
+    visionRange: typeof weather?.visionRange === "number" && Number.isFinite(weather.visionRange)
+      ? Math.max(0, weather.visionRange)
+      : 9999,
+    windStrengthMultiplier: typeof weather?.windStrengthMultiplier === "number" && Number.isFinite(weather.windStrengthMultiplier)
+      ? Math.max(0, weather.windStrengthMultiplier)
+      : 1,
+    minesDisabled: Boolean(weather?.minesDisabled)
+  };
+}
+
+const WEATHER_LABELS: Record<NonNullable<HudPresenterInput["weather"]>["type"], string> = {
+  clear: "Clear",
+  rain: "Rain",
+  fog: "Fog",
+  sandstorm: "Sandstorm",
+  storm: "Storm"
+};
+
+const WEATHER_ICONS: Record<NonNullable<HudPresenterInput["weather"]>["type"], string> = {
+  clear: "CLR",
+  rain: "RAIN",
+  fog: "FOG",
+  sandstorm: "SAND",
+  storm: "STORM"
+};

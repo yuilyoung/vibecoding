@@ -1,4 +1,4 @@
-import { buildMatchOverlayState, type HudPresenterInput } from "../src/ui/hud-presenters";
+import { buildHudSnapshot, buildMatchOverlayState, type HudPresenterInput } from "../src/ui/hud-presenters";
 
 describe("HudPresenters", () => {
   const bossWaveInput: HudPresenterInput = {
@@ -85,5 +85,33 @@ describe("HudPresenters", () => {
 
     expect(overlayResult.overlay.title).toBe("PLAYER VICTORY");
     expect(overlayResult.shouldEnterMatchOver).toBe(true);
+  });
+
+  it("builds ASCII weather icon labels into the HUD snapshot", () => {
+    const snapshot = buildHudSnapshot({
+      ...bossWaveInput,
+      weather: {
+        type: "sandstorm",
+        movementMultiplier: 0.95,
+        visionRange: 220,
+        windStrengthMultiplier: 2,
+        minesDisabled: false
+      }
+    }, {
+      visible: false,
+      title: "",
+      subtitle: ""
+    });
+
+    expect(snapshot.weather).toEqual({
+      visible: true,
+      type: "sandstorm",
+      label: "Sandstorm",
+      icon: "SAND",
+      movementMultiplier: 0.95,
+      visionRange: 220,
+      windStrengthMultiplier: 2,
+      minesDisabled: false
+    });
   });
 });

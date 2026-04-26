@@ -5,6 +5,7 @@ import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic
 import type { MatchFlowLogic } from "../domain/round/MatchFlowLogic";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import type { StageDefinition } from "../domain/map/StageDefinition";
+import { createWeatherState, type WeatherConfig, type WeatherState } from "../domain/environment/WeatherLogic";
 import { getPhaseLabel } from "../ui/hud-presenters";
 import type { CombatController } from "./combat-controller";
 import type { MatchFlowController } from "./match-flow-controller";
@@ -27,6 +28,10 @@ export interface DebugControllerDeps {
   readonly getCurrentStage: () => StageDefinition;
   readonly getProgressionState: () => ProgressionState;
   readonly getUnlockState: () => UnlockState;
+  readonly getCurrentWeather: () => WeatherState;
+  readonly getWeatherConfig: () => WeatherConfig;
+  readonly setCurrentWeather: (weather: WeatherState) => void;
+  readonly publishWeatherChange: () => void;
   readonly getLastSpawnSummary: () => string;
   readonly getMapObjectDebugSummary: () => MapObjectDebugSummary;
   readonly getMapObjectStates: () => readonly MapObjectState[];
@@ -80,6 +85,7 @@ export class DebugController {
       playerY: playerSprite.y,
       playerHullAngle: this.deps.runtimeState.playerBodyAngle,
       wind: this.deps.combatController.getWindDebugState(),
+      weather: this.deps.getCurrentWeather(),
       mapObjects: this.deps.getMapObjectDebugSummary()
     };
   }
@@ -181,6 +187,12 @@ export class DebugController {
 
   public debugRegisterPlayerRoundWin(now: number): void {
     this.deps.registerPlayerRoundWin(now);
+    this.refreshDebugHud(now);
+  }
+
+  public debugSetWeather(type: WeatherState["type"], now: number): void {
+    this.deps.setCurrentWeather(createWeatherState(type, this.deps.getWeatherConfig()));
+    this.deps.publishWeatherChange();
     this.refreshDebugHud(now);
   }
 

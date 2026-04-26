@@ -7,7 +7,8 @@ import { selectNextStage, type StageRotationState } from "../domain/map/StageRot
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
 import { MatchFlowLogic, type SpawnAssignment, type TeamId } from "../domain/round/MatchFlowLogic";
-import { planRoundReset, resolveBossWaveOverlay, resolveRoundStartWind, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
+import { createWeatherState, rotateWeather, type WeatherState } from "../domain/environment/WeatherLogic";
+import { planRoundReset, resolveBossWaveOverlay, resolveRoundStartWeather, resolveRoundStartWind, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
@@ -16,7 +17,7 @@ import type { GameBalance, PlayerWeaponSlot, TeamSpawnTable } from "./scene-type
 import { ACTOR_HALF_SIZE, RESPAWN_DELAY_MS, RESPAWN_FX_MS, UNLOCK_NOTICE_DURATION_MS } from "./scene-constants";
 import { getRespawnFxState } from "../ui/scene-visuals";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
-import { publishWindChanged, type HudWindChangedDetail } from "../ui/hud-events";
+import { publishWeatherChanged, publishWindChanged, type HudWeatherChangedDetail, type HudWindChangedDetail } from "../ui/hud-events";
 import { createWindState, rotateWind, type WindState } from "../domain/environment/WindLogic";
 
 export interface MatchFlowStageInput {
@@ -86,10 +87,14 @@ export interface MatchFlowControllerDeps {
   readonly emitSoundCue: (event: SoundCueEvent) => void;
   readonly getCurrentWind: () => WindState;
   readonly setCurrentWind: (wind: WindState) => void;
+  readonly getCurrentWeather: () => WeatherState;
+  readonly setCurrentWeather: (weather: WeatherState) => void;
+  readonly getRandomValue: () => number;
 }
 
 export class MatchFlowController {
   private lastBroadcastWind: HudWindChangedDetail | null = null;
+  private lastBroadcastWeather: HudWeatherChangedDetail | null = null;
 
   public constructor(private readonly deps: MatchFlowControllerDeps) {}
 
@@ -103,7 +108,7 @@ export class MatchFlowController {
     state.spawnTable = this.createSpawnTableFromStage(state.currentStage);
     this.deps.applyStageGeometry();
     this.deps.applyStageContentToRuntime();
-    this.applyRoundWind();
+    this.applyRoundEnvironment();
   }
 
   public registerPlayerRoundWin(now: number): void {
@@ -179,7 +184,7 @@ export class MatchFlowController {
 
     const state = this.deps.getState();
     this.applySpawnAssignment(this.deps.matchFlow.confirmTeamSelection(state.spawnTable));
-    this.applyRoundWind();
+    this.applyRoundEnvironment();
     state.roundStartUntilMs = now + this.deps.gameBalance.roundStartDelayMs;
     state.respawnFxUntilMs = now + RESPAWN_FX_MS;
     this.deps.setLastCombatEvent(`DEPLOYING ${this.deps.matchFlow.state.selectedTeam}`);
@@ -194,6 +199,7 @@ export class MatchFlowController {
     this.deps.matchFlow.startCombat();
     this.deps.emitSoundCue({ kind: "match-start" });
     this.deps.setLastCombatEvent("COMBAT LIVE");
+    this.broadcastRoundSnapshotWeather();
     this.broadcastRoundSnapshotWind();
   }
 
@@ -206,6 +212,7 @@ export class MatchFlowController {
     this.deps.matchFlow.enterMatchOver();
     this.deps.getState().matchConfirmAtMs = now;
     this.deps.setLastCombatEvent(`${winner} LOCKED`);
+    this.broadcastRoundSnapshotWeather();
     this.broadcastRoundSnapshotWind();
   }
 
@@ -241,7 +248,7 @@ export class MatchFlowController {
 
     if (decision.confirmDeployment) {
       this.applySpawnAssignment(this.deps.matchFlow.confirmTeamSelection(state.spawnTable));
-      this.applyRoundWind();
+      this.applyRoundEnvironment();
       state.roundStartUntilMs = now + this.deps.gameBalance.roundStartDelayMs;
       state.respawnFxUntilMs = now + RESPAWN_FX_MS;
     }
@@ -283,6 +290,7 @@ export class MatchFlowController {
     this.resetRoundState(now);
     state.roundResetAtMs = null;
     this.deps.setLastCombatEvent("REDEPLOYED");
+    this.broadcastRoundSnapshotWeather();
     this.broadcastRoundSnapshotWind();
   }
 
@@ -311,6 +319,7 @@ export class MatchFlowController {
     state.matchConfirmAtMs = null;
     state.roundResetAtMs = null;
     this.deps.setLastCombatEvent("SELECT TEAM FOR NEXT MATCH");
+    this.broadcastRoundSnapshotWeather();
     this.broadcastRoundSnapshotWind();
   }
 
@@ -341,6 +350,7 @@ export class MatchFlowController {
       this.deps.setLastCombatEvent(plan.combatEvent);
     }
 
+    this.broadcastRoundSnapshotWeather();
     this.broadcastRoundSnapshotWind();
   }
 
@@ -367,7 +377,7 @@ export class MatchFlowController {
     this.deps.setLastDummySteerX(1);
     this.deps.setLastDummySteerY(0);
     this.deps.setDummySteerLockUntilMs(0);
-    this.applyRoundWind();
+    this.applyRoundEnvironment();
   }
 
   public getMatchConfirmStatus(now: number): string {
@@ -430,6 +440,36 @@ export class MatchFlowController {
     this.lastBroadcastWind = nextWind;
   }
 
+  private broadcastRoundSnapshotWeather(): void {
+    const nextWeather = this.deps.getCurrentWeather();
+    const weatherDetail: HudWeatherChangedDetail = {
+      type: nextWeather.type,
+      movementMultiplier: nextWeather.movementMultiplier,
+      visionRange: nextWeather.visionRange,
+      windStrengthMultiplier: nextWeather.windStrengthMultiplier,
+      minesDisabled: nextWeather.minesDisabled
+    };
+
+    if (
+      this.lastBroadcastWeather !== null &&
+      this.lastBroadcastWeather.type === weatherDetail.type &&
+      this.lastBroadcastWeather.movementMultiplier === weatherDetail.movementMultiplier &&
+      this.lastBroadcastWeather.visionRange === weatherDetail.visionRange &&
+      this.lastBroadcastWeather.windStrengthMultiplier === weatherDetail.windStrengthMultiplier &&
+      this.lastBroadcastWeather.minesDisabled === weatherDetail.minesDisabled
+    ) {
+      return;
+    }
+
+    publishWeatherChanged(weatherDetail);
+    this.lastBroadcastWeather = weatherDetail;
+  }
+
+  private applyRoundEnvironment(): void {
+    this.applyRoundWeather();
+    this.applyRoundWind();
+  }
+
   private applyRoundWind(): void {
     const state = this.deps.getState();
     if (!this.deps.gameBalance.wind.enabled) {
@@ -441,7 +481,7 @@ export class MatchFlowController {
     const decision = resolveRoundStartWind({
       stage: state.currentStage,
       previousWind: this.lastBroadcastWind === null ? null : this.deps.getCurrentWind(),
-      rng: Math.random,
+      rng: this.deps.getRandomValue,
       windConfig: this.deps.gameBalance.wind,
       createWindState,
       rotateWind
@@ -449,5 +489,26 @@ export class MatchFlowController {
 
     this.deps.setCurrentWind(decision.wind);
     this.broadcastRoundSnapshotWind();
+  }
+
+  private applyRoundWeather(): void {
+    const state = this.deps.getState();
+    if (!this.deps.gameBalance.weather.enabled) {
+      this.deps.setCurrentWeather(createWeatherState("clear", this.deps.gameBalance.weather));
+      this.broadcastRoundSnapshotWeather();
+      return;
+    }
+
+    const decision = resolveRoundStartWeather({
+      stage: state.currentStage,
+      previousWeather: this.lastBroadcastWeather === null ? null : this.deps.getCurrentWeather(),
+      rng: this.deps.getRandomValue,
+      weatherConfig: this.deps.gameBalance.weather,
+      createWeatherState,
+      rotateWeather
+    });
+
+    this.deps.setCurrentWeather(decision.weather);
+    this.broadcastRoundSnapshotWeather();
   }
 }

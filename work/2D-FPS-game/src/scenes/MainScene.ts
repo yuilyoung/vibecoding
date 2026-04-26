@@ -26,7 +26,8 @@ import {
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { RoundLogic } from "../domain/round/RoundLogic";
-import type { HudSnapshot } from "../ui/hud-events";
+import { createWeatherState, type WeatherState } from "../domain/environment/WeatherLogic";
+import { publishWeatherChanged, type HudSnapshot } from "../ui/hud-events";
 import { createPlayerWeaponSlots, createDummyWeaponSlots } from "./weapon-slot-factory";
 import {
   createArenaPropTextures,
@@ -63,6 +64,7 @@ import { AudioFeedbackController } from "./audio-feedback-controller";
 import { VisualController } from "./visual-controller";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
+import { WeatherRenderer } from "./weather-renderer";
 import { createInputBindings, type MoveKeys } from "./input-bindings";
 import {
   bindMainSceneLifecycle,
@@ -143,6 +145,7 @@ export class MainScene extends Phaser.Scene {
   private readonly audioFeedbackController: AudioFeedbackController;
   private readonly visualController: VisualController;
   private readonly debugController: DebugController;
+  private weatherRenderer!: WeatherRenderer;
   private roundResetAtMs: number | null;
   private roundStartUntilMs: number;
   private respawnFxUntilMs: number;
@@ -152,6 +155,7 @@ export class MainScene extends Phaser.Scene {
   private inputOverlayActive: boolean;
   private playerHitFeedback: SpriteHitFeedbackState;
   private dummyHitFeedback: SpriteHitFeedbackState;
+  private currentWeather: WeatherState;
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
     this.gameBalance = gameBalance;
@@ -205,6 +209,7 @@ export class MainScene extends Phaser.Scene {
     this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
     this.newlyUnlockedWeaponIds = [];
     this.unlockNoticeUntilMs = 0;
+    this.currentWeather = createWeatherState("clear", gameBalance.weather);
     this.dummyCoverPoints = [
       { x: 700, y: 160 },
       { x: 690, y: 390 },
@@ -428,7 +433,14 @@ export class MainScene extends Phaser.Scene {
       },
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
       getCurrentWind: () => this.runtimeState.currentWind,
-      setCurrentWind: (wind) => { this.runtimeState.currentWind = wind; }
+      setCurrentWind: (wind) => { this.runtimeState.currentWind = wind; },
+      getCurrentWeather: () => this.currentWeather,
+      setCurrentWeather: (weather) => {
+        this.currentWeather = weather;
+        this.runtimeState.currentWeather = weather;
+        this.weatherRenderer.applyWeather(weather);
+      },
+      getRandomValue: () => Math.random()
     });
     this.debugController = new DebugController({
       matchFlow: this.matchFlow,
@@ -442,6 +454,22 @@ export class MainScene extends Phaser.Scene {
       getCurrentStage: () => this.currentStage,
       getProgressionState: () => this.progressionState,
       getUnlockState: () => this.unlockState,
+      getWeatherConfig: () => this.gameBalance.weather,
+      getCurrentWeather: () => this.currentWeather,
+      setCurrentWeather: (weather) => {
+        this.currentWeather = weather;
+        this.runtimeState.currentWeather = weather;
+        this.weatherRenderer.applyWeather(weather);
+      },
+      publishWeatherChange: () => {
+        publishWeatherChanged({
+          type: this.currentWeather.type,
+          movementMultiplier: this.currentWeather.movementMultiplier,
+          visionRange: this.currentWeather.visionRange,
+          windStrengthMultiplier: this.currentWeather.windStrengthMultiplier,
+          minesDisabled: this.currentWeather.minesDisabled
+        });
+      },
       getLastSpawnSummary: () => this.lastSpawnSummary,
       getMapObjectDebugSummary: () => this.mapObjectController.getDebugSummary(),
       getMapObjectStates: () => this.mapObjectController.getStates(),
@@ -583,6 +611,8 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.lastCombatEvent = "PRESS ENTER TO ENTER STAGE";
     this.lowHpVignette = new LowHpVignette(this, this.cameras.main.width, this.cameras.main.height);
     this.damageNumberRenderer = new DamageNumberRenderer(this);
+    this.weatherRenderer = new WeatherRenderer(this, this.gameBalance.weather);
+    this.weatherRenderer.applyWeather(this.currentWeather);
 
     bindMainSceneLifecycle(this, this.handlePointerDown, this.onSceneShutdown, this);
   }
@@ -592,6 +622,7 @@ export class MainScene extends Phaser.Scene {
     this.hudController.publishShutdownSnapshot();
     this.mapObjectController.destroy();
     this.damageNumberRenderer?.destroy();
+    this.weatherRenderer?.destroy();
   }
 
   private handlePointerDown(): void {
@@ -608,6 +639,7 @@ export class MainScene extends Phaser.Scene {
     if (this.inputOverlayActive) {
       this.hudController.updateMatchOverlay(now);
       this.hudController.publishHudSnapshot(now, false);
+      this.weatherRenderer.update(delta, this.playerSprite?.x ?? 480, this.playerSprite?.y ?? 270);
       return;
     }
 
@@ -724,6 +756,7 @@ export class MainScene extends Phaser.Scene {
     this.stageGeometry.updatePickupVisuals(now);
     this.stageGeometry.updateCoverPointVisuals(now);
     this.visualController.updateCrosshair(now, this.crosshairHorizontal, this.crosshairVertical, this.muzzleFlash);
+    this.weatherRenderer.update(frameDeltaMs, this.playerSprite.x, this.playerSprite.y);
     this.hudController.updateMatchOverlay(now);
     this.lowHpVignette.update(this.playerLogic.state.health, this.playerLogic.state.maxHealth);
 
@@ -808,6 +841,8 @@ export class MainScene extends Phaser.Scene {
   public debugForceBossRound(): void { this.debugController.debugForceBossRound(this.time.now); }
 
   public debugRegisterPlayerRoundWin(): void { this.debugController.debugRegisterPlayerRoundWin(this.time.now); }
+  public debugGetWeather(): WeatherState { return this.currentWeather; }
+  public debugSetWeather(type: WeatherState["type"]): void { this.debugController.debugSetWeather(type, this.time.now); }
   public clearBullets(): void { this.combatController.clearBullets(); }
   public updateDummyCoverState(now: number): void { this.dummyActorController.updateCoverState(now); }
 

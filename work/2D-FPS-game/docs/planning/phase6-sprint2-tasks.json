@@ -1,0 +1,203 @@
+{
+  "phase": "phase-6-sprint2",
+  "name": "Weather System — 환경 시스템 2/2",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "wbs": "./phase6-sprint2-wbs.md",
+  "created": "2026-04-22",
+  "status": "planned",
+  "previousSprint": {
+    "id": "phase-6-sprint1-wind-system",
+    "tasks": "./phase6-sprint1-tasks.json",
+    "status": "complete",
+    "completedAt": "2026-04-22"
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "game-balance.json weather 섹션 + GameBalanceWeather 타입 + StageDefinition.weather optional",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "assets/data/game-balance.json에 weather 섹션 추가: { enabled: true, rotationMode: 'perRound', durationRangeMs: [60000, 120000], types: { clear, rain, fog, sandstorm, storm } }. 각 타입은 weight/movementMultiplier/visionRange/windStrengthMultiplier/minesDisabled/particleCount(+storm은 flashIntervalMs) 포함. src/scenes/scene-types.ts에 GameBalanceWeather + WeatherTypeConfig 타입 선언. src/domain/map/StageDefinition.ts에 optional weather?: { type: WeatherType } 필드 추가, isValidStageDefinition에 weather.type ∈ WeatherType 검증. tests/StageDefinition.test.ts 확장 — weather 유효/무효 경계값.",
+      "files": [
+        "assets/data/game-balance.json",
+        "src/scenes/scene-types.ts",
+        "src/domain/map/StageDefinition.ts",
+        "tests/StageDefinition.test.ts"
+      ],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "WeatherLogic 순수 함수 4종 + TDD",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0"],
+      "description": "src/domain/environment/WeatherLogic.ts 신규. 4함수: createWeatherState(type, config) → WeatherState, rotateWeather(previous, rng, config) → WeatherState, resolveMovementMultiplier(weather) → number, resolveWindMultiplier(weather) → number. rotateWeather는 weight 기반 가중 샘플링(rng 주입), 이전 weather 동일 시 최대 2회 재샘플. WeatherState는 readonly 구조. tests/WeatherLogic.test.ts — stub rng로 결정성(동일 seed=동일 결과), 전체 5종 모두 선정 가능, movementMultiplier/windStrengthMultiplier 값 정확성, previous=null 첫 라운드 케이스 커버.",
+      "files": [
+        "src/domain/environment/WeatherLogic.ts",
+        "tests/WeatherLogic.test.ts"
+      ],
+      "acceptance": ["A2"]
+    },
+    {
+      "id": "T2",
+      "subject": "Wind rotation RNG 결정화 — MatchFlowOrchestrator Math.random 제거",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "src/domain/round/MatchFlowOrchestrator.ts에서 wind rotation 호출부의 Math.random 사용 0건 전환. 생성자 rng 주입을 필수로 재배선. MainScene 생성 시점에 Math.random을 기본 rng로 전달하도록 이전(이전에는 MatchFlowOrchestrator 내부 default). tests/MatchFlowOrchestrator.test.ts — 동일 seed로 연속 라운드 wind/weather 결정성 확인. src/domain/environment/WindLogic.ts rotateWind는 이미 rng 주입이므로 호출부만 정리. 기존 wind-system.spec.ts 회귀 0건.",
+      "files": [
+        "src/domain/round/MatchFlowOrchestrator.ts",
+        "src/domain/environment/WindLogic.ts",
+        "tests/MatchFlowOrchestrator.test.ts"
+      ],
+      "acceptance": ["A3"]
+    },
+    {
+      "id": "T3",
+      "subject": "MatchFlowOrchestrator weather 선정 + stage override + round snapshot 확장",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T1", "T2"],
+      "description": "src/domain/round/MatchFlowOrchestrator.ts에 라운드 시작 시점 weather 선정 로직 추가. (1) stage.weather 있으면 createWeatherState(stage.weather.type, config) 고정, (2) 없으면 rotateWeather(previousWeather, rng, weatherConfig), (3) round snapshot에 weather: WeatherState 필드 추가. 기존 wind 선정 경로 불변, weather는 snapshot에 붙이기만. tests/MatchFlowOrchestrator.test.ts 확장 — stage.weather override 우선순위, 연속 라운드 rotation deterministic(seed 고정), weather 포함 snapshot payload 정합, null previous 첫 라운드 케이스.",
+      "files": [
+        "src/domain/round/MatchFlowOrchestrator.ts",
+        "tests/MatchFlowOrchestrator.test.ts"
+      ],
+      "acceptance": ["A4"]
+    },
+    {
+      "id": "T4",
+      "subject": "PlayerLogic.move envMovementMultiplier + scene-runtime-state.currentWeather 결선",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T1", "T3"],
+      "description": "src/domain/player/PlayerLogic.ts의 move 함수에 envMovementMultiplier?: number optional 파라미터 추가(기본 1.0). appliedSpeed = movementSpeed * speedMultiplier * envMovementMultiplier * deltaSeconds. lastAppliedSpeed도 env 반영. src/scenes/scene-runtime-state.ts에 currentWeather: WeatherState 필드 추가(기본 clear 상태). src/scenes/combat-controller.ts updateProjectiles 이전에 state.currentWeather.movementMultiplier를 player.move 호출부로 주입. 라운드 snapshot 수신 시 state.currentWeather 갱신(match-flow-controller 경유). tests/PlayerLogic.test.ts 확장 — env 0.85 케이스 appliedSpeed 15% 감소, env 1.0 기존 거리 불변.",
+      "files": [
+        "src/domain/player/PlayerLogic.ts",
+        "src/scenes/scene-runtime-state.ts",
+        "src/scenes/combat-controller.ts",
+        "tests/PlayerLogic.test.ts"
+      ],
+      "acceptance": ["A5"]
+    },
+    {
+      "id": "T5",
+      "subject": "MapObjectRuntime rain mine 비활성 + ProjectileRuntime environmentWindMultiplier + sandstorm 전파",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T1", "T4"],
+      "description": "src/domain/map/MapObjectRuntime.ts — mine 트리거 진입 분기에서 weather.minesDisabled 체크(ProximityTrigger 인자에 weather 주입). src/domain/combat/ProjectileRuntime.ts — ProjectileStepInput에 environmentWindMultiplier?: number 추가(기본 0). arc/bounce 적용: velocity += wind * (weapon.windMultiplier + environmentWindMultiplier) * dt. linear/beam/homing/aoe-call 적용: velocity += wind * environmentWindMultiplier * dt (weapon.windMultiplier는 무관). src/scenes/combat-controller.ts — state.currentWeather.windStrengthMultiplier - 1을 environmentWindMultiplier로 전달(clear=0, sandstorm=1.0). tests/MapObjectRuntime.test.ts 및 tests/ProjectileRuntime.test.ts 확장 — rain 상태 mine 비폭발, sandstorm 상태 linear 궤적 편향.",
+      "files": [
+        "src/domain/map/MapObjectRuntime.ts",
+        "src/domain/combat/ProjectileRuntime.ts",
+        "src/scenes/combat-controller.ts",
+        "tests/MapObjectRuntime.test.ts",
+        "tests/ProjectileRuntime.test.ts"
+      ],
+      "acceptance": ["A6"]
+    },
+    {
+      "id": "T6",
+      "subject": "hud-events WEATHER_CHANGED + hud-presenters 날씨 아이콘 + Wind 화살표 아트 폴리시",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T3"],
+      "description": "src/ui/hud-events.ts에 WEATHER_CHANGED 이벤트 타입 추가(payload: { type, visionRange, movementMultiplier, windStrengthMultiplier }). src/ui/hud-presenters.ts — WIND 화살표 우측 슬롯에 24px 날씨 아이콘(clear=☀, rain=☂, fog=☁, sandstorm=≈, storm=⚡) 렌더. Wind 화살표 아트 폴리시: 외곽선 2px, 색 cyan(strength 0~1)→yellow(2)→red(3) 그라데이션, pip 명도 통일. src/scenes/match-flow-controller.ts — round snapshot.weather 수신 시 WEATHER_CHANGED 브로드캐스트. src/scenes/hud-controller.ts가 이벤트 수신 및 presenter 갱신. 기존 XP/unlock/boss overlay 좌표 불변.",
+      "files": [
+        "src/ui/hud-events.ts",
+        "src/ui/hud-presenters.ts",
+        "src/scenes/match-flow-controller.ts",
+        "src/scenes/hud-controller.ts"
+      ],
+      "acceptance": ["A7"]
+    },
+    {
+      "id": "T7",
+      "subject": "weather-renderer.ts 신규 + MainScene 통합 + getDebugSnapshot.weather",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T4", "T5", "T6"],
+      "description": "src/scenes/weather-renderer.ts 신규 — WeatherRenderer 클래스. applyWeather(state)/update(deltaMs)/destroy() 제공. 내부 구현: rain=수직 라인 파티클(≤50), sandstorm=수평 모래 파티클(≤30), storm=flashIntervalMs 주기 Rectangle alpha 토글, fog=visionRange 원형 BlendMode.ERASE 마스크. depth: particles<fog<flash<HUD. src/scenes/MainScene.ts — this.weatherRenderer 인스턴스 생성, update() 훅 호출, applyWeather 위임. getDebugSnapshot 반환 객체에 weather: { type, movementMultiplier, visionRange, windStrengthMultiplier } 필드 추가. MainScene 총 라인 900 이하 유지 — 현재 877, 증가는 +20줄 이내 목표(초과 시 헬퍼 추가 분리). 공개 debug 시그니처 불변(debugGetWeather 신규는 추가 허용).",
+      "files": [
+        "src/scenes/weather-renderer.ts",
+        "src/scenes/MainScene.ts"
+      ],
+      "acceptance": ["A8", "A9"]
+    },
+    {
+      "id": "T8",
+      "subject": "E2E weather-system.spec.ts + 단위 테스트 확장",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T7"],
+      "description": "tests/e2e/weather-system.spec.ts 신규 — Playwright 3 시나리오. (1) rain 강제(debug helper) → PlayerLogic lastAppliedSpeed가 0.85배로 감소 + mine 근접해도 폭발 없음 + HUD 아이콘 ☂ 표시. (2) fog 강제 → getDebugSnapshot.weather.visionRange=150 + fog 오버레이 그래픽스 DOM/캔버스 존재 확인. (3) sandstorm 강제 → carbine(linear) 발사 시 착탄점이 무풍 직진 대비 wind 방향으로 편향(환경 wind 1.0 증가 효과) — 기존 wind-system.spec.ts의 carbine 무영향 케이스는 weather=clear에서 유지. 기존 23 E2E 회귀 0건. 단위 테스트 확장: WeatherLogic(rotation seed 고정, override, multiplier 해석), MatchFlowOrchestrator(weather 선정 3경로: null prev / rotation / stage override), PlayerLogic(env multiplier 적용), MapObjectRuntime(rain mine 비활성), ProjectileRuntime(env wind이 linear에 적용).",
+      "files": [
+        "tests/e2e/weather-system.spec.ts",
+        "tests/WeatherLogic.test.ts",
+        "tests/MatchFlowOrchestrator.test.ts",
+        "tests/PlayerLogic.test.ts",
+        "tests/MapObjectRuntime.test.ts",
+        "tests/ProjectileRuntime.test.ts"
+      ],
+      "acceptance": ["A10", "A11"]
+    },
+    {
+      "id": "T9",
+      "subject": "검증 게이트 5종 + execution report + postflight sync",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"],
+      "description": "검증 게이트 5종 실행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. 전부 pass 필수 — Sprint 1 포함 286 unit + 23 E2E 회귀 0건. 목표: ≥51 files / ≥295 unit, ≥26 E2E(A12). 빌드 청크 < 800 kB, gzip < 250 kB 재확인(A13). docs/handoffs/current-execution-report.md 갱신(Summary / Changes / Verification / Risks)(A14). WBS/tasks.json 작성 확인(A15). npm run codex-postflight로 execution-status.json 자동 sync.",
+      "files": [
+        "docs/handoffs/current-execution-report.md",
+        "docs/handoffs/execution-status.json"
+      ],
+      "acceptance": ["A12", "A13", "A14", "A15"]
+    }
+  ],
+  "dependencyGraph": {
+    "T0": [],
+    "T1": ["T0"],
+    "T2": [],
+    "T3": ["T1", "T2"],
+    "T4": ["T1", "T3"],
+    "T5": ["T1", "T4"],
+    "T6": ["T3"],
+    "T7": ["T4", "T5", "T6"],
+    "T8": ["T7"],
+    "T9": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
+  },
+  "acceptanceMap": {
+    "A1": "game-balance.json weather 섹션(enabled/rotationMode/types 5종, 각 타입 movementMultiplier/visionRange/windStrengthMultiplier/minesDisabled/weight) + GameBalanceWeather 타입 + StageDefinition.weather optional + type-check 통과",
+    "A2": "WeatherLogic 4함수(createWeatherState/rotateWeather/resolveMovementMultiplier/resolveWindMultiplier) 구현 + stub rng로 결정성 테스트 통과",
+    "A3": "Wind rotation 결정화 — MatchFlowOrchestrator Math.random 0건, rng 주입 필수, 기존 wind deterministic 테스트 seed 고정 재현성",
+    "A4": "MatchFlowOrchestrator 라운드 weather 선정 — stage override 우선, 없으면 rotation, round snapshot.weather 필드 추가",
+    "A5": "PlayerLogic.move envMovementMultiplier optional 수용 + scene-runtime-state.currentWeather + combat-controller가 주입 경로 연결",
+    "A6": "MapObjectRuntime rain 상태 mine 트리거 비활성 + ProjectileRuntime environmentWindMultiplier로 sandstorm이 linear에 약한 영향",
+    "A7": "hud-events WEATHER_CHANGED + hud-presenters 날씨 아이콘 + Wind 화살표 아트 폴리시 + match-flow-controller 브로드캐스트",
+    "A8": "weather-renderer.ts 분리 + MainScene 통합 — rain/sandstorm 파티클, storm flash, fog 원형 마스크 + getDebugSnapshot.weather 필드",
+    "A9": "MainScene.ts 총 라인 900 이하 유지 (현재 877 → +20줄 이내 목표)",
+    "A10": "E2E weather-system.spec.ts 3 시나리오 통과 — rain 이속 감소+mine 비활성, fog 시야 150, sandstorm linear 편향",
+    "A11": "단위 테스트 확장 — WeatherLogic/PlayerLogic env/MatchFlowOrchestrator weather/MapObjectRuntime rain/ProjectileRuntime env wind 커버리지",
+    "A12": "검증 게이트 5종 전부 pass — ≥51 files / ≥295 unit, ≥26 E2E, Sprint 1 회귀 0건",
+    "A13": "빌드 청크 < 800 kB, gzip < 250 kB 유지",
+    "A14": "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks)",
+    "A15": "work/2D-FPS-game/docs/planning/phase6-sprint2-wbs.md(200줄 이하) + phase6-sprint2-tasks.json(dependencyGraph + acceptanceMap) 작성"
+  },
+  "scopeOutOfSprint2": [
+    "Weather rotationMode='timed' (라운드 중간 변화) — Sprint 3 예약",
+    "지역별 Weather 차등(존별 다른 weather) — 단일 글로벌 weather만 구현",
+    "Weather audio cue(빗소리/천둥/바람) — sounder 별도 스프린트",
+    "Weather 아트 폴리시 추가 레이어(레인 물방울 리플, 번개 브랜치 이펙트)",
+    "Phase 5 탈것 weather 상호작용",
+    "Weather-specific 무기 반응(rain 시 화염계 감쇠 등) — 밸런스 튜닝 스프린트"
+  ],
+  "references": {
+    "previousSprintTasks": "./phase6-sprint1-tasks.json",
+    "previousSprintWbs": "./phase6-sprint1-wbs.md",
+    "handoff": "../../../../docs/handoffs/current-handoff.json",
+    "environmentSystemsSpec": "../development/environment-systems.md",
+    "gameDirection": "../development/game-direction.md",
+    "sprint1Report": "../reports/project-status.md"
+  }
+}

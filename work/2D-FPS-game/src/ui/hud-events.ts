@@ -1,5 +1,6 @@
 export const HUD_SNAPSHOT_EVENT = "fps-hud-snapshot";
 export const WIND_CHANGED_EVENT = "fps-hud-wind-changed";
+export const WEATHER_CHANGED_EVENT = "fps-hud-weather-changed";
 
 export interface HudWindChangedDetail {
   readonly angleDegrees: number;
@@ -16,6 +17,20 @@ export interface HudWindSnapshot extends HudWindChangedDetail {
   readonly visible: boolean;
   readonly arrowSizePx: number;
   readonly pips: readonly HudWindPipSnapshot[];
+}
+
+export interface HudWeatherChangedDetail {
+  readonly type: "clear" | "rain" | "fog" | "sandstorm" | "storm";
+  readonly movementMultiplier: number;
+  readonly visionRange: number;
+  readonly windStrengthMultiplier: number;
+  readonly minesDisabled: boolean;
+}
+
+export interface HudWeatherSnapshot extends HudWeatherChangedDetail {
+  readonly visible: boolean;
+  readonly label: string;
+  readonly icon: string;
 }
 
 export interface HudOverlayState {
@@ -114,12 +129,21 @@ export interface HudSnapshot {
   readonly areaPreview?: HudAreaPreviewSnapshot;
   readonly blastPreview?: HudBlastPreviewSnapshot;
   readonly wind?: HudWindSnapshot;
+  readonly weather?: HudWeatherSnapshot;
   readonly overlay: HudOverlayState;
 }
 
 let latestHudWind: HudWindChangedDetail = {
   angleDegrees: 0,
   strength: 0
+};
+
+let latestHudWeather: HudWeatherChangedDetail = {
+  type: "clear",
+  movementMultiplier: 1,
+  visionRange: 9999,
+  windStrengthMultiplier: 1,
+  minesDisabled: false
 };
 
 export function publishWindChanged(detail: HudWindChangedDetail): void {
@@ -133,6 +157,17 @@ export function readLatestHudWind(): HudWindChangedDetail {
   return latestHudWind;
 }
 
+export function publishWeatherChanged(detail: HudWeatherChangedDetail): void {
+  latestHudWeather = sanitizeHudWeatherChangedDetail(detail);
+  window.dispatchEvent(new CustomEvent<HudWeatherChangedDetail>(WEATHER_CHANGED_EVENT, {
+    detail: latestHudWeather
+  }));
+}
+
+export function readLatestHudWeather(): HudWeatherChangedDetail {
+  return latestHudWeather;
+}
+
 function sanitizeHudWindChangedDetail(detail: HudWindChangedDetail): HudWindChangedDetail {
   const angleDegrees = Number.isFinite(detail.angleDegrees) ? detail.angleDegrees : 0;
   const strength = Number.isFinite(detail.strength) ? Math.max(0, Math.min(3, detail.strength)) : 0;
@@ -141,4 +176,18 @@ function sanitizeHudWindChangedDetail(detail: HudWindChangedDetail): HudWindChan
     angleDegrees,
     strength
   };
+}
+
+function sanitizeHudWeatherChangedDetail(detail: HudWeatherChangedDetail): HudWeatherChangedDetail {
+  return {
+    type: isHudWeatherType(detail.type) ? detail.type : "clear",
+    movementMultiplier: Number.isFinite(detail.movementMultiplier) ? Math.max(0, detail.movementMultiplier) : 1,
+    visionRange: Number.isFinite(detail.visionRange) ? Math.max(0, detail.visionRange) : 9999,
+    windStrengthMultiplier: Number.isFinite(detail.windStrengthMultiplier) ? Math.max(0, detail.windStrengthMultiplier) : 1,
+    minesDisabled: Boolean(detail.minesDisabled)
+  };
+}
+
+function isHudWeatherType(value: string): value is HudWeatherChangedDetail["type"] {
+  return value === "clear" || value === "rain" || value === "fog" || value === "sandstorm" || value === "storm";
 }

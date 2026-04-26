@@ -76,6 +76,22 @@ describe("MapObjectRuntime", () => {
     expect(second.triggered).toEqual([]);
   });
 
+  it("skips mine proximity triggering while weather disables mines", () => {
+    const mine = createMapObject({ id: "mine-a", kind: "mine", x: 100, y: 100, hp: 1, armedAt: 0 });
+    const result = advanceMapObjects(
+      100,
+      16,
+      [{ x: 120, y: 100 }],
+      [mine],
+      config,
+      undefined,
+      { minesDisabled: true }
+    );
+
+    expect(result.objects[0].fuseStartedAt).toBeUndefined();
+    expect(result.triggered).toEqual([]);
+  });
+
   it("selects crate drops with injected rng", () => {
     const crate = destroyMapObject(createMapObject({ id: "crate-a", kind: "crate", x: 50, y: 60, hp: 25 }));
 

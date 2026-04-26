@@ -61,6 +61,54 @@
     "defaultMultiplier": 1.0,
     "forceScale": 240
   },
+  "weather": {
+    "enabled": true,
+    "rotationMode": "perRound",
+    "durationRangeMs": [60000, 120000],
+    "types": {
+      "clear": {
+        "weight": 3,
+        "movementMultiplier": 1.0,
+        "visionRange": 300,
+        "windStrengthMultiplier": 1.0,
+        "minesDisabled": false,
+        "particleCount": 0
+      },
+      "rain": {
+        "weight": 2,
+        "movementMultiplier": 0.85,
+        "visionRange": 300,
+        "windStrengthMultiplier": 1.0,
+        "minesDisabled": true,
+        "particleCount": 50
+      },
+      "fog": {
+        "weight": 2,
+        "movementMultiplier": 1.0,
+        "visionRange": 150,
+        "windStrengthMultiplier": 1.0,
+        "minesDisabled": false,
+        "particleCount": 0
+      },
+      "sandstorm": {
+        "weight": 1,
+        "movementMultiplier": 0.95,
+        "visionRange": 220,
+        "windStrengthMultiplier": 2.0,
+        "minesDisabled": false,
+        "particleCount": 30
+      },
+      "storm": {
+        "weight": 1,
+        "movementMultiplier": 0.9,
+        "visionRange": 260,
+        "windStrengthMultiplier": 1.0,
+        "minesDisabled": false,
+        "particleCount": 0,
+        "flashIntervalMs": 5000
+      }
+    }
+  },
   "mapObjects": {
     "barrel": {
       "hp": 40,

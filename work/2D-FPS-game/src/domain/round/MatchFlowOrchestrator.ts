@@ -1,4 +1,5 @@
 import type { StageDefinition } from "../map/StageDefinition";
+import type { WeatherConfig, WeatherState, WeatherType } from "../environment/WeatherLogic";
 import type { BossWaveRules, BossWaveSpawnPlan } from "./BossWaveLogic";
 import type { MatchFlowPhase, TeamId } from "./MatchFlowLogic";
 
@@ -55,13 +56,19 @@ export interface RoundStartWindInput {
   readonly windConfig: WindConfigLike;
 }
 
-export interface RoundSnapshot<TWind extends WindStateLike = WindStateLike> {
+export interface RoundSnapshot<TWind extends WindStateLike = WindStateLike, TWeather extends WeatherState = WeatherState> {
   readonly wind: TWind;
+  readonly weather?: TWeather;
 }
 
 export interface RoundStartWindDecision<TWind extends WindStateLike = WindStateLike> {
   readonly wind: TWind;
   readonly snapshot: RoundSnapshot<TWind>;
+  readonly source: "stage-override" | "rotation";
+}
+
+export interface RoundStartWeatherDecision<TWeather extends WeatherState = WeatherState> {
+  readonly weather: TWeather;
   readonly source: "stage-override" | "rotation";
 }
 
@@ -228,12 +235,35 @@ export function resolveRoundStartWind<TWind extends WindStateLike = WindStateLik
   };
 }
 
-export function createRoundSnapshot<TWind extends WindStateLike>(input: {
-  readonly wind: TWind;
-}): RoundSnapshot<TWind> {
+export function resolveRoundStartWeather<TWeather extends WeatherState = WeatherState>(input: {
+  readonly stage: StageDefinition;
+  readonly previousWeather: TWeather | null;
+  readonly rng: () => number;
+  readonly weatherConfig: WeatherConfig;
+  readonly createWeatherState: (type: WeatherType, config: WeatherConfig) => TWeather;
+  readonly rotateWeather: (previous: TWeather | null, rng: () => number, config: WeatherConfig) => TWeather;
+}): RoundStartWeatherDecision<TWeather> {
+  const stageWeather = readStageWeatherOverride(input.stage);
+  if (stageWeather !== null) {
+    return {
+      weather: input.createWeatherState(stageWeather.type, input.weatherConfig),
+      source: "stage-override"
+    };
+  }
+
   return {
-    wind: input.wind
+    weather: input.rotateWeather(input.previousWeather, input.rng, input.weatherConfig),
+    source: "rotation"
   };
+}
+
+export function createRoundSnapshot<TWind extends WindStateLike, TWeather extends WeatherState = WeatherState>(input: {
+  readonly wind: TWind;
+  readonly weather?: TWeather;
+}): RoundSnapshot<TWind, TWeather> {
+  return input.weather === undefined
+    ? { wind: input.wind }
+    : { wind: input.wind, weather: input.weather };
 }
 
 function readStageWindOverride(stage: StageDefinition): WindStateLike | null {
@@ -253,5 +283,19 @@ function readStageWindOverride(stage: StageDefinition): WindStateLike | null {
   return {
     angleDegrees: candidate.angleDegrees,
     strength: candidate.strength
+  };
+}
+
+function readStageWeatherOverride(stage: StageDefinition): { readonly type: WeatherType } | null {
+  const candidate = (stage as StageDefinition & {
+    readonly weather?: Partial<{ readonly type: WeatherType }> | null;
+  }).weather;
+
+  if (candidate === undefined || candidate === null || typeof candidate.type !== "string") {
+    return null;
+  }
+
+  return {
+    type: candidate.type as WeatherType
   };
 }

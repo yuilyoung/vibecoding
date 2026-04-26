@@ -11,6 +11,7 @@ import type { StageDefinition } from "../domain/map/StageDefinition";
 import type { BossWaveRules } from "../domain/round/BossWaveLogic";
 import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
 import type { WindState } from "../domain/environment/WindLogic";
+import type { WeatherState, WeatherType } from "../domain/environment/WeatherLogic";
 
 export interface GameBalanceMapObjects {
   readonly barrel: {
@@ -61,6 +62,23 @@ export interface GameBalanceWind {
   readonly forceScale: number;
 }
 
+export interface GameBalanceWeatherTypeConfig {
+  readonly weight: number;
+  readonly movementMultiplier: number;
+  readonly visionRange: number;
+  readonly windStrengthMultiplier: number;
+  readonly minesDisabled: boolean;
+  readonly particleCount: number;
+  readonly flashIntervalMs?: number;
+}
+
+export interface GameBalanceWeather {
+  readonly enabled: boolean;
+  readonly rotationMode: "perRound" | "static" | "timed";
+  readonly durationRangeMs: readonly [number, number];
+  readonly types: Readonly<Record<WeatherType, GameBalanceWeatherTypeConfig>>;
+}
+
 export interface GameBalance {
   movementSpeed: number;
   dashMultiplier: number;
@@ -103,6 +121,7 @@ export interface GameBalance {
   stages: readonly StageDefinition[];
   bossWave?: BossWaveRules;
   wind: GameBalanceWind;
+  weather: GameBalanceWeather;
   mapObjects: GameBalanceMapObjects;
   weapons?: Record<string, unknown>;
 }
@@ -250,6 +269,7 @@ export interface MainSceneDebugSnapshot {
     forceX: number;
     forceY: number;
   };
+  weather: WeatherState;
   mapObjects: MapObjectDebugSummary;
 }
 

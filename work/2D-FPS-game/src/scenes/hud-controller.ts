@@ -15,10 +15,13 @@ import {
   type HudOverlayState,
   type HudProgressionSnapshot,
   type HudSnapshot,
+  type HudWeatherChangedDetail,
   type HudWindChangedDetail,
   type HudWeaponSlotSnapshot,
   type HudWeaponUnlockSnapshot,
+  WEATHER_CHANGED_EVENT,
   WIND_CHANGED_EVENT,
+  readLatestHudWeather,
   readLatestHudWind
 } from "../ui/hud-events";
 import { buildHudSnapshot, buildMatchOverlayState, type HudPresenterInput } from "../ui/hud-presenters";
@@ -60,6 +63,7 @@ export interface HudControllerDeps {
 
 export class HudController {
   private windState = readLatestHudWind();
+  private weatherState = readLatestHudWeather();
 
   private overlayState: HudOverlayState = {
     visible: false,
@@ -73,6 +77,7 @@ export class HudController {
     private readonly deps: HudControllerDeps
   ) {
     window.addEventListener(WIND_CHANGED_EVENT, this.handleWindChanged as EventListener);
+    window.addEventListener(WEATHER_CHANGED_EVENT, this.handleWeatherChanged as EventListener);
   }
 
   public getHudSnapshot(now = this.scene.time.now, movementBlocked = false): HudSnapshot {
@@ -129,6 +134,16 @@ export class HudController {
           active: this.windState.strength >= index,
           color: this.windState.strength >= 3 ? "#ff5f5f" : this.windState.strength >= 2 ? "#ffd166" : "#5eead4"
         }))
+      },
+      weather: {
+        visible: true,
+        type: this.weatherState.type,
+        label: this.getWeatherLabel(this.weatherState.type),
+        icon: this.getWeatherIcon(this.weatherState.type),
+        movementMultiplier: this.weatherState.movementMultiplier,
+        visionRange: this.weatherState.visionRange,
+        windStrengthMultiplier: this.weatherState.windStrengthMultiplier,
+        minesDisabled: this.weatherState.minesDisabled
       },
       overlay: { visible: false, title: "", subtitle: "" }
     };
@@ -204,12 +219,17 @@ export class HudController {
       weaponUnlock: this.createHudWeaponUnlockSnapshot(now),
       areaPreview: this.createHudAreaPreviewSnapshot(),
       blastPreview: this.createHudBlastPreviewSnapshot(activeWeapon),
-      wind: this.windState
+      wind: this.windState,
+      weather: this.weatherState
     };
   }
 
   private readonly handleWindChanged = (event: CustomEvent<HudWindChangedDetail>): void => {
     this.windState = event.detail;
+  };
+
+  private readonly handleWeatherChanged = (event: CustomEvent<HudWeatherChangedDetail>): void => {
+    this.weatherState = event.detail;
   };
 
   private createWeaponHudSlots(activeIndex: number, now = this.scene.time.now): readonly HudWeaponSlotSnapshot[] {
@@ -317,5 +337,35 @@ export class HudController {
       bossWaveRules: this.deps.bossWaveRules,
       bossWavePlan: this.deps.getBossWavePlan()
     });
+  }
+
+  private getWeatherLabel(type: HudWeatherChangedDetail["type"]): string {
+    switch (type) {
+      case "rain":
+        return "Rain";
+      case "fog":
+        return "Fog";
+      case "sandstorm":
+        return "Sandstorm";
+      case "storm":
+        return "Storm";
+      default:
+        return "Clear";
+    }
+  }
+
+  private getWeatherIcon(type: HudWeatherChangedDetail["type"]): string {
+    switch (type) {
+      case "rain":
+        return "RAIN";
+      case "fog":
+        return "FOG";
+      case "sandstorm":
+        return "SAND";
+      case "storm":
+        return "STORM";
+      default:
+        return "CLR";
+    }
   }
 }

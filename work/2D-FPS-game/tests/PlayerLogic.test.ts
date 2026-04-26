@@ -26,6 +26,19 @@ describe("PlayerLogic", () => {
     expect(player.state.lastAppliedSpeed).toBe(200);
   });
 
+  it("applies the environment movement multiplier to sprint distance and speed state", () => {
+    const player = new PlayerLogic(100, {
+      movementSpeed: 100,
+      dashMultiplier: 2
+    });
+
+    player.move({ x: 0, y: -1, sprint: true }, 1, 0, 0.85);
+
+    expect(player.state.positionY).toBe(-170);
+    expect(player.state.isSprinting).toBe(true);
+    expect(player.state.lastAppliedSpeed).toBe(170);
+  });
+
   it("clamps health between zero and max health", () => {
     const player = new PlayerLogic(100, {
       movementSpeed: 100,

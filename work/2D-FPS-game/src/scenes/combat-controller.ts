@@ -266,6 +266,7 @@ export class CombatController {
     const dummyBounds = dummyAlive ? this.collisionResolver.getActorCollisionBounds(targetDummy.x, targetDummy.y) : null;
     const playerBounds = playerAlive ? this.collisionResolver.getActorCollisionBounds(playerSprite.x, playerSprite.y) : null;
     const windForce = computeForce(this.state.currentWind, this.deps.gameBalance.wind.forceScale);
+    const environmentWindMultiplier = Math.max(0, this.state.currentWeather.windStrengthMultiplier - 1);
 
     for (let index = this.state.bullets.length - 1; index >= 0; index -= 1) {
       const bullet = this.state.bullets[index];
@@ -295,7 +296,8 @@ export class CombatController {
         arenaHeight: 540,
         obstacles: activeObstacles.map((obstacle) => obstacle.bounds),
         windX: windForce.x,
-        windY: windForce.y
+        windY: windForce.y,
+        environmentWindMultiplier
       });
       const projectileBounds = createCenteredRect(
         runtimeFrame.projectile.x,

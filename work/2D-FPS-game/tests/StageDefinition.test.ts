@@ -29,4 +29,22 @@ describe("StageDefinition", () => {
       }
     })).toBe(false);
   });
+
+  it("accepts a valid weather override", () => {
+    expect(isValidStageDefinition({
+      ...baseStage,
+      weather: {
+        type: "fog"
+      }
+    })).toBe(true);
+  });
+
+  it("rejects an unknown weather override", () => {
+    expect(isValidStageDefinition({
+      ...baseStage,
+      weather: {
+        type: "hail" as "fog"
+      }
+    })).toBe(false);
+  });
 });

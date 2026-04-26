@@ -4,11 +4,13 @@ import type { StageDefinition } from "../src/domain/map/StageDefinition";
 import {
   createRoundSnapshot,
   planRoundReset,
+  resolveRoundStartWeather,
   resolveRoundStartWind,
   resolveBossWaveOverlay,
   resolveStageFlow
 } from "../src/domain/round/MatchFlowOrchestrator";
 import { createBossSpawn } from "../src/domain/round/BossWaveLogic";
+import { createWeatherState, type WeatherConfig, type WeatherState, type WeatherType } from "../src/domain/environment/WeatherLogic";
 
 const bossWaveRules = gameBalance.bossWave;
 const bossWavePlan = createBossSpawn(gameBalance.stages[0], bossWaveRules);
@@ -245,6 +247,80 @@ describe("MatchFlowOrchestrator", () => {
 
     expect(snapshot).toEqual({
       wind: { angleDegrees: 300, strength: 3, source: "test" }
+    });
+  });
+
+  it("prefers stage weather overrides over rotation", () => {
+    const weatherConfig = gameBalance.weather as WeatherConfig;
+    const createWeather = vi.fn((type: WeatherType): WeatherState & { source: string } => ({
+      type,
+      movementMultiplier: 1,
+      visionRange: 300,
+      windStrengthMultiplier: 1,
+      minesDisabled: false,
+      source: "override"
+    }));
+    const rotateWeather = vi.fn((): WeatherState & { source: string } => ({
+      type: "rain" as WeatherType,
+      movementMultiplier: 0.85,
+      visionRange: 300,
+      windStrengthMultiplier: 1,
+      minesDisabled: true,
+      source: "rotation"
+    }));
+    const decision = resolveRoundStartWeather({
+      stage: {
+        ...gameBalance.stages[0],
+        weather: { type: "fog" }
+      } as StageDefinition,
+      previousWeather: null,
+      rng: () => 0.9,
+      weatherConfig,
+      createWeatherState: createWeather,
+      rotateWeather
+    });
+
+    expect(decision.source).toBe("stage-override");
+    expect(decision.weather).toMatchObject({ type: "fog", source: "override" });
+    expect(createWeather).toHaveBeenCalledWith("fog", weatherConfig);
+    expect(rotateWeather).not.toHaveBeenCalled();
+  });
+
+  it("rotates weather deterministically when no stage override is present", () => {
+    const weatherConfig = gameBalance.weather as WeatherConfig;
+    const rngValues = [0.2, 0.8];
+    let rngIndex = 0;
+    const rng = () => rngValues[rngIndex++] ?? 0;
+    const first = resolveRoundStartWeather({
+      stage: gameBalance.stages[0] as StageDefinition,
+      previousWeather: null,
+      rng,
+      weatherConfig,
+      createWeatherState,
+      rotateWeather: (previous, nextRng, config) => createWeatherState(
+        previous === null
+          ? "clear"
+          : nextRng() > 0.5
+            ? "storm"
+            : "rain",
+        config
+      )
+    });
+
+    expect(first.source).toBe("rotation");
+    expect(first.weather.type).toBe("clear");
+  });
+
+  it("builds round snapshots that can also carry weather payload", () => {
+    const weather = createWeatherState("sandstorm", gameBalance.weather as WeatherConfig);
+    const snapshot = createRoundSnapshot({
+      wind: { angleDegrees: 45, strength: 2 },
+      weather
+    });
+
+    expect(snapshot).toEqual({
+      wind: { angleDegrees: 45, strength: 2 },
+      weather
     });
   });
 });

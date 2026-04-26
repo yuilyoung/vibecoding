@@ -42,7 +42,7 @@ export class PlayerLogic {
     this.config = config;
   }
 
-  public move(input: MovementInput, deltaSeconds: number, atTimeMs = 0): void {
+  public move(input: MovementInput, deltaSeconds: number, atTimeMs = 0, envMovementMultiplier = 1): void {
     if (this.isDead() || this.isStunned(atTimeMs)) {
       this.state.isSprinting = false;
       this.state.lastAppliedSpeed = 0;
@@ -60,9 +60,9 @@ export class PlayerLogic {
     const speedMultiplier = this.state.isSprinting ? this.config.dashMultiplier : 1;
     const normalizedX = input.x / distance;
     const normalizedY = input.y / distance;
-    const appliedSpeed = this.config.movementSpeed * speedMultiplier * deltaSeconds;
+    const appliedSpeed = this.config.movementSpeed * speedMultiplier * envMovementMultiplier * deltaSeconds;
 
-    this.state.lastAppliedSpeed = this.config.movementSpeed * speedMultiplier;
+    this.state.lastAppliedSpeed = this.config.movementSpeed * speedMultiplier * envMovementMultiplier;
     this.state.positionX += normalizedX * appliedSpeed;
     this.state.positionY += normalizedY * appliedSpeed;
   }

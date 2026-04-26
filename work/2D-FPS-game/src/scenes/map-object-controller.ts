@@ -202,7 +202,8 @@ export class MapObjectController {
       actors,
       states,
       this.deps.gameBalanceMapObjects,
-      this.deps.rng
+      this.deps.rng,
+      this.sideEffects?.runtimeState.currentWeather
     );
 
     this.applyRuntimeStates(result.objects, previousStates);

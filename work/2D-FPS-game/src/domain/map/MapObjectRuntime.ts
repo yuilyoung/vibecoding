@@ -33,6 +33,10 @@ export interface MapObjectTickResult {
   readonly teleports: readonly MapObjectTeleport[];
 }
 
+export interface MapObjectRuntimeWeather {
+  readonly minesDisabled?: boolean;
+}
+
 type MapObjectRuntimeConfig = GameBalanceMapObjects & {
   readonly teleporter?: {
     readonly radius: number;
@@ -46,7 +50,8 @@ export function advanceMapObjects(
   actors: readonly MapObjectActor[],
   objects: readonly MapObjectState[],
   config: MapObjectRuntimeConfig,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  weather?: MapObjectRuntimeWeather
 ): MapObjectTickResult {
   const triggered: string[] = [];
   const drops: MapObjectDrop[] = [];
@@ -68,7 +73,7 @@ export function advanceMapObjects(
     }
 
     if (object.kind === "mine") {
-      return advanceMine(now, actors, object, config.mine, triggered);
+      return advanceMine(now, actors, object, config.mine, triggered, weather);
     }
 
     if (object.kind === "crate" && !object.active && object.hp <= 0) {
@@ -137,7 +142,8 @@ function advanceMine(
   actors: readonly MapObjectActor[],
   object: MapObjectState,
   config: GameBalanceMapObjects["mine"],
-  triggered: string[]
+  triggered: string[],
+  weather?: MapObjectRuntimeWeather
 ): MapObjectState {
   if (!object.active) {
     return object;
@@ -145,7 +151,7 @@ function advanceMine(
 
   const armedAt = object.armedAt ?? now + config.armDelayMs;
   const isArmed = now >= armedAt;
-  const actorInRange = isArmed && actors.some((actor) => {
+  const actorInRange = isArmed && weather?.minesDisabled !== true && actors.some((actor) => {
     return Math.hypot(actor.x - object.x, actor.y - object.y) <= config.proximityRadius;
   });
   const fuseStartedAt = actorInRange ? object.fuseStartedAt ?? now : undefined;

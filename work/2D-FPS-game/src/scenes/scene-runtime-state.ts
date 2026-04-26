@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import type { DummyAiDecision, CoverPoint } from "../domain/ai/DummyAiLogic";
+import type { WeatherState } from "../domain/environment/WeatherLogic";
 import type { WindState } from "../domain/environment/WindLogic";
 import type { PlayerLogic } from "../domain/player/PlayerLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
@@ -15,6 +16,14 @@ import type {
   PickupView,
   ShotTrailView,
 } from "./scene-types";
+
+const DEFAULT_WEATHER_STATE: WeatherState = {
+  type: "clear",
+  movementMultiplier: 1,
+  visionRange: 300,
+  windStrengthMultiplier: 1,
+  minesDisabled: false
+};
 
 export interface SceneRuntimeState {
   readonly playerLogic: PlayerLogic;
@@ -38,6 +47,7 @@ export interface SceneRuntimeState {
   readonly dummyCoverPoints: CoverPoint[];
   readonly coverPointViews: CoverPointView[];
   currentWind: WindState;
+  currentWeather: WeatherState;
   pendingBulletClear: boolean;
   lastCombatEvent: string;
   recentImpactEffectUntilMs: number;
@@ -67,6 +77,11 @@ export interface SceneRuntimeState {
   dummyConsecutiveBlockedFrames: number;
 }
 
-export function createSceneRuntimeState(state: SceneRuntimeState): SceneRuntimeState {
-  return state;
+export function createSceneRuntimeState(
+  state: Omit<SceneRuntimeState, "currentWeather"> & { currentWeather?: WeatherState }
+): SceneRuntimeState {
+  return {
+    ...state,
+    currentWeather: state.currentWeather ?? DEFAULT_WEATHER_STATE
+  };
 }

@@ -57,13 +57,14 @@ describe("ProjectileRuntime", () => {
       obstacles: [],
       arenaBounds,
       windX: 40,
-      windY: -20
+      windY: -20,
+      environmentWindMultiplier: 0.25
     });
 
-    expect(result.projectile.velocityX).toBe(120);
-    expect(result.projectile.velocityY).toBe(290);
-    expect(result.projectile.x).toBe(120);
-    expect(result.projectile.y).toBe(290);
+    expect(result.projectile.velocityX).toBe(130);
+    expect(result.projectile.velocityY).toBe(285);
+    expect(result.projectile.x).toBe(130);
+    expect(result.projectile.y).toBe(285);
   });
 
   it("applies wind to bounce projectiles before exploding on the final blocked step", () => {
@@ -84,14 +85,15 @@ describe("ProjectileRuntime", () => {
       obstacles: [{ x: 56, y: 16, width: 10, height: 80 }],
       arenaBounds,
       windX: 20,
-      windY: 30
+      windY: 30,
+      environmentWindMultiplier: 0.25
     });
 
     expect(bounced.hitObstacle).toBe(true);
     expect(bounced.shouldExplode).toBe(false);
     expect(bounced.projectile.bouncesRemaining).toBe(0);
-    expect(bounced.projectile.velocityX).toBe(-102);
-    expect(bounced.projectile.velocityY).toBe(3);
+    expect(bounced.projectile.velocityX).toBe(-103);
+    expect(bounced.projectile.velocityY).toBe(4.5);
 
     const finalHit = stepProjectile({
       projectile: {
@@ -109,7 +111,7 @@ describe("ProjectileRuntime", () => {
     expect(finalHit.shouldExplode).toBe(true);
   });
 
-  it("ignores wind inputs for linear projectiles", () => {
+  it("uses only environment wind for linear projectiles", () => {
     const config: ProjectileConfig = { trajectory: "linear", speed: 100, windMultiplier: 0.75 };
     const projectile = createProjectileRuntimeState({
       x: 10,
@@ -127,13 +129,14 @@ describe("ProjectileRuntime", () => {
       obstacles: [],
       arenaBounds,
       windX: 80,
-      windY: -60
+      windY: -60,
+      environmentWindMultiplier: 0.25
     });
 
-    expect(result.projectile.velocityX).toBe(100);
-    expect(result.projectile.velocityY).toBe(0);
-    expect(result.projectile.x).toBe(60);
-    expect(result.projectile.y).toBe(20);
+    expect(result.projectile.velocityX).toBe(110);
+    expect(result.projectile.velocityY).toBe(-7.5);
+    expect(result.projectile.x).toBe(65);
+    expect(result.projectile.y).toBe(16.25);
   });
 
   it("steers homing projectiles toward the nearest valid target with a turn clamp", () => {
@@ -168,7 +171,7 @@ describe("ProjectileRuntime", () => {
     expect(result.projectile.velocityY).toBeCloseTo(70.710678);
   });
 
-  it("keeps homing projectiles immune to wind inputs", () => {
+  it("uses only environment wind for homing projectiles", () => {
     const config: ProjectileConfig = {
       trajectory: "homing",
       speed: 100,
@@ -193,11 +196,12 @@ describe("ProjectileRuntime", () => {
       arenaBounds,
       target: { x: 100, y: 220 },
       windX: 999,
-      windY: 999
+      windY: 999,
+      environmentWindMultiplier: 0.1
     });
 
-    expect(result.projectile.velocityX).toBeCloseTo(70.710678);
-    expect(result.projectile.velocityY).toBeCloseTo(70.710678);
+    expect(result.projectile.velocityX).toBeCloseTo(120.660678);
+    expect(result.projectile.velocityY).toBeCloseTo(120.660678);
   });
 
   it("casts beams against the nearest target before farther obstacles", () => {

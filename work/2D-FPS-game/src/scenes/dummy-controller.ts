@@ -40,7 +40,12 @@ export class DummyActorController {
       this.deps.isMatchOver() ||
       !this.deps.isCombatLive(now)
     ) {
-      this.state.dummyLogic.move({ x: 0, y: 0, sprint: false }, deltaSeconds, now);
+      this.state.dummyLogic.move(
+        { x: 0, y: 0, sprint: false },
+        deltaSeconds,
+        now,
+        this.state.currentWeather.movementMultiplier
+      );
       return;
     }
 
@@ -81,7 +86,8 @@ export class DummyActorController {
         sprint: false
       },
       deltaSeconds,
-      now
+      now,
+      this.state.currentWeather.movementMultiplier
     );
     this.state.dummyLogic.updateAim(playerSprite.x - ACTOR_HALF_SIZE, playerSprite.y - ACTOR_HALF_SIZE, now);
 

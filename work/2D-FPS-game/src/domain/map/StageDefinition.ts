@@ -17,6 +17,12 @@ export interface StageWindDefinition {
   readonly strength: number;
 }
 
+export type StageWeatherType = "clear" | "rain" | "fog" | "sandstorm" | "storm";
+
+export interface StageWeatherDefinition {
+  readonly type: StageWeatherType;
+}
+
 export interface StageDefinition {
   readonly id: string;
   readonly label: string;
@@ -25,14 +31,17 @@ export interface StageDefinition {
   readonly redSpawns: readonly StageSpawnPoint[];
   readonly obstacles: readonly StageObstacleDefinition[];
   readonly wind?: StageWindDefinition;
+  readonly weather?: StageWeatherDefinition;
 }
 
 export function isValidStageDefinition(stage: StageDefinition): boolean {
+  const validWeatherTypes: readonly StageWeatherType[] = ["clear", "rain", "fog", "sandstorm", "storm"];
   return (
     stage.id.trim().length > 0 &&
     stage.label.trim().length > 0 &&
     stage.blueSpawns.length > 0 &&
     stage.redSpawns.length > 0 &&
-    (stage.wind === undefined || (stage.wind.strength >= 0 && stage.wind.strength <= 3))
+    (stage.wind === undefined || (stage.wind.strength >= 0 && stage.wind.strength <= 3)) &&
+    (stage.weather === undefined || validWeatherTypes.includes(stage.weather.type))
   );
 }

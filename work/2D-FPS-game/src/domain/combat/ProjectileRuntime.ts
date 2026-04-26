@@ -46,6 +46,7 @@ export interface ProjectileStepInput {
   readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
   readonly windY?: number;
+  readonly environmentWindMultiplier?: number;
 }
 
 export interface ProjectileStepResult {
@@ -112,7 +113,8 @@ export function stepProjectile(input: ProjectileStepInput): ProjectileStepResult
     input.target,
     input.homingTargets,
     input.windX ?? 0,
-    input.windY ?? 0
+    input.windY ?? 0,
+    input.environmentWindMultiplier ?? 0
   );
   const nextX = input.projectile.x + velocity.x * deltaSeconds;
   const nextY = input.projectile.y + velocity.y * deltaSeconds;
@@ -178,6 +180,7 @@ export interface ProjectileRuntimeInput {
   readonly homingTargets?: readonly HomingTarget[];
   readonly windX?: number;
   readonly windY?: number;
+  readonly environmentWindMultiplier?: number;
 }
 
 export interface ProjectileRuntimeResult {
@@ -210,7 +213,8 @@ export function advanceProjectile(input: ProjectileRuntimeInput): ProjectileRunt
     target: input.target ?? undefined,
     homingTargets: input.homingTargets,
     windX: input.windX,
-    windY: input.windY
+    windY: input.windY,
+    environmentWindMultiplier: input.environmentWindMultiplier
   });
   const bounced = result.projectile.bouncesRemaining < (input.projectile.bouncesRemaining ?? input.config.bounceCount ?? 0);
 
@@ -306,14 +310,15 @@ function resolveVelocity(
   target: ProjectileStepInput["target"],
   homingTargets: readonly HomingTarget[] | undefined,
   windX: number,
-  windY: number
+  windY: number,
+  environmentWindMultiplier: number
 ): { x: number; y: number } {
   if (projectile.trajectory === "bounce") {
-    return applyWind(projectile, config, deltaSeconds, windX, windY);
+    return applyWind(projectile, config, deltaSeconds, windX, windY, environmentWindMultiplier);
   }
 
   if (projectile.trajectory === "arc") {
-    const windAdjusted = applyWind(projectile, config, deltaSeconds, windX, windY);
+    const windAdjusted = applyWind(projectile, config, deltaSeconds, windX, windY, environmentWindMultiplier);
     return {
       x: windAdjusted.x,
       y: windAdjusted.y + (config.gravity ?? 0) * deltaSeconds
@@ -337,16 +342,24 @@ function resolveVelocity(
       targets
     });
 
-    return {
-      x: homingResult.velocityX,
-      y: homingResult.velocityY
-    };
+    return applyWindToVelocity(
+      homingResult.velocityX,
+      homingResult.velocityY,
+      deltaSeconds,
+      windX,
+      windY,
+      environmentWindMultiplier
+    );
   }
 
-  return {
-    x: projectile.velocityX,
-    y: projectile.velocityY
-  };
+  return applyWindToVelocity(
+    projectile.velocityX,
+    projectile.velocityY,
+    deltaSeconds,
+    windX,
+    windY,
+    environmentWindMultiplier
+  );
 }
 
 function applyWind(
@@ -354,19 +367,37 @@ function applyWind(
   config: ProjectileConfig,
   deltaSeconds: number,
   windX: number,
-  windY: number
+  windY: number,
+  environmentWindMultiplier: number
 ): { x: number; y: number } {
-  const multiplier = config.windMultiplier ?? 0;
+  return applyWindToVelocity(
+    projectile.velocityX,
+    projectile.velocityY,
+    deltaSeconds,
+    windX,
+    windY,
+    (config.windMultiplier ?? 0) + environmentWindMultiplier
+  );
+}
+
+function applyWindToVelocity(
+  velocityX: number,
+  velocityY: number,
+  deltaSeconds: number,
+  windX: number,
+  windY: number,
+  multiplier: number
+): { x: number; y: number } {
   if (multiplier === 0) {
     return {
-      x: projectile.velocityX,
-      y: projectile.velocityY
+      x: velocityX,
+      y: velocityY
     };
   }
 
   return {
-    x: projectile.velocityX + windX * multiplier * deltaSeconds,
-    y: projectile.velocityY + windY * multiplier * deltaSeconds
+    x: velocityX + windX * multiplier * deltaSeconds,
+    y: velocityY + windY * multiplier * deltaSeconds
   };
 }
 
