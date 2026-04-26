@@ -28,7 +28,8 @@ export interface DebugControllerDeps {
   readonly getCurrentStage: () => StageDefinition;
   readonly getProgressionState: () => ProgressionState;
   readonly getUnlockState: () => UnlockState;
-  readonly getCurrentWeather: () => WeatherState;
+  readonly getCurrentGlobalWeather: () => WeatherState;
+  readonly getCurrentEffectiveWeather: () => WeatherState;
   readonly getWeatherConfig: () => WeatherConfig;
   readonly setCurrentWeather: (weather: WeatherState) => void;
   readonly publishWeatherChange: () => void;
@@ -85,7 +86,10 @@ export class DebugController {
       playerY: playerSprite.y,
       playerHullAngle: this.deps.runtimeState.playerBodyAngle,
       wind: this.deps.combatController.getWindDebugState(),
-      weather: this.deps.getCurrentWeather(),
+      weather: {
+        global: this.deps.getCurrentGlobalWeather(),
+        effective: this.deps.getCurrentEffectiveWeather()
+      },
       mapObjects: this.deps.getMapObjectDebugSummary()
     };
   }

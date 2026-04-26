@@ -1,0 +1,243 @@
+{
+  "phase": "phase-6-sprint3",
+  "name": "Weather System 완성도 + 환경 시스템 안정화",
+  "handoff": "../../../../docs/handoffs/current-handoff.json",
+  "wbs": "./phase6-sprint3-wbs.md",
+  "created": "2026-04-26",
+  "status": "planned",
+  "previousSprint": {
+    "id": "phase-6-sprint2-weather-system",
+    "tasks": "./phase6-sprint2-tasks.json",
+    "status": "complete",
+    "completedAt": "2026-04-23"
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Sprint 3 WBS + tasks.json + handoff JSON 갱신",
+      "assignee": "ultron",
+      "status": "in_progress",
+      "description": "work/2D-FPS-game/docs/planning/phase6-sprint3-wbs.md(200줄 이하) + work/2D-FPS-game/docs/planning/phase6-sprint3-tasks.json(dependencyGraph + acceptanceMap) + docs/handoffs/current-handoff.json(scope/constraints/files/acceptance/priority/risks) 작성. doc-writer 위임 경로 준수.",
+      "files": [
+        "work/2D-FPS-game/docs/planning/phase6-sprint3-wbs.md",
+        "work/2D-FPS-game/docs/planning/phase6-sprint3-tasks.json",
+        "docs/handoffs/current-handoff.json"
+      ],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "MainScene 리팩토링 — HUD bind/match bind/debug/input 헬퍼 분리 → 850줄 이하",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "src/scenes/MainScene.ts(현 912줄)에서 책임을 4개 헬퍼로 분리: (1) src/scenes/main-scene-hud-bind.ts — HUD 이벤트 wiring, (2) src/scenes/main-scene-match-bind.ts — match-flow snapshot 어댑터, (3) src/scenes/main-scene-debug.ts — getDebugSnapshot 빌더, (4) src/scenes/main-scene-input.ts — 키 바인딩 입력 매핑. 순수 함수/팩토리 형태로 추출, MainScene은 thin delegator. 공개 debug 시그니처(debugSwapWeapon/debugFire/debugFireAt/debugGetRuntimeStats/getDebugSnapshot/debugGetWind/debugGetWeather/debugSetWeather) 완전 불변. 목표 LOC: 912 → ≤850 (75줄 절감). scripts/check-mainscene-loc.mjs로 자동 검증.",
+      "files": [
+        "src/scenes/MainScene.ts",
+        "src/scenes/main-scene-hud-bind.ts",
+        "src/scenes/main-scene-match-bind.ts",
+        "src/scenes/main-scene-debug.ts",
+        "src/scenes/main-scene-input.ts",
+        "scripts/check-mainscene-loc.mjs"
+      ],
+      "acceptance": ["A2"]
+    },
+    {
+      "id": "T2",
+      "subject": "game-balance.json weather 확장 — rotationMode='timed' + durationRangeMs + soundChannels + particleCountMultiplier",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "assets/data/game-balance.json weather 섹션 확장: rotationMode='timed' 활성화, durationRangeMs:[60000,120000] (라운드 중 전환 주기), particleCountMultiplier 기본 1.0, soundChannels:{rain,sandstorm,storm} 각각 cue/volume/fadeMs. types 섹션은 Sprint 2 동일 유지. src/scenes/scene-types.ts GameBalanceWeather 타입 확장(rotationMode 'perRound'|'timed', durationRangeMs, soundChannels, particleCountMultiplier). 기존 perRound 호환 유지(rotationMode='perRound'면 라운드 시작 시점만 rotate).",
+      "files": [
+        "assets/data/game-balance.json",
+        "src/scenes/scene-types.ts"
+      ],
+      "acceptance": ["A3"]
+    },
+    {
+      "id": "T3",
+      "subject": "WeatherLogic 확장 — tickWeatherTimer 신규 함수 + 기존 4함수 시그니처 불변 + TDD",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T2"],
+      "description": "src/domain/environment/WeatherLogic.ts에 신규 함수 2종 추가(기존 4함수는 시그니처/동작 불변): createWeatherTimer(initial, rng, config) → WeatherTimerState, tickWeatherTimer(prev, dtMs, rng, config) → WeatherTimerState. WeatherTimerState = { current: WeatherState, elapsedMs: number, nextRotateAtMs: number }. tickWeatherTimer는 elapsedMs += dtMs, elapsedMs >= nextRotateAtMs 시 rotateWeather(prev.current, rng, config) 호출 후 elapsedMs=0, nextRotateAtMs=rng()*durationRangeMs 범위 샘플. tests/WeatherLogic.test.ts 확장 — stub rng로 timer 결정성, 정확한 nextRotate 시점, 다단 tick 누적, perRound 모드 fallback.",
+      "files": [
+        "src/domain/environment/WeatherLogic.ts",
+        "tests/WeatherLogic.test.ts"
+      ],
+      "acceptance": ["A4"]
+    },
+    {
+      "id": "T4",
+      "subject": "StageDefinition.weatherZones[] optional + 스키마 검증",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T2"],
+      "description": "src/domain/map/StageDefinition.ts에 WeatherZone 타입 추가: { weather: WeatherType, shape: { kind:'circle', cx, cy, radius } | { kind:'polygon', points: ReadonlyArray<readonly [number,number]> }, priority?: number }. StageDefinition.weatherZones?: ReadonlyArray<WeatherZone> optional 필드. isValidStageDefinition에 weatherZones 각 항목 검증(weather ∈ WeatherType, shape.kind 유효, polygon points ≥3, circle radius>0). tests/StageDefinition.test.ts 확장 — zones 미설정/circle/polygon/잘못된 kind/잘못된 weather/빈 polygon 케이스.",
+      "files": [
+        "src/domain/map/StageDefinition.ts",
+        "tests/StageDefinition.test.ts"
+      ],
+      "acceptance": ["A5"]
+    },
+    {
+      "id": "T5",
+      "subject": "MapZoneLogic 신규 — pointInPolygon/pointInCircle/resolveZoneWeather + TDD",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T4"],
+      "description": "src/domain/map/MapZoneLogic.ts 신규. 3함수: pointInPolygon(p, poly) → boolean (홀짝 ray casting), pointInCircle(p, cx, cy, r) → boolean, resolveZoneWeather(pos, globalWeather, zones, config) → WeatherState. resolveZoneWeather 동작: zones=undefined/empty → globalWeather 그대로, 그 외 priority 내림차순 정렬 후 첫 매치 zone의 weather로 createWeatherState 반환, 매치 없으면 globalWeather. AABB 사전필터로 polygon 비용 최소화. tests/MapZoneLogic.test.ts — point-in-polygon 경계/내외부, circle 경계, multi-zone priority, zone 미매치 fallback, undefined zones fast-path.",
+      "files": [
+        "src/domain/map/MapZoneLogic.ts",
+        "tests/MapZoneLogic.test.ts"
+      ],
+      "acceptance": ["A6"]
+    },
+    {
+      "id": "T6",
+      "subject": "MatchFlowOrchestrator timed 통합 + zone effective weather + snapshot.weather global/effective 분리",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T3", "T5"],
+      "description": "src/domain/round/MatchFlowOrchestrator.ts 확장: 라운드 시작 시 createWeatherTimer 초기화(rotationMode='timed') 또는 기존 perRound 경로(Sprint 2). tick(dtMs) API 신규 — match-flow-controller가 매 프레임 호출, internal weatherTimer 갱신, type 변화 감지 시 snapshot.weather.global 갱신 + WEATHER_CHANGED 브로드캐스트. snapshot.weather 구조 변경: { global: WeatherState, effective: WeatherState } (effective는 player 위치 기반). global vs effective 분리는 zone 진입/이탈 시 effective만 변경되고 global은 timed/perRound로만 변경. src/scenes/match-flow-controller.ts에 tick 연결 + zone resolve 경유 effective 산정. tests/MatchFlowOrchestrator.test.ts 확장 — timed mode 결정성, zone override effective 변경, perRound 회귀 보호.",
+      "files": [
+        "src/domain/round/MatchFlowOrchestrator.ts",
+        "src/scenes/match-flow-controller.ts",
+        "tests/MatchFlowOrchestrator.test.ts"
+      ],
+      "acceptance": ["A7"]
+    },
+    {
+      "id": "T7",
+      "subject": "sound-cue-contract 확장 — weather 채널 3종(rain/sandstorm/storm) 매핑 + 우선순위",
+      "assignee": "ultron",
+      "status": "pending",
+      "description": "src/audio/sound-cue-contract.ts(없으면 신규)에 WeatherSoundCue 타입 추가: { id: 'weather.rain.loop'|'weather.sandstorm.loop'|'weather.storm.loop', volume, fadeMs, priority }. game-balance.weather.soundChannels 매핑 어댑터 함수 resolveWeatherSoundCue(weatherType, config) → WeatherSoundCue|null (clear/fog는 null). 우선순위 규칙: weather > UI > ambient. tests/SoundCueContract.test.ts 신규 또는 확장 — 매핑 정합성, null 케이스, fadeMs 기본값.",
+      "files": [
+        "src/audio/sound-cue-contract.ts",
+        "tests/SoundCueContract.test.ts"
+      ],
+      "acceptance": ["A8"]
+    },
+    {
+      "id": "T8",
+      "subject": "hud-events/hud-controller — WEATHER_CHANGED → sound queue 트리거 + 중복 방지",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T7"],
+      "description": "src/ui/hud-events.ts WEATHER_CHANGED payload에 prevType?: WeatherType 추가. src/scenes/hud-controller.ts에 sound enqueue 로직 — prevType===newType이면 무발화, 다르면 resolveWeatherSoundCue로 cue 결정 후 sound queue enqueue, 이전 cue stop(fade 800ms). 라운드 리셋(MATCH_RESET) 시 모든 weather sound stop. tests/HudController.test.ts(또는 통합 테스트) — type 변화 시 enqueue 1회, 동일 type 연속 무발화, MATCH_RESET 시 stop.",
+      "files": [
+        "src/ui/hud-events.ts",
+        "src/scenes/hud-controller.ts",
+        "tests/HudController.test.ts"
+      ],
+      "acceptance": ["A9"]
+    },
+    {
+      "id": "T9",
+      "subject": "weather-renderer 파티클 풀링 + particleCount 동적 수용 + frame drop <2%",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T1"],
+      "description": "src/scenes/weather-renderer.ts 확장: 파티클 객체 풀(rain ≤50, sandstorm ≤30) — visible toggle 기반 재사용, destroy 호출 0건 보장. game-balance.weather.particleCountMultiplier로 동적 수 조정(0.5~1.5). applyWeather 호출 시 type 변화 없으면 재할당 0건(재사용만). reset 시 visible=false + position 재설정. destroy 훅에서 모든 풀 정리. scripts/perf-weather.mjs(또는 vitest perf) — 5초 동안 type 전환 10회 중 frame drop <2% 검증.",
+      "files": [
+        "src/scenes/weather-renderer.ts",
+        "scripts/perf-weather.mjs"
+      ],
+      "acceptance": ["A10"]
+    },
+    {
+      "id": "T10",
+      "subject": "단위 테스트 확장 — WeatherLogic timed / MapZoneLogic / sound integration / particle pool",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T3", "T5", "T8", "T9"],
+      "description": "tests/WeatherLogic.test.ts (timed: tick 누적, nextRotate 결정성, perRound 회귀), tests/MapZoneLogic.test.ts (전 케이스 - T5 포함), tests/SoundCueContract.test.ts (resolve 매핑), tests/HudController.test.ts (sound enqueue/dedup/reset), tests/WeatherRenderer.test.ts (풀 카운트, 재사용 0 reallocation, destroy 정리). 목표: ≥320 unit tests / ≥55 files.",
+      "files": [
+        "tests/WeatherLogic.test.ts",
+        "tests/MapZoneLogic.test.ts",
+        "tests/SoundCueContract.test.ts",
+        "tests/HudController.test.ts",
+        "tests/WeatherRenderer.test.ts"
+      ],
+      "acceptance": ["A11"]
+    },
+    {
+      "id": "T11",
+      "subject": "E2E — weather-timed.spec.ts + weather-zone.spec.ts + weather-sound.spec.ts (3 시나리오)",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T6", "T8"],
+      "description": "tests/e2e/weather-timed.spec.ts — debug helper로 시간 가속, 라운드 중 weather 1회 이상 전환, snapshot.weather.global type 변화 확인. tests/e2e/weather-zone.spec.ts — weatherZones 1개 stage 신설(또는 디버그 주입), player 위치를 zone 안/밖으로 이동시 effective weather 전환 확인(global은 불변), HUD 아이콘은 effective 기준. tests/e2e/weather-sound.spec.ts — weather rain 강제 시 sound cue 1회 enqueue, 동일 weather 재진입 시 중복 enqueue 0건, 다른 weather 전환 시 prev stop + new enqueue. 기존 weather-system.spec.ts(Sprint 2) 회귀 0건. 목표 E2E ≥29 (+3).",
+      "files": [
+        "tests/e2e/weather-timed.spec.ts",
+        "tests/e2e/weather-zone.spec.ts",
+        "tests/e2e/weather-sound.spec.ts"
+      ],
+      "acceptance": ["A12"]
+    },
+    {
+      "id": "T12",
+      "subject": "검증 게이트 5종 + perf + loc + execution report + postflight sync",
+      "assignee": "ultron",
+      "status": "pending",
+      "depends": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11"],
+      "description": "검증 게이트 7종 실행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line, (6) node scripts/perf-weather.mjs (frame drop <2%), (7) node scripts/check-mainscene-loc.mjs (≤850). Sprint 2 포함 298 unit + 26 E2E 회귀 0건. 빌드 청크 < 800 kB, gzip < 250 kB 재확인. docs/handoffs/current-execution-report.md 갱신(Summary/Changes/Verification/Risks). npm run codex-postflight로 execution-status.json 자동 sync.",
+      "files": [
+        "docs/handoffs/current-execution-report.md",
+        "docs/handoffs/execution-status.json"
+      ],
+      "acceptance": ["A13", "A14", "A15", "A16"]
+    }
+  ],
+  "dependencyGraph": {
+    "T0": [],
+    "T1": [],
+    "T2": [],
+    "T3": ["T2"],
+    "T4": ["T2"],
+    "T5": ["T4"],
+    "T6": ["T3", "T5"],
+    "T7": [],
+    "T8": ["T7"],
+    "T9": ["T1"],
+    "T10": ["T3", "T5", "T8", "T9"],
+    "T11": ["T6", "T8"],
+    "T12": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11"]
+  },
+  "acceptanceMap": {
+    "A1": "phase6-sprint3-wbs.md(200줄 이하) + phase6-sprint3-tasks.json(dependencyGraph + acceptanceMap) + handoff JSON 작성 (scope/constraints/files/acceptance/priority/risks 모두 포함)",
+    "A2": "MainScene.ts ≤850줄 — main-scene-hud-bind/match-bind/debug/input 4파일 분리, 공개 debug 시그니처 불변, scripts/check-mainscene-loc.mjs 자동 검증",
+    "A3": "game-balance.json weather 확장 — rotationMode 'perRound'|'timed' 지원, durationRangeMs, soundChannels(rain/sandstorm/storm), particleCountMultiplier, GameBalanceWeather 타입 type-check 통과",
+    "A4": "WeatherLogic.tickWeatherTimer + createWeatherTimer 신규 — 기존 4함수 시그니처 불변, stub rng 결정성 테스트 통과, perRound fallback 회귀 0건",
+    "A5": "StageDefinition.weatherZones?: ReadonlyArray<WeatherZone> optional + isValidStageDefinition 검증 + 단위 테스트 (circle/polygon/잘못된 kind/빈 polygon)",
+    "A6": "MapZoneLogic 3함수(pointInPolygon/pointInCircle/resolveZoneWeather) — priority 정렬, undefined zones fast-path, AABB 사전필터, 단위 테스트 통과",
+    "A7": "MatchFlowOrchestrator timed mode + zone effective + snapshot.weather { global, effective } 분리 — perRound 회귀 0건, tick API 결정성",
+    "A8": "sound-cue-contract weather 채널 3종 매핑 + resolveWeatherSoundCue + 우선순위 규칙 + 단위 테스트",
+    "A9": "hud-controller WEATHER_CHANGED → sound enqueue + 중복 방지(prev=new 무발화) + MATCH_RESET 시 stop + 단위 테스트",
+    "A10": "weather-renderer 파티클 풀링(rain ≤50, sandstorm ≤30) + particleCountMultiplier 수용 + scripts/perf-weather.mjs frame drop <2% 통과",
+    "A11": "단위 테스트 ≥320 tests / ≥55 files — WeatherLogic timed, MapZoneLogic, SoundCueContract, HudController, WeatherRenderer 신규 커버리지",
+    "A12": "E2E weather-timed/weather-zone/weather-sound 3 spec 통과 — 라운드 중 전환, zone 진입 effective 변경, sound dedup, 기존 26 E2E 회귀 0건, 총 ≥29",
+    "A13": "검증 게이트 5종(type-check/lint/unit/build/E2E) + 신규 2종(perf/loc) 전부 pass — Sprint 2 회귀 0건",
+    "A14": "빌드 청크 < 800 kB, gzip < 250 kB 유지 (현 260.49 kB / 71.63 kB)",
+    "A15": "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks)",
+    "A16": "npm run codex-postflight 실행 — docs/handoffs/execution-status.json 자동 sync 완료"
+  },
+  "scopeOutOfSprint3": [
+    "Weather 시각 폴리시 추가 레이어(레인 물방울 리플, 번개 브랜치 이펙트) — Sprint 4 또는 폴리시 스프린트",
+    "Weather 동적 sound 위치/팬닝(3D 공간 사운드) — sounder 별도 작업",
+    "탈것 weather 상호작용 (Phase 5 후속)",
+    "Weather-specific 무기 반응(rain 시 화염계 감쇠 등) — 밸런스 튜닝 스프린트",
+    "네트워크 동기화(멀티 weather 일치) — 네트워킹 단계",
+    "Weather replay/녹화 시스템"
+  ],
+  "references": {
+    "previousSprintTasks": "./phase6-sprint2-tasks.json",
+    "previousSprintWbs": "./phase6-sprint2-wbs.md",
+    "currentSprintWbs": "./phase6-sprint3-wbs.md",
+    "handoff": "../../../../docs/handoffs/current-handoff.json",
+    "environmentSystemsSpec": "../development/environment-systems.md",
+    "gameDirection": "../development/game-direction.md",
+    "sprint2Report": "../reports/project-status.md",
+    "previousExecutionReport": "../../../../docs/handoffs/current-execution-report.md"
+  }
+}

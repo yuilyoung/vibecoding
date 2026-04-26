@@ -16,6 +16,7 @@ interface DebugScene {
   debugForceCombatLive(): void;
   debugMovePlayerTo(x: number, y: number): void;
   debugSetPlayerHullAngle(angleRadians: number): void;
+  debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
 }
 
 const withScene = async <T>(page: Page, action: (scene: DebugScene) => T): Promise<T> => {
@@ -53,6 +54,25 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
   });
 };
 
+const stabilizeEnvironment = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as
+      | {
+          runtimeState?: { currentWind: { angleDegrees: number; strength: number } };
+          debugSetWeather?: (type: "clear") => void;
+        }
+      | undefined;
+
+    if (scene?.runtimeState === undefined || scene.debugSetWeather === undefined) {
+      throw new Error("Missing environment debug handles.");
+    }
+
+    scene.runtimeState.currentWind = { angleDegrees: 0, strength: 0 };
+    scene.debugSetWeather("clear");
+  });
+};
+
 const enterCombat = async (page: Page): Promise<void> => {
   await page.goto("/");
   const canvas = page.locator("canvas");
@@ -66,6 +86,7 @@ const enterCombat = async (page: Page): Promise<void> => {
     scene.debugConfirmTeamSelection();
     scene.debugForceCombatLive();
   });
+  await stabilizeEnvironment(page);
 
   await expect.poll(async () => (await readSnapshot(page)).phase).toBe("COMBAT LIVE");
 };

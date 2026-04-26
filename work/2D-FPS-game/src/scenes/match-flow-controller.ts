@@ -7,8 +7,8 @@ import { selectNextStage, type StageRotationState } from "../domain/map/StageRot
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
 import { MatchFlowLogic, type SpawnAssignment, type TeamId } from "../domain/round/MatchFlowLogic";
-import { createWeatherState, rotateWeather, type WeatherState } from "../domain/environment/WeatherLogic";
-import { planRoundReset, resolveBossWaveOverlay, resolveRoundStartWeather, resolveRoundStartWind, resolveStageFlow } from "../domain/round/MatchFlowOrchestrator";
+import { createWeatherState, createWeatherTimer, rotateWeather, tickWeatherTimer, type WeatherState, type WeatherTimer } from "../domain/environment/WeatherLogic";
+import { planRoundReset, resolveBossWaveOverlay, resolveEffectiveWeather, resolveRoundStartWeather, resolveRoundStartWind, resolveStageFlow, tickRoundWeather } from "../domain/round/MatchFlowOrchestrator";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
@@ -19,6 +19,7 @@ import { getRespawnFxState } from "../ui/scene-visuals";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import { publishWeatherChanged, publishWindChanged, type HudWeatherChangedDetail, type HudWindChangedDetail } from "../ui/hud-events";
 import { createWindState, rotateWind, type WindState } from "../domain/environment/WindLogic";
+import { resolveZoneWeather } from "../domain/map/MapZoneLogic";
 
 export interface MatchFlowStageInput {
   confirmPressed: boolean;
@@ -87,14 +88,18 @@ export interface MatchFlowControllerDeps {
   readonly emitSoundCue: (event: SoundCueEvent) => void;
   readonly getCurrentWind: () => WindState;
   readonly setCurrentWind: (wind: WindState) => void;
-  readonly getCurrentWeather: () => WeatherState;
-  readonly setCurrentWeather: (weather: WeatherState) => void;
+  readonly getCurrentGlobalWeather: () => WeatherState;
+  readonly setCurrentGlobalWeather: (weather: WeatherState) => void;
+  readonly getCurrentEffectiveWeather: () => WeatherState;
+  readonly setCurrentEffectiveWeather: (weather: WeatherState) => void;
+  readonly getNow: () => number;
   readonly getRandomValue: () => number;
 }
 
 export class MatchFlowController {
   private lastBroadcastWind: HudWindChangedDetail | null = null;
   private lastBroadcastWeather: HudWeatherChangedDetail | null = null;
+  private weatherTimer: WeatherTimer | null = null;
 
   public constructor(private readonly deps: MatchFlowControllerDeps) {}
 
@@ -309,6 +314,7 @@ export class MatchFlowController {
     }
 
     this.deps.emitSoundCue({ kind: "match-confirm", action: "accept" });
+    this.publishWeatherReset();
     this.deps.roundLogic.resetMatch();
     this.deps.matchFlow.prepareNextMatch();
     this.rotateStageForNextMatch();
@@ -418,6 +424,11 @@ export class MatchFlowController {
     return getRespawnFxState(now, this.deps.getState().respawnFxUntilMs, RESPAWN_FX_MS);
   }
 
+  public tick(now: number): void {
+    this.tickTimedWeather(now);
+    this.syncEffectiveWeather();
+  }
+
   private createSpawnTableFromStage(stage: StageDefinition): TeamSpawnTable {
     return {
       BLUE: stage.blueSpawns,
@@ -441,7 +452,7 @@ export class MatchFlowController {
   }
 
   private broadcastRoundSnapshotWeather(): void {
-    const nextWeather = this.deps.getCurrentWeather();
+    const nextWeather = this.deps.getCurrentEffectiveWeather();
     const weatherDetail: HudWeatherChangedDetail = {
       type: nextWeather.type,
       movementMultiplier: nextWeather.movementMultiplier,
@@ -468,6 +479,7 @@ export class MatchFlowController {
   private applyRoundEnvironment(): void {
     this.applyRoundWeather();
     this.applyRoundWind();
+    this.syncEffectiveWeather();
   }
 
   private applyRoundWind(): void {
@@ -492,23 +504,87 @@ export class MatchFlowController {
   }
 
   private applyRoundWeather(): void {
-    const state = this.deps.getState();
     if (!this.deps.gameBalance.weather.enabled) {
-      this.deps.setCurrentWeather(createWeatherState("clear", this.deps.gameBalance.weather));
+      const clearWeather = createWeatherState("clear", this.deps.gameBalance.weather);
+      this.weatherTimer = null;
+      this.deps.setCurrentGlobalWeather(clearWeather);
+      this.deps.setCurrentEffectiveWeather(clearWeather);
       this.broadcastRoundSnapshotWeather();
       return;
     }
 
     const decision = resolveRoundStartWeather({
-      stage: state.currentStage,
-      previousWeather: this.lastBroadcastWeather === null ? null : this.deps.getCurrentWeather(),
+      stage: this.deps.getState().currentStage,
+      previousWeather: this.deps.getCurrentGlobalWeather(),
       rng: this.deps.getRandomValue,
       weatherConfig: this.deps.gameBalance.weather,
       createWeatherState,
       rotateWeather
     });
 
-    this.deps.setCurrentWeather(decision.weather);
+    this.deps.setCurrentGlobalWeather(decision.weather);
+    this.weatherTimer = decision.source === "rotation" && this.deps.gameBalance.weather.rotationMode === "timed"
+      ? createWeatherTimer(decision.weather, this.deps.getNow(), this.deps.getRandomValue, this.deps.gameBalance.weather)
+      : null;
+  }
+
+  private tickTimedWeather(now: number): void {
+    if (this.weatherTimer === null || this.deps.gameBalance.weather.rotationMode !== "timed") {
+      return;
+    }
+
+    const decision = tickRoundWeather({
+      timer: this.weatherTimer,
+      nowMs: now,
+      rng: this.deps.getRandomValue,
+      weatherConfig: this.deps.gameBalance.weather,
+      tickWeatherTimer
+    });
+    this.weatherTimer = decision.timer;
+
+    if (decision.changed) {
+      this.deps.setCurrentGlobalWeather(decision.weather);
+    }
+  }
+
+  private syncEffectiveWeather(): void {
+    const state = this.deps.getState();
+    const nextEffectiveWeather = resolveEffectiveWeather({
+      position: [
+        this.deps.playerLogic.state.positionX + ACTOR_HALF_SIZE,
+        this.deps.playerLogic.state.positionY + ACTOR_HALF_SIZE
+      ],
+      globalWeather: this.deps.getCurrentGlobalWeather(),
+      stage: state.currentStage,
+      weatherConfig: this.deps.gameBalance.weather,
+      resolveZoneWeather
+    });
+
+    if (isSameWeather(this.deps.getCurrentEffectiveWeather(), nextEffectiveWeather)) {
+      return;
+    }
+
+    this.deps.setCurrentEffectiveWeather(nextEffectiveWeather);
     this.broadcastRoundSnapshotWeather();
   }
+
+  private publishWeatherReset(): void {
+    const current = this.deps.getCurrentEffectiveWeather();
+    publishWeatherChanged({
+      type: current.type,
+      movementMultiplier: current.movementMultiplier,
+      visionRange: current.visionRange,
+      windStrengthMultiplier: current.windStrengthMultiplier,
+      minesDisabled: current.minesDisabled,
+      soundResetReason: "MATCH_RESET"
+    });
+  }
+}
+
+function isSameWeather(left: WeatherState, right: WeatherState): boolean {
+  return left.type === right.type &&
+    left.movementMultiplier === right.movementMultiplier &&
+    left.visionRange === right.visionRange &&
+    left.windStrengthMultiplier === right.windStrengthMultiplier &&
+    left.minesDisabled === right.minesDisabled;
 }

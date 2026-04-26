@@ -365,10 +365,10 @@
     <div class="container">
         <header>
             <h1>2D FPS Game Prototype</h1>
-            <p class="header-subtitle">Phase 6 Sprint 2 — Weather System Status Report</p>
+            <p class="header-subtitle">Phase 6 Sprint 3 — Weather System Finalization Status Report</p>
             <div class="metadata">
-                <span>📅 Generated: April 26, 2026</span>
-                <span>📝 Phase: Phase 6 Sprint 2 (Complete)</span>
+                <span>📅 Generated: April 27, 2026</span>
+                <span>📝 Phase: Phase 6 Sprint 3 (Complete)</span>
                 <span>✅ Status: Implementation Complete & Verified</span>
             </div>
         </header>
@@ -394,7 +394,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Sprint Status</div>
-                        <div class="stat-value">2/2</div>
+                        <div class="stat-value">3/3</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Overall Progress</div>
@@ -402,7 +402,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Test Coverage</div>
-                        <div class="stat-value">298</div>
+                        <div class="stat-value">323</div>
                     </div>
                 </div>
 
@@ -417,11 +417,11 @@
                 </div>
 
                 <p style="margin-top: 20px; color: #666; line-height: 1.6;">
-                    <strong>Summary:</strong> Phase 1–5 + Phase 6 Sprint 1 (Wind System) are complete. Phase 6 Sprint 2
-                    introduces a full weather system with 5 weather types (clear, rain, fog, sandstorm, storm), round-based
-                    automatic rotation, movement and vision modifiers, projectile wind drift, mine suppression during rain,
-                    HUD weather indicators, and scene-level rendering. All verification gates (type-check, lint, unit, build, E2E)
-                    pass with zero regression. Game is fully playable with environmental gameplay depth.
+                    <strong>Summary:</strong> Phase 1–5 + Phase 6 Sprints 1–3 are complete. Sprint 3 finalizes the weather system
+                    with timed rotation mid-round, zone-based effective weather, weather sound loops (rain/sandstorm/storm), particle
+                    pooling for zero performance drop, and MainScene refactored to 811 lines. All verification gates pass: 54 files / 323
+                    unit tests, 29 E2E tests, zero frame drops, zero particle destroys. Game fully playable with deep environmental
+                    mechanics and stable performance.
                 </p>
             </section>
 
@@ -448,8 +448,16 @@
                     <div class="milestone-item">
                         <div class="milestone-marker">✅ P6S2</div>
                         <div class="milestone-content">
-                            <div class="milestone-title">Weather System (Complete, Apr 23)</div>
-                            <div class="milestone-status">5 weather types with movement/vision/wind modifiers, rain mine suppression, particle rendering, fog overlay, storm effects. Full environmental gameplay depth. 298 unit tests, 26 E2E tests.</div>
+                            <div class="milestone-title">Weather System Foundation (Complete, Apr 23)</div>
+                            <div class="milestone-status">5 weather types with movement/vision/wind modifiers, rain mine suppression, particle rendering, fog overlay, storm effects. Core environmental gameplay depth introduced.</div>
+                        </div>
+                    </div>
+
+                    <div class="milestone-item">
+                        <div class="milestone-marker">✅ P6S3</div>
+                        <div class="milestone-content">
+                            <div class="milestone-title">Weather System Finalization (Complete, Apr 27)</div>
+                            <div class="milestone-status">Timed weather rotation mid-round, zone-based effective weather, weather sound loops, particle pooling (zero frame drop), MainScene refactor (811 lines). 323 unit tests, 29 E2E tests, 0% frame drop, 0 destroys.</div>
                         </div>
                     </div>
 
@@ -558,7 +566,66 @@
             <section id="completed">
                 <h2>Completed Work</h2>
 
-                <h3>Sprint 2 (Apr 23) — Weather System</h3>
+                <h3>Sprint 3 (Apr 27) — Weather System Finalization</h3>
+                <ul class="task-list">
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">MainScene Refactoring</div>
+                            <div class="task-desc">Split into main-scene-hud-bind.ts, main-scene-match-bind.ts, main-scene-debug.ts, main-scene-input.ts. Result: 811 lines (down from 912, 900 cap enforced).</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Timed Weather Rotation</div>
+                            <div class="task-desc">WeatherLogic.createWeatherTimer / tickWeatherTimer, rotationMode + durationRangeMs in game-balance.json, mid-round automatic weather changes.</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Zone-Based Weather</div>
+                            <div class="task-desc">StageDefinition.weatherZones + MapZoneLogic, match-flow separates global/effective weather with zone override logic.</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Weather Sound Contracts</div>
+                            <div class="task-desc">Loop sound queues for rain, sandstorm, storm. HUD deduplication and auto-stop on clear/reset.</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Particle Pooling & Performance</div>
+                            <div class="task-desc">weather-renderer particle pool with particleCountMultiplier. Zero frame drop, zero destroys. perf-weather.mjs validation pass.</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">E2E Regression Stabilization</div>
+                            <div class="task-desc">Legacy tests neutralized for weather/wind variability. New weather-timed, weather-zone, weather-sound E2E specs added. 29 tests pass.</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Test Coverage Expansion</div>
+                            <div class="task-desc">54 files / 323 tests (+4 files, +25 tests from Sprint 2). WeatherLogic, MapZoneLogic, SoundCueContract, HudController, WeatherRenderer expanded.</div>
+                        </div>
+                    </li>
+                </ul>
+
+                <h3>Sprint 2 (Apr 23) — Weather System Foundation</h3>
                 <ul class="task-list">
                     <li class="task-item">
                         <div class="task-status-indicator task-status-completed"></div>
@@ -674,7 +741,7 @@
                         <div class="task-status-indicator task-status-completed"></div>
                         <div class="task-content">
                             <div class="task-title">Unit Tests</div>
-                            <div class="task-desc">✅ Pass — 50 files / 298 tests (+12 new for Sprint 2)</div>
+                            <div class="task-desc">✅ Pass — 54 files / 323 tests (+4 files, +25 tests for Sprint 3)</div>
                         </div>
                     </li>
 
@@ -690,7 +757,15 @@
                         <div class="task-status-indicator task-status-completed"></div>
                         <div class="task-content">
                             <div class="task-title">E2E Tests</div>
-                            <div class="task-desc">✅ Pass — 26 tests (+3 weather-system.spec.ts)</div>
+                            <div class="task-desc">✅ Pass — 29 tests (+3 new Sprint 3 weather specs)</div>
+                        </div>
+                    </li>
+
+                    <li class="task-item">
+                        <div class="task-status-indicator task-status-completed"></div>
+                        <div class="task-content">
+                            <div class="task-title">Performance</div>
+                            <div class="task-desc">✅ Pass — Frame drop 0%, Particle destroys 0, MainScene 811/850 lines</div>
                         </div>
                     </li>
                 </ul>
@@ -733,7 +808,7 @@
         </main>
 
         <footer>
-            <p>Generated: April 26, 2026 | Phase 6 Sprint 2 Status | Vision Approved | Next: Phase 7 Planning</p>
+            <p>Generated: April 27, 2026 | Phase 6 Sprint 3 Status (Complete) | Vision Approved | Next: Phase 7 Planning</p>
         </footer>
     </div>
 </body>

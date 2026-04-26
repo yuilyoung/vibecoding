@@ -25,6 +25,7 @@ export interface HudWeatherChangedDetail {
   readonly visionRange: number;
   readonly windStrengthMultiplier: number;
   readonly minesDisabled: boolean;
+  readonly soundResetReason?: "MATCH_RESET";
 }
 
 export interface HudWeatherSnapshot extends HudWeatherChangedDetail {
@@ -184,7 +185,8 @@ function sanitizeHudWeatherChangedDetail(detail: HudWeatherChangedDetail): HudWe
     movementMultiplier: Number.isFinite(detail.movementMultiplier) ? Math.max(0, detail.movementMultiplier) : 1,
     visionRange: Number.isFinite(detail.visionRange) ? Math.max(0, detail.visionRange) : 9999,
     windStrengthMultiplier: Number.isFinite(detail.windStrengthMultiplier) ? Math.max(0, detail.windStrengthMultiplier) : 1,
-    minesDisabled: Boolean(detail.minesDisabled)
+    minesDisabled: Boolean(detail.minesDisabled),
+    soundResetReason: detail.soundResetReason === "MATCH_RESET" ? "MATCH_RESET" : undefined
   };
 }
 

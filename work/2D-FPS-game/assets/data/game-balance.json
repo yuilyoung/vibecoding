@@ -65,6 +65,12 @@
     "enabled": true,
     "rotationMode": "perRound",
     "durationRangeMs": [60000, 120000],
+    "particleCountMultiplier": 1.0,
+    "soundChannels": {
+      "rain": { "cue": "weather.rain.loop", "volume": 0.6, "fadeMs": 800 },
+      "sandstorm": { "cue": "weather.sandstorm.loop", "volume": 0.7, "fadeMs": 800 },
+      "storm": { "cue": "weather.storm.loop", "volume": 0.65, "fadeMs": 800 }
+    },
     "types": {
       "clear": {
         "weight": 3,

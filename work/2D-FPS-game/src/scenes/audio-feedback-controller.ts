@@ -3,6 +3,7 @@ import { AudioCueLogic, type AudioCueState } from "../domain/audio/AudioCueLogic
 import { GeneratedAudioCuePlayer } from "../domain/audio/GeneratedAudioCuePlayer";
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { resolveCameraFeedback, type CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
+import type { WeatherSoundQueueItem } from "../audio/sound-cue-contract";
 
 export class AudioFeedbackController {
   private readonly soundCueLogic: SoundCueLogic;
@@ -10,6 +11,7 @@ export class AudioFeedbackController {
   private readonly audioCuePlayer: GeneratedAudioCuePlayer;
   private audioCueState: AudioCueState;
   private lastSoundCue: SoundCueKey | "NONE";
+  private weatherSoundQueue: WeatherSoundQueueItem[];
   private lastHazardCueStickyUntilMs: number;
   private cameraHitPauseUntilMs: number;
 
@@ -22,6 +24,7 @@ export class AudioFeedbackController {
       lastPlayedAtMsByCue: {}
     };
     this.lastSoundCue = "NONE";
+    this.weatherSoundQueue = [];
     this.lastHazardCueStickyUntilMs = 0;
     this.cameraHitPauseUntilMs = 0;
   }
@@ -36,6 +39,18 @@ export class AudioFeedbackController {
 
   public getCameraHitPauseUntilMs(): number {
     return this.cameraHitPauseUntilMs;
+  }
+
+  public queueWeatherSoundCue(item: WeatherSoundQueueItem): void {
+    this.weatherSoundQueue.push(item);
+  }
+
+  public getWeatherSoundQueue(): readonly WeatherSoundQueueItem[] {
+    return this.weatherSoundQueue;
+  }
+
+  public clearWeatherSoundQueue(): void {
+    this.weatherSoundQueue = [];
   }
 
   public emitSoundCue(event: SoundCueEvent): void {

@@ -12,6 +12,13 @@ export interface WeatherTypeConfig {
 
 export interface WeatherConfig {
   readonly rotationMode: "perRound" | "static" | "timed";
+  readonly durationRangeMs: readonly [number, number];
+  readonly particleCountMultiplier: number;
+  readonly soundChannels: Readonly<Partial<Record<Extract<WeatherType, "rain" | "sandstorm" | "storm">, {
+    readonly cue: string;
+    readonly volume: number;
+    readonly fadeMs: number;
+  }>>>;
   readonly types: Readonly<Record<WeatherType, Readonly<WeatherTypeConfig>>>;
 }
 
@@ -21,6 +28,13 @@ export interface WeatherState {
   readonly visionRange: number;
   readonly windStrengthMultiplier: number;
   readonly minesDisabled: boolean;
+}
+
+export interface WeatherTimer {
+  readonly weather: WeatherState;
+  readonly durationMs: number;
+  readonly startedAtMs: number;
+  readonly nextChangeAtMs: number;
 }
 
 const WEATHER_TYPES: readonly WeatherType[] = ["clear", "rain", "fog", "sandstorm", "storm"];
@@ -69,6 +83,53 @@ export function resolveWindMultiplier(weather: WeatherState): number {
   return weather.windStrengthMultiplier;
 }
 
+export function createWeatherTimer(
+  previous: WeatherState | null,
+  nowMs: number,
+  rng: () => number,
+  config: WeatherConfig
+): WeatherTimer {
+  const weather = previous ?? rotateWeather(null, rng, config);
+  const durationMs = resolveDurationMs(config, rng);
+
+  return {
+    weather,
+    durationMs,
+    startedAtMs: nowMs,
+    nextChangeAtMs: nowMs + durationMs
+  };
+}
+
+export function tickWeatherTimer(
+  timer: WeatherTimer,
+  nowMs: number,
+  rng: () => number,
+  config: WeatherConfig
+): WeatherTimer {
+  if (config.rotationMode !== "timed" || nowMs < timer.nextChangeAtMs) {
+    return timer;
+  }
+
+  let nextWeather = timer.weather;
+  let startedAtMs = timer.startedAtMs;
+  let nextChangeAtMs = timer.nextChangeAtMs;
+  let durationMs = timer.durationMs;
+
+  while (nowMs >= nextChangeAtMs) {
+    nextWeather = rotateWeather(nextWeather, rng, config);
+    startedAtMs = nextChangeAtMs;
+    durationMs = resolveDurationMs(config, rng);
+    nextChangeAtMs = startedAtMs + durationMs;
+  }
+
+  return {
+    weather: nextWeather,
+    durationMs,
+    startedAtMs,
+    nextChangeAtMs
+  };
+}
+
 function sanitizeRng(rng: () => number): number {
   const value = rng();
   if (!Number.isFinite(value)) {
@@ -76,4 +137,16 @@ function sanitizeRng(rng: () => number): number {
   }
 
   return Math.min(0.999999, Math.max(0, value));
+}
+
+function resolveDurationMs(config: WeatherConfig, rng: () => number): number {
+  const range = config.durationRangeMs ?? [0, 0];
+  const min = Math.max(0, Math.min(range[0] ?? 0, range[1] ?? 0));
+  const max = Math.max(min, Math.max(range[0] ?? 0, range[1] ?? 0));
+
+  if (min === max) {
+    return min;
+  }
+
+  return Math.round(min + (max - min) * sanitizeRng(rng));
 }

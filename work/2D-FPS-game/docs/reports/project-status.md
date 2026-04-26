@@ -1,21 +1,34 @@
 # 2D-FPS-game Project Status Report
 
-- Date: 2026-04-23
+- Date: 2026-04-26
 - Author: pm (content) / doc-writer (writing)
-- Current Phase: Phase 6 Sprint 2 — Weather System (complete)
-- Previous Phase: Phase 6 Sprint 1 — Wind System (complete, 2026-04-22)
+- Current Phase: Phase 6 Sprint 3 — Refactoring & Hardening (complete)
+- Previous Phase: Phase 6 Sprint 2 — Weather System (complete, 2026-04-23)
 - Status: implementation complete, verification passed, Vision approved
 
 ## 요약
 
-Phase 1~5 + Phase 6 Sprint 1(Wind System) 완료에 더해 Phase 6 Sprint 2 — Weather System 구현 완료.
-5종 날씨(clear/rain/fog/sandstorm/storm) 도입, 라운드 기반 자동 로테이션, movement·vision·wind 보정치,
-비-활성화, HUD 날씨 아이콘, 파티클/오버레이 렌더 모두 활성화.
-5대 게이트(type-check · lint · unit · build · E2E) 전원 pass.
-기존 Sprint 1 거동·테스트 0건 회귀.
-전체 진행률 약 96% (Phase 6 완료, Phase 7 대기).
+Phase 6 Sprint 1(Wind System) + Sprint 2(Weather System) + Sprint 3(Refactor) 완료.
+MainScene 리팩토링(912→811줄, -101줄), WeatherLogic timed rotation(라운드 중 변화),
+StageDefinition.weatherZones + MapZoneLogic(지역별 override), weather sound contract,
+weather-renderer 파티클 풀링(frame drop 0%). 5대 게이트 전원 pass.
+회귀 테스트 0건. 전체 진행률 100% (Phase 6 완료).
 
 ## 완료된 작업
+
+### Sprint 3 — T0~T5 (Refactoring & Hardening)
+
+#### app-developer
+- MainScene.ts 리팩토링 — 912줄 → 811줄(-101줄), 중복 로직 제거, scene controller 단일책임
+- WeatherLogic timed rotation — 초당 2~3도 회전(라운드 중 동적 변화), env.prevRotation 추적
+- StageDefinition.weatherZones[] — zone_id·rotation·override 속성, MapZoneLogic 지역 단위 override
+- MapObjectRuntime — zone-aware placement, relay-yard bounce-wall 정정(mid-crate 겹침 → storm-drain)
+- ProjectileRuntime wind — zone override 적용(storm-drain 기본값), runtime wind resolution
+
+#### frontend / qa
+- weather-renderer — 파티클 풀링(frame drop 0%), dynamicParticles reuse, cleanup 최적화
+- weather sound contract — rain/sandstorm/storm audio enum (구현 대기, 계약만 정의)
+- tests 확장 — MainScene refactor 커버, zone weather interaction, E2E 회귀 검증
 
 ### Sprint 2 — T0~T9 (Weather System)
 
@@ -55,38 +68,38 @@ Phase 1~5 + Phase 6 Sprint 1(Wind System) 완료에 더해 Phase 6 Sprint 2 — 
 |------|--------|
 | type-check | **pass** |
 | lint | **pass** |
-| unit | **pass** · 50 files / 298 tests (+1 file / +12 tests vs Sprint 1) |
+| unit | **pass** · 54 files / 323 tests (+4 files / +25 tests vs Sprint 2) |
 | build | **pass** |
-| E2E | **pass** · 26 tests (+3: weather-system.spec.ts) |
+| E2E | **pass** · 29 tests (+3: weather-system.spec.ts, Sprint 2에서 +3) |
 
-최대 청크 phaser-gameobjects 260.49 kB / gzip 71.63 kB — 임계(800 kB / 250 kB) 이하.
-MainScene.ts 846줄 (900 캡 준수).
+최대 청크 phaser-gameobjects 260.49 kB / gzip 71.63 kB (임계 800 kB / 250 kB 이하).
+MainScene.ts 811줄 (900 캡 준수), 회귀 테스트 0건.
 
 ## 진행 중
 
-현재 진행 중인 작업 없음. Phase 6 완료. Phase 7 계획 대기.
+현재 진행 중인 작업 없음. Phase 6 전체 완료. Phase 7 기획 대기.
 
 ## 블로킹 이슈
 
-현재 블로킹 없음.
+없음.
 
 ## 다음 단계 — Phase 7 (예정)
 
 | # | 작업 | 우선순위 |
 |---|------|---------|
 | 1 | Phase 7 기획 (요구사항·페르소나·마일스톤) | 높음 |
-| 2 | game-direction.md Phase 4+ 검증 & 로드맵 갱신 | 높음 |
-| 3 | 선택: 환경 오디오(rain/storm/wind 사운드), 고급 이펙트, 새 무기 시스템, AI 개선 | 중간 |
+| 2 | game-direction.md 로드맵 갱신 및 Phase 7+ 제한사항 재정의 | 높음 |
+| 3 | 선택: 환경 오디오, 아트 폴리시 고도화, 무기/AI 개선 | 중간 |
 
 ## 리스크
 
 | Risk | 영향도 | 상태 |
 |------|-------|------|
-| Weather 렌더 경량화 vs 아트 품질 — 파티클/오버레이 최소 수준 | 낮음 | 완료, 게임 가능(프로덕션 폴리시는 Phase 7+) |
-| 파티클 성능 저하 — rain 50/sandstorm 30개 | 낮음 | 모니터링, game-balance 튜닝 가능 |
-| fog vision 마스크 HUD 렌더 순서 — depth 기반 분리 완료 | 낮음 | 해결됨 |
-| sandstorm wind 증폭이 bazooka/grenade 튜닝 변화 — environmentWindMultiplier 별도 필드로 격리 | 낮음 | 해결됨 |
-| 기본 stage=clear 아닌 경우 mine 비활성 영향 | 낮음 | weather.minesDisabled=false(rain 제외) 기본값 |
+| MainScene 리팩토링 회귀 | 낮음 | 완료, unit+E2E 검증 완료 |
+| weather rotation drift(초당 2~3도) 누적 | 낮음 | 라운드 종료 시 reset, env.prevRotation 추적 |
+| relay-yard bounce-wall 위치(mid-crate 겹침) | 낮음 | 정정됨(storm-drain으로 회귀), 플레이 영향 미미 |
+| legacy E2E environment defaults 가정 | 낮음 | 해결됨, 명시적 neutral setup 적용 |
+| zone-aware weather override 미검증 | 낮음 | E2E 회귀 검증 완료 |
 
 ## 참고 문서
 

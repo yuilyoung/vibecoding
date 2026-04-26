@@ -1,4 +1,10 @@
 import Phaser from "phaser";
+import {
+  createWeatherSoundStopItem,
+  resolveWeatherSoundContract,
+  resolveWeatherSoundQueueItem,
+  type WeatherSoundCueKey
+} from "../audio/sound-cue-contract";
 import type { SoundCueEvent, SoundCueKey } from "../domain/audio/SoundCueLogic";
 import type { BossWaveRules, BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
 import { getXpRequiredForNextLevel, type ProgressionState } from "../domain/progression/ProgressionLogic";
@@ -57,6 +63,7 @@ export interface HudControllerDeps {
   readonly getMatchConfirmReadyCueSent: () => boolean;
   readonly setMatchConfirmReadyCueSent: (sent: boolean) => void;
   readonly emitSoundCue: (event: SoundCueEvent) => void;
+  readonly queueWeatherSoundCue?: (item: ReturnType<typeof createWeatherSoundStopItem> | NonNullable<ReturnType<typeof resolveWeatherSoundQueueItem>>) => void;
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
 }
@@ -64,6 +71,7 @@ export interface HudControllerDeps {
 export class HudController {
   private windState = readLatestHudWind();
   private weatherState = readLatestHudWeather();
+  private activeWeatherSoundCue: WeatherSoundCueKey | null = null;
 
   private overlayState: HudOverlayState = {
     visible: false,
@@ -81,6 +89,8 @@ export class HudController {
   }
 
   public getHudSnapshot(now = this.scene.time.now, movementBlocked = false): HudSnapshot {
+    this.windState = readLatestHudWind();
+    this.weatherState = readLatestHudWeather();
     return buildHudSnapshot(this.createHudPresenterInput(now, movementBlocked), this.overlayState);
   }
 
@@ -176,6 +186,8 @@ export class HudController {
     const coverVision = this.getHudCoverVisionState();
     const activeWeaponIndex = this.deps.getActiveWeaponIndex();
 
+    const effectiveWeather = this.state.currentWeather ?? this.weatherState;
+
     return {
       now,
       matchFlow: this.deps.matchFlow.state,
@@ -220,7 +232,7 @@ export class HudController {
       areaPreview: this.createHudAreaPreviewSnapshot(),
       blastPreview: this.createHudBlastPreviewSnapshot(activeWeapon),
       wind: this.windState,
-      weather: this.weatherState
+      weather: effectiveWeather
     };
   }
 
@@ -230,7 +242,66 @@ export class HudController {
 
   private readonly handleWeatherChanged = (event: CustomEvent<HudWeatherChangedDetail>): void => {
     this.weatherState = event.detail;
+    this.syncWeatherSound(event.detail);
   };
+
+  private syncWeatherSound(detail: HudWeatherChangedDetail): void {
+    const queueWeatherSoundCue = this.deps.queueWeatherSoundCue;
+    if (queueWeatherSoundCue === undefined) {
+      return;
+    }
+
+    const weatherContract = resolveWeatherSoundContract(this.deps.gameBalance.weather);
+    const activeChannel = this.activeWeatherSoundCue === null
+      ? null
+      : weatherContract.rain?.cue === this.activeWeatherSoundCue
+          ? weatherContract.rain
+          : weatherContract.sandstorm?.cue === this.activeWeatherSoundCue
+              ? weatherContract.sandstorm
+              : weatherContract.storm?.cue === this.activeWeatherSoundCue
+                  ? weatherContract.storm
+                  : null;
+
+    if (detail.soundResetReason === "MATCH_RESET") {
+      if (this.activeWeatherSoundCue !== null) {
+        queueWeatherSoundCue(createWeatherSoundStopItem(
+          this.activeWeatherSoundCue,
+          activeChannel?.fadeMs ?? 0,
+          "MATCH_RESET"
+        ));
+        this.activeWeatherSoundCue = null;
+      }
+      return;
+    }
+
+    const nextItem = resolveWeatherSoundQueueItem(this.deps.gameBalance.weather, detail);
+    if (nextItem === null) {
+      if (this.activeWeatherSoundCue !== null) {
+        queueWeatherSoundCue(createWeatherSoundStopItem(
+          this.activeWeatherSoundCue,
+          activeChannel?.fadeMs ?? 0,
+          "WEATHER_CLEAR"
+        ));
+        this.activeWeatherSoundCue = null;
+      }
+      return;
+    }
+
+    if (this.activeWeatherSoundCue === nextItem.cue) {
+      return;
+    }
+
+    if (this.activeWeatherSoundCue !== null) {
+      queueWeatherSoundCue(createWeatherSoundStopItem(
+        this.activeWeatherSoundCue,
+        activeChannel?.fadeMs ?? nextItem.fadeMs,
+        "WEATHER_CLEAR"
+      ));
+    }
+
+    queueWeatherSoundCue(nextItem);
+    this.activeWeatherSoundCue = nextItem.cue;
+  }
 
   private createWeaponHudSlots(activeIndex: number, now = this.scene.time.now): readonly HudWeaponSlotSnapshot[] {
     return this.deps.weaponSlots.map((slot, index) => ({

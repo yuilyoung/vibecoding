@@ -5,11 +5,20 @@ test.describe.configure({ mode: "serial" });
 interface DebugSnapshot {
   phase: string;
   weather: {
-    type: "clear" | "rain" | "fog" | "sandstorm" | "storm";
-    movementMultiplier: number;
-    visionRange: number;
-    windStrengthMultiplier: number;
-    minesDisabled: boolean;
+    global: {
+      type: "clear" | "rain" | "fog" | "sandstorm" | "storm";
+      movementMultiplier: number;
+      visionRange: number;
+      windStrengthMultiplier: number;
+      minesDisabled: boolean;
+    };
+    effective: {
+      type: "clear" | "rain" | "fog" | "sandstorm" | "storm";
+      movementMultiplier: number;
+      visionRange: number;
+      windStrengthMultiplier: number;
+      minesDisabled: boolean;
+    };
   };
 }
 
@@ -185,8 +194,8 @@ test("rain weather reduces player speed and updates the HUD icon", async ({ page
     };
   });
 
-  expect(result.weather.type).toBe("rain");
-  expect(result.weather.movementMultiplier).toBe(0.85);
+  expect(result.weather.effective.type).toBe("rain");
+  expect(result.weather.effective.movementMultiplier).toBe(0.85);
   expect(result.lastAppliedSpeed).toBeCloseTo(220 * 0.85);
   expect(result.hudWeather).toMatchObject({ type: "rain", icon: "RAIN" });
 });
@@ -207,7 +216,7 @@ test("fog weather lowers vision range and activates the fog renderer", async ({ 
     };
   });
 
-  expect(result.weather).toMatchObject({
+  expect(result.weather.effective).toMatchObject({
     type: "fog",
     visionRange: 150
   });
@@ -237,7 +246,7 @@ test("sandstorm adds wind drift to linear projectiles", async ({ page }) => {
   });
 
   const weather = await withScene(page, (scene) => scene.getDebugSnapshot().weather);
-  expect(weather).toMatchObject({ type: "sandstorm", windStrengthMultiplier: 2 });
+  expect(weather.effective).toMatchObject({ type: "sandstorm", windStrengthMultiplier: 2 });
   expect(windy.trajectory).toBe("linear");
   expect(windy.x).toBeGreaterThan(calm.x + 5);
 });

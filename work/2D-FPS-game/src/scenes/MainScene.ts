@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { DummyAiLogic, type CoverPoint, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
+import { DummyAiLogic, type CoverPoint } from "../domain/ai/DummyAiLogic";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { StageContentSpawner, type StageContentSpawnPlan } from "../domain/map/StageContentSpawner";
 import type { StageDefinitionWithContent } from "../domain/map/StageContentDefinition";
@@ -27,7 +27,7 @@ import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { RoundLogic } from "../domain/round/RoundLogic";
 import { createWeatherState, type WeatherState } from "../domain/environment/WeatherLogic";
-import { publishWeatherChanged, type HudSnapshot } from "../ui/hud-events";
+import type { HudSnapshot } from "../ui/hud-events";
 import { createPlayerWeaponSlots, createDummyWeaponSlots } from "./weapon-slot-factory";
 import {
   createArenaPropTextures,
@@ -59,13 +59,17 @@ import { StageGeometryManager } from "./stage-geometry";
 import { DummyActorController, rotateAngleTowards } from "./dummy-controller";
 import { CombatController } from "./combat-controller";
 import { HudController } from "./hud-controller";
-import { MatchFlowController, type MatchFlowControllerState } from "./match-flow-controller";
+import { MatchFlowController } from "./match-flow-controller";
 import { AudioFeedbackController } from "./audio-feedback-controller";
 import { VisualController } from "./visual-controller";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
-import { createInputBindings, type MoveKeys } from "./input-bindings";
+import type { MoveKeys } from "./input-bindings";
+import { createMainSceneDebugController } from "./main-scene-debug";
+import { createMainSceneHudController } from "./main-scene-hud-bind";
+import { applyMainSceneInputOverlay, createMainSceneStageFlowInput, initializeMainSceneInput } from "./main-scene-input";
+import { createMainSceneMatchFlowController, createMainSceneMatchFlowControllerState } from "./main-scene-match-bind";
 import {
   bindMainSceneLifecycle,
   createBootstrapVisualRefs,
@@ -155,7 +159,8 @@ export class MainScene extends Phaser.Scene {
   private inputOverlayActive: boolean;
   private playerHitFeedback: SpriteHitFeedbackState;
   private dummyHitFeedback: SpriteHitFeedbackState;
-  private currentWeather: WeatherState;
+  private currentGlobalWeather: WeatherState;
+  private currentEffectiveWeather: WeatherState;
   public constructor(gameBalance: GameBalance) {
     super("MainScene");
     this.gameBalance = gameBalance;
@@ -209,7 +214,8 @@ export class MainScene extends Phaser.Scene {
     this.unlockState = createUnlockState(this.progressionState, this.unlockRules, this.defaultWeaponIds);
     this.newlyUnlockedWeaponIds = [];
     this.unlockNoticeUntilMs = 0;
-    this.currentWeather = createWeatherState("clear", gameBalance.weather);
+    this.currentGlobalWeather = createWeatherState("clear", gameBalance.weather);
+    this.currentEffectiveWeather = this.currentGlobalWeather;
     this.dummyCoverPoints = [
       { x: 700, y: 160 },
       { x: 690, y: 390 },
@@ -342,7 +348,9 @@ export class MainScene extends Phaser.Scene {
       shouldHighlightCover: () => this.dummyActorController.shouldHighlightCover(),
       suppressPointerFireUntil: (untilMs) => { this.runtimeState.suppressPointerFireUntilMs = untilMs; }
     });
-    this.hudController = new HudController(this, this.runtimeState, {
+    this.hudController = createMainSceneHudController({
+      scene: this,
+      runtimeState: this.runtimeState,
       gameBalance: this.gameBalance,
       bossWaveRules: this.bossWaveRules,
       matchFlow: this.matchFlow,
@@ -370,10 +378,11 @@ export class MainScene extends Phaser.Scene {
       getMatchConfirmReadyCueSent: () => this.matchConfirmReadyCueSent,
       setMatchConfirmReadyCueSent: (sent) => { this.matchConfirmReadyCueSent = sent; },
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
+      queueWeatherSoundCue: (item) => this.audioFeedbackController.queueWeatherSoundCue(item),
       enterMatchOver: () => this.matchFlow.enterMatchOver(),
       getCoverEffectId: (index) => this.dummyActorController.getCoverEffectId(index)
     });
-    this.matchFlowController = new MatchFlowController({
+    this.matchFlowController = createMainSceneMatchFlowController({
       matchFlow: this.matchFlow,
       roundLogic: this.roundLogic,
       playerLogic: this.playerLogic,
@@ -388,8 +397,8 @@ export class MainScene extends Phaser.Scene {
       bossWaveRules: this.bossWaveRules,
       unlockRules: this.unlockRules,
       defaultWeaponIds: this.defaultWeaponIds,
-      getState: () => this.createMatchFlowControllerState(),
-      getStageInput: () => this.getStageFlowInput(),
+      getState: () => createMainSceneMatchFlowControllerState(this as unknown as Parameters<typeof createMainSceneMatchFlowControllerState>[0]),
+      getStageInput: () => createMainSceneStageFlowInput(this.moveKeys, this.cursors),
       isConfirmDown: () => this.moveKeys !== undefined && (
         Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm) || this.moveKeys.confirm.isDown
       ),
@@ -399,10 +408,7 @@ export class MainScene extends Phaser.Scene {
       setLastActiveWeaponReloading: (value) => { this.runtimeState.lastActiveWeaponReloading = value; },
       setPlayerBodyAngle: (angle) => { this.runtimeState.playerBodyAngle = angle; },
       setDummyBodyAngle: (angle) => { this.runtimeState.dummyBodyAngle = angle; },
-      setLastDummyDecision: (decision) => {
-        const normalizedDecision: DummyAiDecision["mode"] = decision === "hold-cover" ? "cover" : decision;
-        this.runtimeState.lastDummyDecision = normalizedDecision;
-      },
+      setLastDummyDecision: (decision) => { this.runtimeState.lastDummyDecision = decision; },
       setLastDummyShouldFire: (value) => { this.runtimeState.lastDummyShouldFire = value; },
       setLastDummySteerX: (value) => { this.runtimeState.lastDummySteerX = value; },
       setLastDummySteerY: (value) => { this.runtimeState.lastDummySteerY = value; },
@@ -434,15 +440,14 @@ export class MainScene extends Phaser.Scene {
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
       getCurrentWind: () => this.runtimeState.currentWind,
       setCurrentWind: (wind) => { this.runtimeState.currentWind = wind; },
-      getCurrentWeather: () => this.currentWeather,
-      setCurrentWeather: (weather) => {
-        this.currentWeather = weather;
-        this.runtimeState.currentWeather = weather;
-        this.weatherRenderer.applyWeather(weather);
-      },
+      getCurrentGlobalWeather: () => this.currentGlobalWeather,
+      setCurrentGlobalWeather: (weather) => { this.setCurrentGlobalWeather(weather); },
+      getCurrentEffectiveWeather: () => this.currentEffectiveWeather,
+      setCurrentEffectiveWeather: (weather) => { this.setCurrentEffectiveWeather(weather); },
+      getNow: () => this.time.now,
       getRandomValue: () => Math.random()
     });
-    this.debugController = new DebugController({
+    this.debugController = createMainSceneDebugController({
       matchFlow: this.matchFlow,
       roundLogic: this.roundLogic,
       runtimeState: this.runtimeState,
@@ -455,21 +460,9 @@ export class MainScene extends Phaser.Scene {
       getProgressionState: () => this.progressionState,
       getUnlockState: () => this.unlockState,
       getWeatherConfig: () => this.gameBalance.weather,
-      getCurrentWeather: () => this.currentWeather,
-      setCurrentWeather: (weather) => {
-        this.currentWeather = weather;
-        this.runtimeState.currentWeather = weather;
-        this.weatherRenderer.applyWeather(weather);
-      },
-      publishWeatherChange: () => {
-        publishWeatherChanged({
-          type: this.currentWeather.type,
-          movementMultiplier: this.currentWeather.movementMultiplier,
-          visionRange: this.currentWeather.visionRange,
-          windStrengthMultiplier: this.currentWeather.windStrengthMultiplier,
-          minesDisabled: this.currentWeather.minesDisabled
-        });
-      },
+      getCurrentGlobalWeather: () => this.currentGlobalWeather,
+      getCurrentEffectiveWeather: () => this.currentEffectiveWeather,
+      setCurrentWeather: (weather) => { this.applyCurrentWeather(weather); },
       getLastSpawnSummary: () => this.lastSpawnSummary,
       getMapObjectDebugSummary: () => this.mapObjectController.getDebugSummary(),
       getMapObjectStates: () => this.mapObjectController.getStates(),
@@ -522,34 +515,7 @@ export class MainScene extends Phaser.Scene {
     this.dummyHitFeedback = createSpriteHitFeedbackState();
   }
 
-  private createSpawnTableFromStage(stage: StageDefinition): TeamSpawnTable {
-    return {
-      BLUE: stage.blueSpawns,
-      RED: stage.redSpawns
-    };
-  }
-
-  private createMatchFlowControllerState(): MatchFlowControllerState {
-    const state = {} as MatchFlowControllerState;
-    Object.defineProperties(state, {
-      stageRotationState: { get: () => this.stageRotationState, set: (value: StageRotationState) => { this.stageRotationState = value; } },
-      progressionState: { get: () => this.progressionState, set: (value: ProgressionState) => { this.progressionState = value; } },
-      unlockState: { get: () => this.unlockState, set: (value: UnlockState) => { this.unlockState = value; } },
-      newlyUnlockedWeaponIds: { get: () => this.newlyUnlockedWeaponIds, set: (value: readonly string[]) => { this.newlyUnlockedWeaponIds = value; } },
-      unlockNoticeUntilMs: { get: () => this.unlockNoticeUntilMs, set: (value: number) => { this.unlockNoticeUntilMs = value; } },
-      currentStage: { get: () => this.currentStage, set: (value: StageDefinition) => { this.currentStage = value; } },
-      bossWavePlan: { get: () => this.bossWavePlan, set: (value: BossWaveSpawnPlan | null) => { this.bossWavePlan = value; } },
-      activeStageContentPlan: { get: () => this.activeStageContentPlan, set: (value: StageContentSpawnPlan) => { this.activeStageContentPlan = value; } },
-      spawnTable: { get: () => this.spawnTable, set: (value: TeamSpawnTable) => { this.spawnTable = value; } },
-      roundResetAtMs: { get: () => this.roundResetAtMs, set: (value: number | null) => { this.roundResetAtMs = value; } },
-      roundStartUntilMs: { get: () => this.roundStartUntilMs, set: (value: number) => { this.roundStartUntilMs = value; } },
-      respawnFxUntilMs: { get: () => this.respawnFxUntilMs, set: (value: number) => { this.respawnFxUntilMs = value; } },
-      matchConfirmAtMs: { get: () => this.matchConfirmAtMs, set: (value: number | null) => { this.matchConfirmAtMs = value; } },
-      matchConfirmReadyCueSent: { get: () => this.matchConfirmReadyCueSent, set: (value: boolean) => { this.matchConfirmReadyCueSent = value; } },
-      lastSpawnSummary: { get: () => this.lastSpawnSummary, set: (value: string) => { this.lastSpawnSummary = value; } }
-    });
-    return state;
-  }
+  private createSpawnTableFromStage(stage: StageDefinition): TeamSpawnTable { return { BLUE: stage.blueSpawns, RED: stage.redSpawns }; }
 
   public preload(): void {
     preloadMainSceneAssets(this, this.gameBalance);
@@ -605,14 +571,14 @@ export class MainScene extends Phaser.Scene {
     this.roundStartUntilMs = 0;
     this.respawnFxUntilMs = 0;
 
-    const inputBindings = createInputBindings(this);
+    const inputBindings = initializeMainSceneInput(this);
     this.cursors = inputBindings.cursors;
     this.moveKeys = inputBindings.moveKeys;
     this.runtimeState.lastCombatEvent = "PRESS ENTER TO ENTER STAGE";
     this.lowHpVignette = new LowHpVignette(this, this.cameras.main.width, this.cameras.main.height);
     this.damageNumberRenderer = new DamageNumberRenderer(this);
     this.weatherRenderer = new WeatherRenderer(this, this.gameBalance.weather);
-    this.weatherRenderer.applyWeather(this.currentWeather);
+    this.weatherRenderer.applyWeather(this.currentEffectiveWeather);
 
     bindMainSceneLifecycle(this, this.handlePointerDown, this.onSceneShutdown, this);
   }
@@ -682,8 +648,10 @@ export class MainScene extends Phaser.Scene {
         sprint: this.moveKeys.sprint.isDown
       },
       deltaSeconds,
-      now
+      now,
+      this.currentEffectiveWeather.movementMultiplier
     );
+    this.matchFlowController.tick(now);
 
     let playerCenterX = Phaser.Math.Clamp(
       this.playerLogic.state.positionX + ACTOR_HALF_SIZE,
@@ -783,84 +751,22 @@ export class MainScene extends Phaser.Scene {
   }
 
   public getDebugSnapshot(): MainSceneDebugSnapshot { return this.debugController.getDebugSnapshot(this.time.now); }
-
-  public debugGetRuntimeStats(): {
-    bullets: number;
-    activeAirStrikes: number;
-    impactEffects: number;
-    shotTrails: number;
-    movementEffects: number;
-  } {
-    return this.debugController.getRuntimeStats(this.time.now);
-  }
-
+  public debugGetRuntimeStats(): { bullets: number; activeAirStrikes: number; impactEffects: number; shotTrails: number; movementEffects: number; } { return this.debugController.getRuntimeStats(this.time.now); }
   public getHudSnapshot(now = this.time.now, movementBlocked = false): HudSnapshot { return this.hudController.getHudSnapshot(now, movementBlocked); }
-
   public getSettingsState(): SettingsState { return { ...this.settingsState }; }
-
-  public applySettings(settings: SettingsState): SettingsState {
-    this.settingsState = { masterVolume: settings.masterVolume, sfxVolume: settings.sfxVolume, mouseSensitivity: settings.mouseSensitivity, tutorialDismissed: settings.tutorialDismissed };
-    this.settingsStorage.save(this.settingsState);
-    this.audioFeedbackController.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume);
-    this.runtimeState.lastCombatEvent = "SETTINGS UPDATED";
-    return this.getSettingsState();
-  }
-
-  public setInputOverlayActive(active: boolean): void { this.inputOverlayActive = active; this.runtimeState.suppressPointerFireUntilMs = active ? Number.POSITIVE_INFINITY : this.time.now + 200; }
-
-  public debugEnterStage(): void { this.debugController.debugEnterStage(); }
-
-  public debugSelectTeam(team: DebugTeamSelection): void { this.debugController.debugSelectTeam(team); }
-
-  public debugConfirmTeamSelection(): void { this.debugController.debugConfirmTeamSelection(this.time.now); }
-
-  public debugForceCombatLive(): void { this.debugController.debugForceCombatLive(); }
-
-  public debugSwapWeapon(): void { this.debugController.debugSwapWeapon(this.time.now); }
-
-  public debugSelectWeaponSlot(slotNumber: number): void { this.debugController.debugSelectWeaponSlot(slotNumber, this.time.now); }
-
-  public debugFire(): void { this.debugController.debugFire(this.time.now); }
-
-  public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); }
-  public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); }
-  public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); }
-
-  public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); }
-
-  public debugSetPlayerHullAngle(angleRadians: number): void { this.debugController.debugSetPlayerHullAngle(angleRadians); }
-
-  public debugSetPlayerAimAngle(angleRadians: number): void { this.debugController.debugSetPlayerAimAngle(angleRadians); }
-
-  public debugMoveDummyTo(x: number, y: number): void { this.debugController.debugMoveDummyTo(x, y); }
-
-  public debugToggleGate(): void { this.debugController.debugToggleGate(); }
-
-  public debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void { this.debugController.debugForceMatchOver(winner, this.time.now); }
-
-  public debugForceBossRound(): void { this.debugController.debugForceBossRound(this.time.now); }
-
-  public debugRegisterPlayerRoundWin(): void { this.debugController.debugRegisterPlayerRoundWin(this.time.now); }
-  public debugGetWeather(): WeatherState { return this.currentWeather; }
-  public debugSetWeather(type: WeatherState["type"]): void { this.debugController.debugSetWeather(type, this.time.now); }
-  public clearBullets(): void { this.combatController.clearBullets(); }
-  public updateDummyCoverState(now: number): void { this.dummyActorController.updateCoverState(now); }
-
-  private getStageFlowInput() {
-    if (this.moveKeys === undefined || this.cursors === undefined) {
-      return null;
-    }
-
-    return {
-      confirmPressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.confirm),
-      selectBluePressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon1) || Phaser.Input.Keyboard.JustDown(this.cursors.left),
-      selectRedPressed: Phaser.Input.Keyboard.JustDown(this.moveKeys.weapon2) || Phaser.Input.Keyboard.JustDown(this.cursors.right)
-    };
-  }
-
-  private isCombatLive(now: number): boolean {
-    return this.matchFlow.state.phase === "combat-live" && !this.matchFlowController.isRoundStarting(now);
-  }
+  public applySettings(settings: SettingsState): SettingsState { this.settingsState = { masterVolume: settings.masterVolume, sfxVolume: settings.sfxVolume, mouseSensitivity: settings.mouseSensitivity, tutorialDismissed: settings.tutorialDismissed }; this.settingsStorage.save(this.settingsState); this.audioFeedbackController.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume); this.runtimeState.lastCombatEvent = "SETTINGS UPDATED"; return this.getSettingsState(); }
+  public setInputOverlayActive(active: boolean): void { this.inputOverlayActive = applyMainSceneInputOverlay(active, this.time.now, this.runtimeState); }
+  public debugEnterStage(): void { this.debugController.debugEnterStage(); } public debugSelectTeam(team: DebugTeamSelection): void { this.debugController.debugSelectTeam(team); } public debugConfirmTeamSelection(): void { this.debugController.debugConfirmTeamSelection(this.time.now); } public debugForceCombatLive(): void { this.debugController.debugForceCombatLive(); }
+  public debugSwapWeapon(): void { this.debugController.debugSwapWeapon(this.time.now); } public debugSelectWeaponSlot(slotNumber: number): void { this.debugController.debugSelectWeaponSlot(slotNumber, this.time.now); } public debugFire(): void { this.debugController.debugFire(this.time.now); }
+  public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); } public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); } public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); } public debugGetWeatherSoundQueue() { return this.audioFeedbackController.getWeatherSoundQueue(); } public debugClearWeatherSoundQueue(): void { this.audioFeedbackController.clearWeatherSoundQueue(); }
+  public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); } public debugSetPlayerHullAngle(angleRadians: number): void { this.debugController.debugSetPlayerHullAngle(angleRadians); } public debugSetPlayerAimAngle(angleRadians: number): void { this.debugController.debugSetPlayerAimAngle(angleRadians); }
+  public debugMoveDummyTo(x: number, y: number): void { this.debugController.debugMoveDummyTo(x, y); } public debugToggleGate(): void { this.debugController.debugToggleGate(); } public debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void { this.debugController.debugForceMatchOver(winner, this.time.now); }
+  public debugForceBossRound(): void { this.debugController.debugForceBossRound(this.time.now); } public debugRegisterPlayerRoundWin(): void { this.debugController.debugRegisterPlayerRoundWin(this.time.now); } public debugGetWeather(): WeatherState { return this.currentEffectiveWeather; }
+  public debugSetWeather(type: WeatherState["type"]): void { this.debugController.debugSetWeather(type, this.time.now); } public clearBullets(): void { this.combatController.clearBullets(); } public updateDummyCoverState(now: number): void { this.dummyActorController.updateCoverState(now); }
+  private setCurrentGlobalWeather(weather: WeatherState): void { this.currentGlobalWeather = weather; }
+  private setCurrentEffectiveWeather(weather: WeatherState): void { this.currentEffectiveWeather = weather; this.runtimeState.currentWeather = weather; this.weatherRenderer.applyWeather(weather); }
+  private applyCurrentWeather(weather: WeatherState): void { this.setCurrentGlobalWeather(weather); this.setCurrentEffectiveWeather(weather); }
+  private isCombatLive(now: number): boolean { return this.matchFlow.state.phase === "combat-live" && !this.matchFlowController.isRoundStarting(now); }
 
   private isWeaponAvailable(weaponId: string): boolean {
     return this.unlockAllWeaponsForDev || isWeaponUnlocked(weaponId, this.progressionState, this.unlockRules, this.defaultWeaponIds);
@@ -899,14 +805,6 @@ export class MainScene extends Phaser.Scene {
     this.targetDummy.setPosition(dummyCenter.x, dummyCenter.y);
   }
 
-  private getCombatAvailability(now: number) {
-    return {
-      isCombatLive: this.isCombatLive(now),
-      isPlayerDead: this.playerLogic.isDead(),
-      isDummyDead: this.dummyLogic.isDead(),
-      isMatchOver: this.roundLogic.state.isMatchOver,
-      isPlayerStunned: this.playerLogic.isStunned(now)
-    };
-  }
+  private getCombatAvailability(now: number) { return { isCombatLive: this.isCombatLive(now), isPlayerDead: this.playerLogic.isDead(), isDummyDead: this.dummyLogic.isDead(), isMatchOver: this.roundLogic.state.isMatchOver, isPlayerStunned: this.playerLogic.isStunned(now) }; }
 
 }

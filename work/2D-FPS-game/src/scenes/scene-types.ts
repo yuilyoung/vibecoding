@@ -76,6 +76,12 @@ export interface GameBalanceWeather {
   readonly enabled: boolean;
   readonly rotationMode: "perRound" | "static" | "timed";
   readonly durationRangeMs: readonly [number, number];
+  readonly particleCountMultiplier: number;
+  readonly soundChannels: Readonly<Partial<Record<Extract<WeatherType, "rain" | "sandstorm" | "storm">, {
+    readonly cue: string;
+    readonly volume: number;
+    readonly fadeMs: number;
+  }>>>;
   readonly types: Readonly<Record<WeatherType, GameBalanceWeatherTypeConfig>>;
 }
 
@@ -269,7 +275,10 @@ export interface MainSceneDebugSnapshot {
     forceX: number;
     forceY: number;
   };
-  weather: WeatherState;
+  weather: {
+    global: WeatherState;
+    effective: WeatherState;
+  };
   mapObjects: MapObjectDebugSummary;
 }
 

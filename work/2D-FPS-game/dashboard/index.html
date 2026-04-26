@@ -465,11 +465,15 @@
                     </div>
                     <div class="gantt-row">
                         <div class="gantt-label">Phase 6 Sprint 2</div>
-                        <div class="gantt-bar complete" style="width: 48%;">Weather System</div>
+                        <div class="gantt-bar complete" style="width: 48%;">Weather Foundation</div>
+                    </div>
+                    <div class="gantt-row">
+                        <div class="gantt-label">Phase 6 Sprint 3</div>
+                        <div class="gantt-bar complete" style="width: 54%;">Weather Finalize (Apr 27)</div>
                     </div>
                     <div class="gantt-row">
                         <div class="gantt-label">Phase 7 (Planning)</div>
-                        <div class="gantt-bar pending" style="width: 52%;">Pending</div>
+                        <div class="gantt-bar pending" style="width: 60%;">Pending</div>
                     </div>
                 </div>
             </div>
@@ -498,6 +502,10 @@
                             <td><span class="status-badge status-complete">Complete</span></td>
                         </tr>
                         <tr>
+                            <td>Phase 6 Sprint 3 WBS</td>
+                            <td><span class="status-badge status-complete">Complete</span></td>
+                        </tr>
+                        <tr>
                             <td>Architecture (C4/ERD)</td>
                             <td><span class="status-badge status-complete">Approved</span></td>
                         </tr>
@@ -518,28 +526,33 @@
                 <div class="panel-content">
                     <p class="section-title">Unit Tests</p>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 100%;">50 files / 298 tests — PASS</div>
+                        <div class="progress-fill" style="width: 100%;">54 files / 323 tests — PASS (Sprint 3)</div>
                     </div>
                     <p class="section-title">E2E Tests</p>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 100%;">26 tests (Playwright) — PASS</div>
+                        <div class="progress-fill" style="width: 100%;">29 tests (Playwright) — PASS (Sprint 3)</div>
                     </div>
-                    <p class="section-title">Bundle Size</p>
+                    <p class="section-title">Performance & Size</p>
                     <table style="margin-top: 10px; font-size: 0.9em;">
                         <tr>
                             <td>Max chunk:</td>
                             <td>260.49 kB</td>
-                            <td style="color: #28a745;">✓ Pass (800 kB limit)</td>
+                            <td style="color: #28a745;">✓ Pass (800 kB)</td>
                         </tr>
                         <tr>
                             <td>Gzip:</td>
                             <td>71.63 kB</td>
-                            <td style="color: #28a745;">✓ Pass (250 kB limit)</td>
+                            <td style="color: #28a745;">✓ Pass (250 kB)</td>
                         </tr>
                         <tr>
                             <td>MainScene.ts:</td>
-                            <td>846 lines</td>
-                            <td style="color: #28a745;">✓ Pass (900 line limit)</td>
+                            <td>811 lines</td>
+                            <td style="color: #28a745;">✓ Pass (850 limit)</td>
+                        </tr>
+                        <tr>
+                            <td>Frame drop %:</td>
+                            <td>0%</td>
+                            <td style="color: #28a745;">✓ Zero (pooling)</td>
                         </tr>
                     </table>
                 </div>
@@ -568,13 +581,13 @@
                     <div class="kanban-column">
                         <div class="kanban-header">
                             Completed
-                            <span class="kanban-count">21</span>
+                            <span class="kanban-count">24</span>
                         </div>
-                        <div class="kanban-card complete">Phase 6 Sprint 2 (T0-T9) — Weather System</div>
+                        <div class="kanban-card complete">Phase 6 Sprint 3 (T1-T11) — Weather Finalize (Apr 27)</div>
+                        <div class="kanban-card complete">Phase 6 Sprint 2 (T0-T9) — Weather Foundation</div>
                         <div class="kanban-card complete">Phase 6 Sprint 1 (T0-T4) — Wind System</div>
                         <div class="kanban-card complete">Phase 5 Sprints (P/E/M/A) — Base Combat</div>
-                        <div class="kanban-card complete">Phase 1-4 — Core Mechanics</div>
-                        <div class="kanban-card" style="color: #999; font-size: 0.85em;">+17 more...</div>
+                        <div class="kanban-card" style="color: #999; font-size: 0.85em;">+20 more...</div>
                     </div>
                     <div class="kanban-column">
                         <div class="kanban-header">
@@ -589,6 +602,39 @@
 
         <!-- Completed Work Summary -->
         <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">Phase 6 Sprint 3 — Weather Finalization (Apr 27)</div>
+                <div class="panel-content">
+                    <p class="section-title">Refactoring & Architecture</p>
+                    <ul class="list-group">
+                        <li class="list-item">
+                            <span>MainScene.ts refactor — 811 lines (from 912)</span>
+                        </li>
+                        <li class="list-item">
+                            <span>main-scene-hud-bind.ts, match-bind.ts, debug.ts, input.ts split</span>
+                        </li>
+                        <li class="list-item">
+                            <span>LOC enforcement script — scripts/check-mainscene-loc.mjs</span>
+                        </li>
+                    </ul>
+                    <p class="section-title">Weather Enhancements</p>
+                    <ul class="list-group">
+                        <li class="list-item">
+                            <span>Timed rotation — WeatherLogic.createWeatherTimer / tickWeatherTimer</span>
+                        </li>
+                        <li class="list-item">
+                            <span>Zone-based weather — StageDefinition.weatherZones + MapZoneLogic</span>
+                        </li>
+                        <li class="list-item">
+                            <span>Sound contracts — Loop queues for rain/sandstorm/storm</span>
+                        </li>
+                        <li class="list-item">
+                            <span>Particle pooling — 0% frame drop, 0 destroys validation</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="panel">
                 <div class="panel-header">Phase 6 Sprint 2 — Weather System Deliverables</div>
                 <div class="panel-content">

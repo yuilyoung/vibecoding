@@ -2,15 +2,19 @@ import { vi } from "vitest";
 import gameBalance from "../assets/data/game-balance.json";
 import type { StageDefinition } from "../src/domain/map/StageDefinition";
 import {
+  createWeatherSnapshot,
   createRoundSnapshot,
   planRoundReset,
+  resolveEffectiveWeather,
   resolveRoundStartWeather,
   resolveRoundStartWind,
   resolveBossWaveOverlay,
-  resolveStageFlow
+  resolveStageFlow,
+  tickRoundWeather
 } from "../src/domain/round/MatchFlowOrchestrator";
 import { createBossSpawn } from "../src/domain/round/BossWaveLogic";
-import { createWeatherState, type WeatherConfig, type WeatherState, type WeatherType } from "../src/domain/environment/WeatherLogic";
+import { createWeatherState, type WeatherConfig, type WeatherState, type WeatherTimer, type WeatherType } from "../src/domain/environment/WeatherLogic";
+import { resolveZoneWeather } from "../src/domain/map/MapZoneLogic";
 
 const bossWaveRules = gameBalance.bossWave;
 const bossWavePlan = createBossSpawn(gameBalance.stages[0], bossWaveRules);
@@ -251,7 +255,7 @@ describe("MatchFlowOrchestrator", () => {
   });
 
   it("prefers stage weather overrides over rotation", () => {
-    const weatherConfig = gameBalance.weather as WeatherConfig;
+    const weatherConfig = gameBalance.weather as unknown as WeatherConfig;
     const createWeather = vi.fn((type: WeatherType): WeatherState & { source: string } => ({
       type,
       movementMultiplier: 1,
@@ -287,7 +291,7 @@ describe("MatchFlowOrchestrator", () => {
   });
 
   it("rotates weather deterministically when no stage override is present", () => {
-    const weatherConfig = gameBalance.weather as WeatherConfig;
+    const weatherConfig = gameBalance.weather as unknown as WeatherConfig;
     const rngValues = [0.2, 0.8];
     let rngIndex = 0;
     const rng = () => rngValues[rngIndex++] ?? 0;
@@ -312,15 +316,75 @@ describe("MatchFlowOrchestrator", () => {
   });
 
   it("builds round snapshots that can also carry weather payload", () => {
-    const weather = createWeatherState("sandstorm", gameBalance.weather as WeatherConfig);
+    const weather = createWeatherState("sandstorm", gameBalance.weather as unknown as WeatherConfig);
     const snapshot = createRoundSnapshot({
       wind: { angleDegrees: 45, strength: 2 },
-      weather
+      weather: createWeatherSnapshot({
+        global: weather,
+        effective: weather
+      })
     });
 
     expect(snapshot).toEqual({
       wind: { angleDegrees: 45, strength: 2 },
-      weather
+      weather: {
+        global: weather,
+        effective: weather
+      }
     });
+  });
+
+  it("ticks timed weather and reports when the global weather changed", () => {
+    const weatherConfig = gameBalance.weather as unknown as WeatherConfig;
+    const timer: WeatherTimer = {
+      weather: createWeatherState("clear", weatherConfig),
+      durationMs: 1000,
+      startedAtMs: 0,
+      nextChangeAtMs: 1000
+    };
+    const tickWeatherTimerMock = vi.fn(() => ({
+      ...timer,
+      weather: createWeatherState("rain", weatherConfig),
+      startedAtMs: 1000,
+      nextChangeAtMs: 2000
+    }));
+
+    const decision = tickRoundWeather({
+      timer,
+      nowMs: 1200,
+      rng: () => 0,
+      weatherConfig,
+      tickWeatherTimer: tickWeatherTimerMock
+    });
+
+    expect(decision.changed).toBe(true);
+    expect(decision.weather.type).toBe("rain");
+    expect(tickWeatherTimerMock).toHaveBeenCalledWith(timer, 1200, expect.any(Function), weatherConfig);
+  });
+
+  it("resolves effective weather from zone overrides while preserving global weather", () => {
+    const weatherConfig = gameBalance.weather as unknown as WeatherConfig;
+    const globalWeather = createWeatherState("clear", weatherConfig);
+    const effectiveWeather = resolveEffectiveWeather({
+      position: [50, 50],
+      globalWeather,
+      stage: {
+        ...gameBalance.stages[0],
+        weatherZones: [{
+          weather: "fog",
+          shape: {
+            kind: "circle",
+            cx: 50,
+            cy: 50,
+            radius: 100
+          }
+        }]
+      },
+      weatherConfig,
+      resolveZoneWeather
+    });
+
+    expect(globalWeather.type).toBe("clear");
+    expect(effectiveWeather.type).toBe("fog");
   });
 });

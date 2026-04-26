@@ -58,7 +58,10 @@ export interface RoundStartWindInput {
 
 export interface RoundSnapshot<TWind extends WindStateLike = WindStateLike, TWeather extends WeatherState = WeatherState> {
   readonly wind: TWind;
-  readonly weather?: TWeather;
+  readonly weather?: {
+    readonly global: TWeather;
+    readonly effective: TWeather;
+  };
 }
 
 export interface RoundStartWindDecision<TWind extends WindStateLike = WindStateLike> {
@@ -70,6 +73,20 @@ export interface RoundStartWindDecision<TWind extends WindStateLike = WindStateL
 export interface RoundStartWeatherDecision<TWeather extends WeatherState = WeatherState> {
   readonly weather: TWeather;
   readonly source: "stage-override" | "rotation";
+}
+
+export interface WeatherTimerLike<TWeather extends WeatherState = WeatherState> {
+  readonly weather: TWeather;
+  readonly nextChangeAtMs: number;
+}
+
+export interface TimedWeatherDecision<
+  TWeather extends WeatherState = WeatherState,
+  TTimer extends WeatherTimerLike<TWeather> = WeatherTimerLike<TWeather>
+> {
+  readonly timer: TTimer;
+  readonly weather: TWeather;
+  readonly changed: boolean;
 }
 
 export function resolveStageFlow(input: StageFlowInput): StageFlowDecision {
@@ -259,11 +276,54 @@ export function resolveRoundStartWeather<TWeather extends WeatherState = Weather
 
 export function createRoundSnapshot<TWind extends WindStateLike, TWeather extends WeatherState = WeatherState>(input: {
   readonly wind: TWind;
-  readonly weather?: TWeather;
+  readonly weather?: {
+    readonly global: TWeather;
+    readonly effective: TWeather;
+  };
 }): RoundSnapshot<TWind, TWeather> {
   return input.weather === undefined
     ? { wind: input.wind }
     : { wind: input.wind, weather: input.weather };
+}
+
+export function createWeatherSnapshot<TWeather extends WeatherState = WeatherState>(input: {
+  readonly global: TWeather;
+  readonly effective: TWeather;
+}): { readonly global: TWeather; readonly effective: TWeather } {
+  return input;
+}
+
+export function tickRoundWeather<
+  TWeather extends WeatherState = WeatherState,
+  TTimer extends WeatherTimerLike<TWeather> = WeatherTimerLike<TWeather>
+>(input: {
+  readonly timer: TTimer;
+  readonly nowMs: number;
+  readonly rng: () => number;
+  readonly weatherConfig: WeatherConfig;
+  readonly tickWeatherTimer: (timer: TTimer, nowMs: number, rng: () => number, config: WeatherConfig) => TTimer;
+}): TimedWeatherDecision<TWeather, TTimer> {
+  const timer = input.tickWeatherTimer(input.timer, input.nowMs, input.rng, input.weatherConfig);
+  return {
+    timer,
+    weather: timer.weather,
+    changed: !isSameWeatherState(input.timer.weather, timer.weather)
+  };
+}
+
+export function resolveEffectiveWeather<TWeather extends WeatherState = WeatherState>(input: {
+  readonly position: readonly [number, number];
+  readonly globalWeather: TWeather;
+  readonly stage: Pick<StageDefinition, "weatherZones">;
+  readonly weatherConfig: WeatherConfig;
+  readonly resolveZoneWeather: (
+    position: readonly [number, number],
+    globalWeather: TWeather,
+    zones: StageDefinition["weatherZones"] | undefined,
+    config: WeatherConfig
+  ) => TWeather;
+}): TWeather {
+  return input.resolveZoneWeather(input.position, input.globalWeather, input.stage.weatherZones, input.weatherConfig);
 }
 
 function readStageWindOverride(stage: StageDefinition): WindStateLike | null {
@@ -298,4 +358,12 @@ function readStageWeatherOverride(stage: StageDefinition): { readonly type: Weat
   return {
     type: candidate.type as WeatherType
   };
+}
+
+function isSameWeatherState(left: WeatherState, right: WeatherState): boolean {
+  return left.type === right.type &&
+    left.movementMultiplier === right.movementMultiplier &&
+    left.visionRange === right.visionRange &&
+    left.windStrengthMultiplier === right.windStrengthMultiplier &&
+    left.minesDisabled === right.minesDisabled;
 }

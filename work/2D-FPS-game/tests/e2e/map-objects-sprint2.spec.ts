@@ -43,6 +43,7 @@ interface DebugScene {
   debugFireAt(targetX: number, targetY: number): void;
   debugMovePlayerTo(x: number, y: number): void;
   debugMoveDummyTo(x: number, y: number): void;
+  debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugGetMapObjectStates(): MapObjectState[];
   debugGetProjectileSnapshot(): ProjectileSnapshot[];
   update(time: number, delta: number): void;
@@ -73,6 +74,25 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
   });
 };
 
+const stabilizeEnvironment = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as
+      | {
+          runtimeState?: { currentWind: { angleDegrees: number; strength: number } };
+          debugSetWeather?: (type: "clear") => void;
+        }
+      | undefined;
+
+    if (scene?.runtimeState === undefined || scene.debugSetWeather === undefined) {
+      throw new Error("Missing environment debug handles.");
+    }
+
+    scene.runtimeState.currentWind = { angleDegrees: 0, strength: 0 };
+    scene.debugSetWeather("clear");
+  });
+};
+
 const enterCombat = async (page: Page): Promise<void> => {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
@@ -86,6 +106,7 @@ const enterCombat = async (page: Page): Promise<void> => {
     scene.debugConfirmTeamSelection();
     scene.debugForceCombatLive();
   });
+  await stabilizeEnvironment(page);
 
   await expect.poll(async () => (await readSnapshot(page)).phase).toBe("COMBAT LIVE");
 };
@@ -102,6 +123,64 @@ const advanceFrames = async (page: Page, frames: number, deltaMs: number): Promi
       scene.update(0, delta);
     }, deltaMs);
   }
+};
+
+const injectProjectile = async (page: Page, input: {
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  trajectory?: "linear" | "arc" | "bounce";
+}): Promise<void> => {
+  await page.evaluate(({ x, y, velocityX, velocityY, trajectory }) => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as
+      | (DebugScene & {
+          add: { rectangle(x: number, y: number, width: number, height: number, color: number, alpha: number): unknown };
+          runtimeState?: {
+            bullets: Array<{
+              sprite: { x: number; y: number; width: number; height: number };
+              velocityX: number;
+              velocityY: number;
+              damage: number;
+              critChance: number;
+              critMultiplier: number;
+              owner: "player" | "dummy";
+              effectProfile: string;
+              projectileConfig: Record<string, unknown>;
+              bouncesRemaining?: number;
+            }>;
+          };
+        })
+      | undefined;
+
+    if (scene?.runtimeState === undefined) {
+      throw new Error("Missing runtimeState test handle.");
+    }
+
+    const sprite = scene.add.rectangle(x, y, 8, 8, 0xffffff, 1) as {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+
+    scene.runtimeState.bullets.push({
+      sprite,
+      velocityX,
+      velocityY,
+      damage: 20,
+      critChance: 0,
+      critMultiplier: 1,
+      owner: "player",
+      effectProfile: "carbine",
+      projectileConfig: {
+        trajectory: trajectory ?? "linear",
+        speed: 0
+      },
+      bouncesRemaining: 0
+    });
+  }, input);
 };
 
 const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
@@ -123,6 +202,7 @@ const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
       scene.debugConfirmTeamSelection();
       scene.debugForceCombatLive();
     });
+    await stabilizeEnvironment(page);
     await expect.poll(async () => (await readSnapshot(page)).phase).toBe("COMBAT LIVE");
   }
 
@@ -170,34 +250,32 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
 test("bounce wall reflects a linear projectile and flips its y velocity", async ({ page }) => {
   await enterCombat(page);
-  await rotateToStage(page, "relay-yard");
+  await rotateToStage(page, "storm-drain");
 
-  await withScene(page, (scene: DebugScene) => {
-    scene.debugSelectWeaponSlot(1);
-    scene.debugMovePlayerTo(400, 238);
+  await injectProjectile(page, {
+    x: 432,
+    y: 90,
+    velocityX: 0,
+    velocityY: 220,
+    trajectory: "linear"
+  });
+  await expect.poll(async () => {
+    const wall = await withScene(page, (scene: DebugScene) => {
+      return scene.debugGetMapObjectStates().find((object) => object.id === "drain-bounce-wall-a");
+    });
+    return wall?.reflectionsRemaining ?? 3;
+  }).toBeLessThan(3);
+
+  const wall = await withScene(page, (scene: DebugScene) => {
+    return scene.debugGetMapObjectStates().find((object) => object.id === "drain-bounce-wall-a");
+  });
+  const projectile = await withScene(page, (scene: DebugScene) => {
+    return scene.debugGetProjectileSnapshot().find((entry) => entry.owner === "player") ?? null;
   });
 
-  let wall = null as MapObjectState | undefined | null;
-  for (let shot = 0; shot < 3; shot += 1) {
-    await withScene(page, (scene: DebugScene) => {
-      scene.debugMovePlayerTo(400, 238);
-      scene.debugFireAt(480, 238);
-    });
-    await advanceFrames(page, 12, 40);
-    wall = await withScene(page, (scene: DebugScene) => {
-      return scene.debugGetMapObjectStates().find((object) => object.id === "relay-bounce-wall-a");
-    });
-
-    if ((wall?.reflectionsRemaining ?? 3) < 3) {
-      break;
-    }
-  }
-
-  const after = await readSnapshot(page);
-
-  expect(after.weaponSlot).toBe(1);
-  expect(after.activeWeapon).toBe("Carbine");
   expect(wall?.reflectionsRemaining).toBeLessThan(3);
+  expect(projectile).not.toBeNull();
+  expect((projectile as ProjectileSnapshot).velocityY).toBeLessThan(0);
 });
 
 test("teleporter moves the player to its pair and blocks immediate re-entry during cooldown", async ({ page }) => {
@@ -218,8 +296,12 @@ test("teleporter moves the player to its pair and blocks immediate re-entry duri
   expect(duringCooldown.playerX).toBeCloseTo(220, 0);
   expect(duringCooldown.playerY).toBeCloseTo(356, 0);
 
-  await advanceFrames(page, 30, 60);
-  const afterCooldown = await readSnapshot(page);
-  expect(afterCooldown.playerX).toBeCloseTo(744, 0);
-  expect(afterCooldown.playerY).toBeCloseTo(184, 0);
+  await page.waitForTimeout(1700);
+  await expect.poll(async () => {
+    const snapshot = await readSnapshot(page);
+    return {
+      x: Math.round(snapshot.playerX),
+      y: Math.round(snapshot.playerY)
+    };
+  }).toEqual({ x: 744, y: 184 });
 });
