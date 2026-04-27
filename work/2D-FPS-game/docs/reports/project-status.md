@@ -4,12 +4,12 @@
 - Author: ultron
 - **Phase:** Phase 7 - Tactical Combat Depth (complete)
 - Previous Phase: Phase 6 Sprint 3 - Refactoring & Hardening (complete, 2026-04-27)
-- Status: implementation complete, tactical verification passed, handoff synced
+- Status: Phase 7 committed and verified, Phase 8 planning package ready
 
 | Key | Value |
 | --- | --- |
-| Active milestone | Phase 8 planning |
-| Development status | Phase 7 implementation is complete. Full browser regression is now closed and the workspace is ready for Phase 8 planning. |
+| Active milestone | Phase 8 - Environment Audio Polish |
+| Development status | Phase 7 implementation is complete, committed, and fully browser-verified. The Phase 8 planning and handoff package is ready for execution. |
 | Verification | pass |
 
 ## Summary
@@ -42,7 +42,7 @@ Phase 7 is complete in the active workspace. Tactical combat depth now includes 
 
 ## In Progress
 
-No implementation task is currently in progress. The next useful work is Phase 8 planning from the completed tactical combat baseline.
+No Phase 8 implementation task is currently in progress. The next useful work is to start the Environment Audio Polish execution slice from the prepared handoff.
 
 ## Blocking Issues
 
@@ -52,9 +52,9 @@ None.
 
 | Priority | ID | Task | Owner | Estimate |
 | --- | --- | --- | --- | --- |
-| 1 | P8-PLAN | Create the Phase 8 WBS, tasks JSON, and handoff package from the current tactical baseline. | vision+ultron | 0.5d |
-| 2 | P8-AUDIO | Audit the existing environment sound contract and runtime gaps to decide whether Phase 8 should start with audio polish or UI readability. | ultron | 0.5d |
-| 3 | P8-SCOPE | Choose the Phase 8 execution slice among audio polish, UI readability, or a larger system expansion, then lock scope in the new handoff. | vision+ultron | 0.5d |
+| 1 | T1 | Audit current audio contract and lock the Phase 8 execution slice. | ultron/audio-specialist | 0.5d |
+| 2 | T2 | Expand generated cue tuning contract and cue profile definitions. | ultron/audio-specialist | 0.5d |
+| 3 | T3 | Improve runtime prioritization, loop switching, and anti-fatigue behavior. | ultron/audio-specialist | 1.0d |
 
 ## Risks
 
@@ -65,6 +65,8 @@ None.
 
 ## Reference Documents
 
+- [Phase 8 WBS](../planning/phase8-wbs.md)
+- [Phase 8 Tasks JSON](../planning/phase8-tasks.json)
 - [Phase 7 WBS](../planning/phase7-wbs.md)
 - [Phase 7 Tasks JSON](../planning/phase7-tasks.json)
 - [Execution Report](../../../../docs/handoffs/current-execution-report.md)

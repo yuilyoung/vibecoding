@@ -51,8 +51,11 @@ Phase 7 — Tactical Combat Depth
   - cover-aware positioning and retreat anchors
   - weapon-role clarity and bot weapon selection
   - deterministic playtest and tuning loop
-Phase 8 후보
-  - environment audio polish
+Phase 8 - Environment Audio Polish
+  - generated cue readability and anti-fatigue tuning
+  - deterministic weather loop switching and reset behavior
+  - HUD/debug audio visibility for QA and playtest tuning
+Phase 9 후보
   - asset/UI readability pass
   - vehicle system or progression expansion
 ```
@@ -76,6 +79,16 @@ Phase 8 후보
 - `tactical.chosenWeaponRole`: 무기 역할 요약값
 
 QA, 밸런스 조정, 이후 에이전트 작업은 위 필드명을 그대로 사용한다.
+
+## Phase 8 방향
+
+- 목표는 새 기능을 늘리는 것이 아니라 들리는 정보를 더 신뢰할 수 있게 만드는 것이다.
+- 핵심 페르소나는 "짧은 교전에서도 맞았는지, 막혔는지, 루프 환경음이 바뀌었는지 즉시 구분하고 싶은 플레이어"다.
+- 설계 원칙:
+  - generated audio 경로를 유지하고 외부 에셋 파이프라인은 이번 페이즈에 넣지 않는다.
+  - cue 우선순위, 반복 억제, 루프 전환은 deterministic test로 고정한다.
+  - weather/hazard/combat cue는 서로를 가리지 않도록 mix와 cooldown을 분리한다.
+  - QA가 HUD/debug만으로도 현재 audio state를 해석할 수 있어야 한다.
 
 ## 상세 스펙
 

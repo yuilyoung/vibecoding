@@ -1,113 +1,76 @@
 {
-  "id": "phase-7-tactical-combat-depth",
+  "id": "phase-8-environment-audio-polish",
   "timestamp": "2026-04-27",
   "from": "vision",
   "to": "ultron",
-  "status": "complete",
-  "completedAt": "2026-04-27",
+  "status": "pending",
   "previousPhase": {
-    "id": "phase-6-sprint3-weather-finalize",
+    "id": "phase-7-tactical-combat-depth",
     "status": "complete",
-    "completedAt": "2026-04-27"
+    "completedAt": "2026-04-27",
+    "executionReport": "docs/handoffs/current-execution-report.md"
   },
-  "scope": "Phase 7 delivers tactical combat depth through config-first combat contracts, explicit bot tactical intent, cover-aware positioning, role-aware weapon selection, tactical HUD/debug visibility, and a deterministic verification loop for tuning.",
+  "scope": "Phase 8 delivers Environment Audio Polish on top of the completed tactical combat baseline. The focus is generated audio readability, deterministic loop behavior, runtime priority tuning, HUD/debug audio visibility, and repeatable QA guidance.",
   "constraints": [
-    "Execution baseline remains work/2D-FPS-game and must preserve the completed Phase 6 weather and environment stack.",
-    "Reusable tactical decisions stay in domain modules and Phaser-specific wiring stays in scenes and presentation.",
-    "Combat tuning values remain authored in assets/data/game-balance.json rather than hardcoded in runtime logic.",
-    "Existing public debug methods remain stable; only payloads may be extended.",
-    "MainScene.ts must stay within the 850 line gate.",
-    "Bot decisions must remain deterministic under controlled time, HP, weather, LOS, and distance inputs.",
-    "Weather and wind remain supported tactical inputs, not parallel feature work.",
-    "New assets, vehicles, and pathfinding are out of scope for this phase."
+    "Execution baseline remains work/2D-FPS-game and must preserve the completed Phase 7 tactical combat behavior.",
+    "Generated Web Audio remains the playback path in this phase; do not widen scope into external audio asset production.",
+    "Audio behavior should remain testable and mostly config-driven where practical.",
+    "Public debug methods remain stable; additive payload extension is preferred over API churn.",
+    "MainScene.ts must remain within the existing LOC gate.",
+    "Environment audio polish should not turn into a broader UI redesign or vehicle/progression phase."
   ],
   "currentState": {
     "implemented": [
-      "botTactics, weaponRoles, and combatTuning contracts are active in balance data and scene-facing types.",
-      "Bots now expose pressure, hold, retreat, and flank intent with deterministic state transitions.",
-      "Cover-aware positioning and line-of-sight checks drive retreat and flank target choice.",
-      "Weapon selection now considers role profiles rather than only distance.",
-      "HUD and debug snapshots now expose tactical intent, target cover data, and chosen weapon role.",
-      "Targeted tactical unit and E2E verification is in place for the Phase 7 behavior set."
+      "Phase 7 tactical combat depth is complete and fully regression-tested.",
+      "Sound cue routing, generated cue playback, and weather loop contracts already exist.",
+      "Weather sound queue dedup and reset coverage already exists in browser tests."
     ],
     "gaps": [
-      "Full-suite browser regression coverage was not rerun in this closeout; tactical coverage was rerun instead."
+      "Generated cue mix and priority remain prototype-grade and need readability tuning.",
+      "Audio-specific HUD/debug state is limited for QA and tuning.",
+      "Phase 8 execution scope was not previously locked into a handoff package."
     ]
   },
   "files": {
     "create": [
-      "work/2D-FPS-game/docs/planning/phase7-wbs.md",
-      "work/2D-FPS-game/docs/planning/phase7-tasks.json",
-      "work/2D-FPS-game/src/domain/ai/TacticalPositionLogic.ts",
-      "work/2D-FPS-game/tests/TacticalPositionLogic.test.ts",
-      "work/2D-FPS-game/tests/e2e/combat-depth.spec.ts",
-      "codex/subagents/game-specialist-phase7.md"
+      "work/2D-FPS-game/docs/planning/phase8-wbs.md",
+      "work/2D-FPS-game/docs/planning/phase8-tasks.json",
+      "codex/subagents/game-specialist-phase8.md"
     ],
     "modify": [
-      "work/2D-FPS-game/assets/data/game-balance.json",
-      "work/2D-FPS-game/src/scenes/scene-types.ts",
-      "work/2D-FPS-game/src/domain/ai/AiStateMachine.ts",
-      "work/2D-FPS-game/src/domain/ai/DummyAiLogic.ts",
-      "work/2D-FPS-game/src/domain/ai/LineOfSightLogic.ts",
-      "work/2D-FPS-game/src/domain/map/CoverLogic.ts",
-      "work/2D-FPS-game/src/domain/combat/WeaponLogic.ts",
-      "work/2D-FPS-game/src/domain/combat/WeaponInventoryLogic.ts",
-      "work/2D-FPS-game/src/scenes/MainScene.ts",
-      "work/2D-FPS-game/src/scenes/combat-controller.ts",
-      "work/2D-FPS-game/src/scenes/debug-controller.ts",
-      "work/2D-FPS-game/src/scenes/dummy-controller.ts",
-      "work/2D-FPS-game/src/scenes/hud-controller.ts",
-      "work/2D-FPS-game/src/scenes/scene-runtime-state.ts",
-      "work/2D-FPS-game/src/scenes/weapon-slot-factory.ts",
-      "work/2D-FPS-game/src/ui/hud-events.ts",
-      "work/2D-FPS-game/src/ui/hud-presenters.ts",
-      "work/2D-FPS-game/src/main.ts",
-      "work/2D-FPS-game/tests/AiStateMachine.test.ts",
-      "work/2D-FPS-game/tests/CoverLogic.test.ts",
-      "work/2D-FPS-game/tests/DummyAiLogic.test.ts",
-      "work/2D-FPS-game/tests/HudPresenters.test.ts",
-      "work/2D-FPS-game/tests/LineOfSightLogic.test.ts",
-      "work/2D-FPS-game/tests/WeaponInventoryLogic.test.ts",
-      "work/2D-FPS-game/tests/WeaponLogic.test.ts",
-      "work/2D-FPS-game/tests/e2e/playtest-balance.spec.ts",
-      "work/2D-FPS-game/docs/development/playtest-checklist.md",
-      "work/2D-FPS-game/docs/development/tuning-notes.md",
+      "docs/handoffs/current-handoff.json",
+      "codex/subagents/execution-roles.md",
       "work/2D-FPS-game/docs/development/game-direction.md",
-      "work/2D-FPS-game/docs/reports/project-status.md",
-      "codex/subagents/execution-roles.md"
+      "work/2D-FPS-game/docs/reports/project-status.md"
     ]
   },
   "acceptance": [
-    "Phase 7 planning, specialist handoff, implementation, and verification artifacts are present.",
-    "Config-first tactical combat contracts are active without breaking prior phase behavior.",
-    "AI tactical states, positioning, weapon-role selection, and HUD/debug tactical visibility are implemented.",
-    "Targeted tactical unit and E2E verification passed.",
-    "Execution report and postflight sync were refreshed for the completed phase."
+    "Phase 8 WBS, tasks JSON, and handoff are present and aligned.",
+    "Phase 8 scope is fixed to Environment Audio Polish.",
+    "A specialist brief exists for a game/audio-focused worker."
   ],
   "priority": [
-    "1. Lock config contracts first.",
-    "2. Implement tactical AI, positioning, and weapon roles in parallel.",
-    "3. Expose tactical state to HUD and debug consumers.",
-    "4. Close with deterministic tests, tuning docs, execution report, and postflight sync."
+    "1. Audit current audio contract and runtime limitations.",
+    "2. Improve generated cue tuning, priority, and loop behavior.",
+    "3. Add QA visibility and verification coverage.",
+    "4. Close with docs, verification, and execution reporting."
   ],
   "risks": [
     {
-      "risk": "AI state churn could regress into oscillation if thresholds are retuned carelessly.",
-      "mitigation": "Keep transition logic covered by deterministic tests and preserve cooldown-based stabilization."
+      "risk": "Audio polish may overreach into asset production or larger UX redesign.",
+      "mitigation": "Keep Phase 8 constrained to generated cue behavior, runtime polish, and QA visibility."
     },
     {
-      "risk": "Snapshot shape drift could break HUD or debug consumers.",
-      "mitigation": "Treat tactical payload fields as optional contract fields and update both sides together."
+      "risk": "Cue dedup or cooldown tuning could suppress useful feedback.",
+      "mitigation": "Back all priority and cooldown changes with deterministic unit and browser tests."
     }
   ],
   "references": {
-    "executionReport": "docs/handoffs/current-execution-report.md",
-    "currentPhaseWbs": "work/2D-FPS-game/docs/planning/phase7-wbs.md",
-    "currentPhaseTasks": "work/2D-FPS-game/docs/planning/phase7-tasks.json",
+    "currentPhaseWbs": "work/2D-FPS-game/docs/planning/phase8-wbs.md",
+    "currentPhaseTasks": "work/2D-FPS-game/docs/planning/phase8-tasks.json",
+    "previousExecutionReport": "docs/handoffs/current-execution-report.md",
     "gameDirection": "work/2D-FPS-game/docs/development/game-direction.md",
     "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
-    "playtestChecklist": "work/2D-FPS-game/docs/development/playtest-checklist.md",
-    "tuningNotes": "work/2D-FPS-game/docs/development/tuning-notes.md",
-    "specialistBrief": "codex/subagents/game-specialist-phase7.md"
+    "specialistBrief": "codex/subagents/game-specialist-phase8.md"
   }
 }
