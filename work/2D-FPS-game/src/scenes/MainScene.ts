@@ -65,6 +65,7 @@ import { VisualController } from "./visual-controller";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
+import type { TacticalPositionConfig } from "../domain/ai/TacticalPositionLogic";
 import type { MoveKeys } from "./input-bindings";
 import { createMainSceneDebugController } from "./main-scene-debug";
 import { createMainSceneHudController } from "./main-scene-hud-bind";
@@ -186,7 +187,9 @@ export class MainScene extends Phaser.Scene {
       engageRange: gameBalance.dummyEngageRange,
       retreatRange: gameBalance.dummyRetreatRange,
       shootRange: gameBalance.dummyShootRange,
-      lowHealthThreshold: gameBalance.dummyLowHealthThreshold
+      lowHealthThreshold: gameBalance.dummyLowHealthThreshold,
+      botTactics: gameBalance.botTactics,
+      combatTuning: gameBalance.combatTuning
     });
     this.bullets = [];
     this.activeAirStrikes = [];
@@ -239,9 +242,12 @@ export class MainScene extends Phaser.Scene {
       lastCombatEvent: "READY",
       recentImpactEffectUntilMs: 0,
       lastDummyDecision: "chase",
+      lastDummyTacticalIntent: "pressure",
       dummyInCover: false,
       dummyCoverBonusUntilMs: 0,
       activeDummyCoverIndex: null,
+      targetDummyCoverIndex: null,
+      targetDummyCoverEffect: null,
       nextDummyRepairTickAtMs: 0,
       playerUnlimitedAmmoUntilMs: 0,
       lastDummyShouldFire: false,
@@ -252,6 +258,7 @@ export class MainScene extends Phaser.Scene {
       currentPlayerTeam: "BLUE",
       currentDummyTeam: "RED",
       currentDummyWeaponId: "carbine",
+      currentDummyWeaponRole: "mid-range",
       playerBodyAngle: 0,
       dummyBodyAngle: 0,
       nextPlayerMoveFxAtMs: 0,
@@ -323,12 +330,14 @@ export class MainScene extends Phaser.Scene {
       dummyAiLogic: this.dummyAiLogic,
       isCombatLive: (now) => this.isCombatLive(now),
       isMatchOver: () => this.roundLogic.state.isMatchOver,
-      getPreferredDummyWeaponId: () => this.combatController.getPreferredDummyWeaponId(),
+      getPreferredDummyWeaponId: (now) => this.combatController.getPreferredDummyWeaponId(now),
       getActorRotation: (angleRadians) => this.visualController.getActorRotation(angleRadians),
       emitMovementFxForActor: (actor, now, throttleInput) => {
         this.vfxController.emitMovementFxForActor(actor, now, throttleInput);
       },
-      coverPointRadius: this.gameBalance.coverPointRadius
+      coverPointRadius: this.gameBalance.coverPointRadius,
+      getTacticalCoverStates: () => this.mapObjectController.getStates(),
+      getTacticalPositionConfig: () => this.getTacticalPositionConfig()
     });
     this.stageGeometry = new StageGeometryManager(this, this.runtimeState, this.actorCollisionResolver, this.gameBalance, {
       getCombatAvailability: (now) => this.getCombatAvailability(now),
@@ -488,9 +497,12 @@ export class MainScene extends Phaser.Scene {
     this.matchConfirmAtMs = null;
     this.matchConfirmReadyCueSent = false;
     this.runtimeState.lastDummyDecision = "chase";
+    this.runtimeState.lastDummyTacticalIntent = "pressure";
     this.runtimeState.dummyInCover = false;
     this.runtimeState.dummyCoverBonusUntilMs = 0;
     this.runtimeState.activeDummyCoverIndex = null;
+    this.runtimeState.targetDummyCoverIndex = null;
+    this.runtimeState.targetDummyCoverEffect = null;
     this.runtimeState.nextDummyRepairTickAtMs = 0;
     this.runtimeState.playerUnlimitedAmmoUntilMs = 0;
     this.runtimeState.lastDummyShouldFire = false;
@@ -502,6 +514,7 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.currentPlayerTeam = "BLUE";
     this.runtimeState.currentDummyTeam = "RED";
     this.runtimeState.currentDummyWeaponId = "carbine";
+    this.runtimeState.currentDummyWeaponRole = "mid-range";
     this.runtimeState.playerBodyAngle = 0;
     this.runtimeState.dummyBodyAngle = 0;
     this.runtimeState.lastDummyIntentKey = "chase:false";
@@ -770,6 +783,17 @@ export class MainScene extends Phaser.Scene {
 
   private isWeaponAvailable(weaponId: string): boolean {
     return this.unlockAllWeaponsForDev || isWeaponUnlocked(weaponId, this.progressionState, this.unlockRules, this.defaultWeaponIds);
+  }
+
+  private getTacticalPositionConfig(): TacticalPositionConfig {
+    return {
+      coverSearchRadius: this.gameBalance.botTactics?.coverSearchRadius ?? this.gameBalance.dummyEngageRange,
+      preferredDistance: this.gameBalance.botTactics?.preferredHoldRange ?? this.gameBalance.dummyShootRange * 0.56,
+      retreatDistance: this.gameBalance.botTactics?.retreatRange ?? this.gameBalance.dummyRetreatRange,
+      flankDistance: this.gameBalance.botTactics?.flankRange ?? this.gameBalance.dummyShootRange * 0.7,
+      anchorPadding: this.gameBalance.coverPointRadius,
+      weatherCautionMultiplier: this.gameBalance.botTactics?.weatherCautionVisionMultiplier ?? 1
+    };
   }
 
   private resolveActorSeparation(): void {

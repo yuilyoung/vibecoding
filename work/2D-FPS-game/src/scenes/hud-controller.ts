@@ -32,7 +32,7 @@ import {
 } from "../ui/hud-events";
 import { buildHudSnapshot, buildMatchOverlayState, type HudPresenterInput } from "../ui/hud-presenters";
 import { COVER_VISION_RADIUS, PLAYFIELD_MAX_X, PLAYFIELD_MAX_Y, PLAYFIELD_MIN_X, PLAYFIELD_MIN_Y } from "./scene-constants";
-import type { CoverEffectId, GameBalance, PlayerWeaponSlot } from "./scene-types";
+import type { CoverEffectId, GameBalance, PlayerWeaponSlot, TacticalSnapshot } from "./scene-types";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 
 export interface HudControllerDeps {
@@ -134,6 +134,7 @@ export class HudController {
       coverVisionX: 480,
       coverVisionY: 270,
       coverVisionRadius: 72,
+      tactical: this.createTacticalSnapshot(),
       wind: {
         visible: true,
         angleDegrees: this.windState.angleDegrees,
@@ -221,7 +222,8 @@ export class HudController {
         coverVisionActive: this.state.activeDummyCoverIndex !== null && this.deps.getCoverEffectId(this.state.activeDummyCoverIndex) === "vision-jam",
         coverVisionX: coverVision.x,
         coverVisionY: coverVision.y,
-        coverVisionRadius: coverVision.radius
+        coverVisionRadius: coverVision.radius,
+        tactical: this.createTacticalSnapshot()
       },
       isRoundStarting: this.deps.isRoundStarting(now),
       matchConfirmAtMs: this.deps.getMatchConfirmAtMs(),
@@ -408,6 +410,16 @@ export class HudController {
       bossWaveRules: this.deps.bossWaveRules,
       bossWavePlan: this.deps.getBossWavePlan()
     });
+  }
+
+  private createTacticalSnapshot(): TacticalSnapshot {
+    return {
+      intent: this.state.lastDummyTacticalIntent,
+      targetCoverIndex: this.state.targetDummyCoverIndex,
+      targetCoverEffect: this.state.targetDummyCoverEffect,
+      chosenWeaponId: this.state.currentDummyWeaponId,
+      chosenWeaponRole: this.state.currentDummyWeaponRole
+    };
   }
 
   private getWeatherLabel(type: HudWeatherChangedDetail["type"]): string {

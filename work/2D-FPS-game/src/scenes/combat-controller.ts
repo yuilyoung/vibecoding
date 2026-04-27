@@ -20,6 +20,7 @@ import { computeForce } from "../domain/environment/WindLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import type { CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
+import type { TacticalSnapshot } from "./scene-types";
 import { flushPendingBulletClear, requestBulletClear } from "./combat-bullet-clear";
 import { playTurretFireAnimation } from "./arena-textures";
 import type { ActorCollisionResolver } from "./actor-collision";
@@ -176,7 +177,7 @@ export class CombatController {
       return;
     }
 
-    const activeWeapon = this.getActiveDummyWeaponSlot();
+    const activeWeapon = this.getActiveDummyWeaponSlot(now);
     this.state.currentDummyWeaponId = activeWeapon.id;
     const attempt = activeWeapon.logic.tryFire(now);
 
@@ -667,7 +668,25 @@ export class CombatController {
     return this.deps.weaponSlots[this.deps.weaponInventory.getActiveIndex()];
   }
 
-  public getActiveDummyWeaponSlot(): PlayerWeaponSlot {
+  public getActiveDummyWeaponSlot(now = this.scene.time.now): PlayerWeaponSlot {
+    return this.selectDummyWeapon(now).slot;
+  }
+
+  public getPreferredDummyWeaponId(now = this.scene.time.now): string {
+    return this.selectDummyWeapon(now).slot.id;
+  }
+
+  public getDummyTacticalSnapshot(): TacticalSnapshot {
+    return {
+      intent: this.state.lastDummyTacticalIntent,
+      targetCoverIndex: this.state.targetDummyCoverIndex,
+      targetCoverEffect: this.state.targetDummyCoverEffect,
+      chosenWeaponId: this.state.currentDummyWeaponId,
+      chosenWeaponRole: this.state.currentDummyWeaponRole
+    };
+  }
+
+  private selectDummyWeapon(now: number): { slot: PlayerWeaponSlot; role: string | null } {
     const targetDummy = this.requireTargetDummy();
     const playerSprite = this.requirePlayerSprite();
     const distanceToPlayer = Phaser.Math.Distance.Between(
@@ -676,12 +695,33 @@ export class CombatController {
       playerSprite.x,
       playerSprite.y
     );
-    const preferredWeaponId = distanceToPlayer <= 164 ? "scatter" : "carbine";
-    return this.deps.dummyWeaponSlots.find((slot) => slot.id === preferredWeaponId) ?? this.deps.dummyWeaponSlots[0];
-  }
 
-  public getPreferredDummyWeaponId(): string {
-    return this.getActiveDummyWeaponSlot().id;
+    let bestSlot = this.deps.dummyWeaponSlots[0];
+    let bestRole: string | null = bestSlot.logic.getRoleId();
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const slot of this.deps.dummyWeaponSlots) {
+      const evaluation = slot.logic.evaluateSelection({
+        distanceToTarget: distanceToPlayer,
+        tacticalIntent: this.state.lastDummyTacticalIntent,
+        splashRiskTolerance: this.state.lastDummyTacticalIntent === "retreat" ? "avoid" : "cautious",
+        targetSpacing: "neutral"
+      }, now);
+
+      if (evaluation.score > bestScore) {
+        bestScore = evaluation.score;
+        bestSlot = slot;
+        bestRole = evaluation.role;
+      }
+    }
+
+    this.state.currentDummyWeaponId = bestSlot.id;
+    this.state.currentDummyWeaponRole = bestRole;
+
+    return {
+      slot: bestSlot,
+      role: bestRole
+    };
   }
 
   public tryEquipSlot(slotIndex: number, eventPrefix: string, now = this.scene.time.now): void {

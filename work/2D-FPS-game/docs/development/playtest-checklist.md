@@ -39,6 +39,13 @@ Use this before marking a prototype change as ready for another iteration.
 - Confirm the dummy repositions toward cover when line of sight is blocked.
 - Confirm the dummy does not fire through the vent gate or other active blockers.
 
+## Tactical Snapshot Checks
+
+- Confirm `getHudSnapshot().tactical.intent` changes between `pressure`, `hold`, `retreat`, and `flank` in believable situations.
+- Confirm `getHudSnapshot().tactical.chosenWeaponId` matches the dummy's visible weapon swap behavior.
+- Confirm `getHudSnapshot().tactical.chosenWeaponRole` stays readable and stable enough for QA notes.
+- Confirm `getDebugSnapshot().tactical.targetCoverIndex` and `targetCoverEffect` are populated when the dummy commits to cover-aware movement.
+
 ## Pass Criteria
 
 - No runtime errors in the browser console.

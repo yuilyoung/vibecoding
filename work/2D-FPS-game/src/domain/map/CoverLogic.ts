@@ -1,8 +1,9 @@
 import { createCenteredRect, type Rect } from "../collision/CollisionLogic";
+import type { LineOfSightObstacle } from "../ai/LineOfSightLogic";
 import type { MapObjectState } from "./MapObjectLogic";
 
-const COVER_WIDTH = 48;
-const COVER_HEIGHT = 16;
+export const COVER_WIDTH = 48;
+export const COVER_HEIGHT = 16;
 
 export interface CoverBulletSegment {
   readonly x: number;
@@ -11,18 +12,41 @@ export interface CoverBulletSegment {
   readonly prevY: number;
 }
 
+export function isActiveCover(cover: MapObjectState): boolean {
+  return cover.kind === "cover" && cover.active && cover.hp > 0;
+}
+
+export function getCoverRect(cover: MapObjectState): Rect | undefined {
+  if (!isActiveCover(cover)) {
+    return undefined;
+  }
+
+  return createCenteredRect(cover.x, cover.y, COVER_WIDTH, COVER_HEIGHT);
+}
+
+export function getCoverLineOfSightObstacle(cover: MapObjectState): LineOfSightObstacle | undefined {
+  const rect = getCoverRect(cover);
+
+  if (rect === undefined) {
+    return undefined;
+  }
+
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
 export function isBulletBlocked(cover: MapObjectState, bullet: CoverBulletSegment): boolean {
-  if (cover.kind !== "cover" || !cover.active || cover.hp <= 0) {
+  const rect = getCoverRect(cover);
+
+  if (rect === undefined) {
     return false;
   }
 
-  return segmentIntersectsRectInclusive(
-    bullet.prevX,
-    bullet.prevY,
-    bullet.x,
-    bullet.y,
-    createCenteredRect(cover.x, cover.y, COVER_WIDTH, COVER_HEIGHT)
-  );
+  return segmentIntersectsRectInclusive(bullet.prevX, bullet.prevY, bullet.x, bullet.y, rect);
 }
 
 function segmentIntersectsRectInclusive(x1: number, y1: number, x2: number, y2: number, rect: Rect): boolean {

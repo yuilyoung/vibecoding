@@ -21,6 +21,67 @@
   "dummyRetreatRange": 120,
   "dummyShootRange": 320,
   "dummyLowHealthThreshold": 0.35,
+  "botTactics": {
+    "engageRange": 260,
+    "preferredHoldRange": 180,
+    "flankRange": 220,
+    "retreatRange": 120,
+    "retreatHealthThreshold": 0.35,
+    "coverHealthThreshold": 0.8,
+    "reengageHealthThreshold": 0.92,
+    "targetWeakHealthThreshold": 0.45,
+    "coverSearchRadius": 220,
+    "flankCommitMs": 1400,
+    "weatherCautionVisionMultiplier": 0.85
+  },
+  "weaponRoles": {
+    "carbine": {
+      "idealRange": [140, 280],
+      "burstSize": 3,
+      "splashCaution": 0,
+      "targetPreference": "exposed",
+      "tacticalTags": ["hold", "pressure", "mid-range"]
+    },
+    "scatter": {
+      "idealRange": [0, 150],
+      "burstSize": 1,
+      "splashCaution": 0,
+      "targetPreference": "closest",
+      "tacticalTags": ["pressure", "flank", "close-range"]
+    },
+    "bazooka": {
+      "idealRange": [180, 360],
+      "burstSize": 1,
+      "splashCaution": 0.85,
+      "targetPreference": "clustered",
+      "tacticalTags": ["hold", "denial", "splash"]
+    },
+    "grenade": {
+      "idealRange": [120, 260],
+      "burstSize": 1,
+      "splashCaution": 0.9,
+      "targetPreference": "clustered",
+      "tacticalTags": ["flank", "denial", "bounce"]
+    },
+    "sniper": {
+      "idealRange": [260, 900],
+      "burstSize": 1,
+      "splashCaution": 0,
+      "targetPreference": "weakened",
+      "tacticalTags": ["hold", "precision", "long-range"]
+    },
+    "airStrike": {
+      "idealRange": [220, 520],
+      "burstSize": 1,
+      "splashCaution": 1,
+      "targetPreference": "clustered",
+      "tacticalTags": ["hold", "denial", "indirect"]
+    }
+  },
+  "combatTuning": {
+    "intentCooldownMs": 900,
+    "debugExposeTacticalIntent": true
+  },
   "hazardDamage": 7,
   "hazardTickMs": 900,
   "coverPointRadius": 18,

@@ -242,10 +242,17 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
   const coverAfterBurst = await withScene(page, (scene: DebugScene) => {
     return scene.debugGetMapObjectStates().find((object) => object.id === "relay-cover-a");
   });
-  const afterBurst = await readSnapshot(page);
 
   expect(coverAfterBurst?.active).toBe(false);
-  expect(afterBurst.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
+
+  await withScene(page, (scene: DebugScene) => {
+    scene.debugMovePlayerTo(240, 204);
+    scene.debugMoveDummyTo(380, 204);
+    scene.debugFireAt(380, 204);
+  });
+  await advanceFrames(page, 4, 60);
+
+  await expect.poll(async () => (await readSnapshot(page)).dummyHealth).toBeLessThan(afterFirst.dummyHealth);
 });
 
 test("bounce wall reflects a linear projectile and flips its y velocity", async ({ page }) => {

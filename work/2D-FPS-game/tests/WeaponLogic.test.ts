@@ -352,4 +352,123 @@ describe("WeaponLogic", () => {
     expect(weapon.getReserveAmmo(60)).toBe(4);
     expect(weapon.isReloading(60)).toBe(false);
   });
+
+  it("scores close-range pressure weapons above anchor weapons at short distance", () => {
+    const scatter = new WeaponLogic({
+      fireRateMs: 560,
+      bulletSpeed: 480,
+      damage: 12,
+      magazineSize: 3,
+      reloadTimeMs: 1500,
+      reserveAmmo: 12,
+      roleProfile: {
+        role: "scatter",
+        idealRange: [0, 140],
+        burstSize: 3,
+        tacticalTags: ["pressure"],
+        splashRisk: "low"
+      }
+    });
+    const carbine = new WeaponLogic({
+      fireRateMs: 180,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 6,
+      reloadTimeMs: 1200,
+      reserveAmmo: 24,
+      roleProfile: {
+        role: "carbine",
+        idealRange: [160, 340],
+        burstSize: 1,
+        tacticalTags: ["hold", "anchor"],
+        splashRisk: "low"
+      }
+    });
+
+    const scatterScore = scatter.evaluateSelection({
+      distanceToTarget: 90,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid"
+    }, 0);
+    const carbineScore = carbine.evaluateSelection({
+      distanceToTarget: 90,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid"
+    }, 0);
+
+    expect(scatterScore.role).toBe("scatter");
+    expect(scatterScore.score).toBeGreaterThan(carbineScore.score);
+    expect(scatterScore.reasons).toContain("ideal-range");
+    expect(scatterScore.reasons).toContain("intent:pressure");
+  });
+
+  it("penalizes high-splash weapons when the selection context avoids blast risk", () => {
+    const bazooka = new WeaponLogic({
+      fireRateMs: 1100,
+      bulletSpeed: 360,
+      damage: 45,
+      magazineSize: 1,
+      reloadTimeMs: 1800,
+      reserveAmmo: 5,
+      roleProfile: {
+        role: "explosive",
+        idealRange: [160, 320],
+        burstSize: 1,
+        tacticalTags: ["pressure", "denial"],
+        splashRisk: "high"
+      }
+    });
+    const carbine = new WeaponLogic({
+      fireRateMs: 180,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 6,
+      reloadTimeMs: 1200,
+      reserveAmmo: 24,
+      roleProfile: {
+        role: "carbine",
+        idealRange: [150, 340],
+        burstSize: 1,
+        tacticalTags: ["hold", "anchor", "safe"],
+        splashRisk: "low"
+      }
+    });
+
+    const bazookaScore = bazooka.evaluateSelection({
+      distanceToTarget: 220,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid",
+      targetSpacing: "tight"
+    }, 0);
+    const carbineScore = carbine.evaluateSelection({
+      distanceToTarget: 220,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid",
+      targetSpacing: "tight"
+    }, 0);
+
+    expect(bazookaScore.reasons).toContain("splash:avoid");
+    expect(carbineScore.score).toBeGreaterThan(bazookaScore.score);
+  });
+
+  it("falls back to readiness and ammo state when no role profile exists", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 180,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 3,
+      reloadTimeMs: 1200,
+      reserveAmmo: 6
+    });
+
+    weapon.tryFire(0);
+    const evaluation = weapon.evaluateSelection({
+      distanceToTarget: 999,
+      tacticalIntent: "hold"
+    }, 200);
+
+    expect(evaluation.role).toBeNull();
+    expect(evaluation.score).toBeGreaterThan(0);
+    expect(evaluation.reasons).toContain("default-profile");
+  });
 });

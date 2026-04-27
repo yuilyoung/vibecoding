@@ -16,6 +16,15 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 - Confirm blocked line of sight causes `reposition` instead of repeated blocked fire.
 - Confirm the dummy can still chase or flank when cover is irrelevant.
 
+## Tactical Intent Interpretation
+
+- `pressure`: the dummy should close or maintain an attacking lane and usually prefer mid-range or close-range weapons.
+- `hold`: the dummy should anchor a readable angle, avoid overextending, and prefer stable ranged options.
+- `retreat`: the dummy should create space first; aggressive splash choices should become less likely.
+- `flank`: the dummy should bias lateral movement and opportunistic close-range pressure.
+- `targetCoverEffect`: use this to judge whether the bot is trying to route through `vision-jam`, `shield`, or `repair` cover rather than only reacting to its current occupied cover.
+- `chosenWeaponRole`: use this field when adjusting `weaponRoles` so tuning discussion references exported runtime terms, not guesswork.
+
 ## Hazard Checks
 
 - Confirm the player can recognize the vent before taking repeated damage.

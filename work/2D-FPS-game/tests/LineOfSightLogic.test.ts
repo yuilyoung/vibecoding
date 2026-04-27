@@ -1,4 +1,4 @@
-import { hasLineOfSight } from "../src/domain/ai/LineOfSightLogic";
+import { findClosestBlockingObstacle, hasLineOfSight } from "../src/domain/ai/LineOfSightLogic";
 
 describe("LineOfSightLogic", () => {
   it("returns true when the segment is unobstructed", () => {
@@ -52,5 +52,28 @@ describe("LineOfSightLogic", () => {
     );
 
     expect(result).toBe(false);
+  });
+
+  it("returns the nearest blocking obstacle along the segment", () => {
+    const result = findClosestBlockingObstacle(
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      [
+        { x: 150, y: -15, width: 20, height: 30 },
+        { x: 60, y: -15, width: 20, height: 30 }
+      ]
+    );
+
+    expect(result).toEqual({ x: 60, y: -15, width: 20, height: 30 });
+  });
+
+  it("returns undefined when no obstacle blocks the segment", () => {
+    const result = findClosestBlockingObstacle(
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      [{ x: 50, y: 40, width: 20, height: 20 }]
+    );
+
+    expect(result).toBeUndefined();
   });
 });

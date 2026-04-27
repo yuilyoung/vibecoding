@@ -75,6 +75,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
+  await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
@@ -87,22 +88,6 @@ const enterCombat = async (page: Page): Promise<void> => {
   });
 
   await expect.poll(async () => withScene(page, (scene) => scene.getDebugSnapshot().phase)).toBe("COMBAT LIVE");
-};
-
-const setWind = async (page: Page, angleDegrees: number, strength: number): Promise<void> => {
-  await page.evaluate(({ nextAngleDegrees, nextStrength }) => {
-    const game = window.__FPS_GAME__;
-    const scene = game?.scene.keys.MainScene as { runtimeState?: { currentWind: { angleDegrees: number; strength: number } } } | undefined;
-
-    if (scene?.runtimeState === undefined) {
-      throw new Error("Missing runtimeState.currentWind.");
-    }
-
-    scene.runtimeState.currentWind = {
-      angleDegrees: nextAngleDegrees,
-      strength: nextStrength
-    };
-  }, { nextAngleDegrees: angleDegrees, nextStrength: strength });
 };
 
 const injectAndAdvanceProjectile = async (page: Page, input: {
@@ -227,8 +212,12 @@ test("fog weather lowers vision range and activates the fog renderer", async ({ 
 test("sandstorm adds wind drift to linear projectiles", async ({ page }) => {
   await enterCombat(page);
 
-  await withScene(page, (scene) => scene.debugSetWeather("clear"));
-  await setWind(page, 0, 3);
+  await withScene(page, (scene) => {
+    scene.debugSetWeather("clear");
+    const runtimeState = scene.runtimeState as { currentWind: { angleDegrees: number; strength: number } };
+    runtimeState.currentWind = { angleDegrees: 0, strength: 3 };
+    scene.update(0, 16);
+  });
   const calm = await injectAndAdvanceProjectile(page, {
     startX: 120,
     startY: 500,
@@ -237,7 +226,12 @@ test("sandstorm adds wind drift to linear projectiles", async ({ page }) => {
   });
   await withScene(page, (scene) => scene.clearBullets());
 
-  await withScene(page, (scene) => scene.debugSetWeather("sandstorm"));
+  await withScene(page, (scene) => {
+    scene.debugSetWeather("sandstorm");
+    const runtimeState = scene.runtimeState as { currentWind: { angleDegrees: number; strength: number } };
+    runtimeState.currentWind = { angleDegrees: 0, strength: 3 };
+    scene.update(0, 16);
+  });
   const windy = await injectAndAdvanceProjectile(page, {
     startX: 120,
     startY: 500,

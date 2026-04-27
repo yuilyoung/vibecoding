@@ -114,4 +114,32 @@ describe("HudPresenters", () => {
       minesDisabled: false
     });
   });
+
+  it("passes tactical snapshot data through unchanged", () => {
+    const snapshot = buildHudSnapshot({
+      ...bossWaveInput,
+      combat: {
+        ...bossWaveInput.combat,
+        tactical: {
+          intent: "hold",
+          targetCoverIndex: 1,
+          targetCoverEffect: "shield",
+          chosenWeaponId: "carbine",
+          chosenWeaponRole: "mid-range"
+        }
+      }
+    }, {
+      visible: false,
+      title: "",
+      subtitle: ""
+    });
+
+    expect(snapshot.tactical).toEqual({
+      intent: "hold",
+      targetCoverIndex: 1,
+      targetCoverEffect: "shield",
+      chosenWeaponId: "carbine",
+      chosenWeaponRole: "mid-range"
+    });
+  });
 });

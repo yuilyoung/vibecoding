@@ -19,6 +19,13 @@ interface HudSnapshot {
   movementMode: string;
   movementBlocked: boolean;
   coverVisionActive: boolean;
+  tactical?: {
+    intent: "pressure" | "hold" | "retreat" | "flank";
+    targetCoverIndex: number | null;
+    targetCoverEffect: "vision-jam" | "shield" | "repair" | null;
+    chosenWeaponId: string;
+    chosenWeaponRole: string | null;
+  };
   overlay: {
     visible: boolean;
     title: string;
@@ -26,8 +33,13 @@ interface HudSnapshot {
   };
 }
 
+interface DebugSnapshot {
+  tactical: NonNullable<HudSnapshot["tactical"]>;
+}
+
 interface DebugScene {
   getHudSnapshot(): HudSnapshot;
+  getDebugSnapshot(): DebugSnapshot;
   debugEnterStage(): void;
   debugSelectTeam(team: "BLUE" | "RED"): void;
   debugConfirmTeamSelection(): void;
@@ -35,8 +47,12 @@ interface DebugScene {
   debugSwapWeapon(): void;
   debugFire(): void;
   debugMovePlayerTo(x: number, y: number): void;
+  debugMoveDummyTo(x: number, y: number): void;
   debugToggleGate(): void;
   debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void;
+  updateDummyCoverState(now: number): void;
+  time: { now: number };
+  hazardZone: { bounds: { x: number; y: number; width: number; height: number } };
 }
 
 const withScene = async <T>(page: Page, action: (scene: DebugScene) => T): Promise<T> => {
@@ -117,6 +133,10 @@ test("records browser playtest observations for movement, cover, hazard, audio, 
   await page.keyboard.up("d");
   await page.keyboard.up(" ");
 
+  const tacticalSnapshot = await withScene(page, (scene: DebugScene) => scene.getDebugSnapshot());
+  expect(tacticalSnapshot.tactical.chosenWeaponId.length).toBeGreaterThan(0);
+  expect(["pressure", "hold", "retreat", "flank"]).toContain(tacticalSnapshot.tactical.intent);
+
   await page.locator("canvas").click({ position: { x: 220, y: 220 } });
   await page.keyboard.press("2");
   snapshot = await readHudSnapshot(page);
@@ -146,24 +166,23 @@ test("records browser playtest observations for movement, cover, hazard, audio, 
   }
   expect(snapshot.gateOpen).toBe(true);
 
-  await withScene(page, (scene: DebugScene) => scene.debugMovePlayerTo(510, 138));
+  const hazardCenter = await withScene(page, (scene: DebugScene) => ({
+    x: scene.hazardZone.bounds.x + scene.hazardZone.bounds.width / 2,
+    y: scene.hazardZone.bounds.y + scene.hazardZone.bounds.height / 2
+  }));
+  await page.evaluate(([x, y]) => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as unknown as DebugScene;
+    scene.debugMovePlayerTo(x, y);
+  }, [hazardCenter.x, hazardCenter.y]);
   const beforeHazard = await readHudSnapshot(page);
   await expect.poll(async () => (await readHudSnapshot(page)).playerHealth, { timeout: 1_500 }).toBeLessThan(beforeHazard.playerHealth);
   snapshot = await readHudSnapshot(page);
   expect(snapshot.lastSoundCue).toBe("hazard.tick");
 
-  const coverVisionActive = await page.evaluate(() => {
-    const game = window.__FPS_GAME__;
-    const scene = game?.scene.keys.MainScene as unknown as {
-      targetDummy: { setPosition: (x: number, y: number) => void };
-      time: { now: number };
-      updateDummyCoverState: (now: number) => void;
-      activeDummyCoverIndex: number | null;
-      getHudSnapshot: () => HudSnapshot;
-    };
-    scene.targetDummy.setPosition(700, 160);
+  const coverVisionActive = await withScene(page, (scene: DebugScene) => {
+    scene.debugMoveDummyTo(700, 160);
     scene.updateDummyCoverState(scene.time.now);
-    scene.activeDummyCoverIndex = 0;
     return scene.getHudSnapshot().coverVisionActive;
   });
   expect(coverVisionActive).toBe(true);

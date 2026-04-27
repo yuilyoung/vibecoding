@@ -595,7 +595,7 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.scoreText, `${snapshot.playerScore} : ${snapshot.dummyScore}`, "score-text");
   updateText(hudElements.roundText, `Round ${snapshot.roundNumber} / First to ${snapshot.scoreToWin}`, "round-text");
   updateText(hudElements.dummyHealthText, `${snapshot.dummyHealth}/${snapshot.dummyMaxHealth}`, "dummy-health-text");
-  updateText(hudElements.spawnText, snapshot.spawn, "spawn-text");
+  updateText(hudElements.spawnText, formatSpawnStatus(snapshot), "spawn-text");
   updateText(hudElements.eventText, toActionCallout(snapshot), "event-text");
   updateText(hudElements.gateText, snapshot.gateOpen ? "Gate Open" : "Gate Closed", "gate-text");
   updateText(hudElements.weaponSlotText, String(snapshot.weaponSlot), "weapon-slot-text");
@@ -758,6 +758,17 @@ function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnap
           x: fallbackNumber(snapshot.blastPreview.x, 480),
           y: fallbackNumber(snapshot.blastPreview.y, 270),
           radius: fallbackNumber(snapshot.blastPreview.radius, 0)
+        },
+    tactical: snapshot?.tactical === undefined
+      ? undefined
+      : {
+          intent: snapshot.tactical.intent,
+          targetCoverIndex: snapshot.tactical.targetCoverIndex,
+          targetCoverEffect: snapshot.tactical.targetCoverEffect,
+          chosenWeaponId: fallbackText(snapshot.tactical.chosenWeaponId, "carbine"),
+          chosenWeaponRole: snapshot.tactical.chosenWeaponRole === null
+            ? null
+            : fallbackText(snapshot.tactical.chosenWeaponRole, "mid-range")
         },
     overlay: {
       visible: Boolean(snapshot?.overlay?.visible),
@@ -936,6 +947,21 @@ function formatStageStatus(snapshot: HudSnapshot): string {
   }
 
   return `${area.stageLabel} ${area.stageIndex}/${area.stageCount}`;
+}
+
+function formatSpawnStatus(snapshot: HudSnapshot): string {
+  const tactical = snapshot.tactical;
+
+  if (tactical === undefined || snapshot.phase !== "COMBAT LIVE") {
+    return snapshot.spawn;
+  }
+
+  const coverLabel = tactical.targetCoverEffect === null
+    ? "Open lane"
+    : sentenceCase(tactical.targetCoverEffect).replace(".", "");
+  const roleLabel = tactical.chosenWeaponRole ?? tactical.chosenWeaponId;
+
+  return `${snapshot.spawn} · Dummy ${tactical.intent} / ${roleLabel} / ${coverLabel}`;
 }
 
 function formatCooldownStatus(snapshot: HudSnapshot): string {

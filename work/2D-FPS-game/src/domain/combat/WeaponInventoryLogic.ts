@@ -1,4 +1,4 @@
-import { WeaponLogic, type WeaponConfig } from "./WeaponLogic";
+import { WeaponLogic, type WeaponConfig, type WeaponSelectionContext } from "./WeaponLogic";
 
 export interface WeaponSlotState {
   readonly id: string;
@@ -10,6 +10,15 @@ export interface WeaponInventoryConfig {
   readonly id: string;
   readonly label: string;
   readonly config: WeaponConfig;
+}
+
+export interface WeaponSelectionResult {
+  readonly selectedIndex: number;
+  readonly changed: boolean;
+  readonly slot: WeaponSlotState;
+  readonly role: string | null;
+  readonly score: number;
+  readonly reasons: readonly string[];
 }
 
 export class WeaponInventoryLogic {
@@ -59,6 +68,43 @@ export class WeaponInventoryLogic {
     this.slots[this.activeIndex].logic?.cancelReload(atTimeMs);
     this.activeIndex = index;
     return true;
+  }
+
+  public selectBestWeapon(
+    context: WeaponSelectionContext,
+    atTimeMs = 0
+  ): WeaponSelectionResult {
+    let bestIndex = this.activeIndex;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    let bestRole: string | null = null;
+    let bestReasons: readonly string[] = [];
+
+    this.slots.forEach((slot, index) => {
+      const logic = slot.logic;
+      if (logic === undefined) {
+        return;
+      }
+
+      const evaluation = logic.evaluateSelection(context, atTimeMs);
+      const tieBreaker = index === this.activeIndex ? 1 : 0;
+      const weightedScore = evaluation.score + tieBreaker;
+      if (weightedScore > bestScore) {
+        bestScore = weightedScore;
+        bestIndex = index;
+        bestRole = evaluation.role;
+        bestReasons = evaluation.reasons;
+      }
+    });
+
+    const changed = this.selectSlot(bestIndex, atTimeMs);
+    return {
+      selectedIndex: bestIndex,
+      changed,
+      slot: this.slots[bestIndex],
+      role: bestRole,
+      score: bestScore,
+      reasons: bestReasons
+    };
   }
 
   public reset(): void {

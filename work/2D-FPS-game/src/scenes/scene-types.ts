@@ -85,6 +85,35 @@ export interface GameBalanceWeather {
   readonly types: Readonly<Record<WeatherType, GameBalanceWeatherTypeConfig>>;
 }
 
+export interface GameBalanceBotTactics {
+  readonly engageRange: number;
+  readonly preferredHoldRange: number;
+  readonly flankRange: number;
+  readonly retreatRange: number;
+  readonly retreatHealthThreshold: number;
+  readonly coverHealthThreshold: number;
+  readonly reengageHealthThreshold: number;
+  readonly targetWeakHealthThreshold: number;
+  readonly coverSearchRadius: number;
+  readonly flankCommitMs: number;
+  readonly weatherCautionVisionMultiplier: number;
+}
+
+export type WeaponRoleTargetPreference = "closest" | "exposed" | "clustered" | "weakened";
+
+export interface GameBalanceWeaponRole {
+  readonly idealRange: readonly [number, number];
+  readonly burstSize: number;
+  readonly splashCaution: number;
+  readonly targetPreference: WeaponRoleTargetPreference;
+  readonly tacticalTags: readonly string[];
+}
+
+export interface GameBalanceCombatTuning {
+  readonly intentCooldownMs: number;
+  readonly debugExposeTacticalIntent: boolean;
+}
+
 export interface GameBalance {
   movementSpeed: number;
   dashMultiplier: number;
@@ -129,6 +158,9 @@ export interface GameBalance {
   wind: GameBalanceWind;
   weather: GameBalanceWeather;
   mapObjects: GameBalanceMapObjects;
+  botTactics?: GameBalanceBotTactics;
+  weaponRoles?: Readonly<Record<string, GameBalanceWeaponRole>>;
+  combatTuning?: GameBalanceCombatTuning;
   weapons?: Record<string, unknown>;
 }
 
@@ -236,6 +268,16 @@ export interface CoverPointView {
 
 export type CoverEffectId = "vision-jam" | "shield" | "repair";
 
+export type CombatTacticalIntent = "pressure" | "hold" | "retreat" | "flank";
+
+export interface TacticalSnapshot {
+  readonly intent: CombatTacticalIntent;
+  readonly targetCoverIndex: number | null;
+  readonly targetCoverEffect: CoverEffectId | null;
+  readonly chosenWeaponId: string;
+  readonly chosenWeaponRole: string | null;
+}
+
 export interface TerrainCrop {
   x: number;
   y: number;
@@ -270,6 +312,8 @@ export interface MainSceneDebugSnapshot {
   lastEvent: string;
   playerX: number;
   playerY: number;
+  dummyX: number;
+  dummyY: number;
   playerHullAngle: number;
   wind: WindState & {
     forceX: number;
@@ -279,6 +323,7 @@ export interface MainSceneDebugSnapshot {
     global: WeatherState;
     effective: WeatherState;
   };
+  tactical: TacticalSnapshot;
   mapObjects: MapObjectDebugSummary;
 }
 

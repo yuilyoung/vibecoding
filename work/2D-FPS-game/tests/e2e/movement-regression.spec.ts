@@ -74,11 +74,16 @@ const stabilizeEnvironment = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
+  await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible();
   await waitForSceneReady(page);
   await canvas.click({ position: { x: 220, y: 220 } });
+  const dismissTutorial = page.getByTestId("tutorial-hide");
+  if (await dismissTutorial.isVisible()) {
+    await dismissTutorial.click();
+  }
 
   await withScene(page, (scene: DebugScene) => scene.debugEnterStage());
   await withScene(page, (scene: DebugScene) => {
@@ -100,6 +105,7 @@ test("player can still move right near the top-left playfield corner", async ({ 
   });
 
   const before = await readSnapshot(page);
+  await page.locator("canvas").focus();
   await page.keyboard.down("d");
   await page.waitForTimeout(220);
   await page.keyboard.up("d");
@@ -118,6 +124,7 @@ test("player is not blocked too early when strafing toward the left cover obstac
   });
 
   const before = await readSnapshot(page);
+  await page.locator("canvas").focus();
   await page.keyboard.down("d");
   await page.waitForTimeout(220);
   await page.keyboard.up("d");

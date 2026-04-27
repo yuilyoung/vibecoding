@@ -28,6 +28,7 @@ interface DebugScene {
   debugSelectTeam(team: "BLUE" | "RED"): void;
   debugConfirmTeamSelection(): void;
   debugForceCombatLive(): void;
+  debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   clearBullets(): void;
   update(time: number, delta: number): void;
 }
@@ -54,7 +55,28 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
   });
 };
 
+const stabilizeEnvironment = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as
+      | {
+          runtimeState?: { currentWind: { angleDegrees: number; strength: number } };
+          debugSetWeather?: (type: "clear") => void;
+        }
+      | undefined;
+
+    if (scene?.runtimeState === undefined || scene.debugSetWeather === undefined) {
+      throw new Error("Missing environment debug handles.");
+    }
+
+    scene.runtimeState.currentWind = { angleDegrees: 0, strength: 0 };
+    scene.debugSetWeather("clear");
+    scene.update(0, 16);
+  });
+};
+
 const enterCombat = async (page: Page): Promise<void> => {
+  await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
@@ -65,6 +87,7 @@ const enterCombat = async (page: Page): Promise<void> => {
     scene.debugConfirmTeamSelection();
     scene.debugForceCombatLive();
   });
+  await stabilizeEnvironment(page);
 
   await expect.poll(async () => withScene(page, (scene: DebugScene) => scene.getDebugSnapshot().phase)).toBe("COMBAT LIVE");
 };
