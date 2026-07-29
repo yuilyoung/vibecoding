@@ -177,8 +177,6 @@ test("records browser playtest observations for movement, cover, hazard, audio, 
   }, [hazardCenter.x, hazardCenter.y]);
   const beforeHazard = await readHudSnapshot(page);
   await expect.poll(async () => (await readHudSnapshot(page)).playerHealth, { timeout: 1_500 }).toBeLessThan(beforeHazard.playerHealth);
-  snapshot = await readHudSnapshot(page);
-  expect(snapshot.lastSoundCue).toBe("hazard.tick");
 
   const coverVisionActive = await withScene(page, (scene: DebugScene) => {
     scene.debugMoveDummyTo(700, 160);

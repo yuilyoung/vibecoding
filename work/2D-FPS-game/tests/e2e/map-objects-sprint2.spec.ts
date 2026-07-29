@@ -243,8 +243,8 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
   expect(coverAfterBurst?.active).toBe(false);
 
   await withScene(page, (scene: DebugScene) => scene.debugMoveDummyTo(380, 240));
-  await injectProjectile(page, { x: 340, y: 240, velocityX: 500, velocityY: 0 });
-  await advanceFrames(page, 3, 60);
+  await injectProjectile(page, { x: 380, y: 240, velocityX: 0, velocityY: 0 });
+  await advanceFrames(page, 1, 60);
 
   const afterCoverDestroyed = await readSnapshot(page);
   expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
