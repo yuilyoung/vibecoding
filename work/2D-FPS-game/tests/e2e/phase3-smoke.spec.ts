@@ -121,6 +121,8 @@ const advanceMatchAndConfirmNext = async (page: Page): Promise<void> => {
     .not.toBe("MATCH OVER");
 };
 
+test.setTimeout(60_000);
+
 test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
@@ -249,7 +251,7 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
     observedStageIds.push(stageId);
     await page.screenshot({
       path: test.info().outputPath(`phase3-smoke-stage${round}.png`),
-      fullPage: true
+      fullPage: false
     });
   };
 

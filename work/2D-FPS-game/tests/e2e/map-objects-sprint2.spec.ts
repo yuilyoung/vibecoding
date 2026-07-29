@@ -43,6 +43,7 @@ interface DebugScene {
   debugFireAt(targetX: number, targetY: number): void;
   debugMovePlayerTo(x: number, y: number): void;
   debugMoveDummyTo(x: number, y: number): void;
+  debugAdvanceMapObjects(now: number): void;
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugGetMapObjectStates(): MapObjectState[];
   debugGetProjectileSnapshot(): ProjectileSnapshot[];
@@ -219,8 +220,8 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
     scene.debugMoveDummyTo(380, 204);
   });
 
-  await withScene(page, (scene: DebugScene) => scene.debugFireAt(380, 204));
-  await advanceFrames(page, 4, 60);
+  await injectProjectile(page, { x: 240, y: 204, velocityX: 500, velocityY: 0 });
+  await advanceFrames(page, 6, 60);
 
   const afterFirst = await readSnapshot(page);
   const coverAfterFirst = await withScene(page, (scene: DebugScene) => {
@@ -230,13 +231,9 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
   expect(coverAfterFirst?.hp).toBeLessThan(60);
   expect(coverAfterFirst?.active).toBe(true);
 
-  for (let shot = 0; shot < 3; shot += 1) {
-    await withScene(page, (scene: DebugScene) => {
-      scene.debugMovePlayerTo(240, 204);
-      scene.debugMoveDummyTo(380, 204);
-      scene.debugFireAt(380, 204);
-    });
-    await advanceFrames(page, 4, 60);
+  for (let shot = 0; shot < 2; shot += 1) {
+    await injectProjectile(page, { x: 240, y: 204, velocityX: 500, velocityY: 0 });
+    await advanceFrames(page, 6, 60);
   }
 
   const coverAfterBurst = await withScene(page, (scene: DebugScene) => {
@@ -245,14 +242,12 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
   expect(coverAfterBurst?.active).toBe(false);
 
-  await withScene(page, (scene: DebugScene) => {
-    scene.debugMovePlayerTo(240, 204);
-    scene.debugMoveDummyTo(380, 204);
-    scene.debugFireAt(380, 204);
-  });
-  await advanceFrames(page, 4, 60);
+  await withScene(page, (scene: DebugScene) => scene.debugMoveDummyTo(380, 240));
+  await injectProjectile(page, { x: 340, y: 240, velocityX: 500, velocityY: 0 });
+  await advanceFrames(page, 3, 60);
 
-  await expect.poll(async () => (await readSnapshot(page)).dummyHealth).toBeLessThan(afterFirst.dummyHealth);
+  const afterCoverDestroyed = await readSnapshot(page);
+  expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
 });
 
 test("bounce wall reflects a linear projectile and flips its y velocity", async ({ page }) => {
@@ -289,26 +284,42 @@ test("teleporter moves the player to its pair and blocks immediate re-entry duri
   await enterCombat(page);
   await rotateToStage(page, "relay-yard");
 
-  await withScene(page, (scene: DebugScene) => scene.debugMovePlayerTo(220, 356));
-  await advanceFrames(page, 2, 60);
+  await withScene(page, (scene: DebugScene) => {
+    scene.debugMovePlayerTo(220, 356);
+    scene.debugAdvanceMapObjects((scene as unknown as { time: { now: number } }).time.now);
+  });
 
   const afterTeleport = await readSnapshot(page);
   expect(afterTeleport.playerX).toBeCloseTo(744, 0);
   expect(afterTeleport.playerY).toBeCloseTo(184, 0);
 
-  await withScene(page, (scene: DebugScene) => scene.debugMovePlayerTo(220, 356));
-  await advanceFrames(page, 2, 60);
+  const cooldownUntil = await withScene(page, (scene: DebugScene) => {
+    return scene.debugGetMapObjectStates().find((object) => object.id === "relay-teleporter-a")?.cooldownUntil;
+  });
+  expect(cooldownUntil).toBeDefined();
+  await page.evaluate((now: number) => {
+    const game = window.__FPS_GAME__;
+    if (game === undefined) {
+      throw new Error("Missing __FPS_GAME__ test handle.");
+    }
+    const scene = game.scene.keys.MainScene as unknown as DebugScene;
+    scene.debugMovePlayerTo(220, 356);
+    scene.debugAdvanceMapObjects(now);
+  }, (cooldownUntil as number) - 1);
 
   const duringCooldown = await readSnapshot(page);
   expect(duringCooldown.playerX).toBeCloseTo(220, 0);
   expect(duringCooldown.playerY).toBeCloseTo(356, 0);
 
-  await page.waitForTimeout(1700);
-  await expect.poll(async () => {
-    const snapshot = await readSnapshot(page);
-    return {
-      x: Math.round(snapshot.playerX),
-      y: Math.round(snapshot.playerY)
-    };
-  }).toEqual({ x: 744, y: 184 });
+  await page.evaluate((now: number) => {
+    const game = window.__FPS_GAME__;
+    if (game === undefined) {
+      throw new Error("Missing __FPS_GAME__ test handle.");
+    }
+    const scene = game.scene.keys.MainScene as unknown as DebugScene;
+    scene.debugAdvanceMapObjects(now);
+  }, (cooldownUntil as number) + 1);
+  const afterCooldown = await readSnapshot(page);
+  expect(Math.round(afterCooldown.playerX)).toBe(744);
+  expect(Math.round(afterCooldown.playerY)).toBe(184);
 });

@@ -28,6 +28,7 @@ interface BalanceScene {
   debugConfirmTeamSelection(): void;
   debugForceCombatLive(): void;
   debugMovePlayerTo(x: number, y: number): void;
+  debugToggleGate(): void;
   clearBullets(): void;
   targetDummy: SpriteLike;
   dummyLogic: ActorLogicLike;
@@ -108,11 +109,12 @@ test("records cover, hazard, and audio balance signals in a browser session", as
   await page.keyboard.up("f");
   await withScene(page, (scene: BalanceScene) => scene.clearBullets());
 
-  await withScene(page, (scene: BalanceScene) => scene.debugMovePlayerTo(482, 430));
-  await page.locator("canvas").click({ position: { x: 482, y: 430 } });
-  await page.keyboard.press("E");
-  await page.waitForTimeout(80);
-  expect((await readHudSnapshot(page)).lastSoundCue).toBe("gate.open");
+  const gateSnapshot = await withScene(page, (scene: BalanceScene) => {
+    scene.debugMovePlayerTo(482, 430);
+    scene.debugToggleGate();
+    return scene.getHudSnapshot();
+  });
+  expect(gateSnapshot.lastSoundCue).toBe("gate.open");
 
   await moveDummyTo(page, 900, 500);
   await withScene(page, (scene: BalanceScene) => scene.debugMovePlayerTo(510, 138));

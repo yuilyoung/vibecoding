@@ -195,12 +195,12 @@ test("survives oversized combat frame deltas without overflowing runtime pools",
   await enterCombat(page, "BLUE");
   await page.mouse.move(740, 260);
 
-  for (let index = 0; index < 80; index += 1) {
-    await withScene(page, (scene: DebugScene) => {
+  await withScene(page, (scene: DebugScene) => {
+    for (let index = 0; index < 80; index += 1) {
       scene.debugFire();
       scene.update(0, 240);
-    });
-  }
+    }
+  });
 
   const snapshot = await readSnapshot(page);
   const stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());

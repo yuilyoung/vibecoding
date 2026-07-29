@@ -536,6 +536,11 @@ export class StageGeometryManager {
     this.state.lastCombatEvent = gate.open ? "GATE OPENED" : "GATE CLOSED";
   }
 
+  public debugToggleGate(): void {
+    this.applyGateToggle();
+    this.deps.emitSoundCue({ kind: "gate", action: this.requireGate().open ? "open" : "close" });
+  }
+
   private applyHazardToActor(
     actorId: "player" | "dummy",
     sprite: Phaser.GameObjects.Image,

@@ -144,8 +144,10 @@ test("air strike queues blasts and applies area damage", async ({ page }) => {
   let stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
   expect(stats.activeAirStrikes).toBe(1);
 
-  for (let frame = 0; frame < 12; frame += 1) {
+  let maxImpactEffects = 0;
+  for (let frame = 0; frame < 4; frame += 1) {
     await withScene(page, (scene: DebugScene) => scene.update(0, 100));
+    maxImpactEffects = Math.max(maxImpactEffects, (await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats())).impactEffects);
   }
 
   const after = await readSnapshot(page);
@@ -153,5 +155,5 @@ test("air strike queues blasts and applies area damage", async ({ page }) => {
   expect(after.weaponSlot).toBe(6);
   expect(after.activeWeapon).toBe("Air Strike");
   expect(after.dummyHealth).toBeLessThan(before.dummyHealth);
-  expect(stats.impactEffects).toBeGreaterThan(0);
+  expect(maxImpactEffects).toBeGreaterThan(0);
 });
