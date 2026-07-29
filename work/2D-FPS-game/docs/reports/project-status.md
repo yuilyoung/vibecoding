@@ -2,19 +2,19 @@
 
 - Date: 2026-04-27
 - Author: ultron
-- **Phase:** Phase 7 - Tactical Combat Depth (complete)
+- **Phase:** Phase 8 - Environment Audio Polish (complete)
 - Previous Phase: Phase 6 Sprint 3 - Refactoring & Hardening (complete, 2026-04-27)
-- Status: Phase 7 committed and verified, Phase 8 planning package ready
+- Status: Phase 8 implemented, independently reviewed, and fully verified
 
 | Key | Value |
 | --- | --- |
 | Active milestone | Phase 8 - Environment Audio Polish |
-| Development status | Phase 7 implementation is complete, committed, and fully browser-verified. The Phase 8 planning and handoff package is ready for execution. |
+| Development status | Phase 8 T0-T8 are complete: controller-owned generated weather loops, QA observability, automated verification, and PR CI are ready. |
 | Verification | pass |
 
 ## Summary
 
-Phase 7 is complete in the active workspace. Tactical combat depth now includes explicit bot intent, cover-aware positioning, role-aware weapon selection, and tactical HUD/debug visibility. The balance contract remains config-first and tactical behavior is backed by deterministic unit and E2E coverage.
+Phase 8 is complete in the active workspace. Generated Web Audio is config-driven, weather loops are controller-owned, reset-safe replay is deterministic, and HUD/debug exposes active loop and suppression state for QA.
 
 ## Completed Work
 
@@ -42,7 +42,7 @@ Phase 7 is complete in the active workspace. Tactical combat depth now includes 
 
 ## In Progress
 
-No Phase 8 implementation task is currently in progress. The next useful work is to start the Environment Audio Polish execution slice from the prepared handoff.
+Phase 8 is closed. Phase 9 selection is the next product decision; no implementation task is active.
 
 ## Blocking Issues
 
@@ -52,9 +52,7 @@ None.
 
 | Priority | ID | Task | Owner | Estimate |
 | --- | --- | --- | --- | --- |
-| 1 | T1 | Audit current audio contract and lock the Phase 8 execution slice. | ultron/audio-specialist | 0.5d |
-| 2 | T2 | Expand generated cue tuning contract and cue profile definitions. | ultron/audio-specialist | 0.5d |
-| 3 | T3 | Improve runtime prioritization, loop switching, and anti-fatigue behavior. | ultron/audio-specialist | 1.0d |
+| 1 | Phase 9 | Select the next product slice: asset/UI readability, vehicle, or progression. | vision / product | decision |
 
 ## Risks
 
@@ -67,6 +65,7 @@ None.
 
 - [Phase 8 WBS](../planning/phase8-wbs.md)
 - [Phase 8 Tasks JSON](../planning/phase8-tasks.json)
+- [Phase 8 Audio Audit](../development/phase8-audio-audit.md)
 - [Phase 7 WBS](../planning/phase7-wbs.md)
 - [Phase 7 Tasks JSON](../planning/phase7-tasks.json)
 - [Execution Report](../../../../docs/handoffs/current-execution-report.md)

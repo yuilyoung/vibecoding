@@ -4,7 +4,7 @@
   "handoff": "../../../../docs/handoffs/current-handoff.json",
   "wbs": "./phase8-wbs.md",
   "created": "2026-04-27",
-  "status": "planned",
+  "status": "complete",
   "previousPhase": {
     "id": "phase-7-tactical-combat-depth",
     "tasks": "./phase7-tasks.json",
@@ -30,13 +30,14 @@
       "id": "T1",
       "subject": "Audit current audio contract and lock the execution slice",
       "assignee": "ultron/audio-specialist via codex/subagents/game-specialist-phase8.md",
-      "status": "pending",
-      "description": "Review generated cue behavior, weather loop handling, and current QA visibility, then lock the Phase 8 execution slice without widening scope.",
+      "status": "completed",
+      "description": "Reviewed generated cue behavior, weather loop handling, and current QA visibility, then locked the Phase 8 execution slice without widening scope. Findings are captured in docs/development/phase8-audio-audit.md.",
       "files": [
         "src/domain/audio/AudioCueLogic.ts",
         "src/domain/audio/SoundCueLogic.ts",
         "src/audio/sound-cue-contract.ts",
-        "src/scenes/audio-feedback-controller.ts"
+        "src/scenes/audio-feedback-controller.ts",
+        "docs/development/phase8-audio-audit.md"
       ],
       "acceptance": ["A2"]
     },
@@ -44,13 +45,14 @@
       "id": "T2",
       "subject": "Expand generated cue tuning contract and cue profile definitions",
       "assignee": "ultron/audio-specialist via codex/subagents/game-specialist-phase8.md",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T1"],
-      "description": "Add config-friendly cue tuning or profile definitions for generated audio so combat, pickup, hazard, and weather cues are easier to separate and tune.",
+      "description": "Added config-friendly cue tuning for generated audio through gameBalance.audio.maxSimultaneous and gameBalance.audio.cueProfiles, then wired those profiles into GeneratedAudioCuePlayer and AudioFeedbackController with pure unit coverage.",
       "files": [
         "src/domain/audio/GeneratedAudioCuePlayer.ts",
         "src/domain/audio/AudioCueLogic.ts",
-        "assets/data/game-balance.json"
+        "assets/data/game-balance.json",
+        "tests/GeneratedAudioCuePlayer.test.ts"
       ],
       "acceptance": ["A3"]
     },
@@ -58,13 +60,16 @@
       "id": "T3",
       "subject": "Improve runtime prioritization, loop switching, and anti-fatigue behavior",
       "assignee": "ultron/audio-specialist via codex/subagents/game-specialist-phase8.md",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T2"],
-      "description": "Tighten audio cue priority, weather loop switching, and repeated-cue fatigue handling while preserving deterministic routing.",
+      "description": "Centralized active weather-loop ownership in AudioFeedbackController, added config-driven cue-rule overrides, and introduced runtime cooldown protection for loop replay while preserving deterministic routing.",
       "files": [
+        "src/domain/audio/AudioCueLogic.ts",
         "src/scenes/audio-feedback-controller.ts",
         "src/scenes/hud-controller.ts",
-        "src/audio/sound-cue-contract.ts"
+        "src/audio/sound-cue-contract.ts",
+        "assets/data/game-balance.json",
+        "tests/AudioCueLogic.test.ts"
       ],
       "acceptance": ["A4"]
     },
@@ -72,9 +77,9 @@
       "id": "T4",
       "subject": "Expose audio debug and HUD-facing state for QA",
       "assignee": "ultron/audio-specialist via codex/subagents/game-specialist-phase8.md",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T3"],
-      "description": "Expose enough audio state through HUD or debug payloads so manual playtests and browser tests can verify mix and loop decisions.",
+      "description": "Exposed audio runtime state through HUD and debug payloads so manual playtests and browser tests can verify mix and loop decisions.",
       "files": [
         "src/scenes/debug-controller.ts",
         "src/scenes/hud-controller.ts",
@@ -89,13 +94,15 @@
       "id": "T5",
       "subject": "Add deterministic unit coverage for audio routing and loop behavior",
       "assignee": "ultron/qa",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T2", "T3", "T4"],
-      "description": "Expand unit coverage for cue selection, cooldowns, loop dedup, reset handling, and new audio debug state.",
+      "description": "Expanded unit coverage for cue selection, override rules, loop dedup, reset handling, and generated-tone override behavior.",
       "files": [
         "tests/SoundCueContract.test.ts",
         "tests/HudController.test.ts",
-        "tests/HudPresenters.test.ts"
+        "tests/HudPresenters.test.ts",
+        "tests/AudioCueLogic.test.ts",
+        "tests/GeneratedAudioCuePlayer.test.ts"
       ],
       "acceptance": ["A6"]
     },
@@ -103,7 +110,7 @@
       "id": "T6",
       "subject": "Expand browser coverage for weather and combat audio behavior",
       "assignee": "ultron/qa",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T3", "T4"],
       "description": "Extend E2E coverage so weather loop switching, repeated cue suppression, and combat audio visibility remain deterministic in the browser.",
       "files": [
@@ -116,7 +123,7 @@
       "id": "T7",
       "subject": "Update Phase 8 playtest, tuning, and direction documents",
       "assignee": "ultron/doc-writer",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T1", "T4", "T6"],
       "description": "Refresh docs so Environment Audio Polish has explicit tuning and QA guidance.",
       "files": [
@@ -131,7 +138,7 @@
       "id": "T8",
       "subject": "Run verification gates, refresh execution report, and sync postflight",
       "assignee": "ultron/qa",
-      "status": "pending",
+      "status": "completed",
       "depends": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7"],
       "description": "Close Phase 8 with verification, execution report refresh, and postflight sync.",
       "files": [

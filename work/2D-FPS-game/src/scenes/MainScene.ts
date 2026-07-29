@@ -208,7 +208,7 @@ export class MainScene extends Phaser.Scene {
     this.progressionStorage = createProgressionStorage(getBrowserStorageBackend());
     this.settingsStorage = createSettingsStorage(getBrowserStorageBackend(), "2d-fps-game:settings");
     this.settingsState = this.settingsStorage.load() ?? DEFAULT_SETTINGS;
-    this.audioFeedbackController = new AudioFeedbackController(this);
+    this.audioFeedbackController = new AudioFeedbackController(this, this.gameBalance.audio);
     this.audioFeedbackController.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume);
     this.progressionState = this.progressionStorage.load() ?? createProgressionState();
     this.unlockRules = gameBalance.unlocks.weaponRules;
@@ -388,6 +388,8 @@ export class MainScene extends Phaser.Scene {
       setMatchConfirmReadyCueSent: (sent) => { this.matchConfirmReadyCueSent = sent; },
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
       queueWeatherSoundCue: (item) => this.audioFeedbackController.queueWeatherSoundCue(item),
+      getActiveWeatherSoundCue: () => this.audioFeedbackController.getActiveWeatherSoundCue(),
+      getRuntimeAudioSnapshot: () => this.audioFeedbackController.getRuntimeAudioSnapshot(),
       enterMatchOver: () => this.matchFlow.enterMatchOver(),
       getCoverEffectId: (index) => this.dummyActorController.getCoverEffectId(index)
     });
@@ -471,6 +473,7 @@ export class MainScene extends Phaser.Scene {
       getWeatherConfig: () => this.gameBalance.weather,
       getCurrentGlobalWeather: () => this.currentGlobalWeather,
       getCurrentEffectiveWeather: () => this.currentEffectiveWeather,
+      getRuntimeAudioSnapshot: () => this.audioFeedbackController.getRuntimeAudioSnapshot(),
       setCurrentWeather: (weather) => { this.applyCurrentWeather(weather); },
       getLastSpawnSummary: () => this.lastSpawnSummary,
       getMapObjectDebugSummary: () => this.mapObjectController.getDebugSummary(),

@@ -159,8 +159,14 @@ describe("HudController", () => {
   });
 
   it("queues a weather loop once per unique audible weather type", () => {
-    const queueWeatherSoundCue = vi.fn();
-    new HudController(createScene(), createState(), createDeps({ queueWeatherSoundCue }));
+    let activeWeatherSoundCue: string | null = null;
+    const queueWeatherSoundCue = vi.fn((item: { action: "play" | "stop"; cue: string }) => {
+      activeWeatherSoundCue = item.action === "play" ? item.cue : null;
+    });
+    new HudController(createScene(), createState(), createDeps({
+      queueWeatherSoundCue,
+      getActiveWeatherSoundCue: () => activeWeatherSoundCue as never
+    }));
 
     publishWeatherChanged({
       type: "rain",
@@ -189,8 +195,14 @@ describe("HudController", () => {
   });
 
   it("stops the active weather loop on clear weather and on MATCH_RESET, then replays after reset", () => {
-    const queueWeatherSoundCue = vi.fn();
-    new HudController(createScene(), createState(), createDeps({ queueWeatherSoundCue }));
+    let activeWeatherSoundCue: string | null = null;
+    const queueWeatherSoundCue = vi.fn((item: { action: "play" | "stop"; cue: string }) => {
+      activeWeatherSoundCue = item.action === "play" ? item.cue : null;
+    });
+    new HudController(createScene(), createState(), createDeps({
+      queueWeatherSoundCue,
+      getActiveWeatherSoundCue: () => activeWeatherSoundCue as never
+    }));
 
     publishWeatherChanged({
       type: "storm",

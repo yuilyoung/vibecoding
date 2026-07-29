@@ -10,6 +10,7 @@ interface DebugScene {
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugGetWeatherSoundQueue(): readonly unknown[];
   debugClearWeatherSoundQueue(): void;
+  getDebugSnapshot(): { audio: { activeWeatherLoopCue: string | null; lastDroppedCue: string | null } };
 }
 
 const withScene = async <T>(page: Page, action: (scene: DebugScene & Record<string, unknown>) => T): Promise<T> => {
@@ -50,15 +51,15 @@ const enterCombat = async (page: Page): Promise<void> => {
 test("weather sound queue dedups identical weather and resets on MATCH_RESET", async ({ page }) => {
   await enterCombat(page);
 
-  const queue = await withScene(page, (scene) => {
+  const result = await withScene(page, (scene) => {
     scene.debugSetWeather("rain");
     scene.debugSetWeather("rain");
     (scene as unknown as DebugScene & { matchFlowController: { publishWeatherReset(): void } }).matchFlowController.publishWeatherReset();
     scene.debugSetWeather("storm");
-    return scene.debugGetWeatherSoundQueue();
+    return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
   });
 
-  expect(queue).toEqual([
+  expect(result.queue).toEqual([
     {
       action: "play",
       weatherType: "rain",
@@ -83,4 +84,30 @@ test("weather sound queue dedups identical weather and resets on MATCH_RESET", a
       priority: 18
     }
   ]);
+
+  expect(result.audio).toMatchObject({
+    activeWeatherLoopCue: "weather.storm.loop",
+    lastDroppedCue: null
+  });
+});
+
+test("MATCH_RESET permits an immediate replay of the same weather loop", async ({ page }) => {
+  await enterCombat(page);
+
+  const result = await withScene(page, (scene) => {
+    scene.debugSetWeather("rain");
+    (scene as unknown as DebugScene & { matchFlowController: { publishWeatherReset(): void } }).matchFlowController.publishWeatherReset();
+    scene.debugSetWeather("rain");
+    return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
+  });
+
+  expect(result.queue).toEqual([
+    { action: "play", weatherType: "rain", cue: "weather.rain.loop", volume: 0.6, fadeMs: 800, priority: 18 },
+    { action: "stop", cue: "weather.rain.loop", fadeMs: 800, priority: 18, reason: "MATCH_RESET" },
+    { action: "play", weatherType: "rain", cue: "weather.rain.loop", volume: 0.6, fadeMs: 800, priority: 18 }
+  ]);
+  expect(result.audio).toMatchObject({
+    activeWeatherLoopCue: "weather.rain.loop",
+    lastDroppedCue: null
+  });
 });

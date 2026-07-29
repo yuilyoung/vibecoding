@@ -88,6 +88,11 @@ QA, 밸런스 조정, 이후 에이전트 작업은 위 필드명을 그대로 �
   - generated audio 경로를 유지하고 외부 에셋 파이프라인은 이번 페이즈에 넣지 않는다.
   - cue 우선순위, 반복 억제, 루프 전환은 deterministic test로 고정한다.
   - weather/hazard/combat cue는 서로를 가리지 않도록 mix와 cooldown을 분리한다.
+
+## Phase 8 Completion
+
+- Environment Audio Polish is complete: generated weather loops have controller ownership, deterministic switching/reset behavior, and QA-visible runtime state.
+- Phase 9 remains a product selection among asset/UI readability, vehicle, or progression work.
   - QA가 HUD/debug만으로도 현재 audio state를 해석할 수 있어야 한다.
 
 ## 상세 스펙

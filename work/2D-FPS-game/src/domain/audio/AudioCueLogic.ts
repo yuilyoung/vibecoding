@@ -7,6 +7,11 @@ export interface AudioCueRule {
   readonly cooldownMs: number;
 }
 
+export interface AudioCueRuleOverride {
+  readonly priority?: number;
+  readonly cooldownMs?: number;
+}
+
 export interface AudioCueState {
   readonly maxSimultaneous: number;
   readonly lastPlayedAtMsByCue: Partial<Record<AudioCueId, number>>;
@@ -24,7 +29,7 @@ interface AudioCueCandidate {
   readonly index: number;
 }
 
-const audioCueRules = {
+const defaultAudioCueRules = {
   "match.start": { priority: 100, cooldownMs: 0 },
   "match.confirm.accept": { priority: 92, cooldownMs: 0 },
   "match.confirm.ready": { priority: 90, cooldownMs: 0 },
@@ -49,6 +54,20 @@ const audioCueRules = {
 const cueLogic = new SoundCueLogic();
 
 export class AudioCueLogic {
+  private readonly rules: Record<AudioCueId, AudioCueRule>;
+
+  public constructor(overrides?: Partial<Record<AudioCueId, AudioCueRuleOverride>>) {
+    this.rules = Object.fromEntries(
+      Object.entries(defaultAudioCueRules).map(([cue, rule]) => {
+        const override = overrides?.[cue as AudioCueId];
+        return [cue, {
+          priority: Number.isFinite(override?.priority) ? Math.max(0, Math.floor(override?.priority as number)) : rule.priority,
+          cooldownMs: Number.isFinite(override?.cooldownMs) ? Math.max(0, Math.floor(override?.cooldownMs as number)) : rule.cooldownMs
+        }];
+      })
+    ) as Record<AudioCueId, AudioCueRule>;
+  }
+
   public resolveCue(event: SoundCueEvent): AudioCueId {
     return cueLogic.resolveCue(event);
   }
@@ -58,7 +77,7 @@ export class AudioCueLogic {
     const lastPlayedAtMsByCue: Partial<Record<AudioCueId, number>> = { ...state.lastPlayedAtMsByCue };
     const candidates = events.map((event, index) => {
       const cue = this.resolveCue(event);
-      const rule = audioCueRules[cue];
+      const rule = this.rules[cue];
 
       return {
         cue,

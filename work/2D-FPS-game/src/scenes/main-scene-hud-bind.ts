@@ -7,10 +7,10 @@ import type { StageRotationState } from "../domain/map/StageRotationLogic";
 import type { MatchFlowLogic } from "../domain/round/MatchFlowLogic";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import type { SoundCueEvent, SoundCueKey } from "../domain/audio/SoundCueLogic";
-import type { CoverEffectId, GameBalance, PlayerWeaponSlot } from "./scene-types";
+import type { AudioRuntimeSnapshot, CoverEffectId, GameBalance, PlayerWeaponSlot } from "./scene-types";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import { HudController } from "./hud-controller";
-import type { WeatherSoundQueueItem } from "../audio/sound-cue-contract";
+import type { WeatherSoundCueKey, WeatherSoundQueueItem } from "../audio/sound-cue-contract";
 
 export interface CreateMainSceneHudControllerOptions {
   readonly scene: Phaser.Scene;
@@ -43,6 +43,8 @@ export interface CreateMainSceneHudControllerOptions {
   readonly setMatchConfirmReadyCueSent: (sent: boolean) => void;
   readonly emitSoundCue: (event: SoundCueEvent) => void;
   readonly queueWeatherSoundCue?: (item: WeatherSoundQueueItem) => void;
+  readonly getActiveWeatherSoundCue?: () => WeatherSoundCueKey | null;
+  readonly getRuntimeAudioSnapshot?: () => AudioRuntimeSnapshot;
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
 }
@@ -77,6 +79,8 @@ export function createMainSceneHudController(options: CreateMainSceneHudControll
     setMatchConfirmReadyCueSent: options.setMatchConfirmReadyCueSent,
     emitSoundCue: options.emitSoundCue,
     queueWeatherSoundCue: options.queueWeatherSoundCue,
+    getActiveWeatherSoundCue: options.getActiveWeatherSoundCue,
+    getRuntimeAudioSnapshot: options.getRuntimeAudioSnapshot,
     enterMatchOver: options.enterMatchOver,
     getCoverEffectId: options.getCoverEffectId
   });

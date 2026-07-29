@@ -3,7 +3,7 @@
   "timestamp": "2026-04-27",
   "from": "vision",
   "to": "ultron",
-  "status": "pending",
+  "status": "complete",
   "previousPhase": {
     "id": "phase-7-tactical-combat-depth",
     "status": "complete",
@@ -23,12 +23,13 @@
     "implemented": [
       "Phase 7 tactical combat depth is complete and fully regression-tested.",
       "Sound cue routing, generated cue playback, and weather loop contracts already exist.",
-      "Weather sound queue dedup and reset coverage already exists in browser tests."
+      "Weather sound queue dedup and reset coverage already exists in browser tests.",
+      "Phase 8 T1 audit is complete and the execution slice is locked to generated-audio runtime polish plus QA visibility.",
+      "Phase 8 T2 is complete: generated cue tuning is now balance-configurable through audio.maxSimultaneous and audio.cueProfiles."
     ],
     "gaps": [
-      "Generated cue mix and priority remain prototype-grade and need readability tuning.",
-      "Audio-specific HUD/debug state is limited for QA and tuning.",
-      "Phase 8 execution scope was not previously locked into a handoff package."
+      "Generated cue mix and runtime priority still need readability tuning in the active playback layer.",
+      "Audio-specific HUD/debug state is limited for QA and tuning."
     ]
   },
   "files": {
@@ -47,7 +48,9 @@
   "acceptance": [
     "Phase 8 WBS, tasks JSON, and handoff are present and aligned.",
     "Phase 8 scope is fixed to Environment Audio Polish.",
-    "A specialist brief exists for a game/audio-focused worker."
+    "A specialist brief exists for a game/audio-focused worker.",
+    "T1 audit findings are documented and the execution slice is locked.",
+    "T2 generated cue tuning contract is implemented and verified."
   ],
   "priority": [
     "1. Audit current audio contract and runtime limitations.",

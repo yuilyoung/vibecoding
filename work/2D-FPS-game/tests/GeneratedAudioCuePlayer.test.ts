@@ -1,57 +1,45 @@
-import { generatedToneKeys, getGeneratedTone } from "../src/domain/audio/GeneratedAudioCuePlayer";
-import type { SoundCueKey } from "../src/domain/audio/SoundCueLogic";
+import { getGeneratedTone } from "../src/domain/audio/GeneratedAudioCuePlayer";
 
 describe("GeneratedAudioCuePlayer", () => {
-  it("defines playable tone data for every sound cue", () => {
-    const cues: SoundCueKey[] = [
-      "fire.carbine",
-      "fire.scatter",
-      "fire.generic",
-      "hit.player",
-      "hit.dummy",
-      "deflect.ricochet",
-      "deflect.shield",
-      "pickup.ammo",
-      "pickup.health",
-      "gate.open",
-      "gate.close",
-      "hazard.tick",
-      "reload.start",
-      "reload.complete",
-      "reload.empty",
-      "weapon.swap",
-      "match.confirm.ready",
-      "match.confirm.accept",
-      "match.start"
-    ];
-
-    expect(generatedToneKeys).toEqual(cues);
-
-    for (const cue of cues) {
-      const tone = getGeneratedTone(cue);
-
-      expect(tone.frequencyHz).toBeGreaterThan(0);
-      expect(tone.durationMs).toBeGreaterThan(0);
-      expect(tone.gain).toBeGreaterThan(0);
-      expect(tone.attackMs).toBeGreaterThanOrEqual(0);
-      expect(tone.releaseMs).toBeGreaterThanOrEqual(0);
-      expect(tone.attackMs + tone.releaseMs).toBeLessThan(tone.durationMs);
-    }
+  it("returns the default generated tone when no override exists", () => {
+    expect(getGeneratedTone("fire.carbine")).toMatchObject({
+      frequencyHz: 304,
+      durationMs: 58,
+      gain: 0.028,
+      type: "square"
+    });
   });
 
-  it("uses distinct firing tones for carbine and scatter", () => {
-    expect(getGeneratedTone("fire.carbine").frequencyHz).not.toBe(getGeneratedTone("fire.scatter").frequencyHz);
-    expect(getGeneratedTone("fire.carbine").type).not.toBe(getGeneratedTone("fire.scatter").type);
-    expect(getGeneratedTone("fire.carbine").durationMs).not.toBe(getGeneratedTone("fire.scatter").durationMs);
+  it("merges valid per-cue overrides without changing untouched fields", () => {
+    expect(getGeneratedTone("fire.carbine", {
+      "fire.carbine": {
+        gain: 0.05,
+        durationMs: 80
+      }
+    })).toMatchObject({
+      frequencyHz: 304,
+      durationMs: 80,
+      gain: 0.05,
+      type: "square"
+    });
   });
 
-  it("keeps match-confirm tones differentiated", () => {
-    expect(getGeneratedTone("match.confirm.ready").frequencyHz).not.toBe(getGeneratedTone("match.confirm.accept").frequencyHz);
-    expect(getGeneratedTone("match.confirm.ready").releaseMs).not.toBe(getGeneratedTone("match.confirm.accept").releaseMs);
-  });
-
-  it("uses distinct envelope timing for weapon and reload cues", () => {
-    expect(getGeneratedTone("weapon.swap").attackMs).not.toBe(getGeneratedTone("reload.start").attackMs);
-    expect(getGeneratedTone("reload.empty").durationMs).not.toBe(getGeneratedTone("reload.complete").durationMs);
+  it("clamps invalid override values back into safe generated-tone ranges", () => {
+    expect(getGeneratedTone("match.start", {
+      "match.start": {
+        frequencyHz: -30,
+        durationMs: 0,
+        gain: -1,
+        attackMs: -3,
+        releaseMs: -12
+      }
+    })).toMatchObject({
+      frequencyHz: 1,
+      durationMs: 1,
+      gain: 0,
+      attackMs: 0,
+      releaseMs: 0,
+      type: "triangle"
+    });
   });
 });

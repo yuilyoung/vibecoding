@@ -52,3 +52,10 @@ Use this before marking a prototype change as ready for another iteration.
 - Controls match the HUD hints.
 - Combat, gate, hazard, and match-confirm flows all behave as expected.
 - The prototype remains playable for at least one full round restart cycle.
+
+## Phase 8 Audio Loop Checks
+
+- Change weather between rain, storm, and clear; confirm one matching environment loop is active at a time.
+- Reset the match and immediately restore the same weather; confirm the loop restarts rather than being suppressed by cooldown.
+- During combat, inspect HUD/debug audio state for `activeWeatherLoopCue`, `lastDroppedCue`, and queue count.
+- Record readability issues as balance changes to cue profiles/rules; do not add external audio assets within Phase 8 scope.

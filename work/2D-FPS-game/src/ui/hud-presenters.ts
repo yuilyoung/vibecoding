@@ -1,7 +1,7 @@
 import type { MatchFlowPhase, MatchFlowState, TeamId } from "../domain/round/MatchFlowLogic";
 import type { RoundState } from "../domain/round/RoundLogic";
 import type { BossWaveOverlayDecision } from "../domain/round/MatchFlowOrchestrator";
-import type { TacticalSnapshot } from "../scenes/scene-types";
+import type { AudioRuntimeSnapshot, TacticalSnapshot } from "../scenes/scene-types";
 import type {
   HudAreaPreviewSnapshot,
   HudBlastPreviewSnapshot,
@@ -43,6 +43,7 @@ export interface HudCombatPresenterState {
   readonly coverVisionY: number;
   readonly coverVisionRadius: number;
   readonly tactical?: TacticalSnapshot;
+  readonly audio?: AudioRuntimeSnapshot;
 }
 
 export interface HudPresenterInput {
@@ -244,6 +245,7 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     wind: buildHudWindSnapshot(input.wind),
     weather: buildHudWeatherSnapshot(input.weather),
     tactical: input.combat.tactical,
+    audio: input.combat.audio,
     overlay: {
       ...overlay,
       subtitle: overlay.subtitle || getPromptText(input)

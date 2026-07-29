@@ -12,6 +12,7 @@ import type { BossWaveRules } from "../domain/round/BossWaveLogic";
 import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
 import type { WindState } from "../domain/environment/WindLogic";
 import type { WeatherState, WeatherType } from "../domain/environment/WeatherLogic";
+import type { SoundCueKey } from "../domain/audio/SoundCueLogic";
 
 export interface GameBalanceMapObjects {
   readonly barrel: {
@@ -114,6 +115,27 @@ export interface GameBalanceCombatTuning {
   readonly debugExposeTacticalIntent: boolean;
 }
 
+export interface GameBalanceAudioCueProfile {
+  readonly frequencyHz?: number;
+  readonly durationMs?: number;
+  readonly gain?: number;
+  readonly attackMs?: number;
+  readonly releaseMs?: number;
+  readonly type?: OscillatorType;
+}
+
+export interface GameBalanceAudioCueRule {
+  readonly priority?: number;
+  readonly cooldownMs?: number;
+}
+
+export interface GameBalanceAudio {
+  readonly maxSimultaneous?: number;
+  readonly weatherLoopCooldownMs?: number;
+  readonly cueProfiles?: Readonly<Partial<Record<SoundCueKey, GameBalanceAudioCueProfile>>>;
+  readonly cueRules?: Readonly<Partial<Record<SoundCueKey, GameBalanceAudioCueRule>>>;
+}
+
 export interface GameBalance {
   movementSpeed: number;
   dashMultiplier: number;
@@ -161,6 +183,7 @@ export interface GameBalance {
   botTactics?: GameBalanceBotTactics;
   weaponRoles?: Readonly<Record<string, GameBalanceWeaponRole>>;
   combatTuning?: GameBalanceCombatTuning;
+  audio?: GameBalanceAudio;
   weapons?: Record<string, unknown>;
 }
 
@@ -278,6 +301,14 @@ export interface TacticalSnapshot {
   readonly chosenWeaponRole: string | null;
 }
 
+export interface AudioRuntimeSnapshot {
+  readonly activeWeatherLoopCue: string | null;
+  readonly queuedWeatherSoundCount: number;
+  readonly lastDroppedCue: string | null;
+  readonly maxSimultaneous: number;
+  readonly weatherLoopCooldownMs: number;
+}
+
 export interface TerrainCrop {
   x: number;
   y: number;
@@ -323,6 +354,7 @@ export interface MainSceneDebugSnapshot {
     global: WeatherState;
     effective: WeatherState;
   };
+  audio: AudioRuntimeSnapshot;
   tactical: TacticalSnapshot;
   mapObjects: MapObjectDebugSummary;
 }

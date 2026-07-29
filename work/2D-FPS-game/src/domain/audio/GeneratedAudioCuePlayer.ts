@@ -1,3 +1,4 @@
+import type { WeatherSoundCueKey } from "../../audio/sound-cue-contract";
 import type { SoundCueKey } from "./SoundCueLogic";
 
 export interface GeneratedTone {
@@ -7,6 +8,15 @@ export interface GeneratedTone {
   readonly attackMs: number;
   readonly releaseMs: number;
   readonly type: OscillatorType;
+}
+
+export interface GeneratedToneOverride {
+  readonly frequencyHz?: number;
+  readonly durationMs?: number;
+  readonly gain?: number;
+  readonly attackMs?: number;
+  readonly releaseMs?: number;
+  readonly type?: OscillatorType;
 }
 
 const toneMap = {
@@ -33,17 +43,37 @@ const toneMap = {
 
 export const generatedToneKeys = Object.freeze(Object.keys(toneMap) as SoundCueKey[]);
 
-export const getGeneratedTone = (cue: SoundCueKey): GeneratedTone => {
-  return toneMap[cue];
+export const getGeneratedTone = (
+  cue: SoundCueKey,
+  overrides?: Partial<Record<SoundCueKey, GeneratedToneOverride>>
+): GeneratedTone => {
+  const baseTone = toneMap[cue];
+  const override = overrides?.[cue];
+  if (override === undefined) {
+    return baseTone;
+  }
+
+  return {
+    frequencyHz: Number.isFinite(override.frequencyHz) ? Math.max(1, override.frequencyHz as number) : baseTone.frequencyHz,
+    durationMs: Number.isFinite(override.durationMs) ? Math.max(1, override.durationMs as number) : baseTone.durationMs,
+    gain: Number.isFinite(override.gain) ? Math.max(0, override.gain as number) : baseTone.gain,
+    attackMs: Number.isFinite(override.attackMs) ? Math.max(0, override.attackMs as number) : baseTone.attackMs,
+    releaseMs: Number.isFinite(override.releaseMs) ? Math.max(0, override.releaseMs as number) : baseTone.releaseMs,
+    type: override.type ?? baseTone.type
+  };
 };
 
 export class GeneratedAudioCuePlayer {
   private audioContext: AudioContext | null;
+  private weatherLoop: { oscillator: OscillatorNode; gainNode: GainNode } | null;
   private volume: number;
+  private readonly toneOverrides?: Partial<Record<SoundCueKey, GeneratedToneOverride>>;
 
-  public constructor() {
+  public constructor(toneOverrides?: Partial<Record<SoundCueKey, GeneratedToneOverride>>) {
     this.audioContext = null;
+    this.weatherLoop = null;
     this.volume = 1;
+    this.toneOverrides = toneOverrides;
   }
 
   public play(cue: SoundCueKey): void {
@@ -52,7 +82,7 @@ export class GeneratedAudioCuePlayer {
     }
 
     const audioContext = this.getAudioContext();
-    const tone = getGeneratedTone(cue);
+    const tone = getGeneratedTone(cue, this.toneOverrides);
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     const startAt = audioContext.currentTime;
@@ -78,6 +108,48 @@ export class GeneratedAudioCuePlayer {
     }
   }
 
+  public playWeatherLoop(cue: WeatherSoundCueKey, volume: number, fadeMs: number): void {
+    this.stopWeatherLoop(fadeMs);
+    if (typeof AudioContext === "undefined") {
+      return;
+    }
+
+    const audioContext = this.getAudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const startAt = audioContext.currentTime;
+    const targetGain = Math.max(0.0001, Math.min(1, volume * this.volume));
+    const fadeSeconds = Math.max(0, fadeMs) / 1000;
+    const frequencyHz = cue === "weather.rain.loop" ? 184 : cue === "weather.sandstorm.loop" ? 96 : 132;
+
+    oscillator.type = cue === "weather.storm.loop" ? "sawtooth" : "triangle";
+    oscillator.frequency.setValueAtTime(frequencyHz, startAt);
+    gainNode.gain.setValueAtTime(0.0001, startAt);
+    gainNode.gain.linearRampToValueAtTime(targetGain, startAt + fadeSeconds);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(startAt);
+    this.weatherLoop = { oscillator, gainNode };
+
+    if (audioContext.state === "suspended") {
+      void audioContext.resume();
+    }
+  }
+
+  public stopWeatherLoop(fadeMs: number): void {
+    if (this.weatherLoop === null) {
+      return;
+    }
+
+    const { oscillator, gainNode } = this.weatherLoop;
+    this.weatherLoop = null;
+    const audioContext = this.getAudioContext();
+    const stopAt = audioContext.currentTime + Math.max(0, fadeMs) / 1000;
+    gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+    gainNode.gain.setValueAtTime(Math.max(0.0001, gainNode.gain.value), audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    oscillator.stop(stopAt);
+  }
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 1));
   }

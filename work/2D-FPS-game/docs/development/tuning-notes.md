@@ -56,3 +56,10 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 Automated smoke checks can confirm build and asset wiring.
 The 2026-04-11 browser balance pass confirmed current hazard pacing and generated cue routing.
 Manual speaker/headphone review is still required before changing generated tone gains.
+
+## Phase 8 Audio Loop Tuning
+
+- Tune generated cue gains and durations through `gameBalance.audio.cueProfiles` first.
+- Tune cue priority/cooldown through `gameBalance.audio.cueRules`; retain deterministic test coverage when changing either.
+- Keep `weatherLoopCooldownMs` for accidental repeat suppression, while reset/explicit stop retains immediate replay behavior.
+- Use HUD/debug audio snapshots and the weather sound E2E before accepting a mix adjustment.

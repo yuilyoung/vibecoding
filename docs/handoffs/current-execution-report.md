@@ -1,6 +1,6 @@
-# Execution Report - phase-7-tactical-combat-depth
+# Execution Report - phase-8-environment-audio-polish
 
-- **Handoff ID:** phase-7-tactical-combat-depth
+- **Handoff ID:** phase-8-environment-audio-polish
 - **From:** ultron
 - **To:** vision / pm
 - **Date:** 2026-04-27
@@ -8,9 +8,20 @@
 
 ## Summary
 
-Phase 7 tactical combat depth is complete in the workspace. The combat stack now exposes explicit bot intent, cover-aware positioning, role-aware weapon choice, and tactical HUD/debug payloads that can be consumed by both QA and tuning workflows. The implementation stayed config-first, kept reusable decision logic inside domain modules, and preserved the Phase 6 environment baseline.
+Phase 8 Environment Audio Polish is complete. Generated Web Audio now has config-driven cue profiles, controller-owned weather-loop playback and switching, reset-safe replay, and HUD/debug runtime observability. The scope remained limited to deterministic generated-audio polish with no external asset pipeline.
 
 ## Changes
+## Phase 8 Deliverables
+
+- T0-T2: locked the audio execution slice and introduced balance-configurable cue profiles, rules, and simultaneous-play limits.
+- T3: made `AudioFeedbackController` the sole owner of actual generated weather-loop playback, switching, stop/fade behavior, deduplication, and reset-safe replay.
+- T4-T5: exposed active loop/dropped-cue state to HUD/debug and added deterministic controller, routing, and tone-override coverage.
+- T6: expanded browser coverage to check weather loop dedup/reset/switch and active-loop debug state.
+- T7: synchronized Phase 8 planning/status guidance and added PR automation operating guidance.
+- T8: type-check, lint, 56-file/331-test unit suite, production build, 30-test Playwright suite, MainScene LOC 838/850, and postflight sync all passed.
+
+## Phase 7 Baseline (historical)
+
 
 - T0 complete: Phase 7 planning and specialist handoff were created through `phase7-wbs.md`, `phase7-tasks.json`, `current-handoff.json`, and `codex/subagents/game-specialist-phase7.md`.
 - T1 complete: `game-balance.json` and `scene-types.ts` now define `botTactics`, `weaponRoles`, `combatTuning`, `CombatTacticalIntent`, and the tactical snapshot contract.

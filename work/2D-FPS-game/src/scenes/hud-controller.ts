@@ -64,6 +64,8 @@ export interface HudControllerDeps {
   readonly setMatchConfirmReadyCueSent: (sent: boolean) => void;
   readonly emitSoundCue: (event: SoundCueEvent) => void;
   readonly queueWeatherSoundCue?: (item: ReturnType<typeof createWeatherSoundStopItem> | NonNullable<ReturnType<typeof resolveWeatherSoundQueueItem>>) => void;
+  readonly getActiveWeatherSoundCue?: () => WeatherSoundCueKey | null;
+  readonly getRuntimeAudioSnapshot?: () => import("./scene-types").AudioRuntimeSnapshot;
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
 }
@@ -71,7 +73,6 @@ export interface HudControllerDeps {
 export class HudController {
   private windState = readLatestHudWind();
   private weatherState = readLatestHudWeather();
-  private activeWeatherSoundCue: WeatherSoundCueKey | null = null;
 
   private overlayState: HudOverlayState = {
     visible: false,
@@ -156,6 +157,7 @@ export class HudController {
         windStrengthMultiplier: this.weatherState.windStrengthMultiplier,
         minesDisabled: this.weatherState.minesDisabled
       },
+      audio: this.deps.getRuntimeAudioSnapshot?.(),
       overlay: { visible: false, title: "", subtitle: "" }
     };
 
@@ -223,7 +225,8 @@ export class HudController {
         coverVisionX: coverVision.x,
         coverVisionY: coverVision.y,
         coverVisionRadius: coverVision.radius,
-        tactical: this.createTacticalSnapshot()
+        tactical: this.createTacticalSnapshot(),
+        audio: this.deps.getRuntimeAudioSnapshot?.()
       },
       isRoundStarting: this.deps.isRoundStarting(now),
       matchConfirmAtMs: this.deps.getMatchConfirmAtMs(),
@@ -254,55 +257,53 @@ export class HudController {
     }
 
     const weatherContract = resolveWeatherSoundContract(this.deps.gameBalance.weather);
-    const activeChannel = this.activeWeatherSoundCue === null
+    const activeWeatherSoundCue = this.deps.getActiveWeatherSoundCue?.() ?? null;
+    const activeChannel = activeWeatherSoundCue === null
       ? null
-      : weatherContract.rain?.cue === this.activeWeatherSoundCue
+      : weatherContract.rain?.cue === activeWeatherSoundCue
           ? weatherContract.rain
-          : weatherContract.sandstorm?.cue === this.activeWeatherSoundCue
+          : weatherContract.sandstorm?.cue === activeWeatherSoundCue
               ? weatherContract.sandstorm
-              : weatherContract.storm?.cue === this.activeWeatherSoundCue
+              : weatherContract.storm?.cue === activeWeatherSoundCue
                   ? weatherContract.storm
                   : null;
 
     if (detail.soundResetReason === "MATCH_RESET") {
-      if (this.activeWeatherSoundCue !== null) {
+      if (activeWeatherSoundCue !== null) {
         queueWeatherSoundCue(createWeatherSoundStopItem(
-          this.activeWeatherSoundCue,
+          activeWeatherSoundCue,
           activeChannel?.fadeMs ?? 0,
           "MATCH_RESET"
         ));
-        this.activeWeatherSoundCue = null;
       }
       return;
     }
 
     const nextItem = resolveWeatherSoundQueueItem(this.deps.gameBalance.weather, detail);
     if (nextItem === null) {
-      if (this.activeWeatherSoundCue !== null) {
+      if (activeWeatherSoundCue !== null) {
         queueWeatherSoundCue(createWeatherSoundStopItem(
-          this.activeWeatherSoundCue,
+          activeWeatherSoundCue,
           activeChannel?.fadeMs ?? 0,
           "WEATHER_CLEAR"
         ));
-        this.activeWeatherSoundCue = null;
       }
       return;
     }
 
-    if (this.activeWeatherSoundCue === nextItem.cue) {
+    if (activeWeatherSoundCue === nextItem.cue) {
       return;
     }
 
-    if (this.activeWeatherSoundCue !== null) {
+    if (activeWeatherSoundCue !== null) {
       queueWeatherSoundCue(createWeatherSoundStopItem(
-        this.activeWeatherSoundCue,
+        activeWeatherSoundCue,
         activeChannel?.fadeMs ?? nextItem.fadeMs,
         "WEATHER_CLEAR"
       ));
     }
 
     queueWeatherSoundCue(nextItem);
-    this.activeWeatherSoundCue = nextItem.cue;
   }
 
   private createWeaponHudSlots(activeIndex: number, now = this.scene.time.now): readonly HudWeaponSlotSnapshot[] {

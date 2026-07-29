@@ -82,6 +82,26 @@
     "intentCooldownMs": 900,
     "debugExposeTacticalIntent": true
   },
+  "audio": {
+    "maxSimultaneous": 3,
+    "weatherLoopCooldownMs": 1200,
+    "cueProfiles": {
+      "fire.carbine": { "gain": 0.026, "releaseMs": 18 },
+      "fire.scatter": { "gain": 0.034, "releaseMs": 42 },
+      "hit.player": { "gain": 0.034, "durationMs": 104 },
+      "hit.dummy": { "gain": 0.026, "durationMs": 68 },
+      "hazard.tick": { "gain": 0.026, "releaseMs": 58 },
+      "match.start": { "gain": 0.028, "durationMs": 176 }
+    },
+    "cueRules": {
+      "fire.carbine": { "cooldownMs": 110 },
+      "fire.scatter": { "cooldownMs": 120 },
+      "fire.generic": { "cooldownMs": 110 },
+      "hit.player": { "priority": 76, "cooldownMs": 110 },
+      "hit.dummy": { "priority": 30, "cooldownMs": 70 },
+      "hazard.tick": { "priority": 8, "cooldownMs": 240 }
+    }
+  },
   "hazardDamage": 7,
   "hazardTickMs": 900,
   "coverPointRadius": 18,

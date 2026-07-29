@@ -62,6 +62,7 @@ const stabilizeEnvironment = async (page: Page): Promise<void> => {
       | {
           runtimeState?: { currentWind: { angleDegrees: number; strength: number } };
           debugSetWeather?: (type: "clear") => void;
+          update?(time: number, delta: number): void;
         }
       | undefined;
 
@@ -71,7 +72,7 @@ const stabilizeEnvironment = async (page: Page): Promise<void> => {
 
     scene.runtimeState.currentWind = { angleDegrees: 0, strength: 0 };
     scene.debugSetWeather("clear");
-    scene.update(0, 16);
+    scene.update?.(0, 16);
   });
 };
 
