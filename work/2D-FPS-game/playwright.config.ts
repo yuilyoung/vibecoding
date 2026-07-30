@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   workers: 1,
+  retries: process.env.CI === "true" ? 1 : 0,
   reporter: [
     ["list"],
     ["html", { outputFolder: "playwright-report", open: "never" }]
