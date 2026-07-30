@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manual Authoring"
+  short_description: "Creates concise, demand-loaded project manuals."
+  default_prompt: "Use $manual-authoring to turn this reviewed lesson into a project manual."

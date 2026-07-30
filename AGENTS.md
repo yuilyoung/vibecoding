@@ -45,3 +45,9 @@
 
 - `.claude/`는 Claude 기능을 확장하는 전용 레이어다.
 - 공용화는 Claude 기능을 제거하는 것이 아니라, 공통 계약을 루트에 추가하는 방식으로 유지한다.
+## Codex Delivery Topology
+
+- The main Codex thread owns implementation and deterministic verification.
+- For non-trivial work, use the project-scoped product_owner agent before implementation and the read-only reviewer agent before a completion claim.
+- Treat testing as a verification gate and demand-loaded manual, not as a standing subagent role.
+- Route volatile domain knowledge through the hermes-ssot plugin skills and codex/manuals/catalog.json; do not load every manual by default.

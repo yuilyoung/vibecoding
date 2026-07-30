@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knowledge Router"
+  short_description: "Selects only the manuals a Codex task needs."
+  default_prompt: "Use $knowledge-router to select the smallest set of project manuals for this task."
