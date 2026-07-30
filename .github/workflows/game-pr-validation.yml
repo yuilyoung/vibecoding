@@ -1,6 +1,7 @@
 name: Game PR validation
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "work/2D-FPS-game/**"
@@ -20,7 +21,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect game changes
+    runs-on: ubuntu-latest
+    outputs:
+      game: ${{ steps.filter.outputs.game }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "game=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "${{ github.event.pull_request.base.sha || github.event.before }}" "${{ github.sha }}" | grep -q '^work/2D-FPS-game/'; then
+            echo "game=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "game=false" >> "$GITHUB_OUTPUT"
+          fi
+
   quality:
+    needs: changes
+    if: ${{ needs.changes.outputs.game == 'true' }}
     name: Quality gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -42,7 +65,8 @@ jobs:
 
   browser-e2e:
     name: Browser E2E
-    needs: quality
+    needs: [changes, quality]
+    if: ${{ needs.changes.outputs.game == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:

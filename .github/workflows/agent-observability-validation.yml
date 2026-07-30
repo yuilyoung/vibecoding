@@ -1,0 +1,29 @@
+name: Agent observability validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "dashboard/agent-observability/**"
+      - "scripts/agent-observability-*.mjs"
+      - "scripts/lib/agent-observability.mjs"
+      - "scripts/lib/dashboard-project-status.mjs"
+      - "tests/agent-observability.test.mjs"
+      - "codex/hooks/preflight-check.mjs"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Dashboard harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run agent-observability:test
+      - run: npm run agent-observability:check
