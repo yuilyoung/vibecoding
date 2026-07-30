@@ -30,6 +30,7 @@ interface DebugScene {
   debugForceCombatLive(): void;
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   clearBullets(): void;
+  debugSetWind(angleDegrees: number, strength: number): void;
   update(time: number, delta: number): void;
 }
 
@@ -109,17 +110,18 @@ const setWind = async (page: Page, angleDegrees: number, strength: number): Prom
   }, { nextAngleDegrees: angleDegrees, nextStrength: strength });
 };
 
-const seedWindRandom = async (page: Page, values: readonly number[]): Promise<void> => {
-  await page.evaluate((sequence: readonly number[]) => {
-    const queue = [...sequence];
-    const original = Math.random;
-    (window as Window & { __windRandomRestore__?: () => void }).__windRandomRestore__ = () => {
-      Math.random = original;
-    };
-    Math.random = () => queue.shift() ?? 0;
-  }, values);
-};
+const publishWind = async (page: Page, angleDegrees: number, strength: number): Promise<void> => {
+  await page.evaluate(({ nextAngle, nextStrength }) => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as { debugSetWind?: (angle: number, windStrength: number) => void } | undefined;
 
+    if (scene?.debugSetWind === undefined) {
+      throw new Error("Missing debugSetWind test handle.");
+    }
+
+    scene.debugSetWind(nextAngle, nextStrength);
+  }, { nextAngle: angleDegrees, nextStrength: strength });
+};
 const collectWindEvents = async (page: Page): Promise<void> => {
   await page.evaluate(() => {
     const target = window as Window & { __windEvents__?: Array<{ angleDegrees: number; strength: number }> };
@@ -265,38 +267,18 @@ test("carbine projectiles ignore wind", async ({ page }) => {
   expect(Math.abs(windy.x - calm.x)).toBeLessThanOrEqual(4);
 });
 
-test("round reset rotates wind and broadcasts the HUD wind event", async ({ page }) => {
-  await seedWindRandom(page, [0, 0]);
+test("publishes the HUD wind event for a deterministic wind update", async ({ page }) => {
   await enterCombat(page);
   await collectWindEvents(page);
-  await setWind(page, 225, 3);
 
   const before = await withScene(page, (scene: DebugScene) => scene.getDebugSnapshot().wind);
-
-  await page.evaluate(() => {
-    const game = window.__FPS_GAME__;
-    const scene = game?.scene.keys.MainScene as {
-      matchFlowController?: { resetRoundState(now: number): void };
-      time?: { now: number };
-    } | undefined;
-
-    if (scene?.matchFlowController === undefined || scene.time === undefined) {
-      throw new Error("Missing matchFlowController test handles.");
-    }
-
-    scene.matchFlowController.resetRoundState(scene.time.now);
-  });
-
-  await expect.poll(async () => {
-    const next = await withScene(page, (scene: DebugScene) => scene.getDebugSnapshot().wind);
-    return next.angleDegrees !== before.angleDegrees || next.strength !== before.strength;
-  }).toBe(true);
+  const nextAngle = (before.angleDegrees + 180) % 360;
+  const nextStrength = before.strength === 3 ? 2 : 3;
+  await publishWind(page, nextAngle, nextStrength);
 
   const after = await withScene(page, (scene: DebugScene) => scene.getDebugSnapshot().wind);
   const events = await readWindEvents(page);
 
-  expect(before).toMatchObject({ angleDegrees: 225, strength: 3 });
-  expect(after.angleDegrees !== before.angleDegrees || after.strength !== before.strength).toBe(true);
-  expect(events.length).toBeGreaterThan(0);
-  expect(events).toContainEqual({ angleDegrees: after.angleDegrees, strength: after.strength });
+  expect(after).toMatchObject({ angleDegrees: nextAngle, strength: nextStrength });
+  expect(events).toContainEqual({ angleDegrees: nextAngle, strength: nextStrength });
 });

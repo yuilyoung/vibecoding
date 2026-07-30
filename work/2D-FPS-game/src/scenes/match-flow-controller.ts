@@ -208,6 +208,11 @@ export class MatchFlowController {
     this.broadcastRoundSnapshotWind();
   }
 
+  public debugSetWind(wind: WindState): void {
+    this.deps.setCurrentWind(createWindState(wind));
+    this.broadcastRoundSnapshotWind();
+  }
+
   public debugForceMatchOver(winner: "PLAYER" | "DUMMY", now: number): void {
     this.deps.roundLogic.state.playerScore = winner === "PLAYER" ? this.deps.roundLogic.state.scoreToWin : Math.max(0, this.deps.roundLogic.state.scoreToWin - 1);
     this.deps.roundLogic.state.dummyScore = winner === "DUMMY" ? this.deps.roundLogic.state.scoreToWin : Math.max(0, this.deps.roundLogic.state.scoreToWin - 1);
