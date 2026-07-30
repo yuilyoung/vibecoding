@@ -44,6 +44,7 @@ interface DebugScene {
   debugMovePlayerTo(x: number, y: number): void;
   debugMoveDummyTo(x: number, y: number): void;
   debugAdvanceMapObjects(now: number): void;
+  debugResolveProjectiles(): void;
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugGetMapObjectStates(): MapObjectState[];
   debugGetProjectileSnapshot(): ProjectileSnapshot[];
@@ -244,7 +245,7 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
   await withScene(page, (scene: DebugScene) => scene.debugMoveDummyTo(380, 240));
   await injectProjectile(page, { x: 380, y: 240, velocityX: 0, velocityY: 0 });
-  await advanceFrames(page, 1, 60);
+  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
 
   const afterCoverDestroyed = await readSnapshot(page);
   expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
