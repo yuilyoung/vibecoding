@@ -1,7 +1,22 @@
 ﻿import { appendEvent, eventStorePath, stableId, tokensOf } from './lib/agent-observability.mjs';
+import { createJsonlConsumer } from './lib/jsonl-input.mjs';
 import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..'); const file = eventStorePath(root);
 const sourceIndex = process.argv.indexOf('--source'); const source = sourceIndex >= 0 ? process.argv[sourceIndex + 1] : 'langgraph';
 if (!['langchain', 'langgraph', 'langsmith'].includes(source)) throw new Error('--source must be langchain, langgraph, or langsmith');
-let buffer = ''; process.stdin.setEncoding('utf8');
-process.stdin.on('data', (chunk) => { buffer += chunk; let newline; while ((newline = buffer.indexOf('\n')) >= 0) { const line = buffer.slice(0, newline).trim(); buffer = buffer.slice(newline + 1); if (!line) continue; const payload = JSON.parse(line); const node = payload.node ?? payload.name ?? payload.run_name ?? 'external-node'; const state = payload.status ?? (payload.error ? 'failed' : 'working'); const event = { version: 1, id: String(payload.id ?? payload.run_id ?? stableId(source, line)), at: payload.timestamp ?? new Date().toISOString(), source, type: 'agent.status', runId: String(payload.root_run_id ?? payload.thread_id ?? payload.run_id ?? 'external'), agentId: String(node), parentAgentId: payload.parent_node ?? payload.parent_run_id, status: ['queued', 'working', 'completed', 'failed', 'blocked'].includes(state) ? state : 'working', label: payload.label ?? node, tokens: tokensOf(payload), metadata: { traceId: payload.trace_id ?? payload.id, traceUrl: payload.trace_url ?? payload.url, adapterMode: process.env.LANGSMITH_TRACING === 'true' ? 'remote-enabled' : 'local-only' } }; appendEvent(file, event); console.log(JSON.stringify({ accepted: event.id, source })); } });
+process.stdin.setEncoding('utf8');
+const input = createJsonlConsumer({
+  onRecord(line) {
+    const payload = JSON.parse(line);
+    const node = payload.node ?? payload.name ?? payload.run_name ?? 'external-node';
+    const state = payload.status ?? (payload.error ? 'failed' : 'working');
+    const event = { version: 1, id: String(payload.id ?? payload.run_id ?? stableId(source, line)), at: payload.timestamp ?? new Date().toISOString(), source, type: 'agent.status', runId: String(payload.root_run_id ?? payload.thread_id ?? payload.run_id ?? 'external'), agentId: String(node), parentAgentId: payload.parent_node ?? payload.parent_run_id, status: ['queued', 'working', 'completed', 'failed', 'blocked'].includes(state) ? state : 'working', label: payload.label ?? node, tokens: tokensOf(payload), metadata: { traceId: payload.trace_id ?? payload.id, traceUrl: payload.trace_url ?? payload.url, adapterMode: process.env.LANGSMITH_TRACING === 'true' ? 'remote-enabled' : 'local-only' } };
+    appendEvent(file, event);
+    console.log(JSON.stringify({ accepted: event.id, source }));
+  },
+  onError(error, line) {
+    console.error(JSON.stringify({ rejected: line.slice(0, 200), error: error.message }));
+  }
+});
+process.stdin.on('data', (chunk) => input.write(chunk));
+process.stdin.on('end', () => input.end());

@@ -1,4 +1,5 @@
 ﻿import { appendEvent, eventStorePath, readEvents, stableId, tokensOf } from './lib/agent-observability.mjs';
+import { createJsonlConsumer } from './lib/jsonl-input.mjs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
@@ -17,7 +18,19 @@ function normalize(record) {
   const fingerprint = JSON.stringify({ method, params });
   return { version: 1, id: String(params.event_id ?? params.eventId ?? item.id ?? stableId(source, fingerprint)), at: params.timestamp ?? params.at ?? new Date().toISOString(), source, type: lifecycle, runId, agentId, parentAgentId: params.parent_agent_id ?? params.parentAgentId ?? item.parent_agent_id, status: statusFor(method), label: params.label ?? item.title ?? method, tokens: tokensOf(params.usage ?? item.usage ?? params.tokens), metadata: { rpcMethod: method, itemType: item.type, traceId: params.trace_id ?? params.traceId, traceUrl: params.trace_url ?? params.traceUrl } };
 }
-let buffer = '';
 process.stdin.setEncoding('utf8');
-process.stdin.on('data', (chunk) => { buffer += chunk; let newline; while ((newline = buffer.indexOf('\n')) >= 0) { const line = buffer.slice(0, newline).trim(); buffer = buffer.slice(newline + 1); if (!line) continue; try { const event = normalize(JSON.parse(line)); if (!seen.has(event.id)) { appendEvent(file, event); seen.add(event.id); console.log(JSON.stringify({ accepted: event.id, type: event.type, runId: event.runId })); } } catch (error) { console.error(JSON.stringify({ rejected: line.slice(0, 200), error: error.message })); } } });
-process.stdin.on('end', () => { if (buffer.trim()) process.emit('data', '\n'); });
+const input = createJsonlConsumer({
+  onRecord(line) {
+    const event = normalize(JSON.parse(line));
+    if (!seen.has(event.id)) {
+      appendEvent(file, event);
+      seen.add(event.id);
+      console.log(JSON.stringify({ accepted: event.id, type: event.type, runId: event.runId }));
+    }
+  },
+  onError(error, line) {
+    console.error(JSON.stringify({ rejected: line.slice(0, 200), error: error.message }));
+  }
+});
+process.stdin.on('data', (chunk) => input.write(chunk));
+process.stdin.on('end', () => input.end());
