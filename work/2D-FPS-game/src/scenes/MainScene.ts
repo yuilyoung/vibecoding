@@ -62,6 +62,7 @@ import { HudController } from "./hud-controller";
 import { MatchFlowController } from "./match-flow-controller";
 import { AudioFeedbackController } from "./audio-feedback-controller";
 import { VisualController } from "./visual-controller";
+import { resolveTurretTexture } from "./runtime-asset-contract";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
@@ -560,12 +561,12 @@ export class MainScene extends Phaser.Scene {
     this.playerSprite = createActorImage(this, "player", this.spawnTable.BLUE[0].x, this.spawnTable.BLUE[0].y);
     this.targetDummy = createActorImage(this, "dummy", this.spawnTable.RED[0].x, this.spawnTable.RED[0].y);
     this.playerWeaponSprite = this.add
-      .sprite(this.playerSprite.x, this.playerSprite.y, GROUND_TURRET_CARBINE_BLUE_KEY, 0)
+      .sprite(this.playerSprite.x, this.playerSprite.y, resolveTurretTexture(this, GROUND_TURRET_CARBINE_BLUE_KEY), 0)
       .setDepth(6)
       .setOrigin(0.5, 0.72)
       .setScale(PLAYER_WEAPON_SCALE);
     this.dummyWeaponSprite = this.add
-      .sprite(this.targetDummy.x, this.targetDummy.y, GROUND_TURRET_CARBINE_RED_KEY, 0)
+      .sprite(this.targetDummy.x, this.targetDummy.y, resolveTurretTexture(this, GROUND_TURRET_CARBINE_RED_KEY), 0)
       .setDepth(6)
       .setOrigin(0.5, 0.72)
       .setScale(DUMMY_WEAPON_SCALE);

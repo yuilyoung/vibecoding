@@ -6,11 +6,13 @@ import {
   GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY, GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY, GROUND_TURRET_SCATTER_RED_KEY,
+  FALLBACK_TURRET_KEY,
   CARBINE_TURRET_FRAMES, SCATTER_TURRET_FRAMES,
   ACTOR_BODY_SCALE, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y,
 } from "./scene-constants";
 
 export function createArenaPropTextures(scene: Phaser.Scene): void {
+  createFallbackTurretTexture(scene);
   createObstacleTexture(scene, OBSTACLE_CORE_KEY, 96, 96, 0xe6b35f, 0x8c5a21, 0xfff0ca);
   createObstacleTexture(scene, OBSTACLE_TOWER_KEY, 96, 160, 0x5bb3d8, 0x214f7a, 0xd7f2ff);
   createObstacleTexture(scene, OBSTACLE_BARRIER_KEY, 160, 64, 0x72cb8a, 0x2d6b42, 0xe0ffe8);
@@ -48,7 +50,9 @@ export function createActorSkins(scene: Phaser.Scene): void {
 }
 
 export function createActorImage(scene: Phaser.Scene, actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
-  const textureKey = actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
+  const primaryKey = actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
+  const fallbackKey = actor === "player" ? "skin-player-blue" : "skin-player-red";
+  const textureKey = scene.textures.exists(primaryKey) ? primaryKey : fallbackKey;
   return scene.add.image(x, y, textureKey).setDepth(5).setScale(ACTOR_BODY_SCALE);
 }
 
@@ -99,6 +103,9 @@ export function addTerrainSurface(
 }
 
 function ensureTurretAnimation(scene: Phaser.Scene, textureKey: string, frameCount: number, frameRate: number): void {
+  if (!scene.textures.exists(textureKey)) {
+    return;
+  }
   const animationKey = getTurretAnimationKey(textureKey);
 
   if (scene.anims.exists(animationKey)) {
@@ -127,7 +134,19 @@ export function playTurretFireAnimation(sprite: Phaser.GameObjects.Sprite, textu
     sprite.setTexture(textureKey, 0);
   }
 
-  sprite.play(animationKey, true);
+  if (sprite.scene.anims.exists(animationKey)) {
+    sprite.play(animationKey, true);
+  }
+}
+
+function createFallbackTurretTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(FALLBACK_TURRET_KEY)) return;
+  const graphics = scene.add.graphics();
+  graphics.fillStyle(0x000000, 0); graphics.fillRect(0, 0, 128, 128);
+  graphics.fillStyle(0x1c2c3a, 1); graphics.fillCircle(64, 64, 32);
+  graphics.fillStyle(0x5fc9ff, 1); graphics.fillRoundedRect(58, 20, 14, 58, 6);
+  graphics.lineStyle(4, 0xd9f4ff, 0.8); graphics.strokeCircle(64, 64, 32);
+  graphics.generateTexture(FALLBACK_TURRET_KEY, 128, 128); graphics.destroy();
 }
 
 function createObstacleTexture(

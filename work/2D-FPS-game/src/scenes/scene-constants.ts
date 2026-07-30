@@ -29,6 +29,7 @@ export const PLAYFIELD_MIN_Y = 24;
 export const PLAYFIELD_MAX_Y = 516;
 export const WEAPON_MACHINE_KEY = "runtime-weapon-machine";
 export const WEAPON_GUN_KEY = "runtime-weapon-gun";
+export const FALLBACK_TURRET_KEY = "fallback-weapon-turret";
 export const GROUND_BODY_BLUE_KEY = "ground-body-blue";
 export const GROUND_BODY_RED_KEY = "ground-body-red";
 export const GROUND_TERRAIN_KEY = "ground-terrain";

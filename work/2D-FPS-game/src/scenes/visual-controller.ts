@@ -2,12 +2,11 @@ import Phaser from "phaser";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
 import { getDummyVisualState, getPlayerVisualState, type RespawnFxState } from "../ui/scene-visuals";
 import type { SceneRuntimeState } from "./scene-runtime-state";
+import { resolveTeamBodyTexture, resolveTurretTexture } from "./runtime-asset-contract";
 import {
   ACTOR_BODY_SCALE,
   ACTOR_ROTATION_OFFSET,
   DUMMY_WEAPON_SCALE,
-  GROUND_BODY_BLUE_KEY,
-  GROUND_BODY_RED_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY,
   GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY,
@@ -140,11 +139,11 @@ export class VisualController {
     this.state.currentDummyTeam = dummyTeam;
 
     if (this.state.playerSprite !== undefined) {
-      this.state.playerSprite.setTexture(playerTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
+      this.state.playerSprite.setTexture(resolveTeamBodyTexture(this.scene, playerTeam));
     }
 
     if (this.state.targetDummy !== undefined) {
-      this.state.targetDummy.setTexture(dummyTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
+      this.state.targetDummy.setTexture(resolveTeamBodyTexture(this.scene, dummyTeam));
     }
   }
 
@@ -162,10 +161,10 @@ export class VisualController {
 
   public getWeaponTurretTexture(team: TeamId, weaponId: string): string {
     const isScatter = weaponId === "scatter";
-    if (team === "RED") {
-      return isScatter ? GROUND_TURRET_SCATTER_RED_KEY : GROUND_TURRET_CARBINE_RED_KEY;
-    }
-    return isScatter ? GROUND_TURRET_SCATTER_BLUE_KEY : GROUND_TURRET_CARBINE_BLUE_KEY;
+    const primaryKey = team === "RED"
+      ? (isScatter ? GROUND_TURRET_SCATTER_RED_KEY : GROUND_TURRET_CARBINE_RED_KEY)
+      : (isScatter ? GROUND_TURRET_SCATTER_BLUE_KEY : GROUND_TURRET_CARBINE_BLUE_KEY);
+    return resolveTurretTexture(this.scene, primaryKey);
   }
 
   public getActorRotation(angleRadians: number): number {

@@ -1,18 +1,6 @@
 import Phaser from "phaser";
 import type { GameBalance } from "./scene-types";
-import {
-  GROUND_BODY_BLUE_KEY,
-  GROUND_BODY_RED_KEY,
-  GROUND_TERRAIN_KEY,
-  GROUND_TURRET_CARBINE_BLUE_KEY,
-  GROUND_TURRET_CARBINE_RED_KEY,
-  GROUND_TURRET_SCATTER_BLUE_KEY,
-  GROUND_TURRET_SCATTER_RED_KEY,
-  TURRET_FRAME_HEIGHT,
-  TURRET_FRAME_WIDTH,
-  WEAPON_GUN_KEY,
-  WEAPON_MACHINE_KEY
-} from "./scene-constants";
+import { preloadRuntimeAssets } from "./runtime-asset-contract";
 
 export interface BootstrapVisualRefs {
   crosshairHorizontal: Phaser.GameObjects.Rectangle;
@@ -25,27 +13,7 @@ export function getBrowserStorageBackend(): Storage {
 }
 
 export function preloadMainSceneAssets(scene: Phaser.Scene, gameBalance: GameBalance): void {
-  scene.load.image(WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
-  scene.load.image(WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
-  scene.load.image(GROUND_BODY_BLUE_KEY, "/assets/runtime/sprites/ground-body-blue.png");
-  scene.load.image(GROUND_BODY_RED_KEY, "/assets/runtime/sprites/ground-body-red.png");
-  scene.load.image(GROUND_TERRAIN_KEY, "/assets/runtime/sprites/ground-terrain.png");
-  scene.load.spritesheet(GROUND_TURRET_CARBINE_BLUE_KEY, "/assets/runtime/sprites/ground-turret-carbine-blue.png", {
-    frameWidth: TURRET_FRAME_WIDTH,
-    frameHeight: TURRET_FRAME_HEIGHT
-  });
-  scene.load.spritesheet(GROUND_TURRET_CARBINE_RED_KEY, "/assets/runtime/sprites/ground-turret-carbine-red.png", {
-    frameWidth: TURRET_FRAME_WIDTH,
-    frameHeight: TURRET_FRAME_HEIGHT
-  });
-  scene.load.spritesheet(GROUND_TURRET_SCATTER_BLUE_KEY, "/assets/runtime/sprites/ground-turret-scatter-blue.png", {
-    frameWidth: TURRET_FRAME_WIDTH,
-    frameHeight: TURRET_FRAME_HEIGHT
-  });
-  scene.load.spritesheet(GROUND_TURRET_SCATTER_RED_KEY, "/assets/runtime/sprites/ground-turret-scatter-red.png", {
-    frameWidth: TURRET_FRAME_WIDTH,
-    frameHeight: TURRET_FRAME_HEIGHT
-  });
+  preloadRuntimeAssets(scene);
 
   if (gameBalance.actorSkinSource === "spritesheet") {
     scene.load.spritesheet("actor-skins", gameBalance.actorSpritesheetPath, {
