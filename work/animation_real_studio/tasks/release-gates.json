@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0.0",
+  "extends": "./mvp-readiness.json",
+  "purpose": "Studio Channel의 승인형 YouTube 배포와 최종 출시 검증을 기본 백로그에 연결한다.",
+  "tasks": [
+    {
+      "id": "ARS-YT-01",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-003", "ARS-007"],
+      "title": "Studio Channel 모델, OAuth scope, ToS와 운영 승인 기준을 ADR로 확정한다.",
+      "acceptance": "단일 studio 채널, private 기본값, 승인자, 토큰 철회, API 감사 조건이 승인 문서에 있다."
+    },
+    {
+      "id": "ARS-YT-02",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-010", "ARS-YT-01"],
+      "title": "채널 연결·게시·감사 이벤트 스키마와 상태 전이를 구현한다.",
+      "acceptance": "채널 연결과 publication은 version별로 분리되고 중복 게시 제약이 테스트된다."
+    },
+    {
+      "id": "ARS-YT-03",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-YT-02"],
+      "title": "서버 OAuth, PKCE/state 검증, KMS 토큰 암호화와 연결 해제를 구현한다.",
+      "acceptance": "토큰 평문 저장·브라우저 노출 없이 연결, 갱신, 철회가 보안 테스트를 통과한다."
+    },
+    {
+      "id": "ARS-YT-04",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-015", "ARS-YT-03"],
+      "title": "재개 가능한 업로드, 처리 폴링, idempotency, DLQ를 worker에 구현한다.",
+      "acceptance": "private 채널에서 중복·재전송·실패 복구가 재현 가능하게 검증된다."
+    },
+    {
+      "id": "ARS-YT-05",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-016", "ARS-YT-04"],
+      "title": "검증된 자막·썸네일·메타데이터와 private 기본값을 동기화한다.",
+      "acceptance": "YouTube ID, 처리 결과, caption 상태, 메타데이터 스냅샷, 오류 사유가 publication에 남는다."
+    },
+    {
+      "id": "ARS-YT-06",
+      "priority": "P0",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-YT-04", "ARS-YT-05", "ARS-018"],
+      "title": "YouTube API 감사·쿼터·운영 승인 출시 게이트를 통과한다.",
+      "acceptance": "현재 약관, audit/quota 상태, 운영 런북, human approval 증거가 있다."
+    },
+    {
+      "id": "ARS-YT-07",
+      "priority": "P1",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-YT-05"],
+      "title": "예약 취소, private 전환, 외부 삭제 탐지, 재시도 운영 화면을 구현한다.",
+      "acceptance": "06-review-resolution.md의 상태 표를 권한별 E2E와 감사 이벤트로 검증한다."
+    },
+    {
+      "id": "ARS-YT-08",
+      "priority": "P1",
+      "skill": "youtube-distribution-ops",
+      "dependsOn": ["ARS-YT-05"],
+      "title": "YouTube Analytics API의 일 단위 동기화와 성과 대시보드를 구현한다.",
+      "acceptance": "채널/영상 필터, 데이터 사전, 지연·실패 보정이 검증된다."
+    },
+    {
+      "id": "ARS-022-RELEASE",
+      "priority": "P0",
+      "skill": "media-delivery-ops",
+      "dependsOn": ["ARS-022", "ARS-YT-06"],
+      "title": "오리지널 요청부터 Studio Channel private 배포까지의 출시 E2E를 수행한다.",
+      "acceptance": "요청·승인·생성·private delivery·YouTube private upload·처리/자막 확인·실패 복구·감사 기록의 재현 가능한 증거가 있다."
+    }
+  ]
+}

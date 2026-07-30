@@ -1,0 +1,4 @@
+interface:
+  display_name: "YouTube Distribution Ops"
+  short_description: "YouTube 업로드·상태·분석 운영 설계"
+  default_prompt: "Use $youtube-distribution-ops to design a safe YouTube publication workflow."

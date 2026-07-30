@@ -1,0 +1,4 @@
+interface:
+  display_name: "Media Delivery Ops"
+  short_description: "생성 작업·비공개 전달·보존 운영 설계"
+  default_prompt: "Use $media-delivery-ops to design a private media delivery lifecycle for this feature."

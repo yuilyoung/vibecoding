@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rights & Safety Gate"
+  short_description: "권리·초상·안전 요청을 판정하고 기록"
+  default_prompt: "Use $rights-safety-gate to assess this brief and return an auditable policy outcome."

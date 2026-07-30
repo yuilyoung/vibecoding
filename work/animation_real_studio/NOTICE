@@ -1,0 +1,6 @@
+This project uses the DESIGN.md file format specification from
+google-labs-code/design.md (Apache-2.0):
+https://github.com/google-labs-code/design.md
+
+This project defines its own design tokens and does not include Google branding,
+Google visual assets, or source-code files from the upstream repository.

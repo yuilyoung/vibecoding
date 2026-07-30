@@ -1,0 +1,4 @@
+interface:
+  display_name: "Adaptation Intake"
+  short_description: "권리 안전한 실사화 요청 기획안 생성"
+  default_prompt: "Use $adaptation-intake to turn a user idea into a rights-safe production brief."

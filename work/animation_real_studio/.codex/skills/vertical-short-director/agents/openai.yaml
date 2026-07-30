@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vertical Short Director"
+  short_description: "15초 세로 숏폼 스토리보드·품질 기준 작성"
+  default_prompt: "Use $vertical-short-director to create a rights-safe 15-second vertical storyboard."
