@@ -11,6 +11,8 @@
                     "codex-postflight":  "node codex/hooks/postflight-sync.mjs",
                     "agent-observability":  "node scripts/agent-observability-harness.mjs",
                     "agent-observability:sample":  "node scripts/agent-observability-harness.mjs --sample",
-                    "agent-observability:check":  "node scripts/agent-observability-harness.mjs --check"
+                    "agent-observability:check":  "node scripts/agent-observability-harness.mjs --check",
+                    "agent-observability:collector":  "node scripts/agent-observability-collector.mjs --source codex-app-server",
+                    "agent-observability:adapter":  "node scripts/agent-observability-adapter.mjs --source langgraph"
                 }
 }

@@ -1,36 +1,47 @@
-﻿# Agent observability dashboard foundation
+﻿# Agent observability dashboard
 
-This local-first harness runs without API keys, dependency installation, or remote telemetry.
+A runnable, local-first control plane for Codex subagent execution. It collects append-only normalized events, serves an SSE stream to a graph/matrix UI, and remains useful without LangSmith credentials or network access.
 
-## Run
+## Start locally
 
 ```powershell
 npm run agent-observability:sample
-npm run agent-observability
+npm run agent-observability -- --port 4318
 ```
 
-Open `http://127.0.0.1:4318`. Validate stored events without a server using `npm run agent-observability:check`. The untracked local source is `.local/agent-observability/events.jsonl`; `GET /api/events` is the read model and the UI polls every two seconds.
+The dashboard binds only to `127.0.0.1` and exposes `GET /api/events` plus `GET /api/stream` (Server-Sent Events). The browser uses SSE, so it receives agent, graph, and token updates without a page refresh or a WebSocket dependency.
 
-## Canonical local event schema
+## Codex app-server collector
 
-Each JSONL record has `version`, `id`, `at` (ISO-8601), `source`, `type`, and `runId`. Agent lifecycle events additionally have `agentId`, `status` (`queued`, `working`, `completed`, `failed`, or `blocked`), optional `parentAgentId`, `label`, `tokens.input`, and `tokens.output`.
+The collector is a real process boundary, not browser code:
 
-`parentAgentId` forms a graph edge. `runId` isolates runs. Event IDs are immutable and must be deduplicated by future collectors.
+```powershell
+codex app-server | npm run agent-observability:collector
+```
 
-## Codex app-server integration
+For replay/debugging, pipe newline-delimited JSON-RPC notifications into the same command. It normalizes `method`/`params` envelopes into versioned JSONL at `.local/agent-observability/events.jsonl` (override with `AGENT_OBSERVABILITY_EVENT_FILE`). Thread IDs become `runId`; agent/task/turn identity becomes `agentId`; lifecycle method names map to queued/working/completed/failed/blocked. Unknown methods are retained as `tool.lifecycle` rather than crashing ingestion.
 
-The collector boundary is separate from the UI. A Codex app-server adapter translates streamed turn/item/tool lifecycle notifications into these events, maps a Codex thread to `runId`, maps agent/thread identity to `agentId`, and appends normalized JSONL. Unknown notifications are stored as `source: "codex-app-server"`, `type: "raw.unknown"`; they must not break stream ingestion.
+The operator owns the app-server process and credentials. This project neither launches, proxies, nor exposes it to the browser.
 
-This harness never launches or proxies `codex app-server`, keeping credentials and process ownership with the operator. A future adapter only needs to write the defined JSONL schema.
+## Event model and token matrix
 
-## Token matrix
+Required raw fields: `version`, immutable `id`, ISO `at`, `source`, `type`, and `runId`. `agent.status` further requires `agentId`, valid `status`, optional `parentAgentId`, `label`, `tokens.input`, and `tokens.output`.
 
-The matrix dimensions are `runId × agentId × token direction` (input/output). The read model returns per-run totals and latest agent status. Model, tool, turn, and cost-rate dimensions can be added without altering raw events. Cost waits for a versioned model-price table.
+`parentAgentId` produces a directed UI edge. The server aggregates a matrix keyed by `runId × agentId` with input/output/total token columns. Models, tools, turns, and cost rates are intentionally additive dimensions; cost is not guessed without a versioned pricing catalog.
 
-## LangGraph and LangSmith boundaries
+## Optional LangChain, LangGraph, LangSmith adapter
 
-LangGraph emits `agent.status` events for graph node transitions, using node IDs as `agentId` and a single upstream node as `parentAgentId`. Fan-in must use a future `graph.edge` event rather than invent a parent. LangSmith adds optional `traceUrl`, `traceId`, and `spanId` metadata only after local write. Its API key belongs only in the adapter process (`LANGSMITH_API_KEY`), never browser code or fixtures. Without it, local tracing works normally.
+```powershell
+# Feed each adapter newline-delimited lifecycle records.
+Get-Content .\langgraph-events.jsonl | node scripts\agent-observability-adapter.mjs --source langgraph
+Get-Content .\langchain-events.jsonl | node scripts\agent-observability-adapter.mjs --source langchain
+Get-Content .\langsmith-events.jsonl | node scripts\agent-observability-adapter.mjs --source langsmith
+```
 
-## Security and retention
+The adapter accepts node/name/run fields, parent IDs, status, usage/token fields, and optional trace ID/URL. LangGraph nodes map directly to graph nodes; for fan-in, a future `graph.edge` schema will preserve multiple parents instead of falsifying one `parentAgentId`.
 
-Bind only to `127.0.0.1`. Redact prompts, tool arguments, secrets, and user content before emission. Rotate JSONL by size/date before production, apply retention, and add auth before any multi-user deployment.
+Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` only in a separate LangSmith-producing process. This harness never reads or sends that key. Without it, the same adapter writes local events marked `local-only`; with it, trace metadata can be attached and rendered as a link.
+
+## Security and operations
+
+The JSONL file is local runtime data and must remain untracked. Redact prompts, tool arguments, secrets, and user content before collector input. Rotate the file by size/date before production, set retention, and add authentication/authorization before any non-local deployment. SSE is deliberately used here for one-way local status delivery; a future authenticated control channel can add WebSocket commands separately.
