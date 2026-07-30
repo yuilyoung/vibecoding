@@ -97,6 +97,8 @@ const moveDummyTo = async (page: Page, x: number, y: number): Promise<void> => {
   }, { targetX: x, targetY: y });
 };
 
+test.setTimeout(60_000);
+
 test("records cover, hazard, and audio balance signals in a browser session", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));

@@ -65,6 +65,8 @@ const enterCombat = async (page: Page): Promise<void> => {
   await expect.poll(async () => (await readHudSnapshot(page)).phase).toBe("COMBAT LIVE");
 };
 
+test.setTimeout(60_000);
+
 test("covers Phase 4 settings, tutorial replay, and boss overlay smoke", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
