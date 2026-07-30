@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reference Media Intake"
+  short_description: "Check and prepare safe visual references"
+  default_prompt: "Use $reference-media-intake to assess a user-supplied image or video reference safely."

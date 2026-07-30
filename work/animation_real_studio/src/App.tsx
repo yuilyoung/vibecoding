@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
 type Route = "/" | "/create" | "/projects/demo-001" | "/safety";
 type SourceRelationship = "original" | "inspired" | "licensed" | "";
+type ReferencePurpose = "setting" | "lighting" | "composition" | "movement" | "";
 
 const steps = ["장면 의도", "권리와 안전", "연출", "확인"];
 
@@ -96,7 +97,7 @@ function Home({ navigate }: { navigate: (route: Route) => void }) {
       <section className="flow-section">
         <div><p className="section-label">HOW A SCENE BECOMES A SHORT</p><h2>의뢰부터<br />한 장면의 완성까지.</h2></div>
         <ol className="process-list">
-          <li><b>01</b><div><h3>장면을 말해 주세요</h3><p>누구에게 어떤 일이 일어나고, 어떤 마음을 남기고 싶은지요.</p></div><span>↘</span></li>
+          <li><b>01</b><div><h3>장면을 말해 주세요</h3><p>누구에게 어떤 일이 일어나고, 어떤 마음을 남기고 싶은지요. 사진·영상 참조가 있다면 공간과 빛, 카메라 감각만 함께 전할 수 있습니다.</p></div><span>↘</span></li>
           <li><b>02</b><div><h3>기획안을 함께 봅니다</h3><p>오리지널화된 로그라인과 15초 스토리보드를 확인합니다.</p></div><span>↘</span></li>
           <li><b>03</b><div><h3>Private로 전달됩니다</h3><p>승인된 버전만 영상·자막·썸네일 묶음으로 보관합니다.</p></div><span>↘</span></li>
         </ol>
@@ -114,15 +115,45 @@ function Home({ navigate }: { navigate: (route: Route) => void }) {
 function Create({ navigate }: { navigate: (route: Route) => void }) {
   const [step, setStep] = useState(0);
   const [scene, setScene] = useState("");
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referencePurpose, setReferencePurpose] = useState<ReferencePurpose>("");
+  const [referenceError, setReferenceError] = useState("");
+  const [referenceInputKey, setReferenceInputKey] = useState(0);
   const [relationship, setRelationship] = useState<SourceRelationship>("");
   const [mood, setMood] = useState("rainy-station");
   const [rightsAccepted, setRightsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const sceneValid = scene.trim().length >= 30 && scene.trim().length <= 700;
+  const referenceReady = referenceFile === null || (referencePurpose !== "" && referenceError === "");
 
-  const canMove = step === 0 ? sceneValid : step === 1 ? relationship !== "" : step === 2 ? true : rightsAccepted;
+  const canMove = step === 0 ? sceneValid && referenceReady : step === 1 ? relationship !== "" : step === 2 ? true : rightsAccepted;
   const reviewLabel = relationship === "inspired" ? "오리지널화 재작성 필요" : relationship === "licensed" ? "사람 검토 필요" : "기획안 생성 가능";
+
+  function handleReferenceChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setReferenceFile(file);
+    setReferencePurpose("");
+    if (!file) {
+      setReferenceError("");
+      return;
+    }
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "video/mp4"];
+    if (!allowedTypes.includes(file.type)) {
+      setReferenceError("JPEG·PNG·WebP 사진 또는 MP4 영상만 선택해 주세요.");
+    } else if (file.size > 100 * 1024 * 1024) {
+      setReferenceError("참조 파일은 100MB 이하만 선택할 수 있습니다.");
+    } else {
+      setReferenceError("");
+    }
+  }
+
+  function clearReference() {
+    setReferenceFile(null);
+    setReferencePurpose("");
+    setReferenceError("");
+    setReferenceInputKey((key) => key + 1);
+  }
 
   function advance() {
     setAttempted(true);
@@ -162,6 +193,15 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
             <textarea id="scene" value={scene} onChange={(e) => setScene(e.target.value)} placeholder="예: 비 오는 밤, 오랫동안 연락하지 못했던 두 친구가 막차가 떠나기 전 플랫폼에서 마주친다. 한 사람은 용서를 전하려 하고, 다른 사람은 대답 대신 우산을 건넨다." aria-describedby="scene-help scene-error" />
             <div className="field-meta"><span id="scene-help">인물 이름 대신 역할과 관계, 사건, 남기고 싶은 감정을 적어 주세요.</span><b>{scene.length}/700</b></div>
             {attempted && !sceneValid && <p className="field-error" id="scene-error" role="alert">장면 설명을 30자 이상 700자 이하로 작성해 주세요.</p>}
+            <section className="reference-media" aria-labelledby="reference-media-title">
+              <div className="reference-heading"><div><p className="section-label">OPTIONAL / VISUAL REFERENCE</p><h3 id="reference-media-title">장면의 공기를<br />보여 주세요.</h3></div><span>01 FILE</span></div>
+              <p>사진 한 장 또는 무음 15초 이하 영상을 추가할 수 있습니다. 인물·캐릭터·원작 장면을 재현하지 않으며, 배경·빛·구도·움직임만 참고합니다.</p>
+              <label className="reference-drop" htmlFor="reference-file"><input key={referenceInputKey} id="reference-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" onChange={handleReferenceChange} /><span className="reference-drop-mark">＋</span><span><b>사진 또는 영상 선택</b><small>JPEG · PNG · WebP · MP4 / 100MB 이하</small></span></label>
+              {referenceFile && <div className="reference-file" role="status"><div><span>REFERENCE ATTACHED</span><b>{referenceFile.name}</b><small>{referenceFile.type.startsWith("video/") ? "영상" : "사진"} · 실제 서비스에서는 격리 검사 후 사용됩니다.</small></div><button type="button" onClick={clearReference}>제거</button></div>}
+              {referenceFile && !referenceError && <div className="reference-purpose"><span>이 자료에서 무엇을 참고하나요?</span><div>{([['setting', '배경 / 공간'], ['lighting', '조명 / 색감'], ['composition', '카메라 구도'], ['movement', '움직임 리듬']] as const).map(([value, label]) => <button type="button" key={value} className={referencePurpose === value ? "selected" : ""} onClick={() => setReferencePurpose(value)} aria-pressed={referencePurpose === value}>{label}</button>)}</div></div>}
+              {referenceError && <p className="field-error" role="alert">{referenceError}</p>}
+              {attempted && referenceFile && !referenceError && referencePurpose === "" && <p className="field-error" role="alert">참조 자료의 사용 목적을 하나 선택해 주세요.</p>}
+            </section>
           </>}
           {step === 1 && <>
             <p className="section-label">02 / RIGHTS &amp; SAFETY</p><h2>이 장면은<br />어디에서 왔나요?</h2>
@@ -184,7 +224,7 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
           </>}
           {step === 3 && <>
             <p className="section-label">04 / CONFIRMATION</p><h2>제작 기준을<br />확인해 주세요.</h2>
-            <div className="confirmation"><p><b>이 데모는 실제 제작을 시작하지 않습니다.</b> 실제 서비스에서는 제출 전 정책 검사, 기획안 확인, 사용자 승인이 순서대로 진행됩니다.</p><label className="check-row"><input type="checkbox" checked={rightsAccepted} onChange={(e) => setRightsAccepted(e.target.checked)} /><span>제3자 IP·실존 인물·원작 클립과 음원을 무단으로 사용하지 않으며, 정책에 맞지 않는 요청은 재작성·검토·차단될 수 있음을 이해합니다.</span></label></div>
+            <div className="confirmation"><p><b>이 데모는 실제 제작을 시작하지 않습니다.</b> 실제 서비스에서는 제출 전 정책 검사, 기획안 확인, 사용자 승인이 순서대로 진행됩니다.</p><label className="check-row"><input type="checkbox" checked={rightsAccepted} onChange={(e) => setRightsAccepted(e.target.checked)} /><span>제3자 IP·실존 인물·원작 클립과 음원을 무단으로 사용하지 않으며, 참조 파일은 격리 검사·정제·삭제 정책을 거친 뒤에만 쓰인다는 점과 정책에 맞지 않는 요청은 재작성·검토·차단될 수 있음을 이해합니다.</span></label></div>
             {attempted && !rightsAccepted && <p className="field-error" role="alert">제작 기준을 확인해 주세요.</p>}
           </>}
           <div className="wizard-actions"><button type="button" className="button button-quiet" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>이전</button><button className="button button-primary" type="submit">{step === 3 ? "데모 스토리보드 보기" : "다음"} <span>→</span></button></div>

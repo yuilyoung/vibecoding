@@ -7,7 +7,7 @@
 | 제품 형식 | 웹 스튜디오 + 비동기 제작 파이프라인 | 요청·승인·긴 생성 작업·보관함을 한 흐름으로 관리한다. |
 | 제작 단위 | `Project` 안의 `Brief → Storyboard → Generation Version` | 원본 요청과 재생성 결과를 혼동하지 않는다. |
 | 공개 기본값 | `private` | 창작물·개인 정보·권리 위험을 최소화한다. |
-| 요청 입력 | 텍스트와 구조화 필드만 | MVP에서 원작 이미지·클립·음원 업로드의 권리/보안 범위를 피한다. |
+| 요청 입력 | 텍스트와 구조화 필드 + 비식별 참조 미디어 한 건 | 권리를 가진 배경·조명·구도·움직임 참조만 격리·정제·정책 통과 뒤 사용한다. |
 | 공급자 결합 | `VideoProvider` 어댑터 | 영상 모델·약관·가격이 변해도 도메인과 보관함을 유지한다. |
 | 생성 시작 | 스토리보드의 사용자 승인 뒤 | 무의미한 비용과 원치 않는 결과를 줄인다. |
 
@@ -55,9 +55,10 @@ Operations console ─────────── review, takedown, retry, ob
 ## 상태 머신
 
 ```text
-draft → submitted → policy-check
-policy-check → blocked-rights | needs-review | storyboard-draft
-needs-review → blocked-rights | storyboard-draft
+draft → upload-quarantine → asset-scan → policy-check
+policy-check → blocked-rights | rewrite | needs-review | reference-approved | storyboard-draft
+reference-approved → storyboard-draft
+needs-review → blocked-rights | rewrite | storyboard-draft
 storyboard-draft → awaiting-approval → queued
 queued → generating → media-qc → moderation → delivered
 generating | media-qc | moderation → failed (재시도 가능)
@@ -73,6 +74,10 @@ delivered → expired | deletion-requested → deleted
 | `users` | id, auth_subject, locale, consent_version | 계정과 동의 버전 |
 | `projects` | id, owner_id, title, visibility, lifecycle_state | 사용자 작업공간 |
 | `request_briefs` | id, project_id, scene_text, structured_fields, source_claim, submitted_at | 사용자의 원 요청 (버전 불변) |
+| `reference_assets` | id, project_id, original_key, sanitized_key, purpose, lifecycle_state, expires_at | 격리·정제된 선택 참조와 삭제 기한 |
+| `asset_scans` | id, asset_id, stage, outcome, reason_codes, scanner_version | MIME·메타데이터·안전 검사 판정 |
+| `asset_consents` | id, asset_id, consent_version, attested_at, withdrawn_at | 권리·처리·보존 동의 이력 |
+| `asset_uses` | id, asset_id, storyboard_id, provider_id, transmitted_at | 승인 참조의 생성 입력 사용 감사 |
 | `policy_decisions` | id, subject_type/id, stage, outcome, reason_codes, reviewer_id | 사전·사후 정책 판정 |
 | `storyboards` | id, project_id, brief_id, version, logline, beats, approved_at | 생성 전 승인 산출물 |
 | `generation_jobs` | id, storyboard_id, idempotency_key, provider_id, provider_job_ref, status, retry_count | 비동기 공급자 작업 |
@@ -89,6 +94,7 @@ delivered → expired | deletion-requested → deleted
 | 인터페이스 | 목적 |
 |---|---|
 | `POST /projects` / `PATCH /projects/:id/brief` | 초안 생성·수정 |
+| `POST /projects/:id/reference-assets/upload-intent` / `POST /reference-assets/:id/complete` | 격리 업로드 intent·스캔 시작 |
 | `POST /projects/:id/submit` | 정책 사전 검사 시작 |
 | `POST /projects/:id/storyboards/:version/approve` | 승인된 불변 입력으로 큐잉 |
 | `GET /projects/:id` | 상태·버전·다음 행동 조회 |

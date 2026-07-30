@@ -15,7 +15,7 @@ Creator Channel OAuth 연결, 무인 공개 전환, 공개 갤러리와 Analytic
 
 ## 전문 스킬 기준
 
-프로젝트 로컬 스킬은 다섯 개다.
+프로젝트 로컬 스킬은 여섯 개다. 참조 미디어 입력은 `reference-media-intake`가 격리·정제·삭제·공급자 전달 전 판정을 담당한다.
 
 1. `adaptation-intake`
 2. `rights-safety-gate`

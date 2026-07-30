@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "project": "animation-real-studio",
   "status": "prepared",
-  "scope": "권리 안전한 오리지널 실사풍 15초 세로 숏폼 스튜디오 MVP",
+  "scope": "권리 안전한 오리지널 실사풍 15초 세로 숏폼 스튜디오 — 텍스트·참조 미디어 입력 MVP",
   "definitionOfReady": [
     "PRD와 검증 계획의 미해결 결정을 확인한다.",
     "태스크의 의존성, 소유 전문 스킬, 완료 증거를 확인한다.",
@@ -31,13 +31,13 @@
       "id": "ARS-003", "milestone": "M0", "priority": "P0", "size": "M", "status": "ready",
       "title": "권리·초상·음성·안전 정책과 사유 코드를 작성한다", "skill": "rights-safety-gate",
       "dependsOn": ["ARS-001"], "evidence": ["정책 문구", "reason code 표", "에스컬레이션 SOP"],
-      "acceptance": "차단·재작성·검토·통과 기준, 라이선스 주장 보류, 신고·삭제 경로가 문서화된다."
+      "acceptance": "차단·재작성·검토·통과 기준, 참조 업로드의 초상·아동·개인정보·보관·삭제 사유 코드, 라이선스 주장 보류, 신고·삭제 경로가 문서화된다."
     },
     {
       "id": "ARS-004", "milestone": "M0", "priority": "P0", "size": "M", "status": "ready",
       "title": "정책 테스트 세트 20개와 기대 판정을 만든다", "skill": "rights-safety-gate",
       "dependsOn": ["ARS-003"], "evidence": ["버전 관리된 fixture", "기대 outcome/reason code"],
-      "acceptance": "IP 복제, 초상·음성, 미성년자, 개인정보, 괴롭힘 등 모든 필수 유형이 포함된다."
+      "acceptance": "IP 복제, 사진·영상 프레임·오디오, 초상·음성, 미성년자, 개인정보, 괴롭힘 등 모든 필수 유형이 포함된다."
     },
     {
       "id": "ARS-005", "milestone": "M0", "priority": "P0", "size": "M", "status": "ready",
@@ -49,11 +49,11 @@
       "id": "ARS-006", "milestone": "M0", "priority": "P0", "size": "L", "status": "ready",
       "title": "영상 공급자 벤치마크와 약관 검토를 수행한다", "skill": "vertical-short-director",
       "dependsOn": ["ARS-003", "ARS-004"], "evidence": ["세 브리프 결과", "품질·비용·대기시간 카드", "공식 약관 링크/확인일"],
-      "acceptance": "최소 두 후보를 동일 기준으로 비교하고, 미확인 상업권·보존 조건은 출시 차단으로 표시한다."
+      "acceptance": "최소 두 후보를 동일 기준으로 비교하고, 이미지/영상 참조 입력 capability, 학습 재사용·삭제·지역·상업권이 미확인이면 출시 차단으로 표시한다."
     },
     {
       "id": "ARS-007", "milestone": "M0", "priority": "P0", "size": "S", "status": "blocked-by-research",
-      "title": "공급자·보존·지역 결정 ADR을 승인한다", "skill": "media-delivery-ops",
+      "title": "공급자·참조 보관·지역 결정 ADR을 승인한다", "skill": "media-delivery-ops",
       "dependsOn": ["ARS-006"], "evidence": ["ADR", "비용 상한", "삭제·보존 정책"],
       "acceptance": "선정 근거, capability profile, 위험 완화, 재검토 조건이 기록된다."
     },
@@ -72,8 +72,8 @@
     {
       "id": "ARS-010", "milestone": "M1", "priority": "P0", "size": "M", "status": "blocked-by-research",
       "title": "도메인 스키마·상태 머신·보존 규칙을 구현한다", "skill": "media-delivery-ops",
-      "dependsOn": ["ARS-007"], "evidence": ["마이그레이션", "상태 전이 단위 테스트", "보존 정책 매핑"],
-      "acceptance": "03-service-design.md의 핵심 엔터티와 서버 전용 상태 전이가 구현된다."
+      "dependsOn": ["ARS-007", "ARS-023"], "evidence": ["마이그레이션", "상태 전이 단위 테스트", "보존 정책 매핑"],
+      "acceptance": "03-service-design.md의 핵심 엔터티, reference asset 격리·정제·삭제 수명주기와 서버 전용 상태 전이가 구현된다."
     },
     {
       "id": "ARS-011", "milestone": "M1", "priority": "P0", "size": "M", "status": "blocked-by-research",
@@ -84,32 +84,32 @@
     {
       "id": "ARS-012", "milestone": "M1", "priority": "P0", "size": "L", "status": "blocked-by-research",
       "title": "랜딩·대시보드·요청 초안 UI를 구현한다", "skill": "adaptation-intake",
-      "dependsOn": ["ARS-008", "ARS-009", "ARS-011"], "evidence": ["반응형 화면", "폼 검증 테스트", "접근성 검사"],
+      "dependsOn": ["ARS-008", "ARS-009", "ARS-011", "ARS-024"], "evidence": ["반응형 화면", "폼 검증 테스트", "접근성 검사"],
       "acceptance": "사용자는 초안을 저장하고 제출 전 어떤 정보가 필요한지 확인할 수 있다."
     },
     {
       "id": "ARS-013", "milestone": "M1", "priority": "P0", "size": "L", "status": "blocked-by-research",
       "title": "정책 사전 검사와 운영자 검토 큐를 구현한다", "skill": "rights-safety-gate",
-      "dependsOn": ["ARS-004", "ARS-010", "ARS-011"], "evidence": ["fixture 자동 테스트", "운영자 큐 시연"],
+      "dependsOn": ["ARS-004", "ARS-010", "ARS-011", "ARS-024"], "evidence": ["fixture 자동 테스트", "운영자 큐 시연"],
       "acceptance": "테스트 세트가 모두 차단 또는 검토 대기로 가고, 승인되지 않은 라이선스 주장은 생성될 수 없다."
     },
     {
       "id": "ARS-014", "milestone": "M2", "priority": "P0", "size": "M", "status": "blocked-by-research",
       "title": "안전한 브리프→15초 스토리보드 변환을 구현한다", "skill": "vertical-short-director",
       "dependsOn": ["ARS-009", "ARS-013"], "evidence": ["브리프 fixture", "스토리보드 스냅샷", "승인 API 테스트"],
-      "acceptance": "각 storyboard는 9:16, 15초 컷 예산, 훅, 자막, 오디오와 원작 고유성 제거 메모를 포함한다."
+      "acceptance": "각 storyboard는 9:16, 15초 컷 예산, 훅, 자막, 오디오, 원작 고유성 제거 메모와 승인 참조의 추상 특징만 포함한다."
     },
     {
       "id": "ARS-015", "milestone": "M2", "priority": "P0", "size": "L", "status": "blocked-by-research",
       "title": "공급자 어댑터·멱등 큐·웹훅 처리기를 구현한다", "skill": "media-delivery-ops",
-      "dependsOn": ["ARS-007", "ARS-010", "ARS-014"], "evidence": ["어댑터 contract test", "중복·재전송 테스트", "장애 재시도 로그"],
-      "acceptance": "승인된 storyboard 하나가 정확히 한 외부 작업으로 제출되고 중복 웹훅은 상태를 손상하지 않는다."
+      "dependsOn": ["ARS-007", "ARS-010", "ARS-014", "ARS-024"], "evidence": ["어댑터 contract test", "중복·재전송 테스트", "장애 재시도 로그"],
+      "acceptance": "승인된 storyboard와 정책 통과 정제 참조본만 정확히 한 외부 작업으로 제출되고 중복 웹훅은 상태를 손상하지 않는다."
     },
     {
       "id": "ARS-016", "milestone": "M2", "priority": "P0", "size": "L", "status": "blocked-by-research",
       "title": "미디어 QC·자막·썸네일·delivery manifest를 구현한다", "skill": "media-delivery-ops",
       "dependsOn": ["ARS-015"], "evidence": ["media fixture", "규격 검사", "manifest 계약 테스트"],
-      "acceptance": "MP4·VTT·SRT·thumbnail·manifest가 한 video version에 체크섬과 함께 연결된다."
+      "acceptance": "MP4·VTT·SRT·thumbnail·manifest가 한 video version에 체크섬과 참조 asset 사용 이력과 함께 연결된다."
     },
     {
       "id": "ARS-017", "milestone": "M2", "priority": "P0", "size": "M", "status": "blocked-by-research",
@@ -121,7 +121,7 @@
       "id": "ARS-018", "milestone": "M3", "priority": "P0", "size": "M", "status": "blocked-by-research",
       "title": "공급자 최신 약관·보안·상업권 출시 게이트를 재확인한다", "skill": "rights-safety-gate",
       "dependsOn": ["ARS-006", "ARS-015"], "evidence": ["확인일이 있는 공식 원문", "승인자", "차단 항목 해소 기록"],
-      "acceptance": "모든 사용 공급자에 대해 상업 이용, 데이터 보존, 지역/연령, 워터마크, 삭제 조건이 출시 시점 기준으로 확인된다."
+      "acceptance": "모든 사용 공급자에 대해 상업 이용, 참조 입력의 데이터 보존·학습 재사용, 지역/연령, 워터마크, 삭제 조건이 출시 시점 기준으로 확인된다."
     },
     {
       "id": "ARS-019", "milestone": "M3", "priority": "P0", "size": "M", "status": "blocked-by-research",
@@ -142,9 +142,21 @@
       "acceptance": "권한 우회, 중복 이벤트, 공급자 실패, URL 만료, 쿼터 초과가 안전한 사용자 상태와 운영 경보로 처리된다."
     },
     {
+      "id": "ARS-023", "milestone": "M0", "priority": "P0", "size": "M", "status": "blocked-by-research",
+      "title": "참조 미디어 위협 모델·동의·보존/삭제 ADR을 승인한다", "skill": "reference-media-intake",
+      "dependsOn": ["ARS-003", "ARS-006"], "evidence": ["위협 모델", "동의 문구", "보존/삭제 ADR", "공급자 약관 확인일"],
+      "acceptance": "사진·영상 입력의 권리, 초상·아동·개인정보, 격리·정제 저장소, 공급자 전송, 학습 재사용 금지, 삭제 SLA가 출시 차단 조건과 함께 결정된다."
+    },
+    {
+      "id": "ARS-024", "milestone": "M1", "priority": "P0", "size": "L", "status": "blocked-by-research",
+      "title": "격리 업로드·자산 검사·정제·자동 삭제 작업을 구현한다", "skill": "reference-media-intake",
+      "dependsOn": ["ARS-010", "ARS-023"], "evidence": ["격리 upload E2E", "EXIF/오디오 제거 검사", "asset scan fixture", "삭제 worker 로그"],
+      "acceptance": "통과 전 원본은 외부 공급자에 전송되지 않고, 승인 정제본만 만료 URL로 전달되며 원본·정제본·결과물의 접근과 삭제가 분리 검증된다."
+    },
+    {
       "id": "ARS-022", "milestone": "M3", "priority": "P0", "size": "L", "status": "blocked-by-research",
       "title": "수직 슬라이스 E2E와 출시 검증을 수행한다", "skill": "media-delivery-ops",
-      "dependsOn": ["ARS-005", "ARS-018", "ARS-019", "ARS-020", "ARS-021"], "evidence": ["E2E 결과", "V1–V5 검증 보고서", "출시 체크리스트"],
+      "dependsOn": ["ARS-005", "ARS-018", "ARS-019", "ARS-020", "ARS-021", "ARS-023", "ARS-024"], "evidence": ["E2E 결과", "V1–V5 검증 보고서", "출시 체크리스트"],
       "acceptance": "오리지널 요청 제출부터 승인·생성·private delivery·공유 철회·삭제까지의 재현 가능한 증거가 있고, 미해결 출시 차단 항목이 없다."
     }
   ]

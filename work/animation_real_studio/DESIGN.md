@@ -3,36 +3,37 @@ version: "alpha"
 name: "Kintsugi Frame"
 description: "Cinematic, editorial studio interface for rights-safe original short-form production."
 colors:
-  ink: "#0D1018"
-  surface: "#151B29"
-  surfaceRaised: "#202A3B"
-  paper: "#F4F0E8"
-  paperMuted: "#C5C2BA"
-  vermilion: "#FF5A3A"
-  signal: "#D7FF62"
-  cyan: "#9AE8E0"
-  line: "#3A465B"
-  danger: "#FF8E7A"
+  ink: "#11141D"
+  primary: "#C7E977"
+  surface: "#1A2030"
+  surfaceRaised: "#263147"
+  paper: "#F5F1E8"
+  paperMuted: "#C7C5BE"
+  vermilion: "#E86F58"
+  signal: "#C7E977"
+  cyan: "#9FDAD3"
+  line: "#435067"
+  danger: "#E99987"
 typography:
   display:
-    fontFamily: "Arial, Helvetica, sans-serif"
-    fontSize: "6.5rem"
-    fontWeight: "800"
-    lineHeight: "0.88"
-    letterSpacing: "-0.07em"
+    fontFamily: "Pretendard Variable, Noto Sans KR, Apple SD Gothic Neo, Arial, sans-serif"
+    fontSize: "6.15rem"
+    fontWeight: "700"
+    lineHeight: "0.92"
+    letterSpacing: "-0.055em"
   title:
-    fontFamily: "Arial, Helvetica, sans-serif"
-    fontSize: "3.25rem"
-    fontWeight: "750"
+    fontFamily: "Pretendard Variable, Noto Sans KR, Apple SD Gothic Neo, Arial, sans-serif"
+    fontSize: "3.125rem"
+    fontWeight: "700"
     lineHeight: "0.98"
-    letterSpacing: "-0.045em"
+    letterSpacing: "-0.035em"
   body:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Pretendard Variable, Noto Sans KR, Apple SD Gothic Neo, Arial, sans-serif"
     fontSize: "1rem"
     fontWeight: "400"
     lineHeight: "1.55"
   label:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Pretendard Variable, Noto Sans KR, Apple SD Gothic Neo, Arial, sans-serif"
     fontSize: "0.72rem"
     fontWeight: "700"
     lineHeight: "1"
@@ -49,18 +50,41 @@ spacing:
   xl: "56px"
 components:
   primaryAction:
-    backgroundColor: "{colors.signal}"
+    backgroundColor: "{colors.primary}"
     textColor: "{colors.ink}"
     rounded: "{rounded.sm}"
   panel:
     backgroundColor: "{colors.surface}"
-    borderColor: "{colors.line}"
+    textColor: "{colors.paper}"
     rounded: "{rounded.md}"
+  metadataPanel:
+    backgroundColor: "{colors.surfaceRaised}"
+    textColor: "{colors.paperMuted}"
+    rounded: "{rounded.sm}"
+  accentLabel:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.vermilion}"
+    typography: "{typography.label}"
+  safeState:
+    backgroundColor: "{colors.cyan}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  blockedState:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  nextAction:
+    backgroundColor: "{colors.signal}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  separator:
+    backgroundColor: "{colors.line}"
+    height: "1px"
 ---
 
 ## Overview
 
-Use cinematic editorial contrast rather than a generic generative-AI dashboard. The Studio should feel like a quiet late-night production room: dark slate surfaces, warm paper information cards, a single vermilion dramatic accent, and acid-green actions reserved for confirmed forward movement.
+Use cinematic editorial contrast rather than a generic generative-AI dashboard. The Studio should feel like a quiet late-night production room: softened slate surfaces, warm paper information cards, a restrained coral accent, and muted-lime actions reserved for confirmed forward movement.
 
 ## Layout
 
