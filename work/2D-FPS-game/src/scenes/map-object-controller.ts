@@ -20,7 +20,7 @@ import type { PlayerLogic } from "../domain/player/PlayerLogic";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { VfxController } from "./vfx-controller";
 import type { CombatController } from "./combat-controller";
-import { ACTOR_HALF_SIZE } from "./scene-constants";
+import { ACTOR_HALF_SIZE, KENNEY_PROP_BARREL_KEY, KENNEY_PROP_CRATE_KEY } from "./scene-constants";
 
 const BARREL_SIZE = 24;
 const CRATE_SIZE = 20;
@@ -93,7 +93,7 @@ export interface MapObjectSideEffectsBinding {
 interface MapObjectView {
   state: MapObjectState;
   readonly sprite: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Arc;
-  readonly visuals: readonly (Phaser.GameObjects.Shape | Phaser.GameObjects.Text)[];
+  readonly visuals: readonly (Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Visible)[];
   readonly bounds: Rect;
   readonly blinkTween?: Phaser.Tweens.Tween;
 }
@@ -417,7 +417,7 @@ export class MapObjectController {
 
   private createSprite(state: MapObjectState): {
     sprite: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Arc;
-    visuals: readonly (Phaser.GameObjects.Shape | Phaser.GameObjects.Text)[];
+    visuals: readonly (Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Visible)[];
   } {
     if (state.kind === "mine") {
       const sprite = this.scene.add.circle(state.x, state.y, MINE_RADIUS, MINE_COLOR, 0.9);
@@ -426,9 +426,10 @@ export class MapObjectController {
 
     if (state.kind === "crate") {
       const sprite = this.scene.add
-        .rectangle(state.x, state.y, CRATE_SIZE, CRATE_SIZE, CRATE_COLOR, 1)
-        .setStrokeStyle(2, CRATE_STROKE_COLOR, 1);
-      return { sprite, visuals: [sprite] };
+        .rectangle(state.x, state.y, CRATE_SIZE, CRATE_SIZE, CRATE_COLOR, 0.18)
+        .setStrokeStyle(2, CRATE_STROKE_COLOR, 0.45);
+      const art = this.scene.add.image(state.x, state.y, KENNEY_PROP_CRATE_KEY).setDisplaySize(34, 34).setDepth(5);
+      return { sprite, visuals: [sprite, art] };
     }
 
     if (state.kind === "cover") {
@@ -455,8 +456,9 @@ export class MapObjectController {
       return { sprite, visuals: [sprite, label] };
     }
 
-    const sprite = this.scene.add.rectangle(state.x, state.y, BARREL_SIZE, BARREL_SIZE, BARREL_COLOR, 1);
-    return { sprite, visuals: [sprite] };
+    const sprite = this.scene.add.rectangle(state.x, state.y, BARREL_SIZE, BARREL_SIZE, BARREL_COLOR, 0.2);
+    const art = this.scene.add.image(state.x, state.y, KENNEY_PROP_BARREL_KEY).setDisplaySize(38, 38).setDepth(5);
+    return { sprite, visuals: [sprite, art] };
   }
 
   private syncVisual(view: MapObjectView): void {

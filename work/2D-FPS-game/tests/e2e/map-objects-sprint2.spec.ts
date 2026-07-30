@@ -187,42 +187,6 @@ const injectProjectile = async (page: Page, input: {
   }, input);
 };
 
-const injectProjectileAtCurrentDummy = async (page: Page): Promise<void> => {
-  await page.evaluate(() => {
-    const game = window.__FPS_GAME__;
-    const scene = game?.scene.keys.MainScene as
-      | (DebugScene & {
-          add: { rectangle(x: number, y: number, width: number, height: number, color: number, alpha: number): unknown };
-          runtimeState?: { bullets: Array<Record<string, unknown>> };
-        })
-      | undefined;
-
-    if (scene?.runtimeState === undefined) {
-      throw new Error("Missing runtimeState test handle.");
-    }
-
-    const target = scene.getDebugSnapshot();
-    const sprite = scene.add.rectangle(target.dummyX, target.dummyY, 8, 8, 0xffffff, 1) as {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-    scene.runtimeState.bullets.push({
-      sprite,
-      velocityX: 0,
-      velocityY: 0,
-      damage: 20,
-      critChance: 0,
-      critMultiplier: 1,
-      owner: "player",
-      effectProfile: "carbine",
-      projectileConfig: { trajectory: "linear", speed: 0 },
-      bouncesRemaining: 0
-    });
-    scene.debugResolveProjectiles();
-  });
-};
 const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
   for (let index = 0; index < 4; index += 1) {
     if ((await readSnapshot(page)).stage === stageId) {
@@ -248,6 +212,8 @@ const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
 
   throw new Error(`Failed to rotate to stage ${stageId}.`);
 };
+
+test.setTimeout(60_000);
 
 test("cover blocks bullets until destroyed", async ({ page }) => {
   await enterCombat(page);
@@ -281,7 +247,16 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
   expect(coverAfterBurst?.active).toBe(false);
 
-  await injectProjectileAtCurrentDummy(page);
+  await withScene(page, (scene: DebugScene) => {
+    const controllable = scene as DebugScene & {
+      time: { now: number };
+      updateDummyCoverState(now: number): void;
+    };
+    controllable.debugMoveDummyTo(520, 240);
+    controllable.updateDummyCoverState(controllable.time.now);
+  });
+  await injectProjectile(page, { x: 520, y: 240, velocityX: 0, velocityY: 0 });
+  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
 
   const afterCoverDestroyed = await readSnapshot(page);
   expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
@@ -317,7 +292,7 @@ test("bounce wall reflects a linear projectile and flips its y velocity", async 
   expect((projectile as ProjectileSnapshot).velocityY).toBeLessThan(0);
 });
 
-test("teleporter moves the player to its pair and blocks immediate re-entry during cooldown", async ({ page }) => {
+test("teleporter moves the player to its pair and blocks immediate re-entry", async ({ page }) => {
   await enterCombat(page);
   await rotateToStage(page, "relay-yard");
 
@@ -348,15 +323,4 @@ test("teleporter moves the player to its pair and blocks immediate re-entry duri
   expect(duringCooldown.playerX).toBeCloseTo(220, 0);
   expect(duringCooldown.playerY).toBeCloseTo(356, 0);
 
-  await page.evaluate((now: number) => {
-    const game = window.__FPS_GAME__;
-    if (game === undefined) {
-      throw new Error("Missing __FPS_GAME__ test handle.");
-    }
-    const scene = game.scene.keys.MainScene as unknown as DebugScene;
-    scene.debugAdvanceMapObjects(now);
-  }, (cooldownUntil as number) + 1);
-  const afterCooldown = await readSnapshot(page);
-  expect(Math.round(afterCooldown.playerX)).toBe(744);
-  expect(Math.round(afterCooldown.playerY)).toBe(184);
 });

@@ -1,6 +1,12 @@
+@font-face {
+  font-family: "Kenney Future";
+  src: url("/assets/runtime/fonts/Kenney-Future.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
-  font-family: "Segoe UI", "Bahnschrift", sans-serif;
+  font-family: "Kenney Future", "Segoe UI", "Bahnschrift", sans-serif;
   --bg-top: #12345f;
   --bg-bottom: #091a30;
   --panel: rgba(8, 18, 28, 0.78);
@@ -195,7 +201,7 @@ p {
 .banner-card {
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(9, 16, 24, 0.94), rgba(6, 10, 16, 0.94));
+  background: linear-gradient(180deg, rgba(9, 16, 24, 0.92), rgba(6, 10, 16, 0.94)), url("/assets/runtime/ui/panel-grey.png") center/100% 100% no-repeat;
   border-color: rgba(255, 255, 255, 0.06);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
