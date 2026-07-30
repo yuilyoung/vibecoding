@@ -15,7 +15,6 @@
 - `npm run test:api` — 7 passing tests.
 - `npm run build` — passed.
 - `npx designmd lint DESIGN.md` — 0 errors, 0 warnings.
-- Local Vite proxy and API health check returned `ok / mock / simulation`.
 - Independent reviewer: pass, with the retained caveat that this is deliberately a local simulation.
 
 ## Remote history
@@ -35,3 +34,6 @@ Actual video generation remains blocked until all of the following are available
 4. Owned storage, private delivery, provider webhook verification, trim/QC, captions, thumbnail, and manifest.
 
 See [provider and rendering ADR](08-provider-and-rendering-adr.md) for the decision record.
+## Shutdown note
+
+The Studio Vite server on port `5173` was stopped at session close. Persistent local API availability is not a handoff guarantee: start `npm run dev:api` only after confirming that port `4174` is free. The automated service and HTTP-boundary tests above are the canonical verification record.
