@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "manuals": [
+    {
+      "id": "handoff-execution",
+      "path": "codex/manuals/handoff-execution.md",
+      "name": "Implement an approved handoff",
+      "description": "Turn a current Vision handoff into a bounded Codex execution with evidence.",
+      "triggers": ["handoff", "implementation", "feature", "bug fix"],
+      "watchPaths": ["docs/handoffs/current-handoff.json"]
+    },
+    {
+      "id": "baseline-review",
+      "path": "codex/manuals/baseline-review.md",
+      "name": "Review against the active baseline",
+      "description": "Compare a proposed or completed change with the executable project baseline.",
+      "triggers": ["review", "baseline", "scope", "regression"],
+      "watchPaths": ["docs/development/active-workspace-baseline.md"]
+    },
+    {
+      "id": "game-verification",
+      "path": "codex/manuals/game-verification.md",
+      "name": "Verify the active Phaser game",
+      "description": "Run the smallest reproducible verification sequence for the active game workspace.",
+      "triggers": ["test", "lint", "build", "playwright", "verification"],
+      "watchPaths": ["work/2D-FPS-game/package.json", "work/2D-FPS-game/vitest.config.ts", "work/2D-FPS-game/playwright.config.ts"]
+    },
+    {
+      "id": "reliability-gate",
+      "path": "codex/manuals/reliability-gate.md",
+      "name": "Run the Hermes reliability gate",
+      "description": "Apply PO planning, reviewer challenge, manual freshness, and evidence gates to non-trivial work.",
+      "triggers": ["harness", "hermes", "agent", "skill", "reliability"],
+      "watchPaths": [".codex/agents/product-owner.toml", ".codex/agents/reviewer.toml", "codex/state/reliability-metadata.json", "plugins/hermes-ssot"]
+    }
+  ]
+}

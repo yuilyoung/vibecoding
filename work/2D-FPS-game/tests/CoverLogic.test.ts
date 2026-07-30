@@ -1,5 +1,5 @@
 import { createMapObject, destroyMapObject } from "../src/domain/map/MapObjectLogic";
-import { isBulletBlocked } from "../src/domain/map/CoverLogic";
+import { getCoverLineOfSightObstacle, isBulletBlocked } from "../src/domain/map/CoverLogic";
 
 describe("CoverLogic", () => {
   it("blocks bullets that cross an active cover rectangle", () => {
@@ -74,5 +74,34 @@ describe("CoverLogic", () => {
         prevY: 190
       })
     ).toBe(false);
+  });
+
+  it("converts active cover into a line-of-sight obstacle", () => {
+    const cover = createMapObject({
+      id: "cover-1",
+      kind: "cover",
+      x: 200,
+      y: 150
+    });
+
+    expect(getCoverLineOfSightObstacle(cover)).toEqual({
+      x: 176,
+      y: 142,
+      width: 48,
+      height: 16
+    });
+  });
+
+  it("does not expose destroyed cover as a line-of-sight obstacle", () => {
+    const cover = destroyMapObject(
+      createMapObject({
+        id: "cover-1",
+        kind: "cover",
+        x: 200,
+        y: 150
+      })
+    );
+
+    expect(getCoverLineOfSightObstacle(cover)).toBeUndefined();
   });
 });

@@ -32,7 +32,7 @@ import {
 } from "../ui/hud-events";
 import { buildHudSnapshot, buildMatchOverlayState, type HudPresenterInput } from "../ui/hud-presenters";
 import { COVER_VISION_RADIUS, PLAYFIELD_MAX_X, PLAYFIELD_MAX_Y, PLAYFIELD_MIN_X, PLAYFIELD_MIN_Y } from "./scene-constants";
-import type { CoverEffectId, GameBalance, PlayerWeaponSlot } from "./scene-types";
+import type { CoverEffectId, GameBalance, PlayerWeaponSlot, TacticalSnapshot } from "./scene-types";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 
 export interface HudControllerDeps {
@@ -64,6 +64,8 @@ export interface HudControllerDeps {
   readonly setMatchConfirmReadyCueSent: (sent: boolean) => void;
   readonly emitSoundCue: (event: SoundCueEvent) => void;
   readonly queueWeatherSoundCue?: (item: ReturnType<typeof createWeatherSoundStopItem> | NonNullable<ReturnType<typeof resolveWeatherSoundQueueItem>>) => void;
+  readonly getActiveWeatherSoundCue?: () => WeatherSoundCueKey | null;
+  readonly getRuntimeAudioSnapshot?: () => import("./scene-types").AudioRuntimeSnapshot;
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
 }
@@ -71,7 +73,6 @@ export interface HudControllerDeps {
 export class HudController {
   private windState = readLatestHudWind();
   private weatherState = readLatestHudWeather();
-  private activeWeatherSoundCue: WeatherSoundCueKey | null = null;
 
   private overlayState: HudOverlayState = {
     visible: false,
@@ -134,6 +135,7 @@ export class HudController {
       coverVisionX: 480,
       coverVisionY: 270,
       coverVisionRadius: 72,
+      tactical: this.createTacticalSnapshot(),
       wind: {
         visible: true,
         angleDegrees: this.windState.angleDegrees,
@@ -155,6 +157,7 @@ export class HudController {
         windStrengthMultiplier: this.weatherState.windStrengthMultiplier,
         minesDisabled: this.weatherState.minesDisabled
       },
+      audio: this.deps.getRuntimeAudioSnapshot?.(),
       overlay: { visible: false, title: "", subtitle: "" }
     };
 
@@ -221,7 +224,9 @@ export class HudController {
         coverVisionActive: this.state.activeDummyCoverIndex !== null && this.deps.getCoverEffectId(this.state.activeDummyCoverIndex) === "vision-jam",
         coverVisionX: coverVision.x,
         coverVisionY: coverVision.y,
-        coverVisionRadius: coverVision.radius
+        coverVisionRadius: coverVision.radius,
+        tactical: this.createTacticalSnapshot(),
+        audio: this.deps.getRuntimeAudioSnapshot?.()
       },
       isRoundStarting: this.deps.isRoundStarting(now),
       matchConfirmAtMs: this.deps.getMatchConfirmAtMs(),
@@ -252,55 +257,53 @@ export class HudController {
     }
 
     const weatherContract = resolveWeatherSoundContract(this.deps.gameBalance.weather);
-    const activeChannel = this.activeWeatherSoundCue === null
+    const activeWeatherSoundCue = this.deps.getActiveWeatherSoundCue?.() ?? null;
+    const activeChannel = activeWeatherSoundCue === null
       ? null
-      : weatherContract.rain?.cue === this.activeWeatherSoundCue
+      : weatherContract.rain?.cue === activeWeatherSoundCue
           ? weatherContract.rain
-          : weatherContract.sandstorm?.cue === this.activeWeatherSoundCue
+          : weatherContract.sandstorm?.cue === activeWeatherSoundCue
               ? weatherContract.sandstorm
-              : weatherContract.storm?.cue === this.activeWeatherSoundCue
+              : weatherContract.storm?.cue === activeWeatherSoundCue
                   ? weatherContract.storm
                   : null;
 
     if (detail.soundResetReason === "MATCH_RESET") {
-      if (this.activeWeatherSoundCue !== null) {
+      if (activeWeatherSoundCue !== null) {
         queueWeatherSoundCue(createWeatherSoundStopItem(
-          this.activeWeatherSoundCue,
+          activeWeatherSoundCue,
           activeChannel?.fadeMs ?? 0,
           "MATCH_RESET"
         ));
-        this.activeWeatherSoundCue = null;
       }
       return;
     }
 
     const nextItem = resolveWeatherSoundQueueItem(this.deps.gameBalance.weather, detail);
     if (nextItem === null) {
-      if (this.activeWeatherSoundCue !== null) {
+      if (activeWeatherSoundCue !== null) {
         queueWeatherSoundCue(createWeatherSoundStopItem(
-          this.activeWeatherSoundCue,
+          activeWeatherSoundCue,
           activeChannel?.fadeMs ?? 0,
           "WEATHER_CLEAR"
         ));
-        this.activeWeatherSoundCue = null;
       }
       return;
     }
 
-    if (this.activeWeatherSoundCue === nextItem.cue) {
+    if (activeWeatherSoundCue === nextItem.cue) {
       return;
     }
 
-    if (this.activeWeatherSoundCue !== null) {
+    if (activeWeatherSoundCue !== null) {
       queueWeatherSoundCue(createWeatherSoundStopItem(
-        this.activeWeatherSoundCue,
+        activeWeatherSoundCue,
         activeChannel?.fadeMs ?? nextItem.fadeMs,
         "WEATHER_CLEAR"
       ));
     }
 
     queueWeatherSoundCue(nextItem);
-    this.activeWeatherSoundCue = nextItem.cue;
   }
 
   private createWeaponHudSlots(activeIndex: number, now = this.scene.time.now): readonly HudWeaponSlotSnapshot[] {
@@ -408,6 +411,16 @@ export class HudController {
       bossWaveRules: this.deps.bossWaveRules,
       bossWavePlan: this.deps.getBossWavePlan()
     });
+  }
+
+  private createTacticalSnapshot(): TacticalSnapshot {
+    return {
+      intent: this.state.lastDummyTacticalIntent,
+      targetCoverIndex: this.state.targetDummyCoverIndex,
+      targetCoverEffect: this.state.targetDummyCoverEffect,
+      chosenWeaponId: this.state.currentDummyWeaponId,
+      chosenWeaponRole: this.state.currentDummyWeaponRole
+    };
   }
 
   private getWeatherLabel(type: HudWeatherChangedDetail["type"]): string {

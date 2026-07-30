@@ -12,7 +12,7 @@ import type { MatchFlowController } from "./match-flow-controller";
 import type { MapObjectDebugSummary } from "./map-object-controller";
 import { ACTOR_HALF_SIZE } from "./scene-constants";
 import type { SceneRuntimeState } from "./scene-runtime-state";
-import type { DebugTeamSelection, MainSceneDebugSnapshot, PlayerWeaponSlot } from "./scene-types";
+import type { AudioRuntimeSnapshot, DebugTeamSelection, MainSceneDebugSnapshot, PlayerWeaponSlot } from "./scene-types";
 import type { VfxController } from "./vfx-controller";
 import type { MapObjectState } from "../domain/map/MapObjectLogic";
 
@@ -31,6 +31,7 @@ export interface DebugControllerDeps {
   readonly getCurrentGlobalWeather: () => WeatherState;
   readonly getCurrentEffectiveWeather: () => WeatherState;
   readonly getWeatherConfig: () => WeatherConfig;
+  readonly getRuntimeAudioSnapshot: () => AudioRuntimeSnapshot;
   readonly setCurrentWeather: (weather: WeatherState) => void;
   readonly publishWeatherChange: () => void;
   readonly getLastSpawnSummary: () => string;
@@ -61,6 +62,7 @@ export class DebugController {
     const progressionState = this.deps.getProgressionState();
     const unlockState = this.deps.getUnlockState();
     const playerSprite = this.requirePlayerSprite();
+    const targetDummy = this.requireTargetDummy();
 
     return {
       phase: getPhaseLabel(this.deps.matchFlow.state.phase, this.deps.roundLogic.state.isMatchOver, this.deps.isRoundStarting(now)),
@@ -84,11 +86,21 @@ export class DebugController {
       lastEvent: this.deps.runtimeState.lastCombatEvent,
       playerX: playerSprite.x,
       playerY: playerSprite.y,
+      dummyX: targetDummy.x,
+      dummyY: targetDummy.y,
       playerHullAngle: this.deps.runtimeState.playerBodyAngle,
       wind: this.deps.combatController.getWindDebugState(),
       weather: {
         global: this.deps.getCurrentGlobalWeather(),
         effective: this.deps.getCurrentEffectiveWeather()
+      },
+      audio: this.deps.getRuntimeAudioSnapshot(),
+      tactical: {
+        intent: this.deps.runtimeState.lastDummyTacticalIntent,
+        targetCoverIndex: this.deps.runtimeState.targetDummyCoverIndex,
+        targetCoverEffect: this.deps.runtimeState.targetDummyCoverEffect,
+        chosenWeaponId: this.deps.runtimeState.currentDummyWeaponId,
+        chosenWeaponRole: this.deps.runtimeState.currentDummyWeaponRole
       },
       mapObjects: this.deps.getMapObjectDebugSummary()
     };

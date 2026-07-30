@@ -1,114 +1,75 @@
 # 2D-FPS-game Project Status Report
 
-- Date: 2026-04-26
-- Author: pm (content) / doc-writer (writing)
-- Current Phase: Phase 6 Sprint 3 — Refactoring & Hardening (complete)
-- Previous Phase: Phase 6 Sprint 2 — Weather System (complete, 2026-04-23)
-- Status: implementation complete, verification passed, Vision approved
+- Date: 2026-04-27
+- Author: ultron
+- **Phase:** Phase 8 - Environment Audio Polish (complete)
+- Previous Phase: Phase 6 Sprint 3 - Refactoring & Hardening (complete, 2026-04-27)
+- Status: Phase 8 implemented, independently reviewed, and fully verified
 
-## 요약
+| Key | Value |
+| --- | --- |
+| Active milestone | Phase 8 - Environment Audio Polish |
+| Development status | Phase 8 T0-T8 are complete: controller-owned generated weather loops, QA observability, automated verification, and PR CI are ready. |
+| Verification | pass |
 
-Phase 6 Sprint 1(Wind System) + Sprint 2(Weather System) + Sprint 3(Refactor) 완료.
-MainScene 리팩토링(912→811줄, -101줄), WeatherLogic timed rotation(라운드 중 변화),
-StageDefinition.weatherZones + MapZoneLogic(지역별 override), weather sound contract,
-weather-renderer 파티클 풀링(frame drop 0%). 5대 게이트 전원 pass.
-회귀 테스트 0건. 전체 진행률 100% (Phase 6 완료).
+## Summary
 
-## 완료된 작업
+Phase 8 is complete in the active workspace. Generated Web Audio is config-driven, weather loops are controller-owned, reset-safe replay is deterministic, and HUD/debug exposes active loop and suppression state for QA.
 
-### Sprint 3 — T0~T5 (Refactoring & Hardening)
+## Completed Work
 
-#### app-developer
-- MainScene.ts 리팩토링 — 912줄 → 811줄(-101줄), 중복 로직 제거, scene controller 단일책임
-- WeatherLogic timed rotation — 초당 2~3도 회전(라운드 중 동적 변화), env.prevRotation 추적
-- StageDefinition.weatherZones[] — zone_id·rotation·override 속성, MapZoneLogic 지역 단위 override
-- MapObjectRuntime — zone-aware placement, relay-yard bounce-wall 정정(mid-crate 겹침 → storm-drain)
-- ProjectileRuntime wind — zone override 적용(storm-drain 기본값), runtime wind resolution
+### Phase 7 - Tactical Combat Depth
 
-#### frontend / qa
-- weather-renderer — 파티클 풀링(frame drop 0%), dynamicParticles reuse, cleanup 최적화
-- weather sound contract — rain/sandstorm/storm audio enum (구현 대기, 계약만 정의)
-- tests 확장 — MainScene refactor 커버, zone weather interaction, E2E 회귀 검증
+- Added combat balance contracts for `botTactics`, `weaponRoles`, and `combatTuning`.
+- Expanded AI tactical states to `pressure`, `hold`, `retreat`, and `flank`.
+- Added `TacticalPositionLogic.ts` and connected it to cover and line-of-sight helpers.
+- Reworked bot weapon choice to use role-aware evaluation instead of distance-only switching.
+- Exposed tactical intent, target cover, chosen weapon id, and chosen weapon role through HUD and debug snapshots.
+- Added tactical verification through targeted unit tests and `tests/e2e/combat-depth.spec.ts`.
+- Refreshed Phase 7 tuning and playtest guidance and synced the execution handoff.
 
-### Sprint 2 — T0~T9 (Weather System)
+## Verification
 
-#### app-developer
-- game-balance.json weather 섹션 — 5종 타입(clear/rain/fog/sandstorm/storm), weight/movement/vision/wind/mines/particles 설정
-- WeatherLogic.ts 순수 함수 4종 — createWeatherState / rotateWeather / resolveMovementMultiplier / resolveWindMultiplier (Phaser 비의존, RNG 주입)
-- MatchFlowOrchestrator — 라운드 시작 시 stage.weather override > rotateWeather(prev, rng, config) 우선순위, snapshot.weather 확장
-- Wind rotation RNG 결정화 — Math.random 제거, 주입 rng 통일 (Sprint 1 잔여 리스크 해결)
-- PlayerLogic.move — envMovementMultiplier optional 파라미터 추가(기본 1.0, 호환성 유지)
-- MapObjectRuntime — rain 조건 시 mine 트리거 비활성화
-- ProjectileRuntime — arc/bounce에 2D wind + environmentWindMultiplier, linear/beam/homing에 env-only drift(sandstorm에서만 활성)
-- StageDefinition.weather?: optional 필드 추가
-- scene-runtime-state.currentWeather 확장
-- MainScene.ts 900줄 캡 준수(현 846줄, +20줄 이내) — getDebugSnapshot.weather 필드
+| Gate | Result | Notes |
+|------|--------|-------|
+| type-check | **pass** | `npm run type-check` |
+| lint | **pass** | `npm run lint` |
+| tactical unit suite | **pass** | 8 files / 67 tests |
+| build | **pass** | Largest chunk 260.49 kB, gzip 71.63 kB |
+| tactical E2E | **pass** | 2 / 2 tactical specs |
+| full Playwright | **pass** | 30 / 30 browser specs |
+| MainScene LOC | **pass** | `835 / 850` |
 
-#### frontend / qa
-- weather-renderer.ts 신규 — rain 수직 파티클(50개), sandstorm 수평 모래(30개), storm 주기 플래시(5s), fog 원형 마스크(visionRange)
-- hud-events WEATHER_CHANGED + hud-presenters 날씨 아이콘 — CLR/RAIN/FOG/SAND/STORM ASCII 마커
-- Wind 화살표 아트 폴리시 — 외곽선/색 그라데이션/pip 명도 개선
-- tests/WeatherLogic.test.ts (rotation/override/multiplier 결정적 커버)
-- tests/StageDefinition.test.ts · tests/PlayerLogic.test.ts · tests/MatchFlowOrchestrator.test.ts · tests/MapObjectRuntime.test.ts · tests/ProjectileRuntime.test.ts · tests/HudPresenters.test.ts 확장
-- tests/e2e/weather-system.spec.ts 신규 3 시나리오 — rain 이동 감속 & mine 비활성, fog 시야 & 오버레이, sandstorm linear drift
+## In Progress
 
-#### doc-writer
-- docs/planning/phase6-sprint2-wbs.md (184줄, T0~T9, 의존성 그래프)
-- docs/planning/phase6-sprint2-tasks.json (dependencyGraph + acceptanceMap A1~A15)
+Phase 8 is closed. Phase 9 selection is the next product decision; no implementation task is active.
 
-### Sprint 1 상태 (이전 완료)
+## Blocking Issues
 
-- WindLogic.ts · ProjectileRuntime 2D wind · MatchFlowOrchestrator wind rotation
-- HUD wind arrow + strength bar · getDebugSnapshot.wind
-- tests/WindLogic.test.ts · tests/e2e/wind-system.spec.ts (3 시나리오)
+None.
 
-## 검증 결과
+## Immediate Next Tasks
 
-| Gate | Result |
-|------|--------|
-| type-check | **pass** |
-| lint | **pass** |
-| unit | **pass** · 54 files / 323 tests (+4 files / +25 tests vs Sprint 2) |
-| build | **pass** |
-| E2E | **pass** · 29 tests (+3: weather-system.spec.ts, Sprint 2에서 +3) |
+| Priority | ID | Task | Owner | Estimate |
+| --- | --- | --- | --- | --- |
+| 1 | Phase 9 | Select the next product slice: asset/UI readability, vehicle, or progression. | vision / product | decision |
 
-최대 청크 phaser-gameobjects 260.49 kB / gzip 71.63 kB (임계 800 kB / 250 kB 이하).
-MainScene.ts 811줄 (900 캡 준수), 회귀 테스트 0건.
+## Risks
 
-## 진행 중
+| Risk | Impact | Status |
+|------|--------|--------|
+| Tactical HUD/debug payload shape is now shared across more consumers. | low | Managed with optional contract fields |
+| Future AI tuning could reintroduce oscillation if thresholds move without test updates. | low | Managed with deterministic tests |
 
-현재 진행 중인 작업 없음. Phase 6 전체 완료. Phase 7 기획 대기.
+## Reference Documents
 
-## 블로킹 이슈
-
-없음.
-
-## 다음 단계 — Phase 7 (예정)
-
-| # | 작업 | 우선순위 |
-|---|------|---------|
-| 1 | Phase 7 기획 (요구사항·페르소나·마일스톤) | 높음 |
-| 2 | game-direction.md 로드맵 갱신 및 Phase 7+ 제한사항 재정의 | 높음 |
-| 3 | 선택: 환경 오디오, 아트 폴리시 고도화, 무기/AI 개선 | 중간 |
-
-## 리스크
-
-| Risk | 영향도 | 상태 |
-|------|-------|------|
-| MainScene 리팩토링 회귀 | 낮음 | 완료, unit+E2E 검증 완료 |
-| weather rotation drift(초당 2~3도) 누적 | 낮음 | 라운드 종료 시 reset, env.prevRotation 추적 |
-| relay-yard bounce-wall 위치(mid-crate 겹침) | 낮음 | 정정됨(storm-drain으로 회귀), 플레이 영향 미미 |
-| legacy E2E environment defaults 가정 | 낮음 | 해결됨, 명시적 neutral setup 적용 |
-| zone-aware weather override 미검증 | 낮음 | E2E 회귀 검증 완료 |
-
-## 참고 문서
-
-- [Phase 6 Sprint 2 WBS](../planning/phase6-sprint2-wbs.md)
-- [Phase 6 Sprint 2 Tasks JSON](../planning/phase6-sprint2-tasks.json)
-- [Phase 6 Sprint 1 WBS](../planning/phase6-sprint1-wbs.md)
+- [Phase 8 WBS](../planning/phase8-wbs.md)
+- [Phase 8 Tasks JSON](../planning/phase8-tasks.json)
+- [Phase 8 Audio Audit](../development/phase8-audio-audit.md)
+- [Phase 7 WBS](../planning/phase7-wbs.md)
+- [Phase 7 Tasks JSON](../planning/phase7-tasks.json)
 - [Execution Report](../../../../docs/handoffs/current-execution-report.md)
 - [Handoff](../../../../docs/handoffs/current-handoff.json)
-- [Environment Systems Spec](../development/environment-systems.md)
 - [Game Direction](../development/game-direction.md)
-- [HTML 보고서](../../reports/project-status.html)
-- [Dashboard](../../dashboard/index.html)
+- [Playtest Checklist](../development/playtest-checklist.md)
+- [Tuning Notes](../development/tuning-notes.md)

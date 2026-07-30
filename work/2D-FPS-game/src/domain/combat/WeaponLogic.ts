@@ -15,6 +15,35 @@ export interface WeaponConfig {
   readonly knockback?: number;
   readonly pelletCount?: number;
   readonly spreadRadians?: number;
+  readonly roleProfile?: WeaponRoleProfile;
+}
+
+export type TacticalIntent = "pressure" | "hold" | "retreat" | "flank";
+
+export type WeaponSplashRisk = "low" | "medium" | "high";
+
+export type WeaponTacticalTag = TacticalIntent | "anchor" | "denial" | "safe";
+
+export interface WeaponRoleProfile {
+  readonly role: string;
+  readonly idealRange: readonly [number, number];
+  readonly burstSize?: number;
+  readonly splashRisk?: WeaponSplashRisk;
+  readonly tacticalTags?: readonly WeaponTacticalTag[];
+}
+
+export interface WeaponSelectionContext {
+  readonly distanceToTarget: number;
+  readonly tacticalIntent?: TacticalIntent;
+  readonly splashRiskTolerance?: "avoid" | "cautious" | "allow";
+  readonly targetSpacing?: "tight" | "neutral" | "spread";
+}
+
+export interface WeaponSelectionEvaluation {
+  readonly role: string | null;
+  readonly score: number;
+  readonly ready: boolean;
+  readonly reasons: readonly string[];
 }
 
 export interface FireAttempt {
@@ -167,6 +196,60 @@ export class WeaponLogic {
     };
   }
 
+  public getRoleProfile(): WeaponRoleProfile | undefined {
+    return this.config.roleProfile;
+  }
+
+  public getRoleId(): string | null {
+    return this.config.roleProfile?.role ?? null;
+  }
+
+  public evaluateSelection(context: WeaponSelectionContext, atTimeMs: number): WeaponSelectionEvaluation {
+    const reasons: string[] = [];
+    let score = 0;
+
+    if (this.isReloading(atTimeMs)) {
+      reasons.push("reloading");
+      score -= 1000;
+    }
+
+    if (this.getAmmoInMagazine(atTimeMs) <= 0) {
+      reasons.push("empty-magazine");
+      score -= 1000;
+    }
+
+    const reserveAmmo = this.getReserveAmmo(atTimeMs);
+    if (reserveAmmo <= 0 && this.getAmmoInMagazine(atTimeMs) <= 1) {
+      reasons.push("low-total-ammo");
+      score -= 80;
+    }
+
+    const roleProfile = this.config.roleProfile;
+    if (roleProfile === undefined) {
+      score += this.getAmmoInMagazine(atTimeMs) * 2;
+      reasons.push("default-profile");
+      return {
+        role: null,
+        score,
+        ready: score > -1000,
+        reasons
+      };
+    }
+
+    score += this.scoreIdealRange(context.distanceToTarget, roleProfile.idealRange, reasons);
+    score += this.scoreIntent(context.tacticalIntent, roleProfile, reasons);
+    score += this.scoreSplashRisk(context, roleProfile, reasons);
+    score += this.scoreBurst(roleProfile, context, reasons);
+    score += this.getAmmoInMagazine(atTimeMs) * 2;
+
+    return {
+      role: roleProfile.role,
+      score,
+      ready: score > -1000,
+      reasons
+    };
+  }
+
   public reset(): void {
     this.nextReadyAtMs = 0;
     this.ammoInMagazine = this.config.magazineSize;
@@ -203,5 +286,105 @@ export class WeaponLogic {
       ...(projectile?.spreadRadians !== undefined ? { spreadRadians: projectile.spreadRadians } : config.spreadRadians !== undefined ? { spreadRadians: config.spreadRadians } : {}),
       ...(projectile?.windMultiplier !== undefined ? { windMultiplier: projectile.windMultiplier } : {})
     };
+  }
+
+  private scoreIdealRange(distanceToTarget: number, idealRange: readonly [number, number], reasons: string[]): number {
+    const [minRange, maxRange] = idealRange;
+
+    if (distanceToTarget >= minRange && distanceToTarget <= maxRange) {
+      reasons.push("ideal-range");
+      return 60;
+    }
+
+    const rangeSpan = Math.max(1, maxRange - minRange);
+    const distanceOutsideRange = distanceToTarget < minRange
+      ? minRange - distanceToTarget
+      : distanceToTarget - maxRange;
+    const penalty = Math.min(70, Math.round((distanceOutsideRange / rangeSpan) * 45));
+    reasons.push("range-mismatch");
+    return -penalty;
+  }
+
+  private scoreIntent(
+    tacticalIntent: TacticalIntent | undefined,
+    roleProfile: WeaponRoleProfile,
+    reasons: string[]
+  ): number {
+    if (tacticalIntent === undefined) {
+      return 0;
+    }
+
+    if (roleProfile.tacticalTags?.includes(tacticalIntent) === true) {
+      reasons.push(`intent:${tacticalIntent}`);
+      return 24;
+    }
+
+    if (tacticalIntent === "hold" && roleProfile.tacticalTags?.includes("anchor") === true) {
+      reasons.push("intent:anchor");
+      return 18;
+    }
+
+    if (tacticalIntent === "pressure" && roleProfile.tacticalTags?.includes("denial") === true) {
+      reasons.push("intent:denial");
+      return 8;
+    }
+
+    return 0;
+  }
+
+  private scoreSplashRisk(
+    context: WeaponSelectionContext,
+    roleProfile: WeaponRoleProfile,
+    reasons: string[]
+  ): number {
+    const splashRisk = roleProfile.splashRisk ?? "low";
+    const spacing = context.targetSpacing ?? "neutral";
+    const tolerance = context.splashRiskTolerance ?? "allow";
+
+    if (tolerance === "allow") {
+      if (splashRisk !== "low" && spacing === "spread") {
+        reasons.push("spacing-safe");
+        return 18;
+      }
+
+      return 0;
+    }
+
+    const penaltyMap: Record<WeaponSplashRisk, number> = tolerance === "avoid"
+      ? { low: 0, medium: 35, high: 70 }
+      : { low: 0, medium: 18, high: 36 };
+
+    if (penaltyMap[splashRisk] > 0) {
+      reasons.push(`splash:${tolerance}`);
+      return -penaltyMap[splashRisk];
+    }
+
+    return 0;
+  }
+
+  private scoreBurst(
+    roleProfile: WeaponRoleProfile,
+    context: WeaponSelectionContext,
+    reasons: string[]
+  ): number {
+    const burstSize = roleProfile.burstSize ?? 1;
+
+    if (context.tacticalIntent === "pressure") {
+      const bonus = Math.min(16, burstSize * 4);
+      if (bonus > 0) {
+        reasons.push("burst-pressure");
+      }
+      return bonus;
+    }
+
+    if (context.tacticalIntent === "hold") {
+      const penalty = Math.max(0, burstSize - 2) * 3;
+      if (penalty > 0) {
+        reasons.push("burst-hold");
+      }
+      return -penalty;
+    }
+
+    return 0;
   }
 }

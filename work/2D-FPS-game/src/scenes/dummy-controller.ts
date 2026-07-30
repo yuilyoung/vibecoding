@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { DummyAiLogic, type DummyAiDecision } from "../domain/ai/DummyAiLogic";
+import { selectTacticalPosition, type TacticalPositionConfig } from "../domain/ai/TacticalPositionLogic";
+import type { MapObjectState } from "../domain/map/MapObjectLogic";
 import {
   ACTOR_HALF_SIZE,
   BODY_TURN_RATE,
@@ -16,10 +18,12 @@ export interface DummyActorControllerDeps {
   readonly dummyAiLogic: DummyAiLogic;
   readonly isCombatLive: (now: number) => boolean;
   readonly isMatchOver: () => boolean;
-  readonly getPreferredDummyWeaponId: () => string;
+  readonly getPreferredDummyWeaponId: (now?: number) => string;
   readonly getActorRotation: (angleRadians: number) => number;
   readonly emitMovementFxForActor: (actor: "dummy", now: number, throttleInput: number) => void;
   readonly coverPointRadius: number;
+  readonly getTacticalCoverStates: () => readonly MapObjectState[];
+  readonly getTacticalPositionConfig: () => TacticalPositionConfig;
 }
 
 export class DummyActorController {
@@ -51,6 +55,7 @@ export class DummyActorController {
 
     const previousX = this.state.dummyLogic.state.positionX;
     const previousY = this.state.dummyLogic.state.positionY;
+    const lineOfSightBlockers = this.collisionResolver.getActiveObstacles().map((obstacle) => obstacle.bounds);
     const decision = this.deps.dummyAiLogic.evaluate({
       dummyX: targetDummy.x,
       dummyY: targetDummy.y,
@@ -61,21 +66,29 @@ export class DummyActorController {
       playerHealthRatio: this.state.playerLogic.state.health / this.state.playerLogic.state.maxHealth,
       healthRatio: this.state.dummyLogic.state.health / this.state.dummyLogic.state.maxHealth,
       coverPoints: this.state.dummyCoverPoints,
-      lineOfSightBlockers: this.collisionResolver.getActiveObstacles().map((obstacle) => obstacle.bounds),
+      lineOfSightBlockers,
       hazardZones: [{
         ...this.requireHazardZone().bounds,
         padding: 26
       }]
     });
+    const tacticalIntent = this.resolveTacticalIntent();
+    const tacticalSelection = this.resolveTacticalSelection(targetDummy.x, targetDummy.y, playerSprite.x, playerSprite.y, lineOfSightBlockers, tacticalIntent);
+    this.state.lastDummyTacticalIntent = tacticalIntent;
+    this.state.targetDummyCoverIndex = tacticalSelection?.targetCoverIndex ?? null;
+    this.state.targetDummyCoverEffect = tacticalSelection?.targetCoverEffect ?? null;
     const desiredSteer = now < this.state.dummySteerLockUntilMs
       ? {
           moveX: this.state.lastDummySteerX,
           moveY: this.state.lastDummySteerY
         }
-      : this.stabilizeDummySteer(decision.moveX, decision.moveY);
+      : this.stabilizeDummySteer(
+          tacticalSelection?.steer.moveX ?? decision.moveX,
+          tacticalSelection?.steer.moveY ?? decision.moveY
+        );
     this.updateBodyAngle(desiredSteer.moveX, desiredSteer.moveY, deltaSeconds);
 
-    this.state.currentDummyWeaponId = this.deps.getPreferredDummyWeaponId();
+    this.state.currentDummyWeaponId = this.deps.getPreferredDummyWeaponId(now);
     this.state.lastDummyDecision = decision.mode;
     this.state.lastDummyShouldFire = decision.shouldFire;
     this.updateIntentEvent(decision);
@@ -139,6 +152,10 @@ export class DummyActorController {
 
     this.state.dummyInCover = inCoverNow;
     this.state.activeDummyCoverIndex = coverIndex;
+    if (coverIndex !== null && this.state.targetDummyCoverIndex === null) {
+      this.state.targetDummyCoverIndex = coverIndex;
+      this.state.targetDummyCoverEffect = this.getCoverEffectId(coverIndex);
+    }
 
     if (
       coverIndex !== null &&
@@ -331,6 +348,71 @@ export class DummyActorController {
     }
 
     return this.state.hazardZone;
+  }
+
+  private resolveTacticalSelection(
+    dummyX: number,
+    dummyY: number,
+    playerX: number,
+    playerY: number,
+    blockers: readonly { x: number; y: number; width: number; height: number }[],
+    intent: "pressure" | "hold" | "retreat" | "flank"
+  ): {
+    steer: { moveX: number; moveY: number };
+    targetCoverIndex: number | null;
+    targetCoverEffect: CoverEffectId | null;
+  } | null {
+    const coverStates = this.deps.getTacticalCoverStates()
+      .filter((state) => state.kind === "cover" && state.active && state.hp > 0);
+
+    if (coverStates.length === 0 || intent === "pressure") {
+      return null;
+    }
+
+    const selection = selectTacticalPosition({
+      actor: { x: dummyX, y: dummyY },
+      target: { x: playerX, y: playerY },
+      intent,
+      cover: coverStates,
+      blockers,
+      config: this.deps.getTacticalPositionConfig()
+    });
+    const deltaX = selection.targetX - dummyX;
+    const deltaY = selection.targetY - dummyY;
+    const length = Math.hypot(deltaX, deltaY);
+
+    if (length <= 18) {
+      return null;
+    }
+
+    const targetCoverIndex = this.resolveNearestCoverIndex(selection.targetX, selection.targetY);
+
+    return {
+      steer: {
+        moveX: deltaX / length,
+        moveY: deltaY / length
+      },
+      targetCoverIndex,
+      targetCoverEffect: targetCoverIndex === null ? null : this.getCoverEffectId(targetCoverIndex)
+    };
+  }
+
+  private resolveNearestCoverIndex(targetX: number, targetY: number): number | null {
+    const maxDistance = this.deps.coverPointRadius + 40;
+
+    for (let index = 0; index < this.state.dummyCoverPoints.length; index += 1) {
+      const coverPoint = this.state.dummyCoverPoints[index];
+      if (Math.hypot(coverPoint.x - targetX, coverPoint.y - targetY) <= maxDistance) {
+        return index;
+      }
+    }
+
+    return null;
+  }
+
+  private resolveTacticalIntent(): "pressure" | "hold" | "retreat" | "flank" {
+    const currentState = this.deps.dummyAiLogic.getCurrentState();
+    return currentState === "idle" ? "pressure" : currentState;
   }
 }
 

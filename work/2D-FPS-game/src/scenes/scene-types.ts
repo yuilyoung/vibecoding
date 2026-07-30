@@ -12,6 +12,7 @@ import type { BossWaveRules } from "../domain/round/BossWaveLogic";
 import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
 import type { WindState } from "../domain/environment/WindLogic";
 import type { WeatherState, WeatherType } from "../domain/environment/WeatherLogic";
+import type { SoundCueKey } from "../domain/audio/SoundCueLogic";
 
 export interface GameBalanceMapObjects {
   readonly barrel: {
@@ -85,6 +86,56 @@ export interface GameBalanceWeather {
   readonly types: Readonly<Record<WeatherType, GameBalanceWeatherTypeConfig>>;
 }
 
+export interface GameBalanceBotTactics {
+  readonly engageRange: number;
+  readonly preferredHoldRange: number;
+  readonly flankRange: number;
+  readonly retreatRange: number;
+  readonly retreatHealthThreshold: number;
+  readonly coverHealthThreshold: number;
+  readonly reengageHealthThreshold: number;
+  readonly targetWeakHealthThreshold: number;
+  readonly coverSearchRadius: number;
+  readonly flankCommitMs: number;
+  readonly weatherCautionVisionMultiplier: number;
+}
+
+export type WeaponRoleTargetPreference = "closest" | "exposed" | "clustered" | "weakened";
+
+export interface GameBalanceWeaponRole {
+  readonly idealRange: readonly [number, number];
+  readonly burstSize: number;
+  readonly splashCaution: number;
+  readonly targetPreference: WeaponRoleTargetPreference;
+  readonly tacticalTags: readonly string[];
+}
+
+export interface GameBalanceCombatTuning {
+  readonly intentCooldownMs: number;
+  readonly debugExposeTacticalIntent: boolean;
+}
+
+export interface GameBalanceAudioCueProfile {
+  readonly frequencyHz?: number;
+  readonly durationMs?: number;
+  readonly gain?: number;
+  readonly attackMs?: number;
+  readonly releaseMs?: number;
+  readonly type?: OscillatorType;
+}
+
+export interface GameBalanceAudioCueRule {
+  readonly priority?: number;
+  readonly cooldownMs?: number;
+}
+
+export interface GameBalanceAudio {
+  readonly maxSimultaneous?: number;
+  readonly weatherLoopCooldownMs?: number;
+  readonly cueProfiles?: Readonly<Partial<Record<SoundCueKey, GameBalanceAudioCueProfile>>>;
+  readonly cueRules?: Readonly<Partial<Record<SoundCueKey, GameBalanceAudioCueRule>>>;
+}
+
 export interface GameBalance {
   movementSpeed: number;
   dashMultiplier: number;
@@ -129,6 +180,10 @@ export interface GameBalance {
   wind: GameBalanceWind;
   weather: GameBalanceWeather;
   mapObjects: GameBalanceMapObjects;
+  botTactics?: GameBalanceBotTactics;
+  weaponRoles?: Readonly<Record<string, GameBalanceWeaponRole>>;
+  combatTuning?: GameBalanceCombatTuning;
+  audio?: GameBalanceAudio;
   weapons?: Record<string, unknown>;
 }
 
@@ -236,6 +291,24 @@ export interface CoverPointView {
 
 export type CoverEffectId = "vision-jam" | "shield" | "repair";
 
+export type CombatTacticalIntent = "pressure" | "hold" | "retreat" | "flank";
+
+export interface TacticalSnapshot {
+  readonly intent: CombatTacticalIntent;
+  readonly targetCoverIndex: number | null;
+  readonly targetCoverEffect: CoverEffectId | null;
+  readonly chosenWeaponId: string;
+  readonly chosenWeaponRole: string | null;
+}
+
+export interface AudioRuntimeSnapshot {
+  readonly activeWeatherLoopCue: string | null;
+  readonly queuedWeatherSoundCount: number;
+  readonly lastDroppedCue: string | null;
+  readonly maxSimultaneous: number;
+  readonly weatherLoopCooldownMs: number;
+}
+
 export interface TerrainCrop {
   x: number;
   y: number;
@@ -270,6 +343,8 @@ export interface MainSceneDebugSnapshot {
   lastEvent: string;
   playerX: number;
   playerY: number;
+  dummyX: number;
+  dummyY: number;
   playerHullAngle: number;
   wind: WindState & {
     forceX: number;
@@ -279,6 +354,8 @@ export interface MainSceneDebugSnapshot {
     global: WeatherState;
     effective: WeatherState;
   };
+  audio: AudioRuntimeSnapshot;
+  tactical: TacticalSnapshot;
   mapObjects: MapObjectDebugSummary;
 }
 

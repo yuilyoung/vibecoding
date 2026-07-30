@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "profile": "hermes-skills-codex",
+  "lastVerifiedAt": "2026-07-30T00:00:00.000Z",
+  "axes": {
+    "dataMetadata": "Source paths, owners, and applicability are recorded in the demand-loaded manual catalog.",
+    "manualSsot": "Manuals are concise procedural artifacts governed by docs/development/codex-manual-authoring.md.",
+    "adversarialValidation": "A read-only reviewer evaluates implementation claims after changes; deterministic tests remain a separate gate.",
+    "freshness": "Manual drift checks require the affected manual to change with configured source paths."
+  },
+  "adoptionGates": [
+    "The active baseline and change scope are known.",
+    "The relevant manual is selected from the catalog before work begins.",
+    "A deterministic verification command or explicit manual test exists.",
+    "A reviewer has evidence for the completion claim.",
+    "A reproducible lesson is recorded only after review confirms it."
+  ],
+  "manualCatalog": "codex/manuals/catalog.json",
+  "lessonsPath": "codex/state/lessons.md"
+}

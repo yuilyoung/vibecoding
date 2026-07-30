@@ -40,6 +40,61 @@ Phase 4 — 비주얼 에셋 교체 (사용자 경험)
 Phase 5 — 탈것 시스템 (확장)
 ```
 
+## 현재 실행 로드맵 (2026-04-27 갱신)
+
+실제 워크스페이스 기준으로는 Phase 6까지 완료되었고, 다음 실행 페이즈는 아래와 같이 정리한다.
+
+```
+Phase 6 — Wind/Weather hardening + zone/effective weather + refactor (completed)
+Phase 7 — Tactical Combat Depth
+  - bot intent states: pressure / hold / retreat / flank
+  - cover-aware positioning and retreat anchors
+  - weapon-role clarity and bot weapon selection
+  - deterministic playtest and tuning loop
+Phase 8 - Environment Audio Polish
+  - generated cue readability and anti-fatigue tuning
+  - deterministic weather loop switching and reset behavior
+  - HUD/debug audio visibility for QA and playtest tuning
+Phase 9 후보
+  - asset/UI readability pass
+  - vehicle system or progression expansion
+```
+
+## Phase 7 방향
+
+- 목표는 기능 수를 늘리는 것이 아니라 전투 판단의 질을 올리는 것이다.
+- 핵심 페르소나는 "짧은 세션에서도 전투 의도가 읽히는 탑다운 슈터를 원하는 플레이어"다.
+- 설계 원칙:
+  - AI와 무기 판단은 `game-balance.json`에서 조정 가능해야 한다.
+  - domain 로직은 Phaser 비의존을 유지한다.
+  - weather/wind 등 Phase 6 시스템은 Tactical Combat Depth의 입력값으로 재사용한다.
+  - 테스트와 플레이테스트 로그 없이 밸런스 조정만 먼저 하지 않는다.
+
+## Phase 7 공통 용어
+
+- `tactical.intent`: `pressure | hold | retreat | flank`
+- `tactical.targetCoverIndex`: 더미가 노리는 커버 슬롯 인덱스, 없으면 `null`
+- `tactical.targetCoverEffect`: `vision-jam | shield | repair | null`
+- `tactical.chosenWeaponId`: 현재 더미가 선택한 무기 ID
+- `tactical.chosenWeaponRole`: 무기 역할 요약값
+
+QA, 밸런스 조정, 이후 에이전트 작업은 위 필드명을 그대로 사용한다.
+
+## Phase 8 방향
+
+- 목표는 새 기능을 늘리는 것이 아니라 들리는 정보를 더 신뢰할 수 있게 만드는 것이다.
+- 핵심 페르소나는 "짧은 교전에서도 맞았는지, 막혔는지, 루프 환경음이 바뀌었는지 즉시 구분하고 싶은 플레이어"다.
+- 설계 원칙:
+  - generated audio 경로를 유지하고 외부 에셋 파이프라인은 이번 페이즈에 넣지 않는다.
+  - cue 우선순위, 반복 억제, 루프 전환은 deterministic test로 고정한다.
+  - weather/hazard/combat cue는 서로를 가리지 않도록 mix와 cooldown을 분리한다.
+
+## Phase 8 Completion
+
+- Environment Audio Polish is complete: generated weather loops have controller ownership, deterministic switching/reset behavior, and QA-visible runtime state.
+- Phase 9 remains a product selection among asset/UI readability, vehicle, or progression work.
+  - QA가 HUD/debug만으로도 현재 audio state를 해석할 수 있어야 한다.
+
 ## 상세 스펙
 
 - [무기 시스템 스펙](./weapon-systems.md)

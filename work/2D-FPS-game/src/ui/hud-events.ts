@@ -1,3 +1,6 @@
+import type { TacticalSnapshot } from "../scenes/scene-types";
+import type { AudioRuntimeSnapshot } from "../scenes/scene-types";
+
 export const HUD_SNAPSHOT_EVENT = "fps-hud-snapshot";
 export const WIND_CHANGED_EVENT = "fps-hud-wind-changed";
 export const WEATHER_CHANGED_EVENT = "fps-hud-weather-changed";
@@ -131,6 +134,8 @@ export interface HudSnapshot {
   readonly blastPreview?: HudBlastPreviewSnapshot;
   readonly wind?: HudWindSnapshot;
   readonly weather?: HudWeatherSnapshot;
+  readonly tactical?: TacticalSnapshot;
+  readonly audio?: AudioRuntimeSnapshot;
   readonly overlay: HudOverlayState;
 }
 

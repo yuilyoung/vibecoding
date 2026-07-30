@@ -1,9 +1,17 @@
 import Phaser from "phaser";
-import { AudioCueLogic, type AudioCueState } from "../domain/audio/AudioCueLogic";
-import { GeneratedAudioCuePlayer } from "../domain/audio/GeneratedAudioCuePlayer";
+import { AudioCueLogic, type AudioCueRuleOverride, type AudioCueState } from "../domain/audio/AudioCueLogic";
+import { GeneratedAudioCuePlayer, type GeneratedToneOverride } from "../domain/audio/GeneratedAudioCuePlayer";
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { resolveCameraFeedback, type CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
-import type { WeatherSoundQueueItem } from "../audio/sound-cue-contract";
+import { createWeatherSoundStopItem, type WeatherSoundCueKey, type WeatherSoundQueueItem } from "../audio/sound-cue-contract";
+import type { AudioRuntimeSnapshot, GameBalanceAudio } from "./scene-types";
+
+interface AudioFeedbackConfig {
+  readonly maxSimultaneous?: number;
+  readonly weatherLoopCooldownMs?: number;
+  readonly cueProfiles?: Partial<Record<SoundCueKey, GeneratedToneOverride>>;
+  readonly cueRules?: Partial<Record<SoundCueKey, AudioCueRuleOverride>>;
+}
 
 export class AudioFeedbackController {
   private readonly soundCueLogic: SoundCueLogic;
@@ -12,19 +20,29 @@ export class AudioFeedbackController {
   private audioCueState: AudioCueState;
   private lastSoundCue: SoundCueKey | "NONE";
   private weatherSoundQueue: WeatherSoundQueueItem[];
+  private activeWeatherSoundCue: WeatherSoundCueKey | null;
+  private readonly weatherLoopCooldownMs: number;
+  private lastWeatherLoopStartedAtMsByCue: Partial<Record<WeatherSoundCueKey, number>>;
+  private lastDroppedCue: string | null;
   private lastHazardCueStickyUntilMs: number;
   private cameraHitPauseUntilMs: number;
 
-  public constructor(private readonly scene: Phaser.Scene) {
+  public constructor(private readonly scene: Phaser.Scene, config?: GameBalanceAudio | AudioFeedbackConfig) {
     this.soundCueLogic = new SoundCueLogic();
-    this.audioCueLogic = new AudioCueLogic();
-    this.audioCuePlayer = new GeneratedAudioCuePlayer();
+    this.audioCueLogic = new AudioCueLogic(config?.cueRules);
+    this.audioCuePlayer = new GeneratedAudioCuePlayer(config?.cueProfiles);
     this.audioCueState = {
-      maxSimultaneous: 3,
+      maxSimultaneous: Number.isFinite(config?.maxSimultaneous) ? Math.max(1, Math.floor(config?.maxSimultaneous as number)) : 3,
       lastPlayedAtMsByCue: {}
     };
     this.lastSoundCue = "NONE";
     this.weatherSoundQueue = [];
+    this.activeWeatherSoundCue = null;
+    this.weatherLoopCooldownMs = Number.isFinite(config?.weatherLoopCooldownMs)
+      ? Math.max(0, Math.floor(config?.weatherLoopCooldownMs as number))
+      : 1200;
+    this.lastWeatherLoopStartedAtMsByCue = {};
+    this.lastDroppedCue = null;
     this.lastHazardCueStickyUntilMs = 0;
     this.cameraHitPauseUntilMs = 0;
   }
@@ -37,12 +55,53 @@ export class AudioFeedbackController {
     return this.lastSoundCue;
   }
 
+  public getActiveWeatherSoundCue(): WeatherSoundCueKey | null {
+    return this.activeWeatherSoundCue;
+  }
+
   public getCameraHitPauseUntilMs(): number {
     return this.cameraHitPauseUntilMs;
   }
 
   public queueWeatherSoundCue(item: WeatherSoundQueueItem): void {
+    const now = this.scene.time.now;
+
+    if (item.action === "stop") {
+      if (this.activeWeatherSoundCue !== item.cue) {
+        this.lastDroppedCue = item.cue;
+        return;
+      }
+
+      this.weatherSoundQueue.push(item);
+      this.audioCuePlayer.stopWeatherLoop(item.fadeMs);
+      this.activeWeatherSoundCue = null;
+      delete this.lastWeatherLoopStartedAtMsByCue[item.cue];
+      this.lastDroppedCue = null;
+      return;
+    }
+
+    if (this.activeWeatherSoundCue === item.cue) {
+      this.lastDroppedCue = item.cue;
+      return;
+    }
+
+    const lastStartedAtMs = this.lastWeatherLoopStartedAtMsByCue[item.cue];
+    if (lastStartedAtMs !== undefined && now - lastStartedAtMs < this.weatherLoopCooldownMs) {
+      this.lastDroppedCue = item.cue;
+      return;
+    }
+
+    if (this.activeWeatherSoundCue !== null) {
+      this.weatherSoundQueue.push(createWeatherSoundStopItem(this.activeWeatherSoundCue, item.fadeMs, "WEATHER_CLEAR"));
+      this.audioCuePlayer.stopWeatherLoop(item.fadeMs);
+      delete this.lastWeatherLoopStartedAtMsByCue[this.activeWeatherSoundCue];
+    }
+
     this.weatherSoundQueue.push(item);
+    this.audioCuePlayer.playWeatherLoop(item.cue, item.volume, item.fadeMs);
+    this.activeWeatherSoundCue = item.cue;
+    this.lastWeatherLoopStartedAtMsByCue[item.cue] = now;
+    this.lastDroppedCue = null;
   }
 
   public getWeatherSoundQueue(): readonly WeatherSoundQueueItem[] {
@@ -53,6 +112,16 @@ export class AudioFeedbackController {
     this.weatherSoundQueue = [];
   }
 
+  public getRuntimeAudioSnapshot(): AudioRuntimeSnapshot {
+    return {
+      activeWeatherLoopCue: this.activeWeatherSoundCue,
+      queuedWeatherSoundCount: this.weatherSoundQueue.length,
+      lastDroppedCue: this.lastDroppedCue,
+      maxSimultaneous: this.audioCueState.maxSimultaneous,
+      weatherLoopCooldownMs: this.weatherLoopCooldownMs
+    };
+  }
+
   public emitSoundCue(event: SoundCueEvent): void {
     const now = this.scene.time.now;
     const fallbackCue = this.soundCueLogic.resolveCue(event);
@@ -60,6 +129,7 @@ export class AudioFeedbackController {
     const nextCue = decision.play[0] ?? fallbackCue;
 
     if (this.lastSoundCue === "hazard.tick" && nextCue !== "hazard.tick" && now < this.lastHazardCueStickyUntilMs) {
+      this.lastDroppedCue = nextCue;
       if (decision.play.length > 0) {
         this.audioCuePlayer.play(nextCue);
       }
@@ -81,6 +151,9 @@ export class AudioFeedbackController {
           [this.lastSoundCue]: now
         }
       };
+      this.lastDroppedCue = decision.drop[0] ?? null;
+    } else {
+      this.lastDroppedCue = decision.drop[0] ?? nextCue;
     }
 
     this.triggerCameraFeedbackForSoundEvent(event);

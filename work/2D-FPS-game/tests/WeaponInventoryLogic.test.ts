@@ -124,4 +124,164 @@ describe("WeaponInventoryLogic", () => {
 
     expect(() => inventory.getActiveWeapon()).toThrow("does not own");
   });
+
+  it("selects a pressure weapon for close-range engagements", () => {
+    const inventory = WeaponInventoryLogic.fromConfigs([
+      {
+        id: "carbine",
+        label: "Carbine",
+        config: {
+          fireRateMs: 180,
+          bulletSpeed: 540,
+          damage: 20,
+          magazineSize: 6,
+          reloadTimeMs: 1200,
+          reserveAmmo: 24,
+          roleProfile: {
+            role: "carbine",
+            idealRange: [160, 340],
+            burstSize: 1,
+            tacticalTags: ["hold", "anchor"],
+            splashRisk: "low"
+          }
+        }
+      },
+      {
+        id: "scatter",
+        label: "Scatter",
+        config: {
+          fireRateMs: 560,
+          bulletSpeed: 480,
+          damage: 12,
+          magazineSize: 3,
+          reloadTimeMs: 1500,
+          reserveAmmo: 12,
+          roleProfile: {
+            role: "scatter",
+            idealRange: [0, 140],
+            burstSize: 3,
+            tacticalTags: ["pressure", "flank"],
+            splashRisk: "low"
+          }
+        }
+      }
+    ]);
+
+    const selection = inventory.selectBestWeapon({
+      distanceToTarget: 70,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid"
+    }, 0);
+
+    expect(selection.slot.id).toBe("scatter");
+    expect(selection.role).toBe("scatter");
+    expect(selection.changed).toBe(true);
+    expect(inventory.getActiveSlot().id).toBe("scatter");
+  });
+
+  it("keeps the current weapon when it remains the best role fit", () => {
+    const inventory = WeaponInventoryLogic.fromConfigs([
+      {
+        id: "carbine",
+        label: "Carbine",
+        config: {
+          fireRateMs: 180,
+          bulletSpeed: 540,
+          damage: 20,
+          magazineSize: 6,
+          reloadTimeMs: 1200,
+          reserveAmmo: 24,
+          roleProfile: {
+            role: "carbine",
+            idealRange: [160, 340],
+            burstSize: 1,
+            tacticalTags: ["hold", "anchor"],
+            splashRisk: "low"
+          }
+        }
+      },
+      {
+        id: "scatter",
+        label: "Scatter",
+        config: {
+          fireRateMs: 560,
+          bulletSpeed: 480,
+          damage: 12,
+          magazineSize: 3,
+          reloadTimeMs: 1500,
+          reserveAmmo: 12,
+          roleProfile: {
+            role: "scatter",
+            idealRange: [0, 140],
+            burstSize: 3,
+            tacticalTags: ["pressure"],
+            splashRisk: "low"
+          }
+        }
+      }
+    ]);
+
+    const selection = inventory.selectBestWeapon({
+      distanceToTarget: 240,
+      tacticalIntent: "hold",
+      splashRiskTolerance: "avoid"
+    }, 0);
+
+    expect(selection.slot.id).toBe("carbine");
+    expect(selection.changed).toBe(false);
+    expect(inventory.getActiveSlot().id).toBe("carbine");
+  });
+
+  it("avoids splash-heavy weapons when close spacing makes explosives unsafe", () => {
+    const inventory = WeaponInventoryLogic.fromConfigs([
+      {
+        id: "carbine",
+        label: "Carbine",
+        config: {
+          fireRateMs: 180,
+          bulletSpeed: 540,
+          damage: 20,
+          magazineSize: 6,
+          reloadTimeMs: 1200,
+          reserveAmmo: 24,
+          roleProfile: {
+            role: "carbine",
+            idealRange: [150, 340],
+            burstSize: 1,
+            tacticalTags: ["hold", "safe"],
+            splashRisk: "low"
+          }
+        }
+      },
+      {
+        id: "bazooka",
+        label: "Bazooka",
+        config: {
+          fireRateMs: 1100,
+          bulletSpeed: 360,
+          damage: 45,
+          magazineSize: 1,
+          reloadTimeMs: 1800,
+          reserveAmmo: 5,
+          roleProfile: {
+            role: "explosive",
+            idealRange: [160, 320],
+            burstSize: 1,
+            tacticalTags: ["pressure", "denial"],
+            splashRisk: "high"
+          }
+        }
+      }
+    ]);
+
+    const selection = inventory.selectBestWeapon({
+      distanceToTarget: 210,
+      tacticalIntent: "pressure",
+      splashRiskTolerance: "avoid",
+      targetSpacing: "tight"
+    }, 0);
+
+    expect(selection.slot.id).toBe("carbine");
+    expect(selection.role).toBe("carbine");
+  });
 });

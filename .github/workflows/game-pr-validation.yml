@@ -1,0 +1,78 @@
+name: Game PR validation
+
+on:
+  pull_request:
+    paths:
+      - "work/2D-FPS-game/**"
+      - ".github/workflows/game-pr-validation.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "work/2D-FPS-game/**"
+      - ".github/workflows/game-pr-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: work/2D-FPS-game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: work/2D-FPS-game/package-lock.json
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  browser-e2e:
+    name: Browser E2E
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: work/2D-FPS-game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: work/2D-FPS-game/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_attempt }}
+          path: work/2D-FPS-game/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload failed-test artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ github.run_attempt }}
+          path: |
+            work/2D-FPS-game/test-results/
+            work/2D-FPS-game/*.log
+          if-no-files-found: ignore
+          retention-days: 14

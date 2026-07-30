@@ -1,154 +1,79 @@
 {
-  "id": "phase-6-sprint3-weather-finalize",
-  "timestamp": "2026-04-26",
+  "id": "phase-8-environment-audio-polish",
+  "timestamp": "2026-04-27",
   "from": "vision",
   "to": "ultron",
-  "status": "pending",
+  "status": "complete",
   "previousPhase": {
-    "id": "phase-6-sprint2-weather-system",
+    "id": "phase-7-tactical-combat-depth",
     "status": "complete",
-    "completedAt": "2026-04-23"
+    "completedAt": "2026-04-27",
+    "executionReport": "docs/handoffs/current-execution-report.md"
   },
-  "scope": "Phase 6 Sprint 3 — 환경 시스템 안정화 + Weather 완성도 향상. Sprint 2(Weather 5종 perRound)를 기반으로 5가지 영역을 마무리한다: (1) MainScene 리팩토링 — HUD/match-bind/debug/input 4헬퍼 분리로 912→≤850줄, (2) WeatherLogic.tickWeatherTimer 신규로 rotationMode='timed' 라운드 중 변화 지원, (3) StageDefinition.weatherZones[] + MapZoneLogic 신규로 지역별 weather override, (4) sound-cue-contract weather 3종(rain/sandstorm/storm) 통합 + hud-controller에서 WEATHER_CHANGED → sound enqueue, (5) weather-renderer 파티클 풀링 + particleCountMultiplier로 frame drop <2% 보장. snapshot.weather는 { global, effective } 구조로 분리되어 timed/perRound는 global, zone 진입은 effective만 갱신한다. 모든 확장은 하위 호환 — StageDefinition.weather/weatherZones 모두 optional, WeatherLogic 기존 4함수 시그니처 불변, perRound 모드 회귀 0건.",
+  "scope": "Phase 8 delivers Environment Audio Polish on top of the completed tactical combat baseline. The focus is generated audio readability, deterministic loop behavior, runtime priority tuning, HUD/debug audio visibility, and repeatable QA guidance.",
   "constraints": [
-    "Sprint 2 포함 50 files / 298 unit + 26 E2E 전부 pass 유지 (회귀 0건)",
-    "검증 게이트 7종 전부 통과: type-check, lint, vitest(≥320 tests/≥55 files), build, playwright(≥29 tests), perf(frame drop <2%), loc(MainScene ≤850)",
-    "TDD — WeatherLogic timed / MapZoneLogic / SoundCueContract / HudController sound / WeatherRenderer pool 모두 테스트 선행",
-    "MainScene.ts ≤850줄 강제 — scripts/check-mainscene-loc.mjs 자동 검증, 초과 시 추가 헬퍼 분리",
-    "MainScene 공개 debug 시그니처 완전 불변: debugSwapWeapon/debugFire/debugFireAt/debugGetRuntimeStats/getDebugSnapshot/debugGetWind/debugGetWeather/debugSetWeather. 신규 추가만 허용",
-    "WeatherLogic 기존 4함수(createWeatherState/rotateWeather/resolveMovementMultiplier/resolveWindMultiplier) 시그니처·동작 불변. timed 지원은 createWeatherTimer/tickWeatherTimer 신규 함수로만 추가",
-    "StageDefinition.weather와 StageDefinition.weatherZones 모두 optional — 기존 스테이지 JSON 무수정 유지, zone 미정의 stage는 fast-path bypass",
-    "domain/ 하위(WeatherLogic/MapZoneLogic 포함)는 Phaser 의존 금지. scene 통합은 src/scenes/* + src/audio/*가 담당",
-    "모든 weather 수치(rotationMode, durationRangeMs, particleCountMultiplier, soundChannels, types)는 assets/data/game-balance.json에 위임. 코드 하드코딩 금지",
-    "Sound 중복 발화 방지: prev.type===next.type 무발화, fade 800ms 통일, MATCH_RESET 시 모든 weather sound stop",
-    "파티클 풀 누수 0건: visible toggle 기반 재사용, type 변화 없으면 reallocation 0회, destroy 훅에서 모든 풀 정리",
-    "snapshot.weather 구조 변경: { global: WeatherState, effective: WeatherState } — global은 timed/perRound로만 변경, effective는 zone 진입/이탈로만 변경. perRound 모드는 global=effective(zone 미정의 stage)",
-    "빌드 청크 < 800 kB, gzip < 250 kB 유지 (현 260.49 kB / 71.63 kB, MapZoneLogic ~150줄 + sound 매핑 ~60줄로 +6 kB 추정)"
+    "Execution baseline remains work/2D-FPS-game and must preserve the completed Phase 7 tactical combat behavior.",
+    "Generated Web Audio remains the playback path in this phase; do not widen scope into external audio asset production.",
+    "Audio behavior should remain testable and mostly config-driven where practical.",
+    "Public debug methods remain stable; additive payload extension is preferred over API churn.",
+    "MainScene.ts must remain within the existing LOC gate.",
+    "Environment audio polish should not turn into a broader UI redesign or vehicle/progression phase."
   ],
   "currentState": {
     "implemented": [
-      "Phase 6 Sprint 2 완료 — Weather 5종(clear/rain/fog/sandstorm/storm) perRound rotation, WeatherLogic 4함수, stage.weather override, PlayerLogic envMovementMultiplier, MapObjectRuntime rain mine 비활성, ProjectileRuntime environmentWindMultiplier, weather-renderer(파티클+오버레이+플래시), HUD 날씨 아이콘",
-      "Phase 6 Sprint 1 완료 — Wind 2D force, WindLogic, MatchFlowOrchestrator wind 선정, HUD 화살표+pip",
-      "MatchFlowOrchestrator rng 주입 결정화 완료 (Math.random 0건)",
-      "tests: 50 files / 298 unit, 26 E2E 전부 pass",
-      "build: 260.49 kB / gzip 71.63 kB",
-      "MainScene.ts: 912줄 (Sprint 2 종료 시점, 900 캡 초과 12줄)"
+      "Phase 7 tactical combat depth is complete and fully regression-tested.",
+      "Sound cue routing, generated cue playback, and weather loop contracts already exist.",
+      "Weather sound queue dedup and reset coverage already exists in browser tests.",
+      "Phase 8 T1 audit is complete and the execution slice is locked to generated-audio runtime polish plus QA visibility.",
+      "Phase 8 T2 is complete: generated cue tuning is now balance-configurable through audio.maxSimultaneous and audio.cueProfiles."
     ],
     "gaps": [
-      "MainScene 850 캡 미달성 (현 912) — HUD wiring/match bind/debug/input 책임이 main에 잔존",
-      "rotationMode='timed' 미구현 — 현재 perRound만 동작, 라운드 중 weather 전환 불가",
-      "지역별 weather override 부재 — StageDefinition.weatherZones 미정의, MapZoneLogic 없음",
-      "weather sound 통합 부재 — rain/sandstorm/storm cue 미매핑, hud-controller sound enqueue 없음",
-      "weather-renderer 파티클 풀링 미구현 — type 변화마다 reallocation, particleCountMultiplier 미수용",
-      "snapshot.weather global/effective 분리 부재 — 단일 weather 필드만 존재"
+      "Generated cue mix and runtime priority still need readability tuning in the active playback layer.",
+      "Audio-specific HUD/debug state is limited for QA and tuning."
     ]
   },
   "files": {
     "create": [
-      "work/2D-FPS-game/src/scenes/main-scene-hud-bind.ts",
-      "work/2D-FPS-game/src/scenes/main-scene-match-bind.ts",
-      "work/2D-FPS-game/src/scenes/main-scene-debug.ts",
-      "work/2D-FPS-game/src/scenes/main-scene-input.ts",
-      "work/2D-FPS-game/src/domain/map/MapZoneLogic.ts",
-      "work/2D-FPS-game/src/audio/sound-cue-contract.ts",
-      "work/2D-FPS-game/scripts/check-mainscene-loc.mjs",
-      "work/2D-FPS-game/scripts/perf-weather.mjs",
-      "work/2D-FPS-game/tests/MapZoneLogic.test.ts",
-      "work/2D-FPS-game/tests/SoundCueContract.test.ts",
-      "work/2D-FPS-game/tests/HudController.test.ts",
-      "work/2D-FPS-game/tests/WeatherRenderer.test.ts",
-      "work/2D-FPS-game/tests/e2e/weather-timed.spec.ts",
-      "work/2D-FPS-game/tests/e2e/weather-zone.spec.ts",
-      "work/2D-FPS-game/tests/e2e/weather-sound.spec.ts"
+      "work/2D-FPS-game/docs/planning/phase8-wbs.md",
+      "work/2D-FPS-game/docs/planning/phase8-tasks.json",
+      "codex/subagents/game-specialist-phase8.md"
     ],
     "modify": [
-      "work/2D-FPS-game/assets/data/game-balance.json",
-      "work/2D-FPS-game/src/scenes/MainScene.ts",
-      "work/2D-FPS-game/src/scenes/scene-types.ts",
-      "work/2D-FPS-game/src/scenes/match-flow-controller.ts",
-      "work/2D-FPS-game/src/scenes/hud-controller.ts",
-      "work/2D-FPS-game/src/scenes/weather-renderer.ts",
-      "work/2D-FPS-game/src/domain/environment/WeatherLogic.ts",
-      "work/2D-FPS-game/src/domain/map/StageDefinition.ts",
-      "work/2D-FPS-game/src/domain/round/MatchFlowOrchestrator.ts",
-      "work/2D-FPS-game/src/ui/hud-events.ts",
-      "work/2D-FPS-game/tests/WeatherLogic.test.ts",
-      "work/2D-FPS-game/tests/StageDefinition.test.ts",
-      "work/2D-FPS-game/tests/MatchFlowOrchestrator.test.ts"
+      "docs/handoffs/current-handoff.json",
+      "codex/subagents/execution-roles.md",
+      "work/2D-FPS-game/docs/development/game-direction.md",
+      "work/2D-FPS-game/docs/reports/project-status.md"
     ]
   },
   "acceptance": [
-    "phase6-sprint3-wbs.md(200줄 이하) + phase6-sprint3-tasks.json(dependencyGraph + acceptanceMap) + 본 handoff JSON(scope/constraints/files/acceptance/priority/risks 포함) 작성 완료",
-    "MainScene.ts ≤850줄 — main-scene-hud-bind/match-bind/debug/input 4파일 분리, 공개 debug 시그니처 불변, scripts/check-mainscene-loc.mjs 자동 검증 통과",
-    "game-balance.json weather 확장 — rotationMode 'perRound'|'timed' 지원, durationRangeMs, soundChannels(rain/sandstorm/storm 각 cue/volume/fadeMs), particleCountMultiplier 추가. GameBalanceWeather 타입 type-check 통과",
-    "WeatherLogic.createWeatherTimer + tickWeatherTimer 신규 — 기존 4함수 시그니처 불변, stub rng 결정성 테스트 통과, perRound fallback 회귀 0건",
-    "StageDefinition.weatherZones?: ReadonlyArray<WeatherZone> optional — circle/polygon shape, priority?, isValidStageDefinition 검증, 단위 테스트(잘못된 kind/빈 polygon/잘못된 weather) 커버",
-    "MapZoneLogic 3함수(pointInPolygon/pointInCircle/resolveZoneWeather) — priority 내림차순 정렬, undefined zones fast-path, AABB 사전필터, 단위 테스트 통과",
-    "MatchFlowOrchestrator timed mode + zone effective + snapshot.weather { global, effective } 분리 — tick(dtMs) API 신규, perRound 회귀 0건, 단위 테스트 결정성",
-    "sound-cue-contract weather 채널 3종 매핑 + resolveWeatherSoundCue(weatherType, config) + 우선순위 규칙(weather > UI > ambient) + 단위 테스트",
-    "hud-controller WEATHER_CHANGED → sound enqueue + 중복 방지(prev=new 무발화) + MATCH_RESET 시 모든 weather sound stop + 단위 테스트",
-    "weather-renderer 파티클 풀링(rain ≤50, sandstorm ≤30) + particleCountMultiplier 수용(0.5~1.5) + scripts/perf-weather.mjs frame drop <2% 통과",
-    "단위 테스트 ≥320 tests / ≥55 files — WeatherLogic timed, MapZoneLogic, SoundCueContract, HudController, WeatherRenderer 신규 커버리지",
-    "E2E weather-timed/weather-zone/weather-sound 3 spec 통과 — 라운드 중 전환, zone 진입 effective 변경, sound dedup, 기존 weather-system.spec.ts 회귀 0건, 총 ≥29 tests",
-    "검증 게이트 5종(type-check/lint/unit/build/E2E) + 신규 2종(perf/loc) 전부 pass — Sprint 2 회귀 0건",
-    "빌드 청크 < 800 kB, gzip < 250 kB 유지 (현 260.49 kB / 71.63 kB → +6 kB 이내 예상)",
-    "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks 4섹션)",
-    "npm run codex-postflight 실행 — docs/handoffs/execution-status.json 자동 sync 완료"
+    "Phase 8 WBS, tasks JSON, and handoff are present and aligned.",
+    "Phase 8 scope is fixed to Environment Audio Polish.",
+    "A specialist brief exists for a game/audio-focused worker.",
+    "T1 audit findings are documented and the execution slice is locked.",
+    "T2 generated cue tuning contract is implemented and verified."
   ],
   "priority": [
-    "1. T0: WBS + tasks.json + handoff 작성 완료 (현재 단계)",
-    "2. T1: MainScene 리팩토링 (912→≤850) — 즉시 착수, 후속 작업의 기반",
-    "3. T2: game-balance.json weather 확장 (rotationMode='timed', soundChannels) — 스키마 분기점",
-    "4. T7: sound-cue-contract weather 채널 — T2와 병렬 가능",
-    "5. T3: WeatherLogic.tickWeatherTimer 신규 (TDD 선행)",
-    "6. T4: StageDefinition.weatherZones optional + 검증",
-    "7. T5: MapZoneLogic 신규 (TDD 선행)",
-    "8. T6: MatchFlowOrchestrator timed + zone + snapshot 분리 (T3+T5 합류)",
-    "9. T8: hud-controller sound enqueue (T7 후속)",
-    "10. T9: weather-renderer 파티클 풀링 (T1 후속)",
-    "11. T10: 단위 테스트 확장 (≥320 tests)",
-    "12. T11: E2E 3 시나리오 (timed/zone/sound)",
-    "13. T12: 검증 게이트 7종 + execution report + postflight sync"
+    "1. Audit current audio contract and runtime limitations.",
+    "2. Improve generated cue tuning, priority, and loop behavior.",
+    "3. Add QA visibility and verification coverage.",
+    "4. Close with docs, verification, and execution reporting."
   ],
   "risks": [
     {
-      "risk": "MainScene 850 캡 미달성 — 현 912줄에서 75줄 절감 필요",
-      "mitigation": "T1에서 4파일 분리(HUD bind -25 / match bind -20 / debug -15 / input -15 = -75줄). scripts/check-mainscene-loc.mjs CI 게이트로 강제. 미달 시 T9에서 weather-renderer 추가 위임 또는 controller 분리"
+      "risk": "Audio polish may overreach into asset production or larger UX redesign.",
+      "mitigation": "Keep Phase 8 constrained to generated cue behavior, runtime polish, and QA visibility."
     },
     {
-      "risk": "timed mid-round 전환이 wind/projectile 회귀를 유발",
-      "mitigation": "tickWeatherTimer는 dtMs 결정적, 단일 RNG 재사용. snapshot.weather.global 변화 시에만 WEATHER_CHANGED 발화. 기존 wind-system.spec.ts + weather-system.spec.ts 전체 유지하여 회귀 검증"
-    },
-    {
-      "risk": "zone polygon 판정 비용 — frame budget 압박",
-      "mitigation": "zones ≤8 가정, AABB 사전필터로 polygon 진입 케이스 최소화. zones 미정의 stage는 fast-path bypass(O(1)). 매 프레임 1회 player 위치만 검사"
-    },
-    {
-      "risk": "weather sound 중복 발화 또는 fade 충돌",
-      "mitigation": "prev.type===next.type 무발화 강제, fade 800ms 통일, MATCH_RESET 시 모든 weather sound stop. tests/HudController.test.ts에서 dedup/reset 시나리오 명시 검증"
-    },
-    {
-      "risk": "파티클 풀 누수 — type 전환 시 메모리 증가",
-      "mitigation": "visible toggle 기반 재사용 강제, type 변화 없으면 reallocation 0회. tests/WeatherRenderer.test.ts에서 풀 카운트 + 재사용 검증. destroy 훅에서 모든 풀 정리"
-    },
-    {
-      "risk": "snapshot.weather 구조 변경(global/effective)으로 외부 소비자 깨짐",
-      "mitigation": "match-flow-controller가 effective를 scene-runtime-state.currentWeather로 매핑하여 기존 PlayerLogic/MapObjectRuntime/ProjectileRuntime 입력 경로 불변. snapshot 구독자는 match-flow-controller 단독 → 변경 영향 격리"
-    },
-    {
-      "risk": "perf 게이트(frame drop <2%) 측정 노이즈",
-      "mitigation": "scripts/perf-weather.mjs는 5초간 type 전환 10회 평균 측정. 표준편차 ±0.5% 허용 마진. CI 환경 변동성 고려해 ±2% 허용 범위 동적 조정 가능"
+      "risk": "Cue dedup or cooldown tuning could suppress useful feedback.",
+      "mitigation": "Back all priority and cooldown changes with deterministic unit and browser tests."
     }
   ],
   "references": {
-    "previousHandoff": "archived — phase-6-sprint2-weather-system complete (동일 파일에 덮어씀)",
+    "currentPhaseWbs": "work/2D-FPS-game/docs/planning/phase8-wbs.md",
+    "currentPhaseTasks": "work/2D-FPS-game/docs/planning/phase8-tasks.json",
     "previousExecutionReport": "docs/handoffs/current-execution-report.md",
-    "currentSprintWbs": "work/2D-FPS-game/docs/planning/phase6-sprint3-wbs.md",
-    "currentSprintTasks": "work/2D-FPS-game/docs/planning/phase6-sprint3-tasks.json",
-    "sprint2Wbs": "work/2D-FPS-game/docs/planning/phase6-sprint2-wbs.md",
-    "sprint2Tasks": "work/2D-FPS-game/docs/planning/phase6-sprint2-tasks.json",
-    "environmentSystemsSpec": "work/2D-FPS-game/docs/development/environment-systems.md",
     "gameDirection": "work/2D-FPS-game/docs/development/game-direction.md",
-    "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md"
+    "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
+    "specialistBrief": "codex/subagents/game-specialist-phase8.md"
   }
 }

@@ -16,6 +16,32 @@ export function hasLineOfSight(
   return !obstacles.some((obstacle) => lineIntersectsObstacle(observer, target, obstacle));
 }
 
+export function findClosestBlockingObstacle(
+  observer: LineOfSightPoint,
+  target: LineOfSightPoint,
+  obstacles: readonly LineOfSightObstacle[]
+): LineOfSightObstacle | undefined {
+  let closestObstacle: LineOfSightObstacle | undefined;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  for (const obstacle of obstacles) {
+    if (!lineIntersectsObstacle(observer, target, obstacle)) {
+      continue;
+    }
+
+    const centerX = obstacle.x + obstacle.width / 2;
+    const centerY = obstacle.y + obstacle.height / 2;
+    const distance = Math.hypot(centerX - observer.x, centerY - observer.y);
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestObstacle = obstacle;
+    }
+  }
+
+  return closestObstacle;
+}
+
 export function lineIntersectsObstacle(
   start: LineOfSightPoint,
   end: LineOfSightPoint,

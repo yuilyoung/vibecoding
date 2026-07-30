@@ -16,6 +16,15 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 - Confirm blocked line of sight causes `reposition` instead of repeated blocked fire.
 - Confirm the dummy can still chase or flank when cover is irrelevant.
 
+## Tactical Intent Interpretation
+
+- `pressure`: the dummy should close or maintain an attacking lane and usually prefer mid-range or close-range weapons.
+- `hold`: the dummy should anchor a readable angle, avoid overextending, and prefer stable ranged options.
+- `retreat`: the dummy should create space first; aggressive splash choices should become less likely.
+- `flank`: the dummy should bias lateral movement and opportunistic close-range pressure.
+- `targetCoverEffect`: use this to judge whether the bot is trying to route through `vision-jam`, `shield`, or `repair` cover rather than only reacting to its current occupied cover.
+- `chosenWeaponRole`: use this field when adjusting `weaponRoles` so tuning discussion references exported runtime terms, not guesswork.
+
 ## Hazard Checks
 
 - Confirm the player can recognize the vent before taking repeated damage.
@@ -47,3 +56,10 @@ Use these notes after each local browser playtest to keep cover, hazard, and aud
 Automated smoke checks can confirm build and asset wiring.
 The 2026-04-11 browser balance pass confirmed current hazard pacing and generated cue routing.
 Manual speaker/headphone review is still required before changing generated tone gains.
+
+## Phase 8 Audio Loop Tuning
+
+- Tune generated cue gains and durations through `gameBalance.audio.cueProfiles` first.
+- Tune cue priority/cooldown through `gameBalance.audio.cueRules`; retain deterministic test coverage when changing either.
+- Keep `weatherLoopCooldownMs` for accidental repeat suppression, while reset/explicit stop retains immediate replay behavior.
+- Use HUD/debug audio snapshots and the weather sound E2E before accepting a mix adjustment.

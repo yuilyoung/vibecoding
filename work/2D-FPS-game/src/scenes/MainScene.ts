@@ -65,6 +65,7 @@ import { VisualController } from "./visual-controller";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
+import type { TacticalPositionConfig } from "../domain/ai/TacticalPositionLogic";
 import type { MoveKeys } from "./input-bindings";
 import { createMainSceneDebugController } from "./main-scene-debug";
 import { createMainSceneHudController } from "./main-scene-hud-bind";
@@ -186,7 +187,9 @@ export class MainScene extends Phaser.Scene {
       engageRange: gameBalance.dummyEngageRange,
       retreatRange: gameBalance.dummyRetreatRange,
       shootRange: gameBalance.dummyShootRange,
-      lowHealthThreshold: gameBalance.dummyLowHealthThreshold
+      lowHealthThreshold: gameBalance.dummyLowHealthThreshold,
+      botTactics: gameBalance.botTactics,
+      combatTuning: gameBalance.combatTuning
     });
     this.bullets = [];
     this.activeAirStrikes = [];
@@ -205,7 +208,7 @@ export class MainScene extends Phaser.Scene {
     this.progressionStorage = createProgressionStorage(getBrowserStorageBackend());
     this.settingsStorage = createSettingsStorage(getBrowserStorageBackend(), "2d-fps-game:settings");
     this.settingsState = this.settingsStorage.load() ?? DEFAULT_SETTINGS;
-    this.audioFeedbackController = new AudioFeedbackController(this);
+    this.audioFeedbackController = new AudioFeedbackController(this, this.gameBalance.audio);
     this.audioFeedbackController.setVolume(this.settingsState.masterVolume * this.settingsState.sfxVolume);
     this.progressionState = this.progressionStorage.load() ?? createProgressionState();
     this.unlockRules = gameBalance.unlocks.weaponRules;
@@ -239,9 +242,12 @@ export class MainScene extends Phaser.Scene {
       lastCombatEvent: "READY",
       recentImpactEffectUntilMs: 0,
       lastDummyDecision: "chase",
+      lastDummyTacticalIntent: "pressure",
       dummyInCover: false,
       dummyCoverBonusUntilMs: 0,
       activeDummyCoverIndex: null,
+      targetDummyCoverIndex: null,
+      targetDummyCoverEffect: null,
       nextDummyRepairTickAtMs: 0,
       playerUnlimitedAmmoUntilMs: 0,
       lastDummyShouldFire: false,
@@ -252,6 +258,7 @@ export class MainScene extends Phaser.Scene {
       currentPlayerTeam: "BLUE",
       currentDummyTeam: "RED",
       currentDummyWeaponId: "carbine",
+      currentDummyWeaponRole: "mid-range",
       playerBodyAngle: 0,
       dummyBodyAngle: 0,
       nextPlayerMoveFxAtMs: 0,
@@ -323,12 +330,14 @@ export class MainScene extends Phaser.Scene {
       dummyAiLogic: this.dummyAiLogic,
       isCombatLive: (now) => this.isCombatLive(now),
       isMatchOver: () => this.roundLogic.state.isMatchOver,
-      getPreferredDummyWeaponId: () => this.combatController.getPreferredDummyWeaponId(),
+      getPreferredDummyWeaponId: (now) => this.combatController.getPreferredDummyWeaponId(now),
       getActorRotation: (angleRadians) => this.visualController.getActorRotation(angleRadians),
       emitMovementFxForActor: (actor, now, throttleInput) => {
         this.vfxController.emitMovementFxForActor(actor, now, throttleInput);
       },
-      coverPointRadius: this.gameBalance.coverPointRadius
+      coverPointRadius: this.gameBalance.coverPointRadius,
+      getTacticalCoverStates: () => this.mapObjectController.getStates(),
+      getTacticalPositionConfig: () => this.getTacticalPositionConfig()
     });
     this.stageGeometry = new StageGeometryManager(this, this.runtimeState, this.actorCollisionResolver, this.gameBalance, {
       getCombatAvailability: (now) => this.getCombatAvailability(now),
@@ -379,6 +388,8 @@ export class MainScene extends Phaser.Scene {
       setMatchConfirmReadyCueSent: (sent) => { this.matchConfirmReadyCueSent = sent; },
       emitSoundCue: (event) => this.audioFeedbackController.emitSoundCue(event),
       queueWeatherSoundCue: (item) => this.audioFeedbackController.queueWeatherSoundCue(item),
+      getActiveWeatherSoundCue: () => this.audioFeedbackController.getActiveWeatherSoundCue(),
+      getRuntimeAudioSnapshot: () => this.audioFeedbackController.getRuntimeAudioSnapshot(),
       enterMatchOver: () => this.matchFlow.enterMatchOver(),
       getCoverEffectId: (index) => this.dummyActorController.getCoverEffectId(index)
     });
@@ -462,6 +473,7 @@ export class MainScene extends Phaser.Scene {
       getWeatherConfig: () => this.gameBalance.weather,
       getCurrentGlobalWeather: () => this.currentGlobalWeather,
       getCurrentEffectiveWeather: () => this.currentEffectiveWeather,
+      getRuntimeAudioSnapshot: () => this.audioFeedbackController.getRuntimeAudioSnapshot(),
       setCurrentWeather: (weather) => { this.applyCurrentWeather(weather); },
       getLastSpawnSummary: () => this.lastSpawnSummary,
       getMapObjectDebugSummary: () => this.mapObjectController.getDebugSummary(),
@@ -488,9 +500,12 @@ export class MainScene extends Phaser.Scene {
     this.matchConfirmAtMs = null;
     this.matchConfirmReadyCueSent = false;
     this.runtimeState.lastDummyDecision = "chase";
+    this.runtimeState.lastDummyTacticalIntent = "pressure";
     this.runtimeState.dummyInCover = false;
     this.runtimeState.dummyCoverBonusUntilMs = 0;
     this.runtimeState.activeDummyCoverIndex = null;
+    this.runtimeState.targetDummyCoverIndex = null;
+    this.runtimeState.targetDummyCoverEffect = null;
     this.runtimeState.nextDummyRepairTickAtMs = 0;
     this.runtimeState.playerUnlimitedAmmoUntilMs = 0;
     this.runtimeState.lastDummyShouldFire = false;
@@ -502,6 +517,7 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.currentPlayerTeam = "BLUE";
     this.runtimeState.currentDummyTeam = "RED";
     this.runtimeState.currentDummyWeaponId = "carbine";
+    this.runtimeState.currentDummyWeaponRole = "mid-range";
     this.runtimeState.playerBodyAngle = 0;
     this.runtimeState.dummyBodyAngle = 0;
     this.runtimeState.lastDummyIntentKey = "chase:false";
@@ -758,9 +774,9 @@ export class MainScene extends Phaser.Scene {
   public setInputOverlayActive(active: boolean): void { this.inputOverlayActive = applyMainSceneInputOverlay(active, this.time.now, this.runtimeState); }
   public debugEnterStage(): void { this.debugController.debugEnterStage(); } public debugSelectTeam(team: DebugTeamSelection): void { this.debugController.debugSelectTeam(team); } public debugConfirmTeamSelection(): void { this.debugController.debugConfirmTeamSelection(this.time.now); } public debugForceCombatLive(): void { this.debugController.debugForceCombatLive(); }
   public debugSwapWeapon(): void { this.debugController.debugSwapWeapon(this.time.now); } public debugSelectWeaponSlot(slotNumber: number): void { this.debugController.debugSelectWeaponSlot(slotNumber, this.time.now); } public debugFire(): void { this.debugController.debugFire(this.time.now); }
-  public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); } public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); } public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); } public debugGetWeatherSoundQueue() { return this.audioFeedbackController.getWeatherSoundQueue(); } public debugClearWeatherSoundQueue(): void { this.audioFeedbackController.clearWeatherSoundQueue(); }
+  public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); } public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); } public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); } public debugAdvanceMapObjects(now: number): void { this.mapObjectController.advanceTick(now, 0); } public debugResolveProjectiles(): void { this.combatController.updateProjectiles(0, this.time.now); } public debugGetWeatherSoundQueue() { return this.audioFeedbackController.getWeatherSoundQueue(); } public debugClearWeatherSoundQueue(): void { this.audioFeedbackController.clearWeatherSoundQueue(); }
   public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); } public debugSetPlayerHullAngle(angleRadians: number): void { this.debugController.debugSetPlayerHullAngle(angleRadians); } public debugSetPlayerAimAngle(angleRadians: number): void { this.debugController.debugSetPlayerAimAngle(angleRadians); }
-  public debugMoveDummyTo(x: number, y: number): void { this.debugController.debugMoveDummyTo(x, y); } public debugToggleGate(): void { this.debugController.debugToggleGate(); } public debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void { this.debugController.debugForceMatchOver(winner, this.time.now); }
+  public debugMoveDummyTo(x: number, y: number): void { this.debugController.debugMoveDummyTo(x, y); } public debugToggleGate(): void { this.stageGeometry.debugToggleGate(); } public debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void { this.debugController.debugForceMatchOver(winner, this.time.now); }
   public debugForceBossRound(): void { this.debugController.debugForceBossRound(this.time.now); } public debugRegisterPlayerRoundWin(): void { this.debugController.debugRegisterPlayerRoundWin(this.time.now); } public debugGetWeather(): WeatherState { return this.currentEffectiveWeather; }
   public debugSetWeather(type: WeatherState["type"]): void { this.debugController.debugSetWeather(type, this.time.now); } public clearBullets(): void { this.combatController.clearBullets(); } public updateDummyCoverState(now: number): void { this.dummyActorController.updateCoverState(now); }
   private setCurrentGlobalWeather(weather: WeatherState): void { this.currentGlobalWeather = weather; }
@@ -770,6 +786,17 @@ export class MainScene extends Phaser.Scene {
 
   private isWeaponAvailable(weaponId: string): boolean {
     return this.unlockAllWeaponsForDev || isWeaponUnlocked(weaponId, this.progressionState, this.unlockRules, this.defaultWeaponIds);
+  }
+
+  private getTacticalPositionConfig(): TacticalPositionConfig {
+    return {
+      coverSearchRadius: this.gameBalance.botTactics?.coverSearchRadius ?? this.gameBalance.dummyEngageRange,
+      preferredDistance: this.gameBalance.botTactics?.preferredHoldRange ?? this.gameBalance.dummyShootRange * 0.56,
+      retreatDistance: this.gameBalance.botTactics?.retreatRange ?? this.gameBalance.dummyRetreatRange,
+      flankDistance: this.gameBalance.botTactics?.flankRange ?? this.gameBalance.dummyShootRange * 0.7,
+      anchorPadding: this.gameBalance.coverPointRadius,
+      weatherCautionMultiplier: this.gameBalance.botTactics?.weatherCautionVisionMultiplier ?? 1
+    };
   }
 
   private resolveActorSeparation(): void {

@@ -7,6 +7,8 @@ import type { TeamId } from "../domain/round/MatchFlowLogic";
 import type {
   ActiveAirStrikeView,
   BulletView,
+  CombatTacticalIntent,
+  CoverEffectId,
   CoverPointView,
   GateView,
   HazardZoneView,
@@ -52,9 +54,12 @@ export interface SceneRuntimeState {
   lastCombatEvent: string;
   recentImpactEffectUntilMs: number;
   lastDummyDecision: DummyAiDecision["mode"];
+  lastDummyTacticalIntent: CombatTacticalIntent;
   dummyInCover: boolean;
   dummyCoverBonusUntilMs: number;
   activeDummyCoverIndex: number | null;
+  targetDummyCoverIndex: number | null;
+  targetDummyCoverEffect: CoverEffectId | null;
   nextDummyRepairTickAtMs: number;
   playerUnlimitedAmmoUntilMs: number;
   lastDummyShouldFire: boolean;
@@ -65,6 +70,7 @@ export interface SceneRuntimeState {
   currentPlayerTeam: TeamId;
   currentDummyTeam: TeamId;
   currentDummyWeaponId: string;
+  currentDummyWeaponRole: string | null;
   playerBodyAngle: number;
   dummyBodyAngle: number;
   nextPlayerMoveFxAtMs: number;
