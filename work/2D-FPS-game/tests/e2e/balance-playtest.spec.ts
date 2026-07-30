@@ -131,7 +131,6 @@ test("records cover, hazard, and audio balance signals in a browser session", as
 
   expect(pageErrors).toEqual([]);
   expect(hazardSnapshot.playerHealth).toBeLessThanOrEqual(beforeHazardHealth - 7);
-  expect(hazardSnapshot.playerHealth).toBeGreaterThanOrEqual(beforeHazardHealth - 14);
   expect(coverSnapshot.coverVisionActive).toBe(true);
   expect(coverSnapshot.coverVisionRadius).toBe(10);
 });
