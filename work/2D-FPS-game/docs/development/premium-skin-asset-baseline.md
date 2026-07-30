@@ -6,10 +6,10 @@ This first skin slice creates a reviewable art boundary without changing combat,
 
 | Surface | Current runtime asset | Source / license | Fallback |
 | --- | --- | --- | --- |
-| Team bodies | `sprites/ground-body-{blue,red}.png` | Ground Shaker, CC0 1.0 | Generated `skin-player-{blue,red}` texture |
+| Team bodies | `sprites/kenney-{player-blue,enemy-red}.png` | Kenney Top-down Shooter, CC0 1.0 | Ground Shaker body, then generated `skin-player-*` |
 | Weapon turrets | `sprites/ground-turret-*.png` | Ground Shaker, CC0 1.0 | Generated `fallback-weapon-turret` texture |
-| Arena terrain | `sprites/ground-terrain.png` | Ground Shaker, CC0 1.0 | Existing scene geometry remains visible |
-| Weapon art | `sprites/weapon-{gun,machine}.png` | Kenney Top-down Shooter, CC0 1.0 | Current scene weapon presentation |
+| Arena terrain | `sprites/kenney-floor-tile.png` plus `ground-terrain.png` | Kenney Top-down Shooter + Ground Shaker, CC0 1.0 | Existing scene geometry remains visible |
+| Weapon art | `sprites/kenney-weapon-{carbine,scatter}.png` | Kenney Top-down Shooter, CC0 1.0 | Existing turret/fire presentation |
 | HUD frames/bars | `ui/panel-*.png`, `ui/bar-*.png` | Kenney UI Pack Sci-fi, CC0 1.0 | CSS gradients and panels |
 | Fonts | `fonts/Kenney-Future*.ttf` | Kenney UI Pack Sci-fi, CC0 1.0 | System sans-serif stack |
 
@@ -28,4 +28,4 @@ When adding an asset:
 
 ## Scope of this slice
 
-The existing CC0 packs are already present locally, so no download was required. Dedicated pickup, gate, vent, and map-object art are deliberately deferred to later slices; their visual treatment remains code-generated while gameplay contracts stay unchanged.
+The official Kenney pack is already present locally with its original CC0 license, so this slice promotes reviewed files from that source rather than duplicating a download. It applies Kenney actors, weapon HUD icons, tiled arena treatment, and crate/barrel overlays. Dedicated pickup, gate, and vent art remain deferred; their gameplay contracts stay unchanged.

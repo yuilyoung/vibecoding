@@ -3,7 +3,7 @@ import type { TerrainCrop } from "./scene-types";
 import {
   OBSTACLE_CORE_KEY, OBSTACLE_TOWER_KEY, OBSTACLE_BARRIER_KEY,
   GATE_PANEL_KEY, VENT_PANEL_KEY, PICKUP_AMMO_KEY, PICKUP_HEALTH_KEY,
-  GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY,
+  GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY, KENNEY_FLOOR_TILE_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY, GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY, GROUND_TURRET_SCATTER_RED_KEY,
   FALLBACK_TURRET_KEY,
@@ -50,9 +50,11 @@ export function createActorSkins(scene: Phaser.Scene): void {
 }
 
 export function createActorImage(scene: Phaser.Scene, actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
-  const primaryKey = actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
-  const fallbackKey = actor === "player" ? "skin-player-blue" : "skin-player-red";
-  const textureKey = scene.textures.exists(primaryKey) ? primaryKey : fallbackKey;
+  const textureKey = scene.textures.exists(actor === "player" ? "kenney-player-blue" : "kenney-enemy-red")
+    ? (actor === "player" ? "kenney-player-blue" : "kenney-enemy-red")
+    : (scene.textures.exists(actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY)
+      ? (actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY)
+      : (actor === "player" ? "skin-player-blue" : "skin-player-red"));
   return scene.add.image(x, y, textureKey).setDepth(5).setScale(ACTOR_BODY_SCALE);
 }
 
@@ -70,6 +72,9 @@ export function addArenaBackdrop(scene: Phaser.Scene): void {
   const playfieldCenterY = (PLAYFIELD_MIN_Y + PLAYFIELD_MAX_Y) * 0.5;
 
   scene.add.rectangle(480, 270, 960, 540, 0x0a121b, 0.02).setDepth(-2);
+  if (scene.textures.exists(KENNEY_FLOOR_TILE_KEY)) {
+    scene.add.tileSprite(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, KENNEY_FLOOR_TILE_KEY).setAlpha(0.24).setDepth(-1);
+  }
   addTerrainSurface(
     scene,
     playfieldCenterX,

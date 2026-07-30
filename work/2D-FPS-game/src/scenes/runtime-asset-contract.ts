@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import {
   FALLBACK_TURRET_KEY, GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY,
+  KENNEY_ENEMY_RED_KEY, KENNEY_FLOOR_TILE_KEY, KENNEY_PLAYER_BLUE_KEY, KENNEY_PROP_BARREL_KEY, KENNEY_PROP_CRATE_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY, GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY, GROUND_TURRET_SCATTER_RED_KEY, WEAPON_GUN_KEY, WEAPON_MACHINE_KEY
 } from "./scene-constants";
@@ -15,6 +16,11 @@ export const RUNTIME_ASSET_MANIFEST: readonly RuntimeAssetDefinition[] = [
   { key: GROUND_BODY_BLUE_KEY, path: "/assets/runtime/sprites/ground-body-blue.png", kind: "image", fallbackKey: "skin-player-blue" },
   { key: GROUND_BODY_RED_KEY, path: "/assets/runtime/sprites/ground-body-red.png", kind: "image", fallbackKey: "skin-player-red" },
   { key: GROUND_TERRAIN_KEY, path: "/assets/runtime/sprites/ground-terrain.png", kind: "image" },
+  { key: KENNEY_PLAYER_BLUE_KEY, path: "/assets/runtime/sprites/kenney-player-blue.png", kind: "image", fallbackKey: GROUND_BODY_BLUE_KEY },
+  { key: KENNEY_ENEMY_RED_KEY, path: "/assets/runtime/sprites/kenney-enemy-red.png", kind: "image", fallbackKey: GROUND_BODY_RED_KEY },
+  { key: KENNEY_FLOOR_TILE_KEY, path: "/assets/runtime/sprites/kenney-floor-tile.png", kind: "image" },
+  { key: KENNEY_PROP_CRATE_KEY, path: "/assets/runtime/sprites/kenney-prop-crate.png", kind: "image" },
+  { key: KENNEY_PROP_BARREL_KEY, path: "/assets/runtime/sprites/kenney-prop-barrel.png", kind: "image" },
   { key: GROUND_TURRET_CARBINE_BLUE_KEY, path: "/assets/runtime/sprites/ground-turret-carbine-blue.png", kind: "spritesheet", fallbackKey: FALLBACK_TURRET_KEY, frameWidth: 128, frameHeight: 128 },
   { key: GROUND_TURRET_CARBINE_RED_KEY, path: "/assets/runtime/sprites/ground-turret-carbine-red.png", kind: "spritesheet", fallbackKey: FALLBACK_TURRET_KEY, frameWidth: 128, frameHeight: 128 },
   { key: GROUND_TURRET_SCATTER_BLUE_KEY, path: "/assets/runtime/sprites/ground-turret-scatter-blue.png", kind: "spritesheet", fallbackKey: FALLBACK_TURRET_KEY, frameWidth: 128, frameHeight: 128 },
@@ -27,5 +33,10 @@ export function preloadRuntimeAssets(scene: Phaser.Scene): void {
   }
 }
 export function resolveRuntimeTextureKey(textures: Pick<Phaser.Textures.TextureManager, "exists">, primaryKey: string, fallbackKey: string): string { return textures.exists(primaryKey) ? primaryKey : fallbackKey; }
-export function resolveTeamBodyTexture(scene: Phaser.Scene, team: "BLUE" | "RED"): string { return resolveRuntimeTextureKey(scene.textures, team === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY, team === "BLUE" ? "skin-player-blue" : "skin-player-red"); }
+export function resolveTeamBodyTexture(scene: Phaser.Scene, team: "BLUE" | "RED"): string {
+  const kenneyKey = team === "BLUE" ? KENNEY_PLAYER_BLUE_KEY : KENNEY_ENEMY_RED_KEY;
+  const runtimeFallback = team === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
+  const generatedFallback = team === "BLUE" ? "skin-player-blue" : "skin-player-red";
+  return scene.textures.exists(kenneyKey) ? kenneyKey : resolveRuntimeTextureKey(scene.textures, runtimeFallback, generatedFallback);
+}
 export function resolveTurretTexture(scene: Phaser.Scene, primaryKey: string): string { return resolveRuntimeTextureKey(scene.textures, primaryKey, FALLBACK_TURRET_KEY); }

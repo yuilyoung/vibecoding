@@ -71,7 +71,7 @@ appRoot.innerHTML = `
               <div class="meter-track"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
             </div>
             <div class="weapon-strip">
-              <img id="weapon-icon" class="weapon-icon" src="/assets/runtime/sprites/weapon-hud-carbine.png" alt="" />
+              <img id="weapon-icon" class="weapon-icon" src="/assets/runtime/sprites/kenney-weapon-carbine.png" alt="" />
               <div>
                 <p class="micro-label">Loadout</p>
                 <strong id="weapon-name">Carbine</strong>
@@ -581,7 +581,7 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.playerHealthText, `${snapshot.playerHealth}/${snapshot.playerMaxHealth}`, "player-health-text");
   updateImageSource(
     hudElements.weaponIcon,
-    snapshot.weaponSlot === 2 ? "/assets/runtime/sprites/weapon-hud-scatter.png" : "/assets/runtime/sprites/weapon-hud-carbine.png",
+    snapshot.weaponSlot === 2 ? "/assets/runtime/sprites/kenney-weapon-scatter.png" : "/assets/runtime/sprites/kenney-weapon-carbine.png",
     "weapon-icon-src"
   );
   updateText(hudElements.weaponName, snapshot.activeWeapon, "weapon-name-text");
