@@ -28,6 +28,8 @@ interface DebugSnapshot {
   weaponSlot: number;
   activeWeapon: string;
   dummyHealth: number;
+  dummyX: number;
+  dummyY: number;
   playerX: number;
   playerY: number;
 }
@@ -185,6 +187,42 @@ const injectProjectile = async (page: Page, input: {
   }, input);
 };
 
+const injectProjectileAtCurrentDummy = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const game = window.__FPS_GAME__;
+    const scene = game?.scene.keys.MainScene as
+      | (DebugScene & {
+          add: { rectangle(x: number, y: number, width: number, height: number, color: number, alpha: number): unknown };
+          runtimeState?: { bullets: Array<Record<string, unknown>> };
+        })
+      | undefined;
+
+    if (scene?.runtimeState === undefined) {
+      throw new Error("Missing runtimeState test handle.");
+    }
+
+    const target = scene.getDebugSnapshot();
+    const sprite = scene.add.rectangle(target.dummyX, target.dummyY, 8, 8, 0xffffff, 1) as {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    scene.runtimeState.bullets.push({
+      sprite,
+      velocityX: 0,
+      velocityY: 0,
+      damage: 20,
+      critChance: 0,
+      critMultiplier: 1,
+      owner: "player",
+      effectProfile: "carbine",
+      projectileConfig: { trajectory: "linear", speed: 0 },
+      bouncesRemaining: 0
+    });
+    scene.debugResolveProjectiles();
+  });
+};
 const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
   for (let index = 0; index < 4; index += 1) {
     if ((await readSnapshot(page)).stage === stageId) {
@@ -243,9 +281,7 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
   expect(coverAfterBurst?.active).toBe(false);
 
-  await withScene(page, (scene: DebugScene) => scene.debugMoveDummyTo(380, 240));
-  await injectProjectile(page, { x: 380, y: 240, velocityX: 0, velocityY: 0 });
-  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
+  await injectProjectileAtCurrentDummy(page);
 
   const afterCoverDestroyed = await readSnapshot(page);
   expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);

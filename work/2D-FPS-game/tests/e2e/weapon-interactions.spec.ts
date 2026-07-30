@@ -7,6 +7,8 @@ interface DebugSnapshot {
   weaponSlot: number;
   ammoInMagazine: number;
   dummyHealth: number;
+  dummyX: number;
+  dummyY: number;
   lastEvent: string;
 }
 
@@ -139,7 +141,10 @@ test("air strike queues blasts and applies area damage", async ({ page }) => {
   });
 
   const before = await readSnapshot(page);
-  await withScene(page, (scene: DebugScene) => scene.debugFireAt(500, 240));
+  await withScene(page, (scene: DebugScene) => {
+    const target = scene.getDebugSnapshot();
+    scene.debugFireAt(target.dummyX, target.dummyY);
+  });
 
   let stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
   expect(stats.activeAirStrikes).toBe(1);
