@@ -13,6 +13,9 @@
                     "agent-observability:sample":  "node scripts/agent-observability-harness.mjs --sample",
                     "agent-observability:check":  "node scripts/agent-observability-harness.mjs --check",
                     "agent-observability:collector":  "node scripts/agent-observability-collector.mjs --source codex-app-server",
-                    "agent-observability:adapter":  "node scripts/agent-observability-adapter.mjs --source langgraph"
+                    "agent-observability:adapter":  "node scripts/agent-observability-adapter.mjs --source langgraph",
+                    "agent-observability:start":  "node scripts/agent-observability-service.mjs start",
+                    "agent-observability:status":  "node scripts/agent-observability-service.mjs status",
+                    "agent-observability:stop":  "node scripts/agent-observability-service.mjs stop"
                 }
 }

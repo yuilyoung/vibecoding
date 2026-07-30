@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const repoRoot = process.cwd();
@@ -21,4 +22,6 @@ if (existsSync(baselinePath)) {
     : "unknown";
 }
 
+const dashboard = spawnSync(process.execPath, ["scripts/agent-observability-service.mjs", "start"], { cwd: repoRoot, encoding: "utf8", timeout: 3000 });
+result.dashboard = dashboard.status === 0 ? JSON.parse(dashboard.stdout) : { started: false, error: dashboard.stderr?.trim?.() || dashboard.error?.message || "service start failed" };
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

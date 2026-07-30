@@ -2,10 +2,11 @@ import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { eventStorePath, readEvents, summarize } from './lib/agent-observability.mjs';
+import { projectStatus } from './lib/dashboard-project-status.mjs';
 const root = resolve(import.meta.dirname, '..'); const file = eventStorePath(root); const ui = join(root, 'dashboard', 'agent-observability', 'index.html'); const args = process.argv.slice(2);
 const samples = [{ version: 1, id: 'sample-plan', at: '2026-07-30T09:00:00.000Z', source: 'codex-app-server', type: 'agent.status', runId: 'sample-run', agentId: 'planner', status: 'completed', label: 'Plan approved', tokens: { input: 840, output: 310 } }, { version: 1, id: 'sample-build', at: '2026-07-30T09:01:00.000Z', source: 'codex-app-server', type: 'agent.status', runId: 'sample-run', agentId: 'builder', parentAgentId: 'planner', status: 'working', label: 'Implement collector', tokens: { input: 1220, output: 515 } }, { version: 1, id: 'sample-review', at: '2026-07-30T09:02:00.000Z', source: 'langgraph', type: 'agent.status', runId: 'sample-run', agentId: 'reviewer', parentAgentId: 'planner', status: 'queued', label: 'Independent review', tokens: { input: 0, output: 0 } }];
 if (args.includes('--sample')) { mkdirSync(dirname(file), { recursive: true }); writeFileSync(file, `${samples.map(JSON.stringify).join('\n')}\n`); console.log(`Sample events written: ${file}`); if (!args.includes('--serve')) process.exit(0); }
-function snapshot() { const events = readEvents(file); return { events, snapshot: summarize(events) }; }
+function snapshot() { const events = readEvents(file); return { events, snapshot: summarize(events), dashboard: projectStatus() }; }
 if (args.includes('--check')) { console.log(JSON.stringify(snapshot().snapshot, null, 2)); process.exit(0); }
 const portAt = args.indexOf('--port'); const port = portAt >= 0 ? Number(args[portAt + 1]) : Number(process.env.AGENT_OBSERVABILITY_PORT ?? 4318); const clients = new Set(); let lastVersion = '';
 function publish() { try { const data = JSON.stringify(snapshot()); if (data === lastVersion) return; lastVersion = data; for (const response of clients) response.write(`event: snapshot\ndata: ${data}\n\n`); } catch (error) { console.error(error.message); } }
