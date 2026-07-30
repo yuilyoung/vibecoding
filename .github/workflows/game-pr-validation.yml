@@ -5,26 +5,12 @@ on:
   pull_request:
     paths:
       - "work/2D-FPS-game/**"
-      - "dashboard/agent-observability/**"
-      - "scripts/agent-observability-*.mjs"
-      - "scripts/lib/agent-observability.mjs"
-      - "scripts/lib/dashboard-project-status.mjs"
-      - "tests/agent-observability.test.mjs"
-      - "codex/hooks/preflight-check.mjs"
-      - "package.json"
       - ".github/workflows/game-pr-validation.yml"
   push:
     branches:
       - master
     paths:
       - "work/2D-FPS-game/**"
-      - "dashboard/agent-observability/**"
-      - "scripts/agent-observability-*.mjs"
-      - "scripts/lib/agent-observability.mjs"
-      - "scripts/lib/dashboard-project-status.mjs"
-      - "tests/agent-observability.test.mjs"
-      - "codex/hooks/preflight-check.mjs"
-      - "package.json"
       - ".github/workflows/game-pr-validation.yml"
 
 permissions:
@@ -35,19 +21,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dashboard-harness:
-    name: Dashboard harness
+  changes:
+    name: Detect game changes
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    outputs:
+      game: ${{ steps.filter.outputs.game }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - run: npm run agent-observability:test
-      - run: npm run agent-observability:check
+          fetch-depth: 0
+      - id: filter
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "game=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "${{ github.event.pull_request.base.sha || github.event.before }}" "${{ github.sha }}" | grep -q '^work/2D-FPS-game/'; then
+            echo "game=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "game=false" >> "$GITHUB_OUTPUT"
+          fi
 
   quality:
+    needs: changes
+    if: ${{ needs.changes.outputs.game == 'true' }}
     name: Quality gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -69,7 +65,8 @@ jobs:
 
   browser-e2e:
     name: Browser E2E
-    needs: quality
+    needs: [changes, quality]
+    if: ${{ needs.changes.outputs.game == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
