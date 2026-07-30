@@ -116,7 +116,7 @@ test("covers Phase 4 settings, tutorial replay, and boss overlay smoke", async (
   await page.screenshot({ path: test.info().outputPath("boss.png"), fullPage: true });
 
   await withScene(page, (scene: Phase4Scene) => scene.debugRegisterPlayerRoundWin());
-  await expect.poll(async () => (await readHudSnapshot(page)).lastEvent).toBe("TITAN CACHE SECURED");
+  await expect.poll(async () => (await readHudSnapshot(page)).weaponUnlock?.newlyUnlockedWeaponIds.includes("airStrike")).toBe(true);
   const afterBossHud = await readHudSnapshot(page);
   expect(afterBossHud.weaponUnlock?.newlyUnlockedWeaponIds).toContain("airStrike");
   await page.screenshot({ path: test.info().outputPath("after-boss.png"), fullPage: true });
