@@ -255,7 +255,8 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
     controllable.debugMoveDummyTo(520, 240);
     controllable.updateDummyCoverState(controllable.time.now);
   });
-  await injectProjectileAtCurrentDummy(page);
+  await injectProjectile(page, { x: 520, y: 240, velocityX: 0, velocityY: 0 });
+  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
 
   const afterCoverDestroyed = await readSnapshot(page);
   expect(afterCoverDestroyed.dummyHealth).toBeLessThan(afterFirst.dummyHealth);
