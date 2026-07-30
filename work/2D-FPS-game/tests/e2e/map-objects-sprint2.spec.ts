@@ -283,6 +283,14 @@ test("cover blocks bullets until destroyed", async ({ page }) => {
 
   expect(coverAfterBurst?.active).toBe(false);
 
+  await withScene(page, (scene: DebugScene) => {
+    const controllable = scene as DebugScene & {
+      time: { now: number };
+      updateDummyCoverState(now: number): void;
+    };
+    controllable.debugMoveDummyTo(520, 240);
+    controllable.updateDummyCoverState(controllable.time.now);
+  });
   await injectProjectileAtCurrentDummy(page);
 
   const afterCoverDestroyed = await readSnapshot(page);
