@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject } from "./studio-api";
 
-type Route = "/" | "/create" | "/projects/demo-001" | "/safety";
+type Route = string;
 type SourceRelationship = "original" | "inspired" | "licensed" | "";
 type ReferencePurpose = "setting" | "lighting" | "composition" | "movement" | "";
 
@@ -15,7 +16,7 @@ const beats = [
 
 function routeFromLocation(): Route {
   const pathname = window.location.pathname;
-  return pathname === "/create" || pathname === "/projects/demo-001" || pathname === "/safety"
+  return pathname === "/create" || pathname === "/safety" || pathname.startsWith("/projects/")
     ? pathname
     : "/";
 }
@@ -44,6 +45,7 @@ function App() {
         </button>
         <nav aria-label="주요 메뉴">
           <button onClick={() => navigate("/safety")}>RIGHTS &amp; SAFETY</button>
+          <RuntimeIndicator />
           <button onClick={() => navigate("/projects/demo-001")}>MY STUDIO</button>
           <button className="nav-cta" onClick={() => navigate("/create")}>장면 의뢰하기 <span>↗</span></button>
         </nav>
@@ -51,7 +53,7 @@ function App() {
       <main>
         {route === "/" && <Home navigate={navigate} />}
         {route === "/create" && <Create navigate={navigate} />}
-        {route === "/projects/demo-001" && <Project navigate={navigate} />}
+        {route.startsWith("/projects/") && <Project navigate={navigate} projectId={route.split("/").at(-1)} />}
         {route === "/safety" && <Safety navigate={navigate} />}
       </main>
       <footer>
@@ -124,6 +126,9 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
   const [rightsAccepted, setRightsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [project, setProject] = useState<StudioProject | null>(null);
+  const [submissionError, setSubmissionError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const sceneValid = scene.trim().length >= 30 && scene.trim().length <= 700;
   const referenceReady = referenceFile === null || (referencePurpose !== "" && referenceError === "");
 
@@ -155,24 +160,37 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
     setReferenceInputKey((key) => key + 1);
   }
 
-  function advance() {
+  async function advance() {
     setAttempted(true);
-    if (!canMove) return;
+    if (!canMove || isSubmitting) return;
     if (step < steps.length - 1) {
       setStep(step + 1);
       setAttempted(false);
-    } else {
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmissionError("");
+    try {
+      const referenceMedia = referenceFile && referencePurpose
+        ? { name: referenceFile.name, mimeType: referenceFile.type, purpose: referencePurpose }
+        : undefined;
+      const created = await createStudioProject({ scene, sourceRelationship: relationship as "original" | "inspired" | "licensed", rightsAccepted, direction: mood, referenceMedia });
+      setProject(created);
       setSubmitted(true);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "프로젝트를 만들 수 없습니다. 로컬 API가 실행 중인지 확인해 주세요.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    advance();
+    void advance();
   }
 
   if (submitted) {
-    return <StoryboardQueued navigate={navigate} relationship={relationship} />;
+    return <StoryboardQueued navigate={navigate} relationship={relationship} project={project} />;
   }
 
   return (
@@ -227,7 +245,8 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
             <div className="confirmation"><p><b>이 데모는 실제 제작을 시작하지 않습니다.</b> 실제 서비스에서는 제출 전 정책 검사, 기획안 확인, 사용자 승인이 순서대로 진행됩니다.</p><label className="check-row"><input type="checkbox" checked={rightsAccepted} onChange={(e) => setRightsAccepted(e.target.checked)} /><span>제3자 IP·실존 인물·원작 클립과 음원을 무단으로 사용하지 않으며, 참조 파일은 격리 검사·정제·삭제 정책을 거친 뒤에만 쓰인다는 점과 정책에 맞지 않는 요청은 재작성·검토·차단될 수 있음을 이해합니다.</span></label></div>
             {attempted && !rightsAccepted && <p className="field-error" role="alert">제작 기준을 확인해 주세요.</p>}
           </>}
-          <div className="wizard-actions"><button type="button" className="button button-quiet" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>이전</button><button className="button button-primary" type="submit">{step === 3 ? "데모 스토리보드 보기" : "다음"} <span>→</span></button></div>
+          {submissionError && <p className="field-error" role="alert">{submissionError}</p>}
+          <div className="wizard-actions"><button type="button" className="button button-quiet" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>이전</button><button className="button button-primary" type="submit" disabled={isSubmitting}>{step === 3 ? "데모 스토리보드 보기" : "다음"} <span>→</span></button></div>
         </form>
       </div>
     </div>
@@ -238,13 +257,59 @@ function Choice({ checked, onChange, title, text }: { checked: boolean; onChange
   return <button type="button" className={`choice ${checked ? "selected" : ""}`} onClick={onChange} aria-pressed={checked}><span className="radio" /> <b>{title}</b><small>{text}</small></button>;
 }
 
-function StoryboardQueued({ navigate, relationship }: { navigate: (route: Route) => void; relationship: SourceRelationship }) {
+function StoryboardQueued({ navigate, relationship, project }: { navigate: (route: Route) => void; relationship: SourceRelationship; project: StudioProject | null }) {
   const needsReview = relationship !== "original";
-  return <div className="storyboard-page"><section className="storyboard-intro"><p className="eyebrow">{needsReview ? "DEMO / REVIEW REQUIRED" : "DEMO / STORYBOARD READY"}</p><h1>{needsReview ? "먼저, 원작과\n거리를 둡니다." : "15초의 감정이\n준비되었습니다."}</h1><p>{needsReview ? "이 선택은 실제 생성으로 이어지지 않습니다. 운영자 검토 또는 오리지널화 재작성 뒤에만 제작할 수 있습니다." : "아래 기획안은 데모입니다. 승인하면 프로젝트는 생성 대기 상태로 보입니다."}</p></section><section className="storyboard-card"><div className="storyboard-head"><div><span>ORIGINAL LOG LINE</span><h2>막차가 떠나기 전, 두 친구는 말 대신 우산을 건넨다.</h2></div><b>{needsReview ? "REVIEW" : "15 SEC"}</b></div><div className="beats">{beats.map(([time, name, description]) => <article key={time}><span>{time}</span><b>{name}</b><p>{description}</p></article>)}</div><div className="storyboard-actions">{needsReview ? <button className="button button-primary" onClick={() => navigate("/create")}>의뢰 내용 고치기 <span>→</span></button> : <button className="button button-primary" onClick={() => navigate("/projects/demo-001")}>스토리보드 승인 (데모) <span>→</span></button>}<button className="button button-quiet" onClick={() => navigate("/safety")}>제작 기준 보기</button></div></section></div>;
+  return <div className="storyboard-page"><section className="storyboard-intro"><p className="eyebrow">{needsReview ? "DEMO / REVIEW REQUIRED" : "DEMO / STORYBOARD READY"}</p><h1>{needsReview ? "먼저, 원작과\n거리를 둡니다." : "15초의 감정이\n준비되었습니다."}</h1><p>{needsReview ? "이 선택은 실제 생성으로 이어지지 않습니다. 운영자 검토 또는 오리지널화 재작성 뒤에만 제작할 수 있습니다." : "아래 기획안은 데모입니다. 승인하면 프로젝트는 생성 대기 상태로 보입니다."}</p></section><section className="storyboard-card"><div className="storyboard-head"><div><span>ORIGINAL LOG LINE</span><h2>막차가 떠나기 전, 두 친구는 말 대신 우산을 건넨다.</h2></div><b>{needsReview ? "REVIEW" : "15 SEC"}</b></div><div className="beats">{beats.map(([time, name, description]) => <article key={time}><span>{time}</span><b>{name}</b><p>{description}</p></article>)}</div><div className="storyboard-actions">{needsReview ? <button className="button button-primary" onClick={() => navigate("/create")}>의뢰 내용 고치기 <span>→</span></button> : <button className="button button-primary" onClick={() => navigate(project ? `/projects/${project.id}` : "/projects/demo-001")}>프로젝트 작업대 열기 <span>→</span></button>}<button className="button button-quiet" onClick={() => navigate("/safety")}>제작 기준 보기</button></div></section></div>;
 }
 
-function Project({ navigate }: { navigate: (route: Route) => void }) {
+function Project({ navigate, projectId = "demo-001" }: { navigate: (route: Route) => void; projectId?: string }) {
+  if (projectId !== "demo-001") return <LiveProject navigate={navigate} projectId={projectId} />;
   return <div className="project-page"><div className="project-top"><div><p className="eyebrow">PROJECT / DEMO-001</p><h1>막차가 떠나기 전</h1><p>비 오는 승강장에서 말 대신 우산을 건네는 두 친구의 오리지널 장면.</p></div><span className="private-badge">● PRIVATE</span></div><div className="project-layout"><section className="project-main"><div className="status-card"><div><span className="status-kicker">CURRENT STATUS</span><h2><i>생성 대기</i> 중입니다.</h2><p>이 화면은 실제 생성 상태를 연결하지 않은 데모입니다. 실제 서비스에서는 승인된 스토리보드만 대기열에 들어갑니다.</p></div><span className="status-orb">03</span></div><div className="project-section"><div className="section-heading"><p className="section-label">APPROVED STORYBOARD</p><button onClick={() => navigate("/create")}>의뢰 수정 ↗</button></div><div className="mini-beats">{beats.map(([time, name]) => <div key={time}><span>{time}</span><b>{name}</b></div>)}</div></div><div className="project-section"><div className="section-heading"><p className="section-label">DELIVERY / DEMO PLACEHOLDER</p><span className="demo-label">DEMO</span></div><div className="delivery-card"><div className="delivery-poster"><span>15<br />SEC</span></div><div><h3>생성 결과는 여기에 전달됩니다.</h3><p>완성된 버전에는 MP4, VTT/SRT 자막, 썸네일, 제작 이력이 함께 보관됩니다.</p><div className="asset-row"><span>MP4</span><span>VTT</span><span>SRT</span><span>THUMBNAIL</span></div><button disabled className="button button-quiet">데모에서는 다운로드할 수 없습니다</button></div></div></div></section><aside className="project-aside"><p className="section-label">PRODUCTION RECORD</p><dl><div><dt>FORMAT</dt><dd>1080 × 1920</dd></div><div><dt>DURATION</dt><dd>00:15</dd></div><div><dt>VISIBILITY</dt><dd>Private by default</dd></div><div><dt>CAPTIONS</dt><dd>한국어 / included</dd></div><div><dt>VERSION</dt><dd>Storyboard v1</dd></div></dl><div className="next-action"><span>다음 행동</span><b>실제 서비스에서는<br />생성 결과를 기다립니다.</b></div></aside></div></div>;
+}
+
+function RuntimeIndicator() {
+  const [state, setState] = useState<"checking" | "ready" | "offline">("checking");
+  useEffect(() => {
+    let active = true;
+    fetchStudioHealth().then(() => active && setState("ready")).catch(() => active && setState("offline"));
+    return () => { active = false; };
+  }, []);
+  return <span className={`runtime-indicator ${state}`} title={state === "ready" ? "Local Studio API: mock simulation only" : "Run npm run dev:api to enable local project creation"}>{state === "ready" ? "LOCAL API" : state === "checking" ? "API…" : "API OFFLINE"}</span>;
+}
+
+function LiveProject({ navigate, projectId }: { navigate: (route: Route) => void; projectId: string }) {
+  const [project, setProject] = useState<StudioProject | null>(null);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => {
+    let active = true;
+    let timer: number | undefined;
+    const load = async () => {
+      try {
+        const loaded = await fetchStudioProject(projectId);
+        if (!active) return;
+        setProject(loaded);
+        setError("");
+        if (loaded.status === "queued" || loaded.status === "in_progress") timer = window.setTimeout(load, 700);
+      } catch (requestError) {
+        if (active) setError(requestError instanceof Error ? requestError.message : "프로젝트를 불러올 수 없습니다.");
+      }
+    };
+    void load();
+    return () => { active = false; if (timer) window.clearTimeout(timer); };
+  }, [projectId]);
+  async function queueSimulation() {
+    if (!project || isSubmitting) return;
+    setIsSubmitting(true);
+    try { setProject(await approveStudioProject(project.id)); }
+    catch (requestError) { setError(requestError instanceof Error ? requestError.message : "작업을 시작할 수 없습니다."); }
+    finally { setIsSubmitting(false); }
+  }
+  if (error) return <div className="project-page"><div className="api-message"><p className="eyebrow">LOCAL API</p><h1>작업대를 열 수 없습니다.</h1><p>{error}</p><button className="button button-primary" onClick={() => navigate("/create")}>새 의뢰로 돌아가기 <span>→</span></button></div></div>;
+  if (!project) return <div className="project-page"><div className="api-message"><p className="eyebrow">LOCAL API</p><h1>프로젝트를 불러오는 중입니다.</h1></div></div>;
+  const statusCopy: Record<StudioProject["status"], string> = { local_preflight_ready: "로컬 사전검사 완료", review_required: "권리 검토 필요", queued: "로컬 대기열에 추가됨", in_progress: "로컬 렌더 시뮬레이션 중", completed: "시뮬레이션 완료" };
+  const canQueue = project.status === "local_preflight_ready";
+  return <div className="project-page"><div className="project-top"><div><p className="eyebrow">PROJECT / {project.id.toUpperCase()} / LOCAL ONLY</p><h1>오리지널 쇼츠 작업대</h1><p>이 프로젝트는 로컬 모의 공급자로 동작합니다. 사전검사는 실제 권리·초상·개인정보·미디어 안전 승인이 아니며, 사용자 미디어와 실제 영상은 생성·저장·전송되지 않습니다.</p></div><span className="private-badge">● PRIVATE</span></div><div className="project-layout"><section className="project-main"><div className="status-card"><div><span className="status-kicker">CURRENT STATUS / MOCK PROVIDER</span><h2><i>{statusCopy[project.status]}</i></h2><p>{project.job ? `작업 ${project.job.id} · 진행률 ${project.job.progress}%` : "생성 전 로컬 사전검사 스토리보드입니다. 실제 정책 승인이 아닙니다."}</p></div><span className="status-orb">{project.job?.progress ?? "01"}</span></div><div className="project-section"><div className="section-heading"><p className="section-label">LOCAL STORYBOARD / 15 SEC</p><button onClick={() => navigate("/create")}>의뢰 수정 ↗</button></div><div className="mini-beats">{project.storyboard.beats.map((beat) => <div key={beat.start}><span>{beat.start}–{beat.end}</span><b>{beat.label}</b></div>)}</div></div><div className="project-section"><div className="section-heading"><p className="section-label">RENDER CONTROL</p><span className="demo-label">SIMULATION</span></div><div className="delivery-card"><div className="delivery-poster"><span>15<br />SEC</span></div><div><h3>{project.delivery ? "MP4 없이 검증된 완료 상태입니다." : "로컬 작업 상태를 검증합니다."}</h3><p>{project.delivery?.notice ?? "실제 공급자·업로드·다운로드는 연결되지 않았습니다. 원본·참조 파일은 이 API로 전송되지 않습니다."}</p>{canQueue && <button className="button button-primary" onClick={queueSimulation} disabled={isSubmitting}>{isSubmitting ? "대기열 등록 중" : "로컬 렌더 시뮬레이션 시작"} <span>→</span></button>}{project.status === "review_required" && <button className="button button-quiet" onClick={() => navigate("/create")}>권리 정보 수정</button>}</div></div></div></section><aside className="project-aside"><p className="section-label">PRODUCTION RECORD</p><dl><div><dt>FORMAT</dt><dd>{project.storyboard.format}</dd></div><div><dt>DURATION</dt><dd>00:{project.storyboard.seconds}</dd></div><div><dt>VISIBILITY</dt><dd>Private by default</dd></div><div><dt>REFERENCE</dt><dd>{project.sourceRelationship}</dd></div><div><dt>PROVIDER</dt><dd>Mock simulation</dd></div></dl><div className="next-action"><span>출시 전 상태</span><b>공급자 키와 스토리지<br />연결 전 로컬 검증</b></div></aside></div></div>;
 }
 
 function Safety({ navigate }: { navigate: (route: Route) => void }) {

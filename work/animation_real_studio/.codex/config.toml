@@ -1,0 +1,7 @@
+# Animation Real Studio: automatic execution inside this project only.
+# This takes effect when Codex is started from this project directory.
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
