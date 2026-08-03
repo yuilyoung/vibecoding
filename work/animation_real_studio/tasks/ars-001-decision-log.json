@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "1.0.0",
+  "task": {
+    "id": "ARS-001",
+    "title": "Decision log and MVP success criteria",
+    "status": "ready",
+    "completionRule": "Keep this task ready until every decision has an accountable owner, a decision deadline, and recorded evidence, and the V1 interview threshold is met."
+  },
+  "source": {
+    "prd": "docs/01-prd.md#unresolved-decisions",
+    "validationPlan": "docs/02-validation-plan.md#validation-gates"
+  },
+  "publicSiteStrategy": {
+    "status": "user_direction_recorded",
+    "recordedAt": "2026-08-03",
+    "summary": "Start with a public site and commercially scale only after video production and distribution viability is evidenced.",
+    "publicLaunchScope": "Public site and local simulation only; this is not approval for open real-video generation, payment collection, uploads, or distribution.",
+    "commercialScaleConditions": [
+      "Provider, cost, commercial/data-use/retention/region, and account eligibility evidence.",
+      "Quarantine upload, owned private delivery, deletion, and operational safety controls.",
+      "A user-selected global monthly provider cap and a tested server-side circuit breaker."
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "question": "Which video provider can meet the product, commercial, retention, region, and watermark requirements?",
+      "ownerRole": null,
+      "decisionDeadline": null,
+      "status": "pending_external_input",
+      "providerAssessment": {
+        "candidate": "No video provider selected",
+        "classification": "Video-provider selection is deferred. OpenAI Sora web/app is discontinued and the Videos API is scheduled for removal on 2026-09-24.",
+        "currentNeed": "Not needed for the public-site local-2D-preview stage. Revisit only after provider, commercial, budget, upload, delivery, and safety gates have recorded evidence.",
+        "integrationStatus": "deferred"
+      },
+      "decisionInputs": [{
+        "recordedAt": "2026-08-03",
+        "source": "user-direction",
+        "summary": "Public site first; commercially scale only when video production and distribution show viability."
+      }],
+      "researchContext": [
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://developers.openai.com/api/docs/guides/video-generation",
+          "summary": "Sora 2 and Sora 2 Pro support 16- and 20-second generations; Sora 2 Pro supports 1080x1920 output. Copyrighted characters/music and real people are restricted."
+        },
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://developers.openai.com/api/docs/pricing#video",
+          "summary": "The published Sora 2 Pro 1080p rate is US$0.70 per second, making a 16-second attempt approximately US$11.20 before storage and operations."
+        }
+      ],
+      "pendingQuestions": [
+        "Provider account owner, project key, secret handling, cost controls, and kill switch.",
+        "Written commercial, data-use, retention/deletion, and region confirmation.",
+        "Provider eligibility and original, non-identifying credentialed spike evidence.",
+        "Private owned storage, delivery, webhook, trim/QC, caption, thumbnail, and manifest readiness."
+      ],
+      "requiredEvidence": [
+        "Provider capability and price comparison for the original 15-second vertical brief.",
+        "Written commercial, data-use, retention/deletion, and region confirmation.",
+        "Credentialed spike result using only an original, non-identifying reference."
+      ],
+      "evidence": [],
+      "releaseImpact": "Blocks any switch from the mock provider and all real video delivery."
+    },
+    {
+      "id": "D-002",
+      "question": "What are the per-user generation, retry, and payment limits?",
+      "ownerRole": null,
+      "decisionDeadline": null,
+      "status": "pending_external_input",
+      "decisionInputs": [{
+        "recordedAt": "2026-08-03",
+        "source": "user-direction",
+        "summary": "Confirmed per-user limit: maximum 5 generation submissions per day and 3 retry submissions per hour."
+      }],
+      "retryPolicy": {
+        "status": "user_direction_recorded",
+        "scope": "per_user",
+        "maxRetrySubmissions": 3,
+        "window": "1 hour",
+        "retry_consumes_daily_quota": true,
+        "dailyQuotaTreatment": "Each retry submission counts against the per-user maximum of five generation submissions per day.",
+        "enforcementStatus": "documentation_only: no user identity, persistence, or retry endpoint exists in the local MVP"
+      },
+      "commercialStageProposal": {
+        "paymentModel": "Prepaid render credits through a hosted checkout; do not start with a subscription during public validation.",
+        "paymentProviderCandidate": "PortOne V2 with a Toss Payments channel for Korean-won checkout.",
+        "costCircuitBreaker": "Enforce the selected provider-wide monthly cap and user quota server-side before creating a render job.",
+        "monthlySpendCap": "pending_user_selection",
+        "limitation": "This is a research-backed candidate, not a payment contract, integration, or commercial approval."
+      },
+      "researchContext": [
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://developers.portone.io/opi/ko/integration/start/v2/billing/payment?v=v2",
+          "summary": "PortOne documents server-side billing-key payment requests and scheduled billing flows."
+        },
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://docs.tosspayments.com/resources/glossary/payment-widget",
+          "summary": "Toss Payments documents a hosted payment widget with multiple payment methods."
+        }
+      ],
+      "pendingQuestions": [
+
+        "User-selected numeric monthly provider spend cap and the currency/approval owner.",
+        "Commercial billing contract, fees, tax/refund policy, and payment terms.",
+        "Server-side idempotency, payment verification, credit ledger, quota, and circuit-breaker design."
+      ],
+      "requiredEvidence": [
+        "Cost model based on verified provider pricing and expected retry rate.",
+        "Approved spending cap, retry policy, and user-facing limit proposal."
+      ],
+      "evidence": [],
+      "releaseImpact": "Blocks quota, retry, payment, and cost-control implementation."
+    },
+    {
+      "id": "D-003",
+      "question": "Which languages are supported, and what are the TTS, caption, and rights-review criteria?",
+      "ownerRole": null,
+      "decisionDeadline": null,
+      "status": "pending_external_input",
+      "decisionInputs": [{
+        "recordedAt": "2026-08-03",
+        "source": "user-direction",
+        "summary": "Korean-only MVP; defer TTS to the commercial stage; request Japanese, English, and Chinese captions through STT."
+      }],
+      "clarification": "STT transcribes speech. Japanese, English, and Chinese captions for Korean speech require a separate translation step (or a multilingual source recording), plus quality and rights criteria.",
+      "pendingQuestions": [
+        "Whether translated Japanese, English, and Chinese captions are included in the MVP or deferred after Korean-caption validation.",
+        "Translation provider, retention/data-use terms, quality threshold, and human correction flow.",
+        "Caption accessibility, export, and deletion requirements for every supported language."
+      ],
+      "requiredEvidence": [
+        "Language-quality and accessibility requirements for the MVP.",
+        "Rights and consent review for every proposed voice, caption, and translation path."
+      ],
+      "evidence": [],
+      "releaseImpact": "Blocks multilingual generation, caption, and TTS release claims."
+    },
+    {
+      "id": "D-004",
+      "question": "How are licensed B2B requests verified, escalated, and assigned legal responsibility?",
+      "ownerRole": null,
+      "decisionDeadline": null,
+      "status": "needs_legal_review",
+      "decisionInputs": [{
+        "recordedAt": "2026-08-03",
+        "source": "user-question",
+        "summary": "Asked whether B2B licensing means anime copyright and whether a derivative work requires rights."
+      }],
+      "researchContext": [
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://www.law.go.kr/lsLinkProc.do?joNo=000500&lnkJoNo=undefined&lsClsCd=L&lsId=000798&lsNm=%EC%A0%80%EC%9E%91%EA%B6%8C%EB%B2%95&mode=4",
+          "summary": "Copyright Act Article 5 protects derivative works independently but does not affect the original author's rights."
+        },
+        {
+          "checkedAt": "2026-08-03",
+          "sourceUrl": "https://www.copyright.or.kr/customer-center/faq/list.do?categorycode1=02&counselfaqno=47767&pageIndex=1&portalcode=&searchkeyword=",
+          "summary": "Korea Copyright Commission states that an unauthorized derivative work can still infringe the original right holder's derivative-work right."
+        }
+      ],
+      "policyPosition": "A B2B licence route is not an automatic anime or derivative-work permission. The public MVP continues to block or send explicit copyrighted-character, copied-scene, and licence-claim requests to review; this note is not legal advice or licence approval.",
+      "pendingQuestions": [
+        "Authorized legal review of the exact source work, territory, media, duration, distribution, modification, AI/provider, attribution, and sublicensing rights.",
+        "Rights-holder or authorized licensee verification, signed licence scope, and escalation/record-retention process."
+      ],
+      "requiredEvidence": [
+        "Approved licence-proof review and escalation procedure.",
+        "Named legal owner and record-retention/deletion policy."
+      ],
+      "evidence": [],
+      "releaseImpact": "Blocks licensed-request automation and any claim that a licence assertion grants permission."
+    }
+  ],
+  "v1Interview": {
+    "status": "pending_external_input",
+    "guide": "tasks/ars-001-v1-interview-guide.md",
+    "minimumParticipants": 5,
+    "minimumIndependentCompletions": 4,
+    "records": [],
+    "completionRule": "Each anonymized record must show a participant independently reached request-to-storyboard confirmation without production-media collection."
+  },
+  "automationBoundary": "This file and its checker record missing external evidence. They do not approve rights, safety, privacy, provider terms, or production release."
+}

@@ -52,3 +52,11 @@ npm run dev
 npm run test:api
 npm run build
 ```
+## Current MVP: local 2D still previews
+
+Video APIs are deferred. An original request that passes the existing narrow local text precheck can complete a local-only workflow with four deterministic 1080x1920 SVG still previews and Korean caption drafts.
+
+- The stills are fixed local templates, not AI-generated or photorealistic images.
+- No user-media bytes, external provider, credential, upload, photo, video, or download is used.
+- Inspired and licensed requests remain blocked for rights review.
+- The documented five daily submissions and three hourly retries are not enforced yet because this local MVP has no authentication, persistent user quota, or retry endpoint.

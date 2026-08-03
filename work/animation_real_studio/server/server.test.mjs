@@ -17,7 +17,7 @@ async function withServer(run) {
   finally { server.close(); await once(server, "close"); }
 }
 
-test("HTTP API creates only a local-preflight record and completes a mock-only job", async () => {
+test("HTTP API completes a local original project with 2D preview stills", async () => {
   await withServer(async (baseUrl, scheduled) => {
     const created = await fetch(`${baseUrl}/api/projects`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(validRequest) });
     assert.equal(created.status, 201);
@@ -31,7 +31,9 @@ test("HTTP API creates only a local-preflight record and completes a mock-only j
     const completed = await fetch(`${baseUrl}/api/projects/${project.id}`);
     const completedProject = (await completed.json()).project;
     assert.equal(completedProject.status, "completed");
-    assert.deepEqual(completedProject.delivery.assets, []);
+    assert.equal(completedProject.delivery.mode, "local_2d_preview");
+    assert.equal(completedProject.delivery.assets.length, 4);
+    assert.equal(completedProject.delivery.assets[0].mimeType, "image/svg+xml");
   });
 });
 

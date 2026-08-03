@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject } from "./studio-api";
+import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject, type LocalPreviewAsset } from "./studio-api";
 
 type Route = string;
 type SourceRelationship = "original" | "inspired" | "licensed" | "";
@@ -77,13 +77,13 @@ function Home({ navigate }: { navigate: (route: Route) => void }) {
             <button className="button button-quiet" onClick={() => navigate("/safety")}>제작 기준 보기</button>
           </div>
         </div>
-        <div className="hero-reel" aria-label="15초 세로 쇼츠 데모 프레임">
-          <div className="reel-noise" />
-          <div className="reel-top"><span>TAKE 01</span><span>00:15</span></div>
-          <div className="reel-figure figure-one" />
-          <div className="reel-figure figure-two" />
-          <div className="reel-subtitle">이번에는, 내가 먼저 갈게.</div>
-          <div className="reel-bottom"><span>9:16 / ORIGINAL CONCEPT</span><span className="live-dot">●</span></div>
+        <div className="hero-reel hero-reel-pending" aria-label="실사 이미지 생성 준비 상태">
+          <div className="reel-status">
+            <p>IMAGE OUTPUT / NOT CONNECTED</p>
+            <h2>실사 이미지<br /><i>생성 준비 중</i></h2>
+            <p className="reel-status-copy">현재는 로컬 2D 프리뷰만 가능합니다. 장면 의뢰 후 연출 프리셋을 선택해 주세요.</p>
+            <div><span>LOCAL 2D PREVIEW</span><span>EXTERNAL API OFFLINE</span></div>
+          </div>
         </div>
       </section>
 
@@ -233,10 +233,11 @@ function Create({ navigate }: { navigate: (route: Route) => void }) {
           </>}
           {step === 2 && <>
             <p className="section-label">03 / DIRECTION</p><h2>장면의 공기를<br />고릅니다.</h2>
-            <div className="mood-grid">
-              <button type="button" onClick={() => setMood("rainy-station")} className={mood === "rainy-station" ? "selected" : ""}><span className="mood rain" /><b>비 내린 플랫폼</b><small>젖은 금속 · 청색 조명</small></button>
-              <button type="button" onClick={() => setMood("warm-room")} className={mood === "warm-room" ? "selected" : ""}><span className="mood warm" /><b>늦은 밤의 방</b><small>스탠드 조명 · 낮은 온기</small></button>
-              <button type="button" onClick={() => setMood("fictional-set")} className={mood === "fictional-set" ? "selected" : ""}><span className="mood set" /><b>가상의 촬영 현장</b><small>오리지널 세트 · 메타픽션</small></button>
+            <p className="direction-help" id="direction-help">아래 버튼은 <b>색감·조명·카메라 구도</b>를 고르는 로컬 프리뷰 프리셋입니다. 업로드나 실제 AI 이미지 생성을 시작하지 않습니다.</p>
+            <div className="direction-options" role="group" aria-label="로컬 프리뷰 연출 프리셋" aria-describedby="direction-help">
+              <button type="button" onClick={() => setMood("rainy-station")} className={`direction-option ${mood === "rainy-station" ? "selected" : ""}`} aria-label="색감·조명·구도 프리셋: 비 내린 플랫폼" aria-pressed={mood === "rainy-station"}><span className="direction-index" aria-hidden="true">01</span><span className="direction-copy"><span>LOCAL PREVIEW PRESET</span><b>비 내린 플랫폼</b><small>청색 색감 · 젖은 금속 반사광 · 인물 근경</small></span><span className="direction-selection">{mood === "rainy-station" ? "선택됨" : "선택"}</span></button>
+              <button type="button" onClick={() => setMood("warm-room")} className={`direction-option ${mood === "warm-room" ? "selected" : ""}`} aria-label="색감·조명·구도 프리셋: 늦은 밤의 방" aria-pressed={mood === "warm-room"}><span className="direction-index" aria-hidden="true">02</span><span className="direction-copy"><span>LOCAL PREVIEW PRESET</span><b>늦은 밤의 방</b><small>호박색 색감 · 스탠드 조명 · 정적인 중경</small></span><span className="direction-selection">{mood === "warm-room" ? "선택됨" : "선택"}</span></button>
+              <button type="button" onClick={() => setMood("fictional-set")} className={`direction-option ${mood === "fictional-set" ? "selected" : ""}`} aria-label="색감·조명·구도 프리셋: 가상의 촬영 현장" aria-pressed={mood === "fictional-set"}><span className="direction-index" aria-hidden="true">03</span><span className="direction-copy"><span>LOCAL PREVIEW PRESET</span><b>가상의 촬영 현장</b><small>대비 색감 · 세트 라이트 · 와이드 구도</small></span><span className="direction-selection">{mood === "fictional-set" ? "선택됨" : "선택"}</span></button>
             </div>
             <div className="direction-spec"><div><span>FORMAT</span><b>9:16 vertical</b></div><div><span>DURATION</span><b>15 seconds</b></div><div><span>CAPTIONS</span><b>한국어 내장 자막</b></div></div>
           </>}
@@ -262,11 +263,33 @@ function StoryboardQueued({ navigate, relationship, project }: { navigate: (rout
   return <div className="storyboard-page"><section className="storyboard-intro"><p className="eyebrow">{needsReview ? "DEMO / REVIEW REQUIRED" : "DEMO / STORYBOARD READY"}</p><h1>{needsReview ? "먼저, 원작과\n거리를 둡니다." : "15초의 감정이\n준비되었습니다."}</h1><p>{needsReview ? "이 선택은 실제 생성으로 이어지지 않습니다. 운영자 검토 또는 오리지널화 재작성 뒤에만 제작할 수 있습니다." : "아래 기획안은 데모입니다. 승인하면 프로젝트는 생성 대기 상태로 보입니다."}</p></section><section className="storyboard-card"><div className="storyboard-head"><div><span>ORIGINAL LOG LINE</span><h2>막차가 떠나기 전, 두 친구는 말 대신 우산을 건넨다.</h2></div><b>{needsReview ? "REVIEW" : "15 SEC"}</b></div><div className="beats">{beats.map(([time, name, description]) => <article key={time}><span>{time}</span><b>{name}</b><p>{description}</p></article>)}</div><div className="storyboard-actions">{needsReview ? <button className="button button-primary" onClick={() => navigate("/create")}>의뢰 내용 고치기 <span>→</span></button> : <button className="button button-primary" onClick={() => navigate(project ? `/projects/${project.id}` : "/projects/demo-001")}>프로젝트 작업대 열기 <span>→</span></button>}<button className="button button-quiet" onClick={() => navigate("/safety")}>제작 기준 보기</button></div></section></div>;
 }
 
-function Project({ navigate, projectId = "demo-001" }: { navigate: (route: Route) => void; projectId?: string }) {
-  if (projectId !== "demo-001") return <LiveProject navigate={navigate} projectId={projectId} />;
-  return <div className="project-page"><div className="project-top"><div><p className="eyebrow">PROJECT / DEMO-001</p><h1>막차가 떠나기 전</h1><p>비 오는 승강장에서 말 대신 우산을 건네는 두 친구의 오리지널 장면.</p></div><span className="private-badge">● PRIVATE</span></div><div className="project-layout"><section className="project-main"><div className="status-card"><div><span className="status-kicker">CURRENT STATUS</span><h2><i>생성 대기</i> 중입니다.</h2><p>이 화면은 실제 생성 상태를 연결하지 않은 데모입니다. 실제 서비스에서는 승인된 스토리보드만 대기열에 들어갑니다.</p></div><span className="status-orb">03</span></div><div className="project-section"><div className="section-heading"><p className="section-label">APPROVED STORYBOARD</p><button onClick={() => navigate("/create")}>의뢰 수정 ↗</button></div><div className="mini-beats">{beats.map(([time, name]) => <div key={time}><span>{time}</span><b>{name}</b></div>)}</div></div><div className="project-section"><div className="section-heading"><p className="section-label">DELIVERY / DEMO PLACEHOLDER</p><span className="demo-label">DEMO</span></div><div className="delivery-card"><div className="delivery-poster"><span>15<br />SEC</span></div><div><h3>생성 결과는 여기에 전달됩니다.</h3><p>완성된 버전에는 MP4, VTT/SRT 자막, 썸네일, 제작 이력이 함께 보관됩니다.</p><div className="asset-row"><span>MP4</span><span>VTT</span><span>SRT</span><span>THUMBNAIL</span></div><button disabled className="button button-quiet">데모에서는 다운로드할 수 없습니다</button></div></div></div></section><aside className="project-aside"><p className="section-label">PRODUCTION RECORD</p><dl><div><dt>FORMAT</dt><dd>1080 × 1920</dd></div><div><dt>DURATION</dt><dd>00:15</dd></div><div><dt>VISIBILITY</dt><dd>Private by default</dd></div><div><dt>CAPTIONS</dt><dd>한국어 / included</dd></div><div><dt>VERSION</dt><dd>Storyboard v1</dd></div></dl><div className="next-action"><span>다음 행동</span><b>실제 서비스에서는<br />생성 결과를 기다립니다.</b></div></aside></div></div>;
+function LocalPreviewGallery({ assets }: { assets: LocalPreviewAsset[] }) {
+  return <div className="local-preview-gallery" aria-label="로컬 2D 프리뷰 갤러리">
+    <div className="local-preview-note"><b>LOCAL 2D PREVIEW</b><span>AI 생성 이미지·실사 사진·영상·업로드·다운로드가 아닙니다.</span></div>
+    <div className="local-preview-grid">
+      {assets.map((asset, index) => <figure className="local-preview-card" key={asset.id}>
+        <img src={asset.dataUri} width={asset.width} height={asset.height} alt={"로컬 2D 프리뷰 " + (index + 1) + ": " + asset.beat} />
+        <figcaption><span>{asset.beat} / {asset.aspectRatio}</span><b>{asset.captionDraft}</b></figcaption>
+      </figure>)}
+    </div>
+  </div>;
+}
+function LocalPreviewLoading({ progress, status }: { progress: number; status: "queued" | "in_progress" }) {
+  const message = status === "queued" ? "로컬 2D 프리뷰를 대기열에 넣었습니다." : "4개의 로컬 2D 스틸 컷과 한국어 자막 초안을 구성하고 있습니다.";
+  return <div className="preview-loading" role="status" aria-live="polite">
+    <span className="preview-spinner" aria-hidden="true" />
+    <div className="preview-loading-copy"><b>{message}</b><span>실제 AI 이미지 생성·실사 사진·영상·업로드·외부 API는 사용하지 않습니다.</span><div className="preview-progress" role="progressbar" aria-label="로컬 2D 프리뷰 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${progress}%` }} /></div><small>진행률 {progress}%</small></div>
+  </div>;
 }
 
+function Project({ navigate, projectId = "demo-001" }: { navigate: (route: Route) => void; projectId?: string }) {
+  if (projectId !== "demo-001") return <LiveProject navigate={navigate} projectId={projectId} />;
+  return <div className="project-page">
+    <div className="project-top"><div><p className="eyebrow">PROJECT / DEMO-001 / LOCAL ONLY</p><h1>로컬 2D 프리뷰 예시</h1><p>원본 요청이 사전검사를 통과하면 스토리보드별 고정 템플릿 스틸 4컷을 보여줍니다.</p></div><span className="private-badge">● LOCAL</span></div>
+    <section className="project-main"><div className="status-card"><div><span className="status-kicker">MVP SCOPE</span><h2><i>스틸 컷</i>으로 먼저 확인합니다.</h2><p>이 데모에는 실제 사진, AI 이미지, 영상, 업로드, 다운로드가 없습니다.</p></div><span className="status-orb">04</span></div>
+    <div className="project-section"><div className="section-heading"><p className="section-label">STORYBOARD SAMPLE</p><button onClick={() => navigate("/create")}>새 원본 요청 만들기 ↗</button></div><div className="mini-beats">{beats.map(([time, name]) => <div key={time}><span>{time}</span><b>{name}</b></div>)}</div></div></section>
+  </div>;
+}
 function RuntimeIndicator() {
   const [state, setState] = useState<"checking" | "ready" | "offline">("checking");
   useEffect(() => {
@@ -274,13 +297,14 @@ function RuntimeIndicator() {
     fetchStudioHealth().then(() => active && setState("ready")).catch(() => active && setState("offline"));
     return () => { active = false; };
   }, []);
-  return <span className={`runtime-indicator ${state}`} title={state === "ready" ? "Local Studio API: mock simulation only" : "Run npm run dev:api to enable local project creation"}>{state === "ready" ? "LOCAL API" : state === "checking" ? "API…" : "API OFFLINE"}</span>;
+  return <span className={`runtime-indicator ${state}`} title={state === "ready" ? "Local Studio API: fixed local 2D previews only" : "Run npm run dev:api to enable local project creation"}>{state === "ready" ? "LOCAL API" : state === "checking" ? "API…" : "API OFFLINE"}</span>;
 }
 
 function LiveProject({ navigate, projectId }: { navigate: (route: Route) => void; projectId: string }) {
   const [project, setProject] = useState<StudioProject | null>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     let active = true;
     let timer: number | undefined;
@@ -290,26 +314,40 @@ function LiveProject({ navigate, projectId }: { navigate: (route: Route) => void
         if (!active) return;
         setProject(loaded);
         setError("");
-        if (loaded.status === "queued" || loaded.status === "in_progress") timer = window.setTimeout(load, 700);
+        if (loaded.status === "queued" || loaded.status === "in_progress") timer = window.setTimeout(load, 250);
       } catch (requestError) {
         if (active) setError(requestError instanceof Error ? requestError.message : "프로젝트를 불러올 수 없습니다.");
       }
     };
     void load();
     return () => { active = false; if (timer) window.clearTimeout(timer); };
-  }, [projectId]);
-  async function queueSimulation() {
+  }, [projectId, project?.status]);
+
+  async function queueLocalPreview() {
     if (!project || isSubmitting) return;
     setIsSubmitting(true);
     try { setProject(await approveStudioProject(project.id)); }
-    catch (requestError) { setError(requestError instanceof Error ? requestError.message : "작업을 시작할 수 없습니다."); }
+    catch (requestError) { setError(requestError instanceof Error ? requestError.message : "로컬 프리뷰를 시작할 수 없습니다."); }
     finally { setIsSubmitting(false); }
   }
-  if (error) return <div className="project-page"><div className="api-message"><p className="eyebrow">LOCAL API</p><h1>작업대를 열 수 없습니다.</h1><p>{error}</p><button className="button button-primary" onClick={() => navigate("/create")}>새 의뢰로 돌아가기 <span>→</span></button></div></div>;
+
+  if (error) return <div className="project-page"><div className="api-message"><p className="eyebrow">LOCAL API</p><h1>프로젝트를 열 수 없습니다.</h1><p>{error}</p><button className="button button-primary" onClick={() => navigate("/create")}>새 요청으로 돌아가기 <span>→</span></button></div></div>;
   if (!project) return <div className="project-page"><div className="api-message"><p className="eyebrow">LOCAL API</p><h1>프로젝트를 불러오는 중입니다.</h1></div></div>;
-  const statusCopy: Record<StudioProject["status"], string> = { local_preflight_ready: "로컬 사전검사 완료", review_required: "권리 검토 필요", queued: "로컬 대기열에 추가됨", in_progress: "로컬 렌더 시뮬레이션 중", completed: "시뮬레이션 완료" };
+
+  const statusCopy: Record<StudioProject["status"], string> = { local_preflight_ready: "로컬 사전검사 완료", review_required: "권리 검토 필요", queued: "로컬 프리뷰 대기", in_progress: "로컬 프리뷰 구성 중", completed: "로컬 프리뷰 완료" };
   const canQueue = project.status === "local_preflight_ready";
-  return <div className="project-page"><div className="project-top"><div><p className="eyebrow">PROJECT / {project.id.toUpperCase()} / LOCAL ONLY</p><h1>오리지널 쇼츠 작업대</h1><p>이 프로젝트는 로컬 모의 공급자로 동작합니다. 사전검사는 실제 권리·초상·개인정보·미디어 안전 승인이 아니며, 사용자 미디어와 실제 영상은 생성·저장·전송되지 않습니다.</p></div><span className="private-badge">● PRIVATE</span></div><div className="project-layout"><section className="project-main"><div className="status-card"><div><span className="status-kicker">CURRENT STATUS / MOCK PROVIDER</span><h2><i>{statusCopy[project.status]}</i></h2><p>{project.job ? `작업 ${project.job.id} · 진행률 ${project.job.progress}%` : "생성 전 로컬 사전검사 스토리보드입니다. 실제 정책 승인이 아닙니다."}</p></div><span className="status-orb">{project.job?.progress ?? "01"}</span></div><div className="project-section"><div className="section-heading"><p className="section-label">LOCAL STORYBOARD / 15 SEC</p><button onClick={() => navigate("/create")}>의뢰 수정 ↗</button></div><div className="mini-beats">{project.storyboard.beats.map((beat) => <div key={beat.start}><span>{beat.start}–{beat.end}</span><b>{beat.label}</b></div>)}</div></div><div className="project-section"><div className="section-heading"><p className="section-label">RENDER CONTROL</p><span className="demo-label">SIMULATION</span></div><div className="delivery-card"><div className="delivery-poster"><span>15<br />SEC</span></div><div><h3>{project.delivery ? "MP4 없이 검증된 완료 상태입니다." : "로컬 작업 상태를 검증합니다."}</h3><p>{project.delivery?.notice ?? "실제 공급자·업로드·다운로드는 연결되지 않았습니다. 원본·참조 파일은 이 API로 전송되지 않습니다."}</p>{canQueue && <button className="button button-primary" onClick={queueSimulation} disabled={isSubmitting}>{isSubmitting ? "대기열 등록 중" : "로컬 렌더 시뮬레이션 시작"} <span>→</span></button>}{project.status === "review_required" && <button className="button button-quiet" onClick={() => navigate("/create")}>권리 정보 수정</button>}</div></div></div></section><aside className="project-aside"><p className="section-label">PRODUCTION RECORD</p><dl><div><dt>FORMAT</dt><dd>{project.storyboard.format}</dd></div><div><dt>DURATION</dt><dd>00:{project.storyboard.seconds}</dd></div><div><dt>VISIBILITY</dt><dd>Private by default</dd></div><div><dt>REFERENCE</dt><dd>{project.sourceRelationship}</dd></div><div><dt>PROVIDER</dt><dd>Mock simulation</dd></div></dl><div className="next-action"><span>출시 전 상태</span><b>공급자 키와 스토리지<br />연결 전 로컬 검증</b></div></aside></div></div>;
+  const previewStatus = project.status === "queued" || project.status === "in_progress" ? project.status : null;
+
+  return <div className="project-page">
+    <div className="project-top"><div><p className="eyebrow">PROJECT / {project.id.toUpperCase()} / LOCAL 2D MVP</p><h1>오리지널 이미지 컷 작업대</h1><p>고정 템플릿으로 만든 2D 시네마틱 스틸입니다. 실제 사진·AI 생성·영상·업로드·다운로드가 아니며, 사전검사는 실제 권리·개인정보·미디어 안전 승인이 아닙니다.</p></div><span className="private-badge">● LOCAL</span></div>
+    <div className="project-layout"><section className="project-main">
+      <div className="status-card"><div><span className="status-kicker">CURRENT STATUS / LOCAL TEMPLATE</span><h2><i>{statusCopy[project.status]}</i></h2><p>{project.job ? "작업 " + project.job.id + " · 진행률 " + project.job.progress + "%" : "원본 요청의 로컬 사전검사 스토리보드입니다."}</p></div><span className="status-orb">{project.job?.progress ?? "01"}</span></div>
+      <div className="project-section"><div className="section-heading"><p className="section-label">LOCAL STORYBOARD / 4 STILL CUTS</p><button onClick={() => navigate("/create")}>의뢰 수정 ↗</button></div><div className="mini-beats">{project.storyboard.beats.map((beat) => <div key={beat.start}><span>{beat.start}–{beat.end}</span><b>{beat.label}</b></div>)}</div></div>
+      <div className="project-section"><div className="section-heading"><p className="section-label">LOCAL 2D PREVIEW</p><span className="demo-label">NO EXTERNAL API</span></div>
+        {project.delivery ? <LocalPreviewGallery assets={project.delivery.assets} /> : <>{previewStatus && <LocalPreviewLoading progress={project.job?.progress ?? 0} status={previewStatus} />}<div className="delivery-card"><div className="delivery-poster"><span>4<br />CUTS</span></div><div><h3>{previewStatus ? "고정 템플릿 프리뷰를 만드는 중입니다." : "고정 템플릿 프리뷰를 준비합니다."}</h3><p>{previewStatus ? "완료될 때까지 이 화면에서 진행 상태를 확인할 수 있습니다." : "원본 텍스트와 안전한 방향 값만 사용합니다. 참조 파일 바이트와 외부 공급자, 실제 사진, 영상은 사용하지 않습니다."}</p>{canQueue && <button className="button button-primary" onClick={queueLocalPreview} disabled={isSubmitting}>{isSubmitting ? "프리뷰 준비 중" : "로컬 2D 프리뷰 만들기"} <span>→</span></button>}{project.status === "review_required" && <button className="button button-quiet" onClick={() => navigate("/create")}>권리 정보 수정</button>}</div></div></>}
+      </div>
+    </section><aside className="project-aside"><p className="section-label">MVP RECORD</p><dl><div><dt>FORMAT</dt><dd>4 × 1080 × 1920 stills</dd></div><div><dt>ASPECT</dt><dd>9:16</dd></div><div><dt>CAPTIONS</dt><dd>한국어 초안</dd></div><div><dt>REFERENCE</dt><dd>{project.sourceRelationship}</dd></div><div><dt>ENGINE</dt><dd>Fixed local template</dd></div></dl><div className="next-action"><span>영상 API</span><b>공급자 선정과<br />별도 검증 이후 검토</b></div></aside></div>
+  </div>;
 }
 
 function Safety({ navigate }: { navigate: (route: Route) => void }) {

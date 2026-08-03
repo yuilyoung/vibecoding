@@ -1,36 +1,40 @@
-# ADR-008: provider boundary and rendering path
+# ADR-008: local 2D preview and deferred video-provider boundary
 
-Status: proposed for a credentialed spike; safe local simulation is accepted.
+Status: accepted local MVP slice; video-provider selection deferred.
 
 ## Decision
 
-Use a provider-neutral rendering boundary. The browser speaks only to the Studio API. The Studio API owns policy results, project state, provider job IDs, audit events, delivery manifests, and deletion work. It must never expose a provider secret or an original reference file to the browser.
+The current MVP ends at a local 2D still-preview gallery. The browser speaks only to the Studio API. For an original request that passes the narrow local text precheck, the API returns four deterministic fixed-template SVG stills (1080x1920, 9:16) and Korean caption drafts.
 
-For the first credentialed spike, evaluate OpenAI Sora 2 Pro as the primary candidate for a single 15-second vertical render. The implementation remains on the `mock` provider until an account owner supplies a dedicated project key, a hard spending cap, and the commercial/data-retention confirmation below.
+These are not AI-generated or photorealistic images, photographs, video, uploads, downloads, or a policy decision. The templates use only fixed palettes, fixed labels, approved storyboard-beat metadata, and an allow-listed direction. They never contain user scene text, user-reference bytes, provider credentials, or external URLs.
 
-## Capability evidence as of 2026-07-30
+Video APIs are deferred. No video provider is selected or integrated.
 
-| Candidate | Fit for P0 | Constraint | Decision |
-| --- | --- | --- | --- |
-| OpenAI Sora 2 Pro | Supports 16- and 20-second generations, 1080x1920 output, image references, asynchronous status/webhooks, downloads, extensions and edits. | The 15-second product cut must be generated as 16 seconds then trimmed in our controlled delivery stage. Image inputs with human faces, real people, copyrighted characters and copyrighted music are rejected. Uploaded external-video editing is account-eligibility gated. | Credentialed spike candidate. |
-| Google Veo 3 | Supports 9:16, 720p/1080p image-to-video and MP4 output. | Current documented clips are 4, 6 or 8 seconds. Image-to-video is Preview under Pre-GA terms; video input is unsupported on the documented Veo 3.0 page. A 15-second short needs a multi-shot assembly workflow. | Not a P0 single-render provider. |
-| Local mock | Records self-attestation, narrow local text precheck, state transitions, audit events and no-delivery behavior without credentials. It is not a policy decision. | It never creates, uploads, retains or represents an MP4 as real; it also does not inspect reference media. | Accepted for UI/API integration. |
+## Why this replaces the prior Sora candidate
 
-## Normalized provider contract
+OpenAI discontinued the Sora web and app experiences on April 26, 2026, and has announced removal of the Videos API and Sora 2 models on September 24, 2026. The official API deprecation notice lists no replacement. Sora is therefore not a viable provider candidate for a new production path.
 
-`submitRender(project)` accepts only an approved original storyboard, a policy-approved sanitized reference asset URL, `1080x1920`, and `15` requested seconds. It returns `{ providerJobId, status }`. Provider callbacks are idempotent and only move a matching project state forward. Download URLs are copied into owned storage before expiry; the browser receives only short-lived owned URLs.
+## Local MVP contract
 
-Because Sora supports 16 and 20 seconds rather than a 15-second setting, the production adapter will request 16 seconds and pass the owned result through a deterministic one-second trim and QC stage. This is an explicit release condition, not a hidden prompt trick.
+| Item | Current behavior | Explicit limit |
+| --- | --- | --- |
+| Eligibility | Original requests only after the existing narrow local text precheck | The precheck is not rights, likeness, privacy, or media-safety approval. |
+| Output | Four fixed-template SVG still previews with Korean caption drafts | No real photos, AI-generated images, MP4, VTT/SRT, thumbnail, or delivery manifest. |
+| Inputs | Scene text for storyboard only; allow-listed direction | Reference media remains metadata only and is never read into a preview. |
+| Provider | local-template | No external API, credentials, upload, storage, webhook, or payment path. |
+| Quotas | Five daily generation submissions; three hourly retries are recorded in ARS-001 | Not enforced until identity, persistence, and a retry endpoint exist. |
 
-## Required release gates before switching from mock
+## Future video release gates
 
-1. Dedicated provider account, secret management, least-privilege service identity and cost ceiling.
-2. Written confirmation of commercial terms, retention/deletion behavior, training/data-use terms and region acceptability for every user media path.
-3. Provider contract test using an original, non-identifying 9:16 reference image and an English provider prompt; no copyrighted characters, music, faces or personal data.
-4. Quarantine upload/scan/sanitize/delete worker (ARS-024) and an approved-derivative-only handoff.
-5. MP4 trim, caption, thumbnail, manifest, watermark/disclosure and private-delivery QC evidence.
+Before selecting or integrating any video provider, obtain:
+
+1. A dedicated provider account, secret management, least-privilege service identity, a hard spending cap, and a kill switch.
+2. Written commercial, data-use, retention/deletion, training, and region confirmation for every media path.
+3. An original, non-identifying provider contract test with no copyrighted characters, music, faces, or personal data.
+4. Quarantine upload/scan/sanitize/delete handling and an approved-derivative-only handoff.
+5. Owned private delivery, provider webhook verification, media QC, caption, disclosure, and deletion evidence.
 
 ## Sources
 
-- [OpenAI Sora video generation guide](https://developers.openai.com/api/docs/guides/video-generation)
-- [Google Veo 3 model capabilities](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/veo/3-0-generate)
+- [OpenAI Sora discontinuation notice](https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation)
+- [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations)

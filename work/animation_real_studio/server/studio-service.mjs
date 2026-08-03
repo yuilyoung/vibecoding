@@ -40,9 +40,46 @@ function storyboard(scene) {
   ] };
 }
 
+const LOCAL_PREVIEW_PALETTES = {
+  "rainy-station": ["#11263f", "#6dc7ee", "#e9a16a"],
+  "warm-room": ["#4b2a39", "#ffd07a", "#d9805e"],
+  "fictional-set": ["#192d46", "#d7ff62", "#ff7a5c"],
+};
+const LOCAL_PREVIEW_CAPTIONS = [
+  "비가 내려도, 마음은 먼저 도착한다.",
+  "잠시 멈춘 사이, 말하지 못한 감정이 선명해진다.",
+  "작은 선택이 장면의 빛을 바꾼다.",
+  "마지막 순간에도, 서로를 향한 길은 남는다.",
+];
+
+function localPreviewDirection(direction) {
+  return Object.hasOwn(LOCAL_PREVIEW_PALETTES, direction) ? direction : "rainy-station";
+}
+
+function createLocalPreviewAssets(direction, beats) {
+  const [background, light, accent] = LOCAL_PREVIEW_PALETTES[localPreviewDirection(direction)];
+  return beats.map((beat, index) => {
+    const number = String(index + 1).padStart(2, "0");
+    const subject = 220 + index * 125;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><rect width="1080" height="1920" fill="' + background + '"/><circle cx="' + (250 + index * 110) + '" cy="420" r="360" fill="' + light + '" opacity=".38"/><path d="M0 1180 L1080 1020 V1920 H0Z" fill="#101722" opacity=".72"/><rect x="' + subject + '" y="880" width="132" height="400" rx="66" fill="#e8e2d7" opacity=".84"/><circle cx="' + (subject + 66) + '" cy="810" r="86" fill="' + accent + '" opacity=".86"/><rect x="66" y="70" width="948" height="1776" fill="none" stroke="#f7f2e8" stroke-width="4" opacity=".65"/><text x="96" y="142" fill="#f7f2e8" font-family="Arial,sans-serif" font-size="34" font-weight="700">LOCAL 2D PREVIEW / ' + number + '</text><text x="96" y="1735" fill="#f7f2e8" font-family="Arial,sans-serif" font-size="76" font-weight="700">' + beat.label.toUpperCase() + '</text><text x="96" y="1795" fill="#f7f2e8" font-family="Arial,sans-serif" font-size="25">FIXED TEMPLATE · NOT AI GENERATED · NO USER MEDIA</text></svg>';
+    return {
+      id: "local-still-" + number,
+      kind: "local_2d_preview",
+      origin: "fixed_local_template",
+      generatedByAi: false,
+      mimeType: "image/svg+xml",
+      width: 1080,
+      height: 1920,
+      aspectRatio: "9:16",
+      beat: beat.label,
+      captionDraft: LOCAL_PREVIEW_CAPTIONS[index],
+      dataUri: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    };
+  });
+}
 export class StudioService {
-  constructor({ now = () => new Date(), renderDelayMs = 120, schedule = setTimeout } = {}) { this.now = now; this.renderDelayMs = renderDelayMs; this.schedule = schedule; this.projects = new Map(); this.sequence = 0; }
-  health() { return { status: "ok", provider: "mock", mode: "simulation", message: "Local precheck only: no external generation, media transfer, quarantine scan, or policy approval occurs." }; }
+  constructor({ now = () => new Date(), renderDelayMs = 450, schedule = setTimeout } = {}) { this.now = now; this.renderDelayMs = renderDelayMs; this.schedule = schedule; this.projects = new Map(); this.sequence = 0; }
+  health() { return { status: "ok", provider: "local-template", mode: "local_2d_preview", message: "Local 2D previews only: no external generation, user-media transfer, upload, photo, video, or policy approval occurs." }; }
   createProject(input = {}) {
     const { errors, scene, blockedRules } = validate(input);
     if (errors.length) return { ok: false, status: 422, errors };
@@ -51,7 +88,7 @@ export class StudioService {
     const at = this.now().toISOString();
     const project = {
       id, createdAt: at, updatedAt: at, status: needsReview ? "review_required" : "local_preflight_ready", sourceRelationship: input.sourceRelationship, scene,
-      direction: input.direction ?? "rainy-station",
+      direction: localPreviewDirection(input.direction),
       localPrecheck: { status: "not_a_policy_decision", outcome: needsReview ? "review_required" : "simulation_allowed", blockedRules, notice: "This is a narrow local text precheck and attestation record, not a rights, likeness, privacy, or media-safety approval." },
       referenceMedia: input.referenceMedia ? { name: text(input.referenceMedia.name).slice(0, 120), mimeType: input.referenceMedia.mimeType, purpose: input.referenceMedia.purpose, transfer: "metadata_only", screening: "not_performed" } : null,
       storyboard: storyboard(scene), job: null, delivery: null, audit: [{ at, event: needsReview ? "review_requested" : "local_preflight_created" }],
@@ -63,14 +100,39 @@ export class StudioService {
   approveStoryboard(id) {
     const project = this.projects.get(id);
     if (!project) return { ok: false, status: 404, error: "Project not found." };
-    if (project.status === "review_required") return { ok: false, status: 409, error: "This source relationship requires rights review before simulation." };
+    if (project.status === "review_required") return { ok: false, status: 409, error: "This source relationship requires rights review before a local preview." };
     if (project.status !== "local_preflight_ready") return { ok: false, status: 409, error: "Only a local-preflight project can be submitted once." };
-    const jobId = `mock-job-${project.id}`;
-    project.status = "queued"; project.updatedAt = this.now().toISOString(); project.job = { id: jobId, provider: "mock", mode: "simulation", status: "queued", progress: 0 }; project.audit.push({ at: this.now().toISOString(), event: "simulation_queued", jobId });
-    this.schedule(() => this.startMockRender(id), this.renderDelayMs);
+    const jobId = "local-preview-" + project.id;
+    project.status = "queued";
+    project.updatedAt = this.now().toISOString();
+    project.job = { id: jobId, provider: "local-template", mode: "local_2d_preview", status: "queued", progress: 0 };
+    project.audit.push({ at: this.now().toISOString(), event: "local_preview_queued", jobId });
+    this.schedule(() => this.startLocalPreview(id), this.renderDelayMs);
     return { ok: true, status: 202, project: this.snapshot(project) };
   }
-  startMockRender(id) { const project = this.projects.get(id); if (!project || TERMINAL_STATUSES.has(project.status) || project.status !== "queued") return; project.status = "in_progress"; project.job.status = "in_progress"; project.job.progress = 58; project.updatedAt = this.now().toISOString(); project.audit.push({ at: this.now().toISOString(), event: "mock_render_started", jobId: project.job.id }); this.schedule(() => this.completeMockRender(id), this.renderDelayMs); }
-  completeMockRender(id) { const project = this.projects.get(id); if (!project || project.status !== "in_progress") return; project.status = "completed"; project.job.status = "completed"; project.job.progress = 100; project.updatedAt = this.now().toISOString(); project.delivery = { mode: "simulation", notice: "Simulation complete. No MP4, thumbnail, captions, or user media were produced or stored.", assets: [] }; project.audit.push({ at: this.now().toISOString(), event: "mock_render_completed", jobId: project.job.id }); }
+  startLocalPreview(id) {
+    const project = this.projects.get(id);
+    if (!project || TERMINAL_STATUSES.has(project.status) || project.status !== "queued") return;
+    project.status = "in_progress";
+    project.job.status = "in_progress";
+    project.job.progress = 58;
+    project.updatedAt = this.now().toISOString();
+    project.audit.push({ at: this.now().toISOString(), event: "local_preview_started", jobId: project.job.id });
+    this.schedule(() => this.completeLocalPreview(id), this.renderDelayMs);
+  }
+  completeLocalPreview(id) {
+    const project = this.projects.get(id);
+    if (!project || project.status !== "in_progress") return;
+    project.status = "completed";
+    project.job.status = "completed";
+    project.job.progress = 100;
+    project.updatedAt = this.now().toISOString();
+    project.delivery = {
+      mode: "local_2d_preview",
+      notice: "Local 2D preview complete. These fixed-template SVG stills are not AI-generated, photorealistic, uploaded, video, or downloadable assets.",
+      assets: createLocalPreviewAssets(project.direction, project.storyboard.beats),
+    };
+    project.audit.push({ at: this.now().toISOString(), event: "local_preview_completed", jobId: project.job.id });
+  }
   snapshot(project) { return JSON.parse(JSON.stringify(project)); }
 }
