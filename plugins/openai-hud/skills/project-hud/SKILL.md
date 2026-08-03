@@ -17,7 +17,7 @@ description: Read the current workspace context and summarize harness readiness,
 3. `docs/development/active-workspace-baseline.md`
 4. `work/2D-FPS-game/docs/development/harness-checklist.md`
 5. `work/2D-FPS-game/docs/reports/project-status.md`
-6. `work/2D-FPS-game/dashboard/index.html`
+6. `apps/harness-dashboard/index.html` and `docs/development/harness-observability-design.md` (canonical dashboard)
 7. `git status --short`
 
 ## Output format

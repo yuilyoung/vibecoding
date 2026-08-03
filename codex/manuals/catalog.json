@@ -32,6 +32,14 @@
       "description": "Apply PO planning, reviewer challenge, manual freshness, and evidence gates to non-trivial work.",
       "triggers": ["harness", "hermes", "agent", "skill", "reliability"],
       "watchPaths": [".codex/agents/product-owner.toml", ".codex/agents/reviewer.toml", "codex/state/reliability-metadata.json", "plugins/hermes-ssot"]
+    },
+    {
+      "id": "harness-observability",
+      "path": "codex/manuals/run-harness-observability.md",
+      "name": "Run the local harness observability pipeline",
+      "description": "Record a sanitized, worktree-isolated harness run through verification.",
+      "triggers": ["observability", "dashboard", "worktree", "pipeline", "memory poc"],
+      "watchPaths": ["apps/harness-dashboard", "services/harness-observability", "packages/harness-observability-contract", "tools/harness-pipeline", "dashboard/index.html", "work/2D-FPS-game/dashboard/index.html", "docs/development/harness-observability-design.md", "experiments/memory-pocs/registry.json"]
     }
   ]
 }

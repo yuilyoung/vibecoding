@@ -68,7 +68,7 @@
 
 모든 개발 사이클 종료 시 **PM 에이전트는 반드시 두 가지 형식의 보고서를 생성**해야 한다.
 
-### 1. HTML 보고서 (`work/{프로젝트명}/reports/project-status.html`)
+> Operations status policy: use the AI Project Harness at `http://127.0.0.1:4318/`. Do not generate static status HTML.
 
 사용자·관리자용 시각적 대시보드. 아래 섹션을 모두 포함해야 한다.
 
@@ -104,7 +104,7 @@ PM → 보고서 2종 생성 완료 → 비전에게 보고
   → 비전: HTML 보고서 누락 섹션 확인
     → 누락 있음: PM에게 보완 요청 → 재생성
     → 누락 없음: PM에게 대시보드 페이지 생성 요청
-      → PM → 대시보드 생성 [dashboard/index.html]
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
         → 비전에게 최종 보고
 ```
 
@@ -127,11 +127,11 @@ PM → 보고서 2종 생성 완료 → 비전에게 보고
 | `docs/changelog/` | 버전별 변경 이력 | doc-writer |
 | `docs/guides/` | 개발자 가이드, 배포 가이드, 사용자 매뉴얼 | doc-writer, devops |
 
-> PM HTML 보고서(`reports/project-status.html`)와 대시보드(`dashboard/index.html`)는 별도 폴더에 유지한다.
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
 
 ---
 
-## 대시보드 필수 구성 요소 (`dashboard/index.html`)
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
 
 PM 에이전트가 생성하는 대시보드는 아래 항목을 모두 포함해야 한다.
 

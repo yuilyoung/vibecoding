@@ -16,6 +16,7 @@
 - Claude/Codex 운영 모델: `docs/development/claude-codex-operating-model.md`
 - 프로젝트 문서 인덱스: `docs/README.md`
 - HUD 플러그인: `plugins/openai-hud`
+- Canonical harness dashboard: `apps/harness-dashboard/`, served only by `npm run harness:dashboard` at `http://127.0.0.1:4318/`.
 
 ## 상태 확인
 

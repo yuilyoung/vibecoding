@@ -8,6 +8,14 @@
     "project-status": "node scripts/project-status.mjs",
     "next-tasks": "node scripts/next-tasks.mjs",
     "codex-preflight": "node codex/hooks/preflight-check.mjs",
-    "codex-postflight": "node codex/hooks/postflight-sync.mjs"
+    "codex-postflight": "node codex/hooks/postflight-sync.mjs",
+    "harness:design": "node tools/harness-pipeline/harness-pipeline.mjs design",
+    "harness:worktree": "node tools/harness-pipeline/harness-pipeline.mjs worktree",
+    "harness:develop": "node tools/harness-pipeline/harness-pipeline.mjs develop",
+    "harness:verify": "node tools/harness-pipeline/harness-pipeline.mjs verify",
+    "harness:complete": "node tools/harness-pipeline/harness-pipeline.mjs complete",
+    "harness:dashboard": "node services/harness-observability/server.mjs",
+    "harness:status": "node tools/harness-pipeline/harness-pipeline.mjs status",
+    "harness:test": "node --test tests/harness-observability.test.mjs"
   }
 }

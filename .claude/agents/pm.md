@@ -33,7 +33,7 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 
 ## 보고서 형식 (강제 — 2종 동시 생성)
 
-### 1. HTML 보고서 (`work/{프로젝트명}/reports/project-status.html`)
+> Operations status policy: use the AI Project Harness at `http://127.0.0.1:4318/`. Do not generate static status HTML.
 사용자·관리자용 시각적 보고서.
 
 ```
@@ -58,7 +58,7 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 6. 리스크              — 일정·품질·기술 리스크
 ```
 
-## 대시보드 (`dashboard/index.html`)
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
 
 비전의 검수 후 요청 시 생성. 아래 두 패널을 포함한다.
 
@@ -78,10 +78,10 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 
 ## 산출물 (work/{프로젝트명}/ 기준)
 
-- `reports/project-status.html` — 최신 프로젝트 현황 HTML 보고서
+> Operations status policy: use the AI Project Harness at `http://127.0.0.1:4318/`. Do not generate static status HTML.
 - `docs/reports/project-status.md` — 최신 프로젝트 현황 MD 보고서
 - `reports/milestone-{n}.html` — 마일스톤별 완료 보고서
-- `dashboard/index.html` — 시스템·프로젝트 통합 관리 대시보드
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
 
 ## 비전 → 울트론 handoff 책임
 

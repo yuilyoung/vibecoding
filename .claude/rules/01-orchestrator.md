@@ -34,7 +34,7 @@
             → 울트론: docs/handoffs/execution-status.json 동기화
         → PM: 완료 시 보고서 2종 생성
             - docs/reports/project-status.md  (비전 검토용)
-            - reports/project-status.html    (시각적 현황용)
+> Operations status policy: use the AI Project Harness at `http://127.0.0.1:4318/`. Do not generate static status HTML.
           → 비전에게 보고
       → 비전: current-handoff.json / current-execution-report.md 검토
         → handoff 불충분: PM에게 계획 재정리 요청
@@ -42,11 +42,11 @@
       → 비전: MD 보고서 검토
         → 누락/오류 ���음: PM에게 보완 요청 → 재보고
         → 이상 없음: PM에게 대시보드 업데이트 요청
-          → PM: dashboard/index.html 생성/갱신
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
             → 비전에게 완료 보고
       → 비전: 사용자에게 결과 보고
           - 작업 완료 요약 (자연어)
-          - dashboard/index.html 경로 안내
+> Canonical dashboard policy: the only live operations UI is `apps/harness-dashboard/`, served with `npm run harness:dashboard` at `http://127.0.0.1:4318/`. Do not create or update static dashboard pages.
 ```
 
 ## 비��의 책임

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "policy": "All candidates are postponed. No integration may be installed or activated without a separate approved PoC.",
+  "candidates": [
+    {
+      "id": "agentmemory",
+      "purpose": "Coding-agent long-term memory",
+      "dataClassification": "potentially sensitive development context",
+      "retention": "define before use; default off",
+      "writePolicy": "explicit write only during PoC",
+      "rollback": "remove plugin configuration and local runtime data",
+      "approvalGate": "privacy review plus isolated Windows compatibility test",
+      "status": "postponed"
+    },
+    {
+      "id": "openviking",
+      "purpose": "Shared multi-agent context retrieval",
+      "dataClassification": "project documentation and approved decisions only",
+      "retention": "define before use; default off",
+      "writePolicy": "read-only resource indexing first",
+      "rollback": "remove integration and local index",
+      "approvalGate": "provider, model, and redaction review",
+      "status": "postponed"
+    },
+    {
+      "id": "superpowers",
+      "purpose": "Coding workflow skills",
+      "dataClassification": "procedural instructions",
+      "retention": "not applicable",
+      "writePolicy": "no automatic runtime writes",
+      "rollback": "remove installed plugin or selected skills",
+      "approvalGate": "conflict review against hermes-ssot",
+      "status": "postponed"
+    },
+    {
+      "id": "oh-my-opencode",
+      "purpose": "OpenCode workflow evaluation",
+      "dataClassification": "agent session and workspace configuration",
+      "retention": "define before use; default off",
+      "writePolicy": "isolated sandbox only",
+      "rollback": "remove OpenCode plugin configuration",
+      "approvalGate": "separate runtime and provider-policy review",
+      "status": "postponed"
+    },
+    {
+      "id": "hermes-agent",
+      "purpose": "Independent agent-runtime evaluation",
+      "dataClassification": "agent session and tool configuration",
+      "retention": "define before use; default off",
+      "writePolicy": "isolated sandbox only",
+      "rollback": "remove runtime and isolated configuration",
+      "approvalGate": "orchestration ownership and tool-permission review",
+      "status": "postponed"
+    }
+  ]
+}

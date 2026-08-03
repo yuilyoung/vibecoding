@@ -1,0 +1,33 @@
+name: Harness observability validation
+
+on:
+  pull_request:
+    paths:
+      - 'apps/harness-dashboard/**'
+      - 'services/harness-observability/**'
+      - 'packages/harness-observability-contract/**'
+      - 'tools/harness-pipeline/**'
+      - 'tests/harness-observability.test.mjs'
+      - 'docs/development/harness-observability-design.md'
+      - 'codex/manuals/run-harness-observability.md'
+      - 'package.json'
+      - 'dashboard/index.html'
+      - 'work/2D-FPS-game/dashboard/index.html'
+      - 'AGENTS.md'
+      - 'plugins/openai-hud/skills/project-hud/SKILL.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run harness:test
+      - run: node plugins/hermes-ssot/scripts/harness-audit.mjs

@@ -86,3 +86,5 @@ saves/
 # Dev cycle mailbox (agent working files)
 .dev-cycle/
 .vercel
+/.local/harness-observability/
+/.worktrees/harness-runs/
