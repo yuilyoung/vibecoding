@@ -8,6 +8,8 @@ export function createStudioHttpServer(service = new StudioService()) {
   return createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (request.method === "GET" && url.pathname === "/api/health") return send(response, 200, service.health());
+    if (request.method === "GET" && url.pathname === "/api/headless-image-spike") { const result = service.getHeadlessImageSpike(); return send(response, result.status, { generation: result.generation, capabilityToken: result.capabilityToken, remainingAttempts: result.remainingAttempts }); }
+    if (request.method === "POST" && url.pathname === "/api/headless-image-spike") { const result = service.startHeadlessImageSpike(request.headers["x-studio-local-token"]); return send(response, result.status, result.ok ? { generation: result.generation, capabilityToken: result.capabilityToken, remainingAttempts: result.remainingAttempts } : { error: result.error, message: result.message, generation: result.generation, capabilityToken: result.capabilityToken, remainingAttempts: result.remainingAttempts }); }
     if (request.method === "POST" && url.pathname === "/api/projects") { const input = await readJson(request); if (input === null) return send(response, 400, { error: "Invalid JSON body." }); const result = service.createProject(input); return send(response, result.status, result.ok ? { project: result.project } : { errors: result.errors }); }
     const project = url.pathname.match(/^\/api\/projects\/([a-z0-9-]+)$/i);
     if (project && request.method === "GET") { const result = service.getProject(project[1]); return send(response, result.status, result.ok ? { project: result.project } : { error: result.error }); }

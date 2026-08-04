@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { HeadlessImageProbe } from "./HeadlessImageProbe";
 import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject, type LocalPreviewAsset } from "./studio-api";
 
 type Route = string;
@@ -53,7 +54,7 @@ function App() {
       <main>
         {route === "/" && <Home navigate={navigate} />}
         {route === "/create" && <Create navigate={navigate} />}
-        {route.startsWith("/projects/") && <Project navigate={navigate} projectId={route.split("/").at(-1)} />}
+        {route.startsWith("/projects/") && <><Project navigate={navigate} projectId={route.split("/").at(-1)} /><div className="project-page"><HeadlessImageProbe /></div></>}
         {route === "/safety" && <Safety navigate={navigate} />}
       </main>
       <footer>

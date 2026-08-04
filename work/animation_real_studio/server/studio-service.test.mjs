@@ -42,3 +42,97 @@ test("completes an original project with four fixed local 2D preview stills", ()
     assert.equal(markup.includes("street-light.jpg"), false);
   }
 });
+
+const nextTick = () => new Promise((resolve) => setImmediate(resolve));
+const fixedProbeAsset = (id, cleanupWarning) => ({ id, mimeType: "image/png", width: 9, height: 16, targetAspectRatio: "9:16", returnedAspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", ...(cleanupWarning ? { cleanupWarning } : {}) });
+
+test("requires a local capability and allows one completed probe to be explicitly retried", async () => {
+  let called = 0;
+  let resolveProbe;
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateProbe: () => { called += 1; return new Promise((resolve) => { resolveProbe = resolve; }); },
+  };
+  const service = new StudioService({ headlessImageProvider: provider, createLocalCapabilityToken: () => "test-local-token", maxHeadlessImageProbeAttempts: 2 });
+  assert.equal(service.startHeadlessImageSpike().status, 403);
+  const initial = service.getHeadlessImageSpike();
+  assert.equal(initial.capabilityToken, "test-local-token");
+  assert.equal(initial.remainingAttempts, 2);
+  const started = service.startHeadlessImageSpike(initial.capabilityToken);
+  assert.equal(started.status, 202);
+  assert.equal(started.remainingAttempts, 1);
+  const duplicate = service.startHeadlessImageSpike(initial.capabilityToken);
+  assert.equal(duplicate.status, 409);
+  assert.equal(duplicate.error, "probe_in_flight");
+  await nextTick();
+  assert.equal(called, 1);
+  resolveProbe(fixedProbeAsset("fixed-one", { code: "EBUSY", workspace: "ars-probe-1" }));
+  await nextTick();
+  const firstCompleted = service.getHeadlessImageSpike().generation;
+  assert.equal(firstCompleted.status, "completed");
+  assert.equal(firstCompleted.id, "headless-0001");
+  assert.equal(service.headlessImageProbeActiveAttemptId, null);
+  assert.equal(service.headlessImageProbeHistory.length, 1);
+  assert.deepEqual(service.headlessImageProbeHistory[0].dimensions, { width: 9, height: 16, targetAspectRatio: "9:16", returnedAspectRatio: "9:16" });
+  assert.deepEqual(service.headlessImageProbeHistory[0].cleanupWarning, { code: "EBUSY", workspace: "ars-probe-1" });
+  assert.equal(JSON.stringify(service.headlessImageProbeHistory).includes("data:image"), false);
+  const retried = service.startHeadlessImageSpike(initial.capabilityToken);
+  assert.equal(retried.status, 202);
+  assert.equal(retried.generation.id, "headless-0002");
+  assert.equal(retried.remainingAttempts, 0);
+  await nextTick();
+  assert.equal(called, 2);
+  resolveProbe(fixedProbeAsset("fixed-two"));
+  await nextTick();
+  assert.equal(service.getHeadlessImageSpike().generation.status, "completed");
+  assert.deepEqual(service.headlessImageProbeHistory.map((attempt) => attempt.id), ["headless-0001", "headless-0002"]);
+  const exhausted = service.startHeadlessImageSpike(initial.capabilityToken);
+  assert.equal(exhausted.status, 429);
+  assert.equal(exhausted.error, "probe_allowance_exhausted");
+  assert.equal(called, 2);
+});
+
+test("reports an explicit disabled headless provider state after local capability validation", () => {
+  const provider = { status: () => ({ enabled: false, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "disabled" }), generateProbe: async () => { throw new Error("must not run"); } };
+  const service = new StudioService({ headlessImageProvider: provider, createLocalCapabilityToken: () => "test-local-token" });
+  assert.equal(service.startHeadlessImageSpike().status, 403);
+  const result = service.startHeadlessImageSpike("test-local-token");
+  assert.equal(result.status, 503);
+  assert.equal(result.error, "provider_not_configured");
+});
+
+test("reports queued, generating, and completed headless image milestones", async () => {
+  let resolveProbe;
+  const result = new Promise((resolve) => { resolveProbe = resolve; });
+  const provider = { status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }), generateProbe: () => result };
+  const service = new StudioService({ headlessImageProvider: provider, createLocalCapabilityToken: () => "test-local-token" });
+  const started = service.startHeadlessImageSpike("test-local-token");
+  assert.deepEqual(started.generation.job, { mode: "developer_image_probe", phase: "queued", progress: 0 });
+  await nextTick();
+  assert.deepEqual(service.getHeadlessImageSpike().generation.job, { mode: "developer_image_probe", phase: "generating", progress: 50 });
+  resolveProbe(fixedProbeAsset("probe"));
+  await nextTick();
+  const completed = service.getHeadlessImageSpike().generation;
+  assert.equal(completed.status, "completed");
+  assert.deepEqual(completed.job, { mode: "developer_image_probe", phase: "completed", progress: 100 });
+});
+
+test("releases the in-flight lock after a provider failure", async () => {
+  let calls = 0;
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateProbe: () => { calls += 1; return calls === 1 ? Promise.reject(new Error("provider unavailable")) : Promise.resolve(fixedProbeAsset("retry")); },
+  };
+  const service = new StudioService({ headlessImageProvider: provider, createLocalCapabilityToken: () => "test-local-token" });
+  service.startHeadlessImageSpike("test-local-token");
+  await nextTick();
+  const failed = service.getHeadlessImageSpike().generation;
+  assert.equal(failed.status, "failed");
+  assert.deepEqual(failed.job, { mode: "developer_image_probe", phase: "failed", progress: 50 });
+  assert.equal(failed.asset, null);
+  assert.deepEqual(failed.error, { code: "provider_failed", message: "provider unavailable" });
+  const retry = service.startHeadlessImageSpike("test-local-token");
+  assert.equal(retry.status, 202);
+  await nextTick();
+  assert.equal(service.getHeadlessImageSpike().generation.status, "completed");
+});

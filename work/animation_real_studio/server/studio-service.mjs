@@ -1,3 +1,5 @@
+import { HeadlessCodexImageProvider, HeadlessImageProviderError } from "./headless-image-provider.mjs";
+import { randomUUID } from "node:crypto";
 const ALLOWED_REFERENCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const TERMINAL_STATUSES = new Set(["completed", "failed", "review_required"]);
 const LOCAL_BLOCK_RULES = [
@@ -78,8 +80,21 @@ function createLocalPreviewAssets(direction, beats) {
   });
 }
 export class StudioService {
-  constructor({ now = () => new Date(), renderDelayMs = 450, schedule = setTimeout } = {}) { this.now = now; this.renderDelayMs = renderDelayMs; this.schedule = schedule; this.projects = new Map(); this.sequence = 0; }
-  health() { return { status: "ok", provider: "local-template", mode: "local_2d_preview", message: "Local 2D previews only: no external generation, user-media transfer, upload, photo, video, or policy approval occurs." }; }
+  constructor({ now = () => new Date(), renderDelayMs = 450, schedule = setTimeout, headlessImageProvider = new HeadlessCodexImageProvider(), createLocalCapabilityToken = randomUUID, maxHeadlessImageProbeAttempts = 3 } = {}) {
+    this.now = now;
+    this.renderDelayMs = renderDelayMs;
+    this.schedule = schedule;
+    this.headlessImageProvider = headlessImageProvider;
+    this.localCapabilityToken = createLocalCapabilityToken();
+    this.projects = new Map();
+    this.sequence = 0;
+    this.headlessImageSpike = null;
+    this.maxHeadlessImageProbeAttempts = Number.isInteger(maxHeadlessImageProbeAttempts) && maxHeadlessImageProbeAttempts > 0 ? maxHeadlessImageProbeAttempts : 3;
+    this.headlessImageProbeAllowanceUsed = 0;
+    this.headlessImageProbeActiveAttemptId = null;
+    this.headlessImageProbeHistory = [];
+  }
+  health() { return { status: "ok", provider: "local-template", mode: "local_2d_preview", message: "Local 2D previews remain the default. The optional headless image probe never receives project, reference-media, or user-prompt data.", headlessImageGeneration: this.headlessImageProvider.status() }; }
   createProject(input = {}) {
     const { errors, scene, blockedRules } = validate(input);
     if (errors.length) return { ok: false, status: 422, errors };
@@ -133,6 +148,45 @@ export class StudioService {
       assets: createLocalPreviewAssets(project.direction, project.storyboard.beats),
     };
     project.audit.push({ at: this.now().toISOString(), event: "local_preview_completed", jobId: project.job.id });
+  }
+  remainingHeadlessImageProbeAttempts() { return Math.max(0, this.maxHeadlessImageProbeAttempts - this.headlessImageProbeAllowanceUsed); }
+  getHeadlessImageSpike() { return { ok: true, status: 200, generation: this.snapshot(this.headlessImageSpike), capabilityToken: this.localCapabilityToken, remainingAttempts: this.remainingHeadlessImageProbeAttempts() }; }
+  rejectHeadlessImageProbeStart(status, error, message) { return { ok: false, status, error, message, generation: this.snapshot(this.headlessImageSpike), capabilityToken: this.localCapabilityToken, remainingAttempts: this.remainingHeadlessImageProbeAttempts() }; }
+  recordHeadlessImageProbeAttempt(attempt) {
+    const cleanupWarning = attempt.asset?.cleanupWarning ?? attempt.error?.cleanupWarning ?? null;
+    const dimensions = attempt.asset ? { width: attempt.asset.width, height: attempt.asset.height, targetAspectRatio: attempt.asset.targetAspectRatio, returnedAspectRatio: attempt.asset.returnedAspectRatio } : null;
+    this.headlessImageProbeHistory.push(Object.freeze({ id: attempt.id, consumedAt: attempt.startedAt, status: attempt.status, completedAt: attempt.completedAt, dimensions: dimensions ? Object.freeze(dimensions) : null, cleanupWarning: cleanupWarning ? this.snapshot(cleanupWarning) : null }));
+  }
+  finishHeadlessImageProbeAttempt(attempt, outcome) {
+    Object.assign(attempt, outcome, { completedAt: this.now().toISOString() });
+    this.headlessImageSpike = attempt;
+    this.recordHeadlessImageProbeAttempt(attempt);
+    if (this.headlessImageProbeActiveAttemptId === attempt.id) this.headlessImageProbeActiveAttemptId = null;
+  }
+  startHeadlessImageSpike(capabilityToken) {
+    if (capabilityToken !== this.localCapabilityToken) return { ok: false, status: 403, error: "invalid_local_capability", message: "A same-origin local capability token is required to start the headless image probe." };
+    const provider = this.headlessImageProvider.status();
+    if (!provider.enabled) return { ok: false, status: 503, error: "provider_not_configured", message: provider.notice };
+    if (this.headlessImageProbeActiveAttemptId) return this.rejectHeadlessImageProbeStart(409, "probe_in_flight", "A developer probe is in progress. Wait for its terminal result before using another allowance.");
+    if (this.remainingHeadlessImageProbeAttempts() === 0) return this.rejectHeadlessImageProbeStart(429, "probe_allowance_exhausted", "No developer probe allowance remains for this API session.");
+    const id = `headless-${String(++this.sequence).padStart(4, "0")}`;
+    const attempt = { id, status: "in_progress", provider: provider.provider, mode: provider.mode, job: { mode: "developer_image_probe", phase: "queued", progress: 0 }, startedAt: this.now().toISOString(), completedAt: null, asset: null, error: null, notice: "Developer-only fixed original probe. This does not use project input, user prompts, or reference media." };
+    this.headlessImageProbeAllowanceUsed += 1;
+    this.headlessImageProbeActiveAttemptId = id;
+    this.headlessImageSpike = attempt;
+    Promise.resolve()
+      .then(() => {
+        attempt.job = { ...attempt.job, phase: "generating", progress: 50 };
+        return this.headlessImageProvider.generateProbe();
+      })
+      .then((asset) => this.finishHeadlessImageProbeAttempt(attempt, { status: "completed", job: { ...attempt.job, phase: "completed", progress: 100 }, asset }))
+      .catch((error) => {
+        const code = error instanceof HeadlessImageProviderError ? error.code : "provider_failed";
+        const message = error instanceof Error ? error.message : "Headless image generation failed.";
+        const cleanupWarning = error && typeof error === "object" ? error.cleanupWarning : null;
+        this.finishHeadlessImageProbeAttempt(attempt, { status: "failed", job: { ...attempt.job, phase: "failed" }, error: { code, message, ...(cleanupWarning ? { cleanupWarning } : {}) } });
+      });
+    return { ok: true, status: 202, generation: this.snapshot(attempt), capabilityToken: this.localCapabilityToken, remainingAttempts: this.remainingHeadlessImageProbeAttempts() };
   }
   snapshot(project) { return JSON.parse(JSON.stringify(project)); }
 }

@@ -41,3 +41,73 @@ test("direction presets are explicit controls and do not start generation", asyn
   await expect(rain).toHaveAttribute("aria-pressed", "false");
   expect(generationRequests).toBe(0);
 });
+test("project probe shows fixed headless generation progress", async ({ page }) => {
+  let postRequests = 0;
+  await page.route("**/api/headless-image-spike", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation: null, capabilityToken: "visual-token" }) });
+      return;
+    }
+    postRequests += 1;
+    expect(route.request().headers()["x-studio-local-token"]).toBe("visual-token");
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation: { id: "headless-001", status: "in_progress", provider: "codex-headless-imagegen", job: { mode: "developer_image_probe", phase: "generating", progress: 50 }, asset: null, error: null, notice: "fixed probe" }, capabilityToken: "visual-token" }) });
+  });
+  await page.goto("/projects/demo-001");
+  const probe = page.getByLabel("Headless photorealistic image generation probe");
+  await expect(probe.getByRole("heading", { name: "Codex headless photorealistic still" })).toBeVisible();
+  await expect(probe).toContainText("Generates one more fixed, developer-only test image and consumes one probe allowance. It is not a user request or public delivery.");
+  await probe.getByRole("button", { name: /Generate test photorealistic image/ }).click();
+  await expect(probe.getByRole("status")).toContainText("50%");
+  await expect(probe.getByRole("progressbar", { name: "Developer image probe progress" })).toHaveAttribute("aria-valuenow", "50");
+  await expect(probe.locator(".preview-loading")).toHaveCount(0);
+  expect(postRequests).toBe(1);
+});test("project probe replaces progress with an error after failure", async ({ page }) => {
+  await page.route("**/api/headless-image-spike", async (route) => { await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation: { id: "headless-failed", status: "failed", provider: "codex-headless-imagegen", job: { mode: "developer_image_probe", phase: "failed", progress: 50 }, asset: null, error: { code: "provider_failed", message: "fixed provider failure" }, notice: "fixed probe" }, capabilityToken: "visual-token" }) }); });
+  await page.goto("/projects/demo-001");
+  const probe = page.getByLabel("Headless photorealistic image generation probe");
+  await expect(probe.getByRole("alert")).toContainText("fixed provider failure");
+  await expect(probe.locator(".developer-probe-loading")).toHaveCount(0);
+  await expect(probe.getByRole("progressbar", { name: "Developer image probe progress" })).toHaveCount(0);
+});
+test("project probe keeps polling until the completed image arrives", async ({ page }) => {
+  let running = false;
+  let postRequests = 0;
+  await page.route("**/api/headless-image-spike", async (route) => {
+    if (route.request().method() === "GET") {
+      const generation = running ? { id: "headless-completed", status: "completed", provider: "codex-headless-imagegen", job: { mode: "developer_image_probe", phase: "completed", progress: 100 }, asset: { dataUri: "data:image/png;base64,AA==", width: 9, height: 16, targetAspectRatio: "9:16", returnedAspectRatio: "9:16", notice: "completed fixed asset" }, error: null, notice: "fixed probe" } : null;
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation, capabilityToken: "visual-token" }) });
+      return;
+    }
+    postRequests += 1;
+    running = true;
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation: { id: "headless-completed", status: "in_progress", provider: "codex-headless-imagegen", job: { mode: "developer_image_probe", phase: "generating", progress: 50 }, asset: null, error: null, notice: "fixed probe" }, capabilityToken: "visual-token" }) });
+  });
+  await page.goto("/projects/demo-001");
+  const probe = page.getByLabel("Headless photorealistic image generation probe");
+  await probe.getByRole("button", { name: /Generate test photorealistic image/ }).click();
+  await expect(probe.getByRole("status")).toContainText("50%");
+  await expect(probe.getByText("completed fixed asset")).toBeVisible({ timeout: 2500 });
+  await expect(probe.getByRole("status")).toHaveCount(0);
+  const retryButton = probe.getByRole("button", { name: "Generate another test image" });
+  await expect(retryButton).toBeEnabled();
+  await retryButton.click();
+  expect(postRequests).toBe(2);
+});
+
+test("project probe reconciles a stale exhausted allowance after a rejected start", async ({ page }) => {
+  let postRequests = 0;
+  await page.route("**/api/headless-image-spike", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ generation: null, capabilityToken: "visual-token", remainingAttempts: 1 }) });
+      return;
+    }
+    postRequests += 1;
+    await route.fulfill({ status: 429, contentType: "application/json", body: JSON.stringify({ error: "probe_allowance_exhausted", message: "No developer probe allowance remains for this API session.", generation: { id: "headless-prior", status: "completed", provider: "codex-headless-imagegen", job: { mode: "developer_image_probe", phase: "completed", progress: 100 }, asset: null, error: null, notice: "prior fixed probe" }, capabilityToken: "visual-token", remainingAttempts: 0 }) });
+  });
+  await page.goto("/projects/demo-001");
+  const probe = page.getByLabel("Headless photorealistic image generation probe");
+  await probe.getByRole("button", { name: "Generate test photorealistic image" }).click();
+  await expect(probe.getByText("No developer probe allowance remains for this API session.")).toBeVisible();
+  await expect(probe.getByRole("button", { name: "Probe allowance exhausted" })).toBeDisabled();
+  expect(postRequests).toBe(1);
+});
