@@ -86,3 +86,7 @@ saves/
 # Dev cycle mailbox (agent working files)
 .dev-cycle/
 .vercel
+
+# Dashboard runtime telemetry (append-only local journal)
+dashboard/runtime/
+test-results/

@@ -8,6 +8,14 @@
     "project-status": "node scripts/project-status.mjs",
     "next-tasks": "node scripts/next-tasks.mjs",
     "codex-preflight": "node codex/hooks/preflight-check.mjs",
-    "codex-postflight": "node codex/hooks/postflight-sync.mjs"
+    "codex-postflight": "node codex/hooks/postflight-sync.mjs",
+    "dashboard": "node scripts/dashboard-server.mjs",
+    "dashboard:event": "node scripts/dashboard-event.mjs",
+    "dashboard:snapshot": "node scripts/dashboard-observability.mjs",
+    "test:dashboard": "node --test scripts/dashboard-observability.test.mjs",
+    "test:dashboard:ui": "playwright test scripts/dashboard-ui.spec.mjs --workers=1 --output C:/tmp/dashboard-playwright-results"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

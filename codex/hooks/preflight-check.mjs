@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { appendAgentEvent } from "../../scripts/dashboard-observability.mjs";
 
 const repoRoot = process.cwd();
 const handoffPath = path.join(repoRoot, "docs", "handoffs", "current-handoff.json");
@@ -21,4 +22,17 @@ if (existsSync(baselinePath)) {
     : "unknown";
 }
 
-process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+try {
+  appendAgentEvent({
+    agentId: "ultron",
+    timestamp: new Date().toISOString(),
+    state: "active",
+    eventType: "lifecycle",
+    taskId: "codex-preflight",
+    message: "Codex preflight completed"
+  }, { root: repoRoot });
+} catch (error) {
+  result.dashboardEventError = error.message;
+}
+
+process.stdout.write(JSON.stringify(result, null, 2) + "\n");
