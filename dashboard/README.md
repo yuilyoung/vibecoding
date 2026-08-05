@@ -9,7 +9,7 @@
 3. Directed agent topology: each source-backed `handoff`, `message`, or `delegation` is one arrow. A bright moving signal means communication within 15 seconds and fresh 30-second heartbeats from both endpoints; historical arrows remain visible but subdued.
 4. A selected agent/arrow inspector with the safe summary, task, timestamp, correlation ID, source event ID, and relevant source-backed token deltas.
 5. Input, output, and total token consumption from immutable exclusive usage deltas. No usage source means `unknown`, never `0`.
-6. Existing workspace/project/harness collector health and integration readiness.
+6. Existing workspace/project/harness collector health and integration readiness. The optional harness collector is shown as `unavailable` when it is not installed; that is not a failed health check.
 
 A configured agent is not treated as running. `active` requires a fresh event, `stale` means a heartbeat is older than 120 seconds, and `unknown` means no event exists. Progress is displayed as a percentage only when the report explicitly exposes a done/total range; otherwise it is `unknown`.
 
@@ -22,7 +22,10 @@ npm run dashboard:event -- --agent ultron --state active --type heartbeat --task
 npm run dashboard:event -- --agent ultron --state active --type delegation --task dashboard-v2 --to product-owner --kind delegation --summary "Request delivery plan" --correlation dashboard-v2
 npm run dashboard:event -- --agent ultron --state active --type metric --task dashboard-v2 --input-tokens 120 --output-tokens 80 --total-tokens 200 --usage-id runtime:dashboard-v2:1 --usage-source runtime --usage-scope exclusive --metric-mode delta
 npm run test:dashboard
+npm run test:dashboard:ui
 ```
+
+The UI test starts its own loopback server with a temporary journal and seeded directed communication. It does not require `npm run dashboard` to already be running.
 
 ## API and event contract v2.1
 

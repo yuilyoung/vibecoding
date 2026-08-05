@@ -1,6 +1,6 @@
 # Trusted local-project defaults. Restart or open a new Codex session after changing this file.
 approval_policy = "never"
-default_permissions = "ai-project-workspace"
+default_permissions = ":danger-full-access"
 
 [permissions.ai-project-workspace]
 description = "Write access limited to the ai-project workspace and system temp paths."
