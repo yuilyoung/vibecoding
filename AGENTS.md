@@ -48,6 +48,9 @@
 ## Codex Delivery Topology
 
 - The main Codex thread owns implementation and deterministic verification.
-- For non-trivial work, use the project-scoped product_owner agent before implementation and the read-only reviewer agent before a completion claim.
+- For every non-trivial change, use the project-scoped product_owner agent before implementation and the read-only reviewer agent before a completion claim.
 - Treat testing as a verification gate and demand-loaded manual, not as a standing subagent role.
 - Route volatile domain knowledge through the hermes-ssot plugin skills and codex/manuals/catalog.json; do not load every manual by default.
+- Route architecture and implementation through `development-engineering:development-engineering-router`; load only its selected design, implementation, or observability reference.
+- The hermes-ssot plugin hooks implement the ordered `design -> implementation -> verification -> review -> drift -> completed` state machine. Edits invalidate downstream evidence.
+- Plugin hooks take effect in a new session only after their current hash is reviewed and trusted with `/hooks`; they never bypass sandbox or user approval.

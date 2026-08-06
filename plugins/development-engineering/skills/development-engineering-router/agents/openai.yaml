@@ -1,0 +1,4 @@
+interface:
+  display_name: "Development Engineering Router"
+  short_description: "Route architecture, implementation, and observability work"
+  default_prompt: "Use $development-engineering-router to load only the engineering guidance needed for this task."

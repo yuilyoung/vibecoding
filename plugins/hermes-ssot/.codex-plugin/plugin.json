@@ -1,21 +1,32 @@
 {
   "name": "hermes-ssot",
-  "version": "0.1.0",
-  "description": "Codex reliability workflow with demand-loaded manuals, PO planning, review gates, and deterministic evidence checks.",
+  "version": "0.1.0+codex.20260806143018",
+  "description": "Codex delivery harness with trust-reviewed lifecycle hooks, demand-loaded manuals, PO planning, and fingerprinted evidence gates.",
   "author": {
     "name": "ai-project",
     "email": "local@workspace.invalid"
   },
   "license": "MIT",
-  "keywords": ["codex", "harness", "reliability", "skills", "verification"],
+  "keywords": [
+    "codex",
+    "harness",
+    "hooks",
+    "reliability",
+    "skills",
+    "verification"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Hermes Reliability",
-    "shortDescription": "Adds demand-loaded manuals and evidence gates.",
-    "longDescription": "Repo-local Codex workflow for PO planning, independent review, manual freshness, and deterministic verification.",
+    "shortDescription": "Enforces an ordered, evidence-backed delivery loop.",
+    "longDescription": "Repo-local Codex harness with trust-reviewed lifecycle hooks for product-owner design, main-thread implementation, fingerprinted verification, independent review, and manual freshness.",
     "developerName": "ai-project",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Read"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "defaultPrompt": [
       "Use the Hermes reliability gate for this non-trivial change.",
       "Route this task to the relevant project manuals before planning it.",

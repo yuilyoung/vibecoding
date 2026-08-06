@@ -15,6 +15,8 @@ const allowedToolsByAgent = {
   "prd-validator": ["Read", "Glob", "Grep", "Bash"],
   architect: ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
   "create-tasks": ["Read", "Glob", "Grep", "TaskCreate", "TaskUpdate", "TaskList", "TaskGet"],
+  hermes: ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
+  "adversarial-validator": ["Read", "Write", "Glob", "Grep", "Bash"],
   frontend: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "TaskUpdate"],
   backend: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "TaskUpdate"],
   "app-developer": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "TaskUpdate"],

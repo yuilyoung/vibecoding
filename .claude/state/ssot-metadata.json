@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0.0",
+  "lastVerifiedAt": "2026-08-06T14:09:40.539Z",
+  "freshnessCadenceDays": 7,
+  "axes": {
+    "dataMetadata": "Source registry with owners, verification methods, timestamps, and expiry.",
+    "manualSsot": "docs/development/claude-four-axis-ssot.md is the normative operating manual.",
+    "adversarialValidation": "Hermes generates questions; adversarial-validator independently challenges claims and evidence.",
+    "freshness": "harness-refresh obtains authoritative catalog snapshots; harness-audit blocks stale or malformed state."
+  },
+  "sources": [
+    {
+      "id": "anthropic-plugin-marketplace",
+      "owner": "Anthropic",
+      "url": "https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/.claude-plugin/marketplace.json",
+      "format": "json",
+      "lastVerifiedAt": "2026-08-06T14:09:40.539Z",
+      "refreshAfterDays": 7,
+      "verification": "npm run harness-refresh"
+    },
+    {
+      "id": "hermes-agent-cli-reference",
+      "owner": "Nous Research",
+      "url": "https://hermes-agent.nousresearch.com/docs/reference/cli-commands",
+      "format": "html",
+      "lastVerifiedAt": "2026-08-06T14:09:40.539Z",
+      "refreshAfterDays": 30,
+      "verification": "npm run harness-refresh"
+    }
+  ],
+  "manuals": [
+    {
+      "path": "docs/development/claude-four-axis-ssot.md",
+      "owner": "Vision",
+      "role": "normative"
+    },
+    {
+      "path": "docs/development/claude-loop-specification.md",
+      "owner": "Hermes",
+      "role": "normative"
+    },
+    {
+      "path": "AGENTS.md",
+      "owner": "shared",
+      "role": "contract"
+    }
+  ],
+  "pluginPolicy": {
+    "required": [
+      {
+        "name": "code-review",
+        "marketplace": "claude-plugins-official",
+        "state": "installed-user-scope",
+        "purpose": "Independent pull-request change review."
+      },
+      {
+        "name": "claude-md-management",
+        "marketplace": "claude-plugins-official",
+        "state": "installed-user-scope",
+        "purpose": "CLAUDE.md and persistent project-memory maintenance."
+      },
+      {
+        "name": "security-guidance",
+        "marketplace": "claude-plugins-official",
+        "state": "installed-user-scope",
+        "purpose": "Security-focused edit and diff guidance."
+      }
+    ],
+    "held": [
+      {
+        "name": "semgrep",
+        "marketplace": "claude-plugins-official",
+        "state": "not-installed",
+        "reason": "Adopt only after reviewing prompt impact, permissions, and CI fit."
+      }
+    ]
+  },
+  "loop": {
+    "name": "claude-four-axis-ssot",
+    "terminalStates": [
+      "success",
+      "no-op",
+      "blocked",
+      "stalled",
+      "exhausted"
+    ],
+    "evidencePath": ".claude/state/ssot-evidence.json"
+  },
+  "lastRefresh": {
+    "refreshedAt": "2026-08-06T14:09:40.539Z",
+    "sources": [
+      {
+        "id": "anthropic-plugin-marketplace",
+        "bytes": 162977,
+        "requiredPluginsPresent": [
+          "claude-md-management",
+          "code-review",
+          "security-guidance"
+        ]
+      },
+      {
+        "id": "hermes-agent-cli-reference",
+        "bytes": 273692
+      }
+    ],
+    "result": "success"
+  }
+}

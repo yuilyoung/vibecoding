@@ -1,141 +1,363 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AI Project Control Plane</title>
+  <meta name="color-scheme" content="light">
+  <title>2D-FPS Game · Project & Agent Control</title>
   <style>
-    :root{--bg:#07111f;--surface:#0e1c30;--surface2:#13263f;--line:#284362;--ink:#edf5ff;--muted:#8ea6c5;--blue:#6aa8ff;--cyan:#55e3e5;--green:#62e3aa;--amber:#ffd166;--red:#ff7c91;--violet:#a78bfa}*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 560px at 100% -10%,#1b447b 0%,transparent 62%),radial-gradient(680px 440px at -10% 33%,#123456 0%,transparent 65%),var(--bg);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,"Segoe UI",sans-serif}button{font:inherit;color:inherit}button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}header{max-width:1540px;margin:auto;padding:24px 30px 16px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:13px}.brand-mark{width:39px;height:39px;display:grid;place-items:center;font-weight:900;color:#07111f;background:linear-gradient(135deg,var(--cyan),var(--blue));clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}.eyebrow{margin:0;color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.17em;text-transform:uppercase}.brand h1{font-size:19px;letter-spacing:.04em;margin:2px 0 0}.connection{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 13px var(--amber)}.dot.live{background:var(--green);box-shadow:0 0 13px var(--green)}main{max-width:1540px;margin:auto;padding:0 30px 52px;display:grid;gap:17px}.panel{background:linear-gradient(140deg,rgba(18,37,63,.94),rgba(8,18,34,.97));border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 42px rgba(0,0,0,.23)}.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 11px;border-bottom:1px solid rgba(142,166,197,.16)}.panel-head h2{font-size:11px;margin:0;letter-spacing:.14em;text-transform:uppercase}.source{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.overview{display:grid;grid-template-columns:1.42fr .58fr;overflow:hidden}.delivery{padding:25px 25px 22px;position:relative}.delivery:after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,var(--cyan),var(--blue),transparent)}.delivery h2{font-size:clamp(24px,3vw,38px);letter-spacing:-.045em;margin:4px 0 7px}.delivery-copy{max-width:720px;color:var(--muted);margin:0}.progress-row{display:flex;align-items:center;gap:13px;margin-top:23px}.progress-track{height:9px;flex:1;max-width:580px;background:#06101c;border-radius:999px;overflow:hidden}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cyan),var(--blue))}.progress-value{color:var(--cyan);font-weight:800;white-space:nowrap}.signal-stack{display:grid;align-content:center;gap:2px;padding:17px 20px;border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(102,168,255,.08),transparent)}.signal{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(142,166,197,.14)}.signal:last-child{border:0}.signal span{color:var(--muted);font-size:12px}.signal b{font-size:16px}.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.metric{min-height:116px;padding:16px}.metric-label{color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.metric strong{display:block;font-size:30px;line-height:1;margin:12px 0 8px}.metric small{color:var(--muted);font-size:11px}.attention-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:13px 14px 15px}.attention{min-height:112px;padding:13px;border:1px solid rgba(142,166,197,.17);border-left:3px solid var(--amber);border-radius:11px;background:rgba(4,12,24,.43);display:grid;align-content:start;gap:5px;text-align:left}.attention.blocked,.attention.failed{border-left-color:var(--red)}.attention.unavailable{border-left-color:var(--muted)}.attention h3{font-size:13px;margin:0}.attention p{margin:0;color:var(--muted);font-size:11px}.attention .tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--amber)}.attention.blocked .tag,.attention.failed .tag{color:var(--red)}.empty{padding:22px;color:var(--muted);text-align:center}.board{overflow:hidden}.board-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid rgba(142,166,197,.14)}.filters{display:flex;gap:7px;flex-wrap:wrap}.filter{border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:rgba(4,12,24,.42);font-size:11px;cursor:pointer}.filter.active{background:var(--blue);border-color:var(--blue);color:#07111f;font-weight:800}.board-note{color:var(--muted);font-size:11px}.work-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;padding:14px}.task-card{min-height:142px;display:grid;align-content:start;gap:8px;padding:13px;border:1px solid rgba(142,166,197,.17);border-left:3px solid var(--gray,var(--muted));border-radius:11px;background:rgba(4,12,24,.43);text-align:left;cursor:pointer}.task-card:hover{background:rgba(32,62,100,.52);transform:translateY(-1px)}.task-card.active{border-left-color:var(--cyan)}.task-card.stale{border-left-color:var(--amber)}.task-card.blocked,.task-card.failed{border-left-color:var(--red)}.task-card.decision{border-left-color:var(--violet)}.task-card.complete,.task-card.idle{border-left-color:var(--green)}.task-card h3{font-size:13px;margin:0}.task-card p{margin:0;color:var(--muted);font-size:11px}.badge{display:inline-flex;width:max-content;align-items:center;min-height:21px;padding:1px 8px;border:1px solid var(--muted);border-radius:999px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.badge.active{color:var(--cyan);border-color:var(--cyan)}.badge.stale{color:var(--amber);border-color:var(--amber)}.badge.blocked,.badge.failed{color:var(--red);border-color:var(--red)}.badge.decision{color:var(--violet);border-color:var(--violet)}.badge.complete,.badge.idle{color:var(--green);border-color:var(--green)}.operations{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(330px,.55fr);min-height:560px;overflow:hidden}.graph-wrap{padding:10px;border-right:1px solid var(--line);background:radial-gradient(circle at 50% 44%,rgba(80,134,219,.14),transparent 46%)}#graph{width:100%;height:520px;display:block}.graph-node{cursor:pointer}.graph-node.selected circle{stroke:#fff;stroke-width:3}.graph-label{fill:var(--ink);font-size:11px;font-weight:800;pointer-events:none}.graph-sub{fill:var(--muted);font-size:9px;pointer-events:none}.edge{fill:none;stroke:#5d789c;stroke-opacity:.62;stroke-width:2;cursor:pointer;marker-end:url(#arrow)}.edge.live{stroke:var(--green);stroke-width:3;stroke-dasharray:9 7;animation:flow .8s linear infinite}.edge.selected{stroke:var(--amber);stroke-width:4;stroke-opacity:1}.inspector{padding:18px;display:grid;align-content:start;gap:13px;max-height:560px;overflow:auto}.inspector h2{margin:3px 0 0;font-size:20px}.agent-card,.trace{padding:12px;border:1px solid rgba(142,166,197,.16);border-radius:10px;background:rgba(4,12,24,.4)}.agent-card h3,.trace h3{margin:0 0 5px;font-size:14px}.agent-card p,.trace p{margin:4px 0;color:var(--muted);font-size:11px}.drawer-scrim{position:fixed;inset:0;background:rgba(2,7,15,.63);opacity:0;pointer-events:none;transition:opacity .18s}.drawer-scrim.open{opacity:1;pointer-events:auto}.drawer{position:fixed;top:0;right:0;bottom:0;width:min(470px,100vw);padding:24px;display:grid;align-content:start;gap:14px;overflow:auto;transform:translateX(104%);transition:transform .22s ease;background:linear-gradient(160deg,#132844,#091525);border-left:1px solid var(--line);box-shadow:-24px 0 60px rgba(0,0,0,.35);z-index:3}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;align-items:start;justify-content:space-between;gap:12px}.drawer-head h2{margin:4px 0 0;font-size:25px;letter-spacing:-.03em}.close{border:1px solid var(--line);background:transparent;border-radius:9px;padding:6px 10px;cursor:pointer}.drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.drawer-cell{padding:10px;border:1px solid rgba(142,166,197,.15);border-radius:9px;background:rgba(4,12,24,.36)}.drawer-cell small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.drawer-cell b{display:block;margin-top:4px;font-size:12px;overflow-wrap:anywhere}.drawer-section h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}.drawer-section .trace{margin-bottom:8px}@keyframes flow{to{stroke-dashoffset:-32}}@media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.overview,.operations{grid-template-columns:1fr}.signal-stack,.graph-wrap{border-left:0;border-right:0;border-top:1px solid var(--line)}.attention-list{grid-template-columns:repeat(2,1fr)}.work-board{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){header,main{padding-left:14px;padding-right:14px}.metrics,.attention-list,.work-board{grid-template-columns:1fr}.delivery,.signal-stack{padding:18px}.board-tools{align-items:flex-start;flex-direction:column}#graph{height:430px}.operations{min-height:0}.inspector{max-height:none}.drawer{padding:18px}}
+    :root{--ink:#17213f;--muted:#69728d;--line:#dce1ef;--soft:#f5f6fb;--card:#fff;--indigo:#5145cd;--violet:#7c3aed;--cyan:#35d2e5;--green:#1f9d72;--amber:#d97706;--red:#dc3c5a;--navy:#071426;--shadow:0 18px 55px rgba(21,19,80,.16);font-family:Inter,"Pretendard Variable",Pretendard,"Noto Sans KR",system-ui,sans-serif;color:var(--ink);background:#4b3fc4}
+    *{box-sizing:border-box}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(circle at 10% 5%,rgba(255,255,255,.17),transparent 25%),linear-gradient(145deg,#3f37b8 0%,#6944d6 52%,#892dc4 100%);font-size:14px}button{font:inherit}button:focus-visible,[tabindex]:focus-visible{outline:3px solid #55d9f2;outline-offset:3px}.shell{width:min(1600px,calc(100% - 40px));margin:20px auto 36px;background:#f3f4fa;border:1px solid rgba(255,255,255,.35);border-radius:24px;box-shadow:0 28px 90px rgba(20,9,65,.3);overflow:hidden}.topbar{min-height:88px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;color:#fff;background:linear-gradient(120deg,#4338a8,#6550d6 58%,#7940c5)}.brand{display:flex;align-items:center;gap:14px}.brand-mark{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#6df4ff,#5b65eb);box-shadow:0 8px 24px rgba(42,229,255,.25);font-weight:900;color:#071426;font-size:20px}.eyebrow{margin:0 0 5px;letter-spacing:.12em;text-transform:uppercase;font-size:11px;font-weight:800;opacity:.72}.topbar h1{font-size:20px;margin:0;letter-spacing:-.02em}.control-meta{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.status-pill,.meta-pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 10px;font-size:12px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.18)}.status-dot{width:7px;height:7px;border-radius:50%;background:#f6c45b}.status-dot.connected{background:#68efb5;box-shadow:0 0 0 4px rgba(104,239,181,.14)}.content{padding:18px;display:grid;gap:16px}.panel{background:var(--card);border:1px solid rgba(43,50,93,.1);border-radius:16px;box-shadow:0 8px 30px rgba(45,44,88,.06)}.panel-head{padding:16px 18px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.panel-head h2{margin:0;font-size:16px;letter-spacing:-.02em}.source{font-size:11px;color:var(--muted);line-height:1.35}.metrics{display:grid;grid-template-columns:1.25fr repeat(7,minmax(0,1fr));gap:10px}.metric{min-width:0;padding:14px 15px;border-radius:14px;background:#fff;border:1px solid rgba(49,54,101,.11);box-shadow:0 6px 18px rgba(43,35,96,.06)}.metric.primary{color:#fff;background:linear-gradient(145deg,#5145cd,#7c3aed);border:0}.metric-label{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.metric.primary .metric-label,.metric.primary small{color:rgba(255,255,255,.76)}.metric strong{display:block;margin:8px 0 5px;font-size:24px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.045em}.metric small{display:block;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.metric-state{font-size:10px;border-radius:999px;padding:2px 6px;background:#edf0fa;color:#505b79}.metric.primary .metric-state{background:rgba(255,255,255,.16);color:#fff}.progress-mini{height:5px;margin-top:9px;background:rgba(255,255,255,.2);border-radius:8px;overflow:hidden}.progress-mini span{display:block;height:100%;background:#77efff;border-radius:8px}.project-overview{display:grid;grid-template-columns:1.55fr .9fr;min-height:162px;overflow:hidden}.phase-brief{padding:18px}.phase-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.phase-brief h2{margin:2px 0 7px;font-size:22px;letter-spacing:-.035em}.phase-summary{max-width:900px;margin:0;color:#58627c;line-height:1.55}.phase-score{min-width:86px;text-align:right}.phase-score strong{display:block;font-size:30px;color:var(--indigo)}.phase-score span{color:var(--muted);font-size:11px}.timeline{display:flex;align-items:center;gap:8px;margin-top:16px;overflow:auto;padding-bottom:2px}.milestone{position:relative;flex:1;min-width:150px;padding:10px 12px 10px 35px;border-radius:11px;background:#f4f3ff;color:#403f76;font-size:12px;font-weight:750}.milestone:before{content:"✓";position:absolute;left:11px;top:9px;width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:#6b57dd;color:#fff;font-size:10px}.milestone.decision:before{content:"?";background:#f3a824}.project-signals{padding:16px 18px;background:linear-gradient(150deg,#f8f6ff,#eef7ff);border-left:1px solid var(--line)}.signal{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid rgba(79,75,139,.1)}.signal:last-child{border:0}.signal span{color:var(--muted);font-size:11px}.signal b{font-size:12px;text-align:right}.command-grid{display:grid;grid-template-columns:minmax(650px,1.35fr) minmax(460px,1fr);gap:16px;align-items:start}.board{overflow:hidden}.board-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 8px;font-size:11px;color:#4d5672;background:#f0f2f8}.kanban{padding:0 12px 14px;display:grid;grid-template-columns:repeat(5,minmax(126px,1fr));gap:8px;overflow-x:auto}.kanban-col{min-width:0;border-radius:12px;background:#f2f3f8;border:1px solid #e3e6ef;overflow:hidden}.col-head{padding:10px 10px 8px;display:flex;align-items:center;justify-content:space-between;border-top:3px solid #9ba4bb;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}.kanban-col[data-state="active"] .col-head{border-color:var(--indigo)}.kanban-col[data-state="blocked"] .col-head{border-color:var(--red)}.kanban-col[data-state="stale"] .col-head{border-color:var(--amber)}.kanban-col[data-state="complete"] .col-head{border-color:var(--green)}.col-count{min-width:21px;height:21px;display:grid;place-items:center;border-radius:999px;background:#fff;color:#5f6881}.col-body{min-height:227px;max-height:310px;overflow:auto;padding:0 7px 8px}.task-card{width:100%;margin:0 0 7px;padding:10px;text-align:left;border:1px solid #dde1ea;border-radius:10px;background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 3px 8px rgba(41,45,78,.04);transition:transform .15s,border-color .15s,box-shadow .15s}.task-card:hover,.task-card.selected{transform:translateY(-1px);border-color:#7768db;box-shadow:0 7px 15px rgba(82,68,183,.12)}.task-id{color:#6b57d9;font-size:10px;font-weight:900;letter-spacing:.06em}.task-card strong{display:block;margin:5px 0 8px;font-size:12px;line-height:1.35}.task-owner{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:10px}.task-owner:before{content:"";width:6px;height:6px;border-radius:50%;background:#9da5b9}.board-foot{padding:0 16px 14px;color:var(--muted);font-size:11px}.agent-panel{overflow:hidden;background:var(--navy);border-color:rgba(255,255,255,.08);color:#ebf2ff;box-shadow:0 15px 40px rgba(3,10,27,.22)}.agent-panel .panel-head{background:linear-gradient(180deg,rgba(26,52,82,.55),transparent)}.agent-panel .source{color:#8091ad}.agent-toolbar{display:flex;gap:6px;align-items:center}.toggle{border:1px solid rgba(166,190,226,.18);background:rgba(255,255,255,.04);color:#90a1bc;border-radius:999px;padding:5px 9px;cursor:pointer;font-size:11px}.toggle.active{color:#071426;background:#71e9f4;border-color:#71e9f4;font-weight:800}.graph-stage{position:relative;margin:0 10px;border-radius:13px;overflow:hidden;background:radial-gradient(circle at 48% 44%,rgba(51,104,145,.2),transparent 35%),linear-gradient(rgba(71,111,146,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(71,111,146,.08) 1px,transparent 1px),#071426;background-size:auto,28px 28px,28px 28px}.graph-stage svg{display:block;width:100%;height:340px}.graph-empty{position:absolute;inset:0;display:none;place-items:center;text-align:center;color:#94a5bf;padding:30px}.graph-empty strong{display:block;color:#eaf2ff;margin-bottom:6px}.edge{fill:none;stroke:#60718c;stroke-width:1.5;opacity:.65;marker-end:url(#arrow)}.edge.live{stroke:#4ae1ef;stroke-width:2.5;opacity:1;stroke-dasharray:8 7;animation:flow 1.2s linear infinite}.edge.selected{stroke:#f7c76b;stroke-width:3;opacity:1}.edge-hit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer}.edge-text{font-size:10px;fill:#8ca1bf;pointer-events:none}.node{cursor:pointer}.node-halo{fill:rgba(53,210,229,.05);stroke:#263e5b;stroke-width:1.4}.node-core{fill:#122b45;stroke:#6e86a5;stroke-width:2}.node[data-state="active"] .node-core{fill:#123f49;stroke:#4ae1c8}.node[data-state="blocked"] .node-core,.node[data-state="failed"] .node-core{fill:#401d33;stroke:#fa6b85}.node[data-state="stale"] .node-core{fill:#3c331d;stroke:#f3b857}.node.selected .node-halo{stroke:#f7c76b;stroke-width:3;fill:rgba(247,199,107,.1)}.node-name{fill:#ecf4ff;font-size:11px;font-weight:800;text-anchor:middle;pointer-events:none}.node-state{fill:#91a4c0;font-size:9px;text-anchor:middle;pointer-events:none}.node-pulse{fill:#71e9f4;opacity:.8}.agent-bottom{display:grid;grid-template-columns:.9fr 1.1fr;margin-top:10px;border-top:1px solid rgba(255,255,255,.08)}.agent-inspector,.comm-stream{min-height:150px;max-height:215px;overflow:auto;padding:13px}.agent-inspector{border-right:1px solid rgba(255,255,255,.08)}.subhead{margin:0 0 9px;color:#8295b4;font-size:10px;text-transform:uppercase;letter-spacing:.1em}.inspect-title{font-size:14px;font-weight:800;margin-bottom:7px}.inspect-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.inspect-cell{padding:8px;border-radius:8px;background:rgba(255,255,255,.04)}.inspect-cell span{display:block;color:#8295b4;font-size:9px;margin-bottom:3px}.inspect-cell b{font-size:11px}.trace{position:relative;padding:0 0 10px 15px;color:#aab7cc;font-size:10px;line-height:1.4}.trace:before{content:"";position:absolute;left:1px;top:4px;width:6px;height:6px;border-radius:50%;background:#637591}.trace.live:before{background:#49ddea;box-shadow:0 0 0 4px rgba(73,221,234,.1)}.trace strong{color:#e7f0ff;font-size:11px}.trace-meta{color:#70839f}.evidence-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.quality-grid{padding:0 14px 14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.quality{padding:12px;border-radius:11px;background:#f6f7fb;border:1px solid #e7e9f1}.quality span{color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:800}.quality strong{display:block;margin-top:6px;font-size:18px}.quality small{color:var(--green);font-size:10px}.evidence-list{padding:0 16px 15px;display:grid;gap:7px}.evidence-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 10px;border-radius:9px;background:#f7f8fb;font-size:11px}.evidence-row span:last-child{color:var(--green);font-weight:800}.attention{padding:0 14px 14px;display:grid;gap:7px}.attention-item{padding:10px 11px;border-left:3px solid var(--amber);border-radius:8px;background:#fff9ed}.attention-item.bad{border-color:var(--red);background:#fff2f5}.attention-item strong{display:block;font-size:11px;margin-bottom:4px}.attention-item span{color:var(--muted);font-size:10px;line-height:1.35}.drawer-scrim{position:fixed;inset:0;background:rgba(10,14,35,.38);opacity:0;pointer-events:none;transition:.2s;z-index:9}.drawer-scrim.open{opacity:1;pointer-events:auto}.drawer{position:fixed;top:0;right:0;width:min(460px,100%);height:100vh;padding:22px;background:#fff;box-shadow:-20px 0 60px rgba(16,18,50,.2);transform:translateX(105%);transition:.25s;z-index:10;overflow:auto}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}.drawer-head h2{margin:3px 0 0}.close{border:0;background:#edf0f7;color:#4c5673;border-radius:8px;padding:7px 10px;cursor:pointer}.drawer-section{padding:15px 0;border-bottom:1px solid var(--line)}.drawer-section h3{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.08em}.drawer-section p{line-height:1.55;color:#4e5872}.chip-list{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:5px 7px;border-radius:7px;background:#f0effb;color:#5145a4;font-size:10px}.file-list{padding-left:18px;color:#5b657e;font-size:11px;line-height:1.6}@keyframes flow{to{stroke-dashoffset:-30}}
+    @media(max-width:1240px){.metrics{grid-template-columns:repeat(4,1fr)}.command-grid,.evidence-grid{grid-template-columns:1fr}.project-overview{grid-template-columns:1fr .8fr}.graph-stage svg{height:390px}}
+    @media(max-width:760px){body{background:#f3f4fa}.shell{width:100%;margin:0;border:0;border-radius:0;box-shadow:none}.topbar{align-items:flex-start;flex-direction:column;padding:16px}.control-meta{justify-content:flex-start}.content{padding:10px}.metrics{grid-template-columns:repeat(2,1fr)}.project-overview{grid-template-columns:1fr}.project-signals{border-left:0;border-top:1px solid var(--line)}.phase-row{display:block}.phase-score{text-align:left;margin-top:12px}.command-grid{display:block}.agent-panel{margin-top:12px}.kanban{grid-template-columns:repeat(5,145px)}.quality-grid{grid-template-columns:repeat(2,1fr)}.agent-bottom{grid-template-columns:1fr}.agent-inspector{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}.graph-stage svg{height:330px}.topbar h1{font-size:18px}.phase-brief h2{font-size:19px}}
+    @media(max-width:430px){.metrics{grid-template-columns:1fr 1fr}.metric{padding:12px}.metric strong{font-size:21px}.quality-grid{grid-template-columns:1fr 1fr}.meta-pill:nth-of-type(2){display:none}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand"><div class="brand-mark">A</div><div><p class="eyebrow">AI project · local control plane</p><h1>Delivery Operations Dashboard</h1></div></div>
-    <div class="connection"><span class="dot" id="dot"></span><span id="connection">connecting</span></div>
-  </header>
-  <main>
-    <section class="panel overview">
-      <article class="delivery"><p class="eyebrow">Delivery now</p><h2 id="phase-title">Loading active project</h2><p class="delivery-copy" id="phase-copy">Project report와 이벤트 저널에서 최신 상태를 확인하고 있습니다.</p><div class="progress-row"><div class="progress-track"><div id="phase-fill" class="progress-fill"></div></div><span id="phase-progress" class="progress-value">unknown</span></div></article>
-      <aside class="signal-stack"><div class="signal"><span>Verification</span><b id="verification">unknown</b></div><div class="signal"><span>Attention items</span><b id="attention-count">unknown</b></div><div class="signal"><span>Decision queue</span><b id="decision-count">unknown</b></div><div class="signal"><span>Data observed</span><small id="observed" class="source">unknown</small></div></aside>
-    </section>
-    <section class="metrics">
-      <article class="panel metric"><span class="metric-label">Current phase</span><strong id="m-progress">unknown</strong><small id="m-progress-note">report-backed progress</small></article>
-      <article class="panel metric"><span class="metric-label">Active work</span><strong id="m-active">unknown</strong><small>fresh task evidence</small></article>
-      <article class="panel metric"><span class="metric-label">Needs attention</span><strong id="m-attention">unknown</strong><small>stale, blocked, or unavailable</small></article>
-      <article class="panel metric"><span class="metric-label">Live agents</span><strong id="m-agents">unknown</strong><small id="m-agent-note">fresh heartbeat evidence</small></article>
-      <article class="panel metric"><span class="metric-label">Token integrity</span><strong id="m-tokens">unknown</strong><small id="m-token-note">source-backed deltas only</small></article>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Attention queue</h2><span id="attention-source" class="source">prioritized source-backed risks</span></div>
-      <div id="attention-queue" class="attention-list"></div>
-    </section>
-    <section class="panel board">
-      <div class="panel-head"><h2>Work board</h2><span id="board-source" class="source"></span></div>
-      <div class="board-tools"><div id="filters" class="filters" role="toolbar" aria-label="Work board filters"></div><span id="board-note" class="board-note"></span></div>
-      <div id="work-board" class="work-board"></div>
-    </section>
-    <section class="panel operations">
-      <div class="graph-wrap"><div class="panel-head"><h2>Agent topology</h2><span id="topology-source" class="source"></span></div><svg id="graph" viewBox="0 0 1000 520" role="img" aria-label="Agent topology graph"></svg></div>
-      <aside class="inspector"><div><p class="eyebrow">Trace inspector</p><h2 id="inspector-title">Select a task, agent, or link</h2></div><div id="inspector"></div></aside>
-    </section>
-  </main>
-  <div id="drawer-scrim" class="drawer-scrim"></div>
-  <aside id="task-drawer" class="drawer" aria-label="Task detail" aria-hidden="true"><div class="drawer-head"><div><p class="eyebrow">Source-backed task</p><h2 id="drawer-title">Task detail</h2></div><button id="drawer-close" class="close" type="button">Close</button></div><div id="drawer-content"></div></aside>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">2D</div>
+        <div><p class="eyebrow">Ultron command surface</p><h1>2D-FPS Game · Project & Agent Control</h1></div>
+      </div>
+      <div class="control-meta" aria-label="데이터 연결 상태">
+        <span class="meta-pill" id="project-phase">Phase —</span>
+        <span class="meta-pill" id="verification-pill">검증 —</span>
+        <span class="status-pill"><i class="status-dot" id="connection-dot"></i><span id="connection-state">스트림 연결 중</span></span>
+        <span class="status-pill"><i class="status-dot" id="producer-dot"></i><span id="producer-state">생산자 확인 중</span></span>
+        <span class="meta-pill" id="observed-at">관측 —</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="metrics" aria-label="핵심 프로젝트 및 에이전트 메트릭">
+        <article class="metric primary"><span class="metric-label">프로젝트 진행률 <i class="metric-state" id="progress-state">—</i></span><strong id="project-progress">—</strong><small id="project-progress-note">WBS 근거 확인 중</small><div class="progress-mini"><span id="progress-fill"></span></div></article>
+        <article class="metric"><span class="metric-label">Unit tests</span><strong id="unit-tests">—</strong><small id="unit-tests-note">실행 보고서</small></article>
+        <article class="metric"><span class="metric-label">E2E</span><strong id="e2e-tests">—</strong><small id="e2e-tests-note">Playwright</small></article>
+        <article class="metric"><span class="metric-label">LOC budget</span><strong id="loc-budget">—</strong><small id="loc-budget-note">MainScene</small></article>
+        <article class="metric"><span class="metric-label">Work queue</span><strong id="task-load">—</strong><small id="task-load-note">active / blocked / decision</small></article>
+        <article class="metric"><span class="metric-label">Live agents</span><strong id="live-agents">—</strong><small id="live-agents-note">heartbeat 근거</small></article>
+        <article class="metric"><span class="metric-label">Live links</span><strong id="live-links">—</strong><small id="live-links-note">통신 + 양쪽 heartbeat</small></article>
+        <article class="metric"><span class="metric-label">Tokens</span><strong id="token-total">—</strong><small id="token-total-note">사용량 이벤트 확인 중</small></article>
+      </section>
+
+      <section class="panel project-overview">
+        <article class="phase-brief">
+          <div class="phase-row">
+            <div><p class="eyebrow">현재 제품 기준선</p><h2 id="phase-title">프로젝트 상태 로드 중</h2><p class="phase-summary" id="phase-summary">2D-FPS 실행 보고서와 WBS를 결합하고 있습니다.</p></div>
+            <div class="phase-score"><strong id="phase-percent">—</strong><span id="phase-status">reported progress</span></div>
+          </div>
+          <div class="timeline" id="milestone-timeline" aria-label="프로젝트 마일스톤"></div>
+        </article>
+        <aside class="project-signals" aria-label="프로젝트 판단 근거">
+          <p class="eyebrow">Delivery signals</p>
+          <div class="signal"><span>개발 상태</span><b id="development-status">—</b></div>
+          <div class="signal"><span>검증</span><b id="verification-state">—</b></div>
+          <div class="signal"><span>차단 이슈</span><b id="blocked-count">—</b></div>
+          <div class="signal"><span>다음 결정</span><b id="next-decision">—</b></div>
+          <div class="signal"><span>보고서 날짜</span><b id="report-date">—</b></div>
+        </aside>
+      </section>
+
+      <section class="command-grid" aria-label="프로젝트 및 에이전트 운영">
+        <article class="panel board">
+          <div class="panel-head">
+            <div><p class="eyebrow">Project management</p><h2>실행 칸반</h2></div>
+            <div class="board-summary"><span class="tag" id="board-progress">—</span><span class="tag" id="board-source">source —</span></div>
+          </div>
+          <div class="kanban" id="kanban-board" aria-label="프로젝트 작업 보드"></div>
+          <div class="board-foot">카드를 선택하면 의존성·인수조건·담당자·근거 파일과 연결된 에이전트를 함께 추적합니다.</div>
+        </article>
+
+        <article class="panel agent-panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">Agent observability</p><h2>통신 토폴로지</h2><span class="source" id="topology-status">관측 노드 로드 중</span></div>
+            <div class="agent-toolbar" role="toolbar" aria-label="에이전트 표시 범위">
+              <button class="toggle active" id="observed-toggle" type="button">관측 노드</button>
+              <button class="toggle" id="configured-toggle" type="button">전체 구성</button>
+            </div>
+          </div>
+          <div class="graph-stage">
+            <svg id="agent-graph" viewBox="0 0 640 340" role="img" aria-label="에이전트 통신 노드 그래프"></svg>
+            <div class="graph-empty" id="graph-empty"><div><strong>관측된 에이전트 노드가 없습니다</strong>이벤트 생산자가 통신·heartbeat 이벤트를 보내면 여기에 노드와 방향 링크가 나타납니다.</div></div>
+          </div>
+          <div class="agent-bottom">
+            <section class="agent-inspector"><p class="subhead">선택 항목 상세</p><div id="agent-inspector"></div></section>
+            <section class="comm-stream"><p class="subhead">통신 추적 · 최신순</p><div id="communication-stream"></div></section>
+          </div>
+        </article>
+      </section>
+
+      <section class="evidence-grid">
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">Verification evidence</p><h2>빌드 품질과 검증 게이트</h2></div><span class="source" id="quality-source">source —</span></div>
+          <div class="quality-grid">
+            <div class="quality"><span>Unit suite</span><strong id="q-unit">—</strong><small id="q-unit-state">—</small></div>
+            <div class="quality"><span>Playwright</span><strong id="q-e2e">—</strong><small id="q-e2e-state">—</small></div>
+            <div class="quality"><span>Build chunk</span><strong id="q-build">—</strong><small id="q-build-state">—</small></div>
+            <div class="quality"><span>MainScene LOC</span><strong id="q-loc">—</strong><small id="q-loc-state">—</small></div>
+          </div>
+          <div class="evidence-list" id="gate-list"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">Needs attention</p><h2>신뢰도·리스크 큐</h2></div><span class="source" id="attention-count">—</span></div>
+          <div class="attention" id="attention-list"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-scrim" id="drawer-scrim"></div>
+  <aside class="drawer" id="task-drawer" aria-label="작업 상세" aria-hidden="true">
+    <div class="drawer-head"><div><p class="eyebrow">Source-backed task</p><h2 id="drawer-title">작업 상세</h2></div><button class="close" id="drawer-close" type="button">닫기</button></div>
+    <div id="drawer-content"></div>
+  </aside>
 <script>
-const $=(id)=>document.getElementById(id),svgNS="http://www.w3.org/2000/svg";
-let state={snapshot:null,filter:"all",agentId:"ultron",edgeId:null,task:null};
-const text=(name,value,cls)=>{const node=document.createElement(name);if(value!==undefined)node.textContent=value;if(cls)node.className=cls;return node};
-const svg=(name,attrs={})=>{const node=document.createElementNS(svgNS,name);Object.entries(attrs).forEach(([key,value])=>node.setAttribute(key,value));return node};
-const when=(value)=>value?new Date(value).toLocaleString("ko-KR",{hour12:false}):"unknown";
-const badge=(value)=>text("span",value,"badge "+value);
-const tone=(value)=>["pass","complete","available","known"].includes(String(value).toLowerCase())?"ok":["failed","blocked","conflicted"].includes(String(value).toLowerCase())?"bad":"warn";
-const connect=(live)=>{$("dot").classList.toggle("live",live);$("connection").textContent=live?"live snapshot stream":"reconnecting"};
-const taskState=(card)=>card.state==="failed"?"blocked":card.state;
-const cards=(data)=>Object.values(data.kanban.columns).flat();
-const attentionTasks=(data)=>cards(data).filter((card)=>["stale","blocked","failed"].includes(card.state));
-function attentionItems(data){
-  const items=attentionTasks(data).map((card)=>({kind:"task",state:taskState(card),title:card.title,detail:card.taskId+" · "+card.owner,observed:card.updatedAt,card}));
-  Object.entries(data.collectors).forEach(([name,result])=>{const status=result.status??(result.ok?"available":"failed");if(status!=="available")items.push({kind:"collector",state:status,title:name+" collector",detail:result.error??status,observed:result.observedAt})});
-  data.agents.filter((agent)=>agent.operationalState==="stale").forEach((agent)=>items.push({kind:"agent",state:"stale",title:agent.agentId+" heartbeat is stale",detail:agent.source,observed:agent.lastSeenAt,agentId:agent.agentId}));
-  if(data.metrics.agents.unknown)items.push({kind:"agent",state:"unavailable",title:data.metrics.agents.unknown+" agents have no runtime evidence",detail:"configured does not mean running",observed:data.sources.eventJournal.observedAt});
-  if(data.metrics.tokens.coverage.conflictingUsageIdCount)items.push({kind:"token",state:"failed",title:"Token usage integrity conflict",detail:data.metrics.tokens.coverage.conflictingUsageIdCount+" conflicting usage IDs excluded",observed:data.metrics.tokens.source.observedAt});
-  return items.sort((left,right)=>({failed:0,blocked:0,stale:1,unavailable:2}[left.state]??3)-({failed:0,blocked:0,stale:1,unavailable:2}[right.state]??3));
+const byId=(id)=>document.getElementById(id);
+const ns="http://www.w3.org/2000/svg";
+const ui={snapshot:null,showConfigured:false,selectedAgentId:null,selectedEdgeId:null,selectedTaskId:null,streamConnected:false};
+const node=(tag,value,className)=>{const item=document.createElement(tag);if(value!==undefined)item.textContent=value;if(className)item.className=className;return item};
+const svgNode=(tag,attrs={})=>{const item=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([key,value])=>item.setAttribute(key,value));return item};
+const clear=(target)=>{while(target.firstChild)target.firstChild.remove()};
+const formatNumber=(value)=>value===null||value===undefined?"—":new Intl.NumberFormat("en-US").format(value);
+const when=(value)=>value?new Date(value).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}):"관측 없음";
+const age=(value)=>{if(!value)return"관측 없음";const seconds=Math.max(0,Math.round((Date.now()-Date.parse(value))/1000));if(seconds<60)return seconds+"초 전";if(seconds<3600)return Math.round(seconds/60)+"분 전";if(seconds<86400)return Math.round(seconds/3600)+"시간 전";return Math.round(seconds/86400)+"일 전"};
+const sourceLabel=(source)=>source&&source.path?source.path:"근거 없음";
+const set=(id,value)=>{byId(id).textContent=value};
+const statusText=(value)=>({pass:"통과",complete:"완료",live:"실시간",stale:"오래됨",unavailable:"미수신",unknown:"근거 없음",failed:"실패",active:"작업 중",blocked:"차단",historical:"기록"}[value]||value||"—");
+const metricValue=(metric,formatter)=>metric&&metric.value!==null&&metric.value!==undefined?formatter(metric.value):"—";
+
+function renderHeader(data){
+  const producer=data.metrics.events.producer;
+  set("project-phase",data.project.phase.title);
+  set("verification-pill","검증 "+statusText(data.project.verification.state));
+  set("observed-at","스냅샷 "+when(data.generatedAt));
+  byId("connection-dot").classList.toggle("connected",ui.streamConnected);
+  set("connection-state",ui.streamConnected?"SSE 연결됨":"SSE 재연결 중");
+  byId("producer-dot").classList.toggle("connected",producer.status==="live");
+  set("producer-state",producer.status==="live"?"이벤트 생산자 실시간":producer.status==="stale"?"생산자 오래됨 · "+age(producer.latestAt):"이벤트 생산자 미수신");
 }
-function renderDelivery(data,attention){
-  const project=data.project,metrics=data.metrics,known=project.progress.status==="known",tokens=metrics.tokens;
-  $("phase-title").textContent=project.phase.title;
-  $("phase-copy").textContent=project.phase.state==="complete"?"현재 활성 phase는 검증까지 완료되었습니다. 다음 선택과 운영 신호를 우선순위로 관리합니다.":"현재 phase의 실행 근거를 확인하고 있습니다."; $("phase-fill").style.width=known?project.progress.percentage+"%":"0%";
-  $("phase-progress").textContent=known?project.progress.done+" / "+project.progress.total+" tasks · "+project.progress.percentage+"%":"progress unknown";
-  $("verification").textContent=project.verification.state;$("verification").className=tone(project.verification.state);
-  $("attention-count").textContent=attention.length;$("attention-count").className=attention.length?"warn":"ok";
-  $("decision-count").textContent=metrics.tasks.decision;$("decision-count").className=metrics.tasks.decision?"warn":"ok";
-  $("observed").textContent=when(project.observedAt);
-  $("m-progress").textContent=known?project.progress.done+" / "+project.progress.total:"unknown";
-  $("m-progress-note").textContent=known?"explicit report range":"report exposes no range";
-  $("m-active").textContent=metrics.tasks.active;
-  $("m-attention").textContent=attention.length;
-  $("m-agents").textContent=metrics.agents.active;
-  $("m-agent-note").textContent="stale "+metrics.agents.stale+" · unknown "+metrics.agents.unknown;
-  $("m-tokens").textContent=tokens.status==="unknown"?"unknown":tokens.coverage.conflictingUsageIdCount?"conflict":tokens.coverage.acceptedUniqueUsageDeltas;
-  $("m-token-note").textContent=tokens.status==="unknown"?"no delta source":tokens.coverage.acceptedUniqueUsageDeltas+" accepted delta";
+
+function renderMetrics(data){
+  const project=data.project,metrics=data.metrics,quality=project.quality||{},progress=project.progress,tokens=metrics.tokens;
+  set("project-progress",progress.status==="known"?progress.done+" / "+progress.total:"—");
+  set("project-progress-note",progress.status==="known"?progress.percentage+"% · WBS 작업 기준":"진행률 근거 미수신");
+  set("progress-state",progress.status==="known"?"known":"unknown");
+  byId("progress-fill").style.width=(progress.percentage||0)+"%";
+  set("unit-tests",quality.unit&&quality.unit.value?formatNumber(quality.unit.value.tests):"—");
+  set("unit-tests-note",quality.unit&&quality.unit.value?quality.unit.value.files+" files · "+statusText(quality.unit.status):"실행 보고서 미수신");
+  set("e2e-tests",quality.e2e&&quality.e2e.value?quality.e2e.value.passed+" / "+quality.e2e.value.total:"—");
+  set("e2e-tests-note",quality.e2e&&quality.e2e.value?statusText(quality.e2e.status)+" · Playwright":"Playwright 근거 미수신");
+  set("loc-budget",quality.loc&&quality.loc.value?quality.loc.value.value+" / "+quality.loc.value.limit:"—");
+  set("loc-budget-note",quality.loc&&quality.loc.value?statusText(quality.loc.status)+" · MainScene.ts":"LOC 게이트 미수신");
+  set("task-load",metrics.tasks.active+" / "+metrics.tasks.blocked+" / "+metrics.tasks.decision);
+  set("task-load-note","active / blocked / decision");
+  set("live-agents",metrics.agents.active+" / "+metrics.agents.total);
+  set("live-agents-note",metrics.agents.active?"heartbeat 기반 active":"fresh heartbeat 없음");
+  set("live-links",data.topology.liveEdgeCount+" / "+data.topology.edges.length);
+  set("live-links-note",metrics.events.lastFiveMinutes+" events · 5분");
+  set("token-total",metricValue(tokens.total,formatNumber));
+  set("token-total-note",tokens.total.value===null?"사용량 이벤트 미수신":statusText(tokens.total.status)+" · "+tokens.providers.join(", "));
 }
-function renderAttention(data,items){
-  const box=$("attention-queue");box.replaceChildren();$("attention-source").textContent=items.length+" prioritized items · "+data.sources.eventJournal.path;
-  if(!items.length){box.append(text("p","No source-backed attention item.","empty"));return}
-  items.slice(0,9).forEach((item)=>{const card=text(item.card||item.agentId?"button":"article",undefined,"attention "+item.state);if(item.card||item.agentId){card.type="button";card.addEventListener("click",()=>{if(item.card)openTask(item.card);else{state.agentId=item.agentId;state.edgeId=null;renderGraph(data);renderInspector(data)}})}card.append(text("span",item.state,"tag"),text("h3",item.title),text("p",item.detail),text("p","observed "+when(item.observed),"source"));box.append(card)});
+
+function renderProject(data){
+  const project=data.project,progress=project.progress;
+  set("phase-title",project.phase.title);
+  set("phase-summary",project.summary||project.status);
+  set("phase-percent",progress.status==="known"?progress.percentage+"%":"—");
+  set("phase-status",progress.status==="known"?progress.done+"/"+progress.total+" WBS complete":"reported progress unknown");
+  set("development-status",project.status);
+  set("verification-state",statusText(project.verification.state));
+  set("blocked-count",project.blockedCount===null?"근거 확인 필요":project.blockedCount+"건");
+  set("next-decision",project.next.length?project.next[0].taskId:"없음");
+  set("report-date",project.reportDate||"—");
+  const timeline=byId("milestone-timeline");clear(timeline);
+  [...project.milestones,...project.next].forEach((item)=>{
+    const card=node("div",item.title,"milestone"+(item.state==="decision"?" decision":""));
+    card.title=sourceLabel(item.source);timeline.append(card);
+  });
 }
-function filterCards(data){
-  const list=cards(data),attention=["stale","blocked","failed"];
-  if(state.filter==="all")return list;
-  if(state.filter==="attention")return list.filter((card)=>attention.includes(card.state));
-  if(state.filter==="complete")return list.filter((card)=>["complete","idle"].includes(card.state));
-  return list.filter((card)=>card.state===state.filter);
+
+const columns=[
+  {key:"decision",label:"Decision"},
+  {key:"active",label:"Active"},
+  {key:"stale",label:"Review / waiting"},
+  {key:"blocked",label:"Blocked"},
+  {key:"complete",label:"Done"}
+];
+function ownerAgent(card,data){
+  const owner=String(card.owner||"").toLowerCase();
+  return data.agents.find((agent)=>owner.includes(agent.agentId.toLowerCase()))||null;
 }
-function renderBoard(data){
-  const filters=[["all","All"],["active","Active"],["attention","Attention"],["decision","Decision"],["complete","Complete"]],box=$("filters");box.replaceChildren();
-  filters.forEach(([key,label])=>{const count=key==="all"?cards(data).length:key==="attention"?attentionTasks(data).length:filterCardsFor(data,key).length,button=text("button",label+" "+count,"filter"+(state.filter===key?" active":""));button.type="button";button.dataset.filter=key;button.addEventListener("click",()=>{state.filter=key;renderBoard(data)});box.append(button)});
-  const shown=filterCards(data),board=$("work-board");board.replaceChildren();$("board-source").textContent=data.kanban.source.path;$("board-note").textContent=shown.length+" source-backed cards";
-  if(!shown.length){board.append(text("p","No task matches this filter.","empty"));return}
-  shown.forEach((card)=>{const normalized=taskState(card),button=text("button",undefined,"task-card "+normalized);button.type="button";button.dataset.taskId=card.taskId;button.append(badge(normalized),text("h3",card.title),text("p",card.taskId+" · "+card.owner),text("p","updated "+when(card.updatedAt)),text("p",card.source.path,"source"));button.addEventListener("click",()=>openTask(card));board.append(button)});
+function openTask(card,data){
+  ui.selectedTaskId=card.taskId;
+  const agent=ownerAgent(card,data);
+  if(agent)ui.selectedAgentId=agent.agentId;
+  const linked=data.topology.edges.find((edge)=>(!agent||edge.fromAgentId===agent.agentId||edge.toAgentId===agent.agentId)&&edge.communications.some((trace)=>trace.taskId===card.taskId));
+  ui.selectedEdgeId=linked?linked.id:null;
+  renderKanban(data);renderGraph(data);renderInspector(data);renderCommunicationStream(data);
+  set("drawer-title",card.taskId+" · "+card.title);
+  const content=byId("drawer-content");clear(content);
+  const summary=node("section",undefined,"drawer-section");summary.append(node("h3","작업 설명"),node("p",card.description||"별도 설명 없음"));
+  const facts=node("section",undefined,"drawer-section");facts.append(node("h3","실행 근거"));
+  const factList=node("div",undefined,"chip-list");
+  [statusText(card.state),"담당 "+(card.owner||"unknown"),"업데이트 "+when(card.updatedAt),"출처 "+sourceLabel(card.source)].forEach((value)=>factList.append(node("span",value,"chip")));facts.append(factList);
+  const deps=node("section",undefined,"drawer-section");deps.append(node("h3","의존성"));
+  const depList=node("div",undefined,"chip-list");(card.dependencies&&card.dependencies.length?card.dependencies:["없음"]).forEach((value)=>depList.append(node("span",value,"chip")));deps.append(depList);
+  const accepts=node("section",undefined,"drawer-section");accepts.append(node("h3","인수 조건"));
+  (card.acceptance&&card.acceptance.length?card.acceptance:[{id:"—",text:"명시된 인수 조건 없음"}]).forEach((item)=>accepts.append(node("p",item.id+" · "+item.text)));
+  const files=node("section",undefined,"drawer-section");files.append(node("h3","관련 파일"));const fileList=node("ul",undefined,"file-list");(card.files&&card.files.length?card.files:[sourceLabel(card.source)]).forEach((file)=>fileList.append(node("li",file)));files.append(fileList);
+  content.append(summary,facts,deps,accepts,files);
+  byId("task-drawer").classList.add("open");byId("drawer-scrim").classList.add("open");byId("task-drawer").setAttribute("aria-hidden","false");
 }
-function filterCardsFor(data,key){const previous=state.filter;state.filter=key;const result=filterCards(data);state.filter=previous;return result}
-function positions(nodes){const result=new Map(),others=nodes.filter((node)=>node.agentId!=="vision"&&node.agentId!=="ultron"),total=Math.max(others.length,1);result.set("vision",{x:500,y:64});result.set("ultron",{x:500,y:275});others.forEach((node,index)=>{const angle=Math.PI*2*index/total-Math.PI/2;result.set(node.agentId,{x:500+395*Math.cos(angle),y:275+205*Math.sin(angle)})});return result}
-function curve(from,to,side){const dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length,bend=side*38,cx=(from.x+to.x)/2+nx*bend,cy=(from.y+to.y)/2+ny*bend;return{d:"M "+from.x+" "+from.y+" Q "+cx+" "+cy+" "+to.x+" "+to.y}}
+function renderKanban(data){
+  const board=byId("kanban-board");clear(board);
+  columns.forEach((column)=>{
+    const section=node("section",undefined,"kanban-col");section.dataset.state=column.key;
+    const head=node("div",undefined,"col-head");head.append(node("span",column.label),node("span",data.kanban.columns[column.key].length,"col-count"));section.append(head);
+    const body=node("div",undefined,"col-body");
+    data.kanban.columns[column.key].forEach((card)=>{
+      const button=node("button",undefined,"task-card"+(ui.selectedTaskId===card.taskId?" selected":""));button.type="button";button.dataset.taskId=card.taskId;
+      button.append(node("span",card.taskId,"task-id"),node("strong",card.title),node("span",card.owner||"unknown","task-owner"));
+      button.setAttribute("aria-label",card.taskId+" "+card.title+" 상세 열기");button.addEventListener("click",()=>openTask(card,data));body.append(button);
+    });
+    if(!data.kanban.columns[column.key].length)body.append(node("div","근거가 있는 작업 없음","source"));
+    section.append(body);board.append(section);
+  });
+  set("board-progress",data.project.progress.done+"/"+data.project.progress.total+" · "+data.project.progress.percentage+"%");
+  set("board-source",sourceLabel(data.project.sources.tasks));
+}
+function visibleAgents(data){
+  if(ui.showConfigured)return data.topology.nodes;
+  const linked=new Set(data.topology.edges.flatMap((edge)=>[edge.fromAgentId,edge.toAgentId]));
+  return data.topology.nodes.filter((agent)=>agent.lastEvent||linked.has(agent.agentId));
+}
+function graphPositions(agents){
+  const positions=new Map(),count=agents.length;
+  if(count===1){positions.set(agents[0].agentId,{x:320,y:170});return positions}
+  agents.forEach((agent,index)=>{
+    let slot=index,total=count,rx=225,ry=115;
+    if(count>10){const innerCount=8;if(index<innerCount){slot=index;total=innerCount;rx=125;ry=68}else{slot=index-innerCount;total=count-innerCount;rx=245;ry=125}}
+    const angle=-Math.PI/2+(slot/total)*Math.PI*2;
+    positions.set(agent.agentId,{x:320+Math.cos(angle)*rx,y:170+Math.sin(angle)*ry});
+  });
+  return positions;
+}
 function renderGraph(data){
-  const graph=$("graph");graph.replaceChildren();const defs=svg("defs"),marker=svg("marker",{id:"arrow",markerWidth:9,markerHeight:9,refX:8,refY:4.5,orient:"auto",markerUnits:"strokeWidth"});marker.append(svg("path",{d:"M0,0 L9,4.5 L0,9 z",fill:"#6aa8ff"}));defs.append(marker);graph.append(defs);
-  const points=positions(data.topology.nodes),colors={active:"#62e3aa",idle:"#55e3e5",stale:"#ffd166",blocked:"#ff7c91",failed:"#ff7c91",unknown:"#71809b"};
-  data.topology.edges.forEach((edge)=>{const from=points.get(edge.fromAgentId),to=points.get(edge.toAgentId);if(!from||!to)return;const line=svg("path",{d:curve(from,to,edge.fromAgentId.localeCompare(edge.toAgentId)<=0?1:-1).d,class:"edge "+edge.state+(state.edgeId===edge.id?" selected":"")});line.addEventListener("click",()=>{state.edgeId=edge.id;state.agentId=null;renderGraph(data);renderInspector(data)});graph.append(line)});
-  data.topology.nodes.forEach((agent)=>{const point=points.get(agent.agentId),selected=state.agentId===agent.agentId,group=svg("g",{class:"graph-node"+(selected?" selected":""),"data-agent-id":agent.agentId}),radius=agent.agentId==="vision"||agent.agentId==="ultron"?23:15;group.append(svg("circle",{cx:point.x,cy:point.y,r:radius,fill:"#101d31",stroke:colors[agent.operationalState],"stroke-width":agent.agentId==="vision"||agent.agentId==="ultron"?3:2}),svg("text",{x:point.x,y:point.y+4,"text-anchor":"middle",class:"graph-label"}));group.lastChild.textContent=agent.agentId.slice(0,2).toUpperCase();const label=svg("text",{x:point.x,y:point.y+radius+15,"text-anchor":"middle",class:"graph-sub"});label.textContent=agent.agentId;group.append(label);group.addEventListener("click",()=>{state.agentId=agent.agentId;state.edgeId=null;renderGraph(data);renderInspector(data)});graph.append(group)});
-  $("topology-source").textContent=data.topology.liveEdgeCount+" live · "+data.topology.edges.length+" directed links";
+  const graph=byId("agent-graph");clear(graph);
+  const defs=svgNode("defs"),marker=svgNode("marker",{id:"arrow",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",markerHeight:"6",orient:"auto-start-reverse"});
+  marker.append(svgNode("path",{d:"M 0 0 L 10 5 L 0 10 z",fill:"#71839f"}));defs.append(marker);graph.append(defs);
+  const agents=visibleAgents(data),ids=new Set(agents.map((agent)=>agent.agentId)),positions=graphPositions(agents);
+  byId("graph-empty").style.display=agents.length?"none":"grid";
+  const edges=data.topology.edges.filter((edge)=>ids.has(edge.fromAgentId)&&ids.has(edge.toAgentId));
+  edges.forEach((edge,index)=>{
+    const from=positions.get(edge.fromAgentId),to=positions.get(edge.toAgentId);if(!from||!to)return;
+    const dx=to.x-from.x,dy=to.y-from.y,len=Math.max(1,Math.hypot(dx,dy)),nx=-dy/len,ny=dx/len,bend=(index%2?1:-1)*Math.min(38,len*.12),cx=(from.x+to.x)/2+nx*bend,cy=(from.y+to.y)/2+ny*bend;
+    const d="M "+from.x+" "+from.y+" Q "+cx+" "+cy+" "+to.x+" "+to.y;
+    const path=svgNode("path",{d,class:"edge "+edge.state+(ui.selectedEdgeId===edge.id?" selected":"")});graph.append(path);
+    const hit=svgNode("path",{d,class:"edge-hit",tabindex:"0",role:"button","aria-label":edge.fromAgentId+"에서 "+edge.toAgentId+" 통신 링크"});
+    const select=()=>{ui.selectedEdgeId=edge.id;ui.selectedAgentId=null;renderGraph(data);renderInspector(data);renderCommunicationStream(data)};
+    hit.addEventListener("click",select);hit.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(hit);
+    const label=svgNode("text",{x:cx,y:cy-5,class:"edge-text","text-anchor":"middle"});label.textContent=edge.latestKind+" · "+edge.eventCount;graph.append(label);
+  });
+  agents.forEach((agent)=>{
+    const point=positions.get(agent.agentId),group=svgNode("g",{class:"node"+(ui.selectedAgentId===agent.agentId?" selected":""),tabindex:"0",role:"button","aria-label":agent.agentId+" "+statusText(agent.operationalState),"data-agent-id":agent.agentId,"data-state":agent.operationalState});
+    group.append(svgNode("circle",{cx:point.x,cy:point.y,r:"32",class:"node-halo"}),svgNode("circle",{cx:point.x,cy:point.y,r:"24",class:"node-core"}));
+    if(agent.operationalState==="active")group.append(svgNode("circle",{cx:point.x+18,cy:point.y-17,r:"4",class:"node-pulse"}));
+    const name=svgNode("text",{x:point.x,y:point.y-1,class:"node-name"});name.textContent=agent.agentId.length>16?agent.agentId.slice(0,14)+"…":agent.agentId;
+    const state=svgNode("text",{x:point.x,y:point.y+14,class:"node-state"});state.textContent=statusText(agent.operationalState);group.append(name,state);
+    const select=()=>{ui.selectedAgentId=agent.agentId;ui.selectedEdgeId=null;renderGraph(data);renderInspector(data);renderCommunicationStream(data)};
+    group.addEventListener("click",select);group.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(group);
+  });
+  const producer=data.metrics.events.producer;
+  set("topology-status",agents.length+" observed · "+data.agents.length+" configured · producer "+statusText(producer.status));
+}
+
+function inspectCell(label,value){
+  const cell=node("div",undefined,"inspect-cell");cell.append(node("span",label),node("b",value));return cell;
 }
 function renderInspector(data){
-  const box=$("inspector"),title=$("inspector-title");box.replaceChildren();
-  if(state.edgeId){const edge=data.topology.edges.find((item)=>item.id===state.edgeId);if(edge){title.textContent=edge.fromAgentId+" →"+edge.toAgentId;edge.communications.slice(0,8).forEach((trace)=>box.append(traceView(trace)));return}}
-  const agent=data.agents.find((item)=>item.agentId===state.agentId)||data.agents[0];if(!agent){title.textContent="No agent evidence";return}title.textContent=agent.agentId+" inspector";const card=text("article",undefined,"agent-card");card.append(text("h3",agent.agentId),badge(agent.operationalState),text("p","last seen · "+when(agent.lastSeenAt)),text("p","source · "+agent.source));box.append(card);const related=data.communications.filter((trace)=>trace.fromAgentId===agent.agentId||trace.toAgentId===agent.agentId);if(!related.length)box.append(text("p","No source-backed communication for this agent.","empty"));related.slice(0,8).forEach((trace)=>box.append(traceView(trace)));
+  const target=byId("agent-inspector");clear(target);
+  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId);
+  const agent=data.agents.find((item)=>item.agentId===ui.selectedAgentId);
+  if(edge){
+    target.append(node("div",edge.fromAgentId+" → "+edge.toAgentId,"inspect-title"));
+    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("링크 상태",statusText(edge.state)),inspectCell("통신 횟수",edge.eventCount),inspectCell("최근 종류",edge.latestKind),inspectCell("최근 관측",age(edge.latestAt)));target.append(grid);
+    const ids=node("div","Event IDs · "+edge.sourceEventIds.map((id)=>id.slice(0,8)).join(", "),"trace-meta");ids.style.marginTop="9px";target.append(ids);return;
+  }
+  if(agent){
+    const inbound=data.topology.edges.filter((item)=>item.toAgentId===agent.agentId),outbound=data.topology.edges.filter((item)=>item.fromAgentId===agent.agentId),usage=data.metrics.tokens.byAgent[agent.agentId];
+    target.append(node("div",agent.agentId,"inspect-title"));
+    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("운영 상태",statusText(agent.operationalState)),inspectCell("최근 관측",age(agent.lastSeenAt)),inspectCell("통신 In / Out",inbound.length+" / "+outbound.length),inspectCell("토큰",usage?formatNumber(usage.total.value):"미수신"));target.append(grid);
+    const task=agent.lastEvent&&agent.lastEvent.taskId?"최근 작업 · "+agent.lastEvent.taskId:"최근 작업 근거 없음";const detail=node("div",task,"trace-meta");detail.style.marginTop="9px";target.append(detail);return;
+  }
+  const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("관측 노드",visibleAgents(data).length),inspectCell("실시간 링크",data.topology.liveEdgeCount),inspectCell("5분 이벤트",data.metrics.events.lastFiveMinutes),inspectCell("handoff",data.metrics.events.handoffsLastFiveMinutes));target.append(node("div","토폴로지 요약","inspect-title"),grid);
 }
-function traceView(trace){const row=text("article",undefined,"trace");row.append(text("h3",trace.fromAgentId+" →"+trace.toAgentId+" · "+trace.kind),text("p",trace.summary),text("p",(trace.taskId||"unknown")+" · "+when(trace.timestamp)),text("p",trace.source.path,"source"));return row}
-function openTask(card){
-  const data=state.snapshot;state.task=card;state.edgeId=null;if(data.agents.some((agent)=>agent.agentId===card.owner))state.agentId=card.owner;renderGraph(data);renderInspector(data);renderDrawer(data,card);
+
+function relevantTraces(data){
+  let traces=data.communications;
+  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId);
+  if(edge)traces=traces.filter((trace)=>trace.fromAgentId===edge.fromAgentId&&trace.toAgentId===edge.toAgentId);
+  else if(ui.selectedAgentId)traces=traces.filter((trace)=>trace.fromAgentId===ui.selectedAgentId||trace.toAgentId===ui.selectedAgentId);
+  else if(ui.selectedTaskId)traces=traces.filter((trace)=>trace.taskId===ui.selectedTaskId);
+  return traces.slice(0,12);
 }
-function renderDrawer(data,card){
-  $("drawer-title").textContent=card.title;const box=$("drawer-content");box.replaceChildren();const normalized=taskState(card),grid=text("div",undefined,"drawer-grid");
-  [["State",normalized],["Owner",card.owner||"unknown"],["Updated",when(card.updatedAt)],["Source",card.source?.path||"unknown"]].forEach(([label,value])=>{const cell=text("div",undefined,"drawer-cell");cell.append(text("small",label),text("b",value));grid.append(cell)});box.append(grid);
-  const communications=data.communications.filter((trace)=>trace.taskId===card.taskId),deltas=(data.metrics.tokens.deltas||[]).filter((delta)=>delta.taskId===card.taskId);
-  const comm=text("section",undefined,"drawer-section");comm.append(text("h3","Related communication"));if(communications.length)communications.slice(0,6).forEach((trace)=>comm.append(traceView(trace)));else comm.append(text("p","unknown · no source-backed communication","empty"));box.append(comm);
-  const token=text("section",undefined,"drawer-section");token.append(text("h3","Token deltas"));if(deltas.length)deltas.slice(0,6).forEach((delta)=>{const row=text("article",undefined,"trace");row.append(text("h3",(delta.inputTokens??"unknown")+" in · "+(delta.outputTokens??"unknown")+" out · "+(delta.totalTokens??"unknown")+" total"),text("p",delta.usageSource+" · "+delta.usageId),text("p",when(delta.timestamp),"source"));token.append(row)});else token.append(text("p","unknown · no source-backed token delta","empty"));box.append(token);
-  $("task-drawer").classList.add("open");$("task-drawer").setAttribute("aria-hidden","false");$("drawer-scrim").classList.add("open");
+function renderCommunicationStream(data){
+  const target=byId("communication-stream");clear(target);const traces=relevantTraces(data);
+  if(!traces.length){target.append(node("div","선택 범위에 통신 이벤트가 없습니다.","source"));return}
+  traces.forEach((trace)=>{
+    const edge=data.topology.edges.find((item)=>item.fromAgentId===trace.fromAgentId&&item.toAgentId===trace.toAgentId);
+    const item=node("article",undefined,"trace"+(edge&&edge.state==="live"?" live":""));
+    item.append(node("strong",trace.fromAgentId+" → "+trace.toAgentId+" · "+trace.kind),node("div",trace.summary||"요약 없음"));
+    const parts=[when(trace.timestamp),trace.taskId||"task 없음","event "+trace.eventId.slice(0,8)];if(trace.correlationId)parts.push("corr "+trace.correlationId);
+    item.append(node("div",parts.join(" · "),"trace-meta"));target.append(item);
+  });
 }
-function closeDrawer(){$("task-drawer").classList.remove("open");$("task-drawer").setAttribute("aria-hidden","true");$("drawer-scrim").classList.remove("open")}
-function render(data){state.snapshot=data;const attention=attentionItems(data);renderDelivery(data,attention);renderAttention(data,attention);renderBoard(data);renderGraph(data);renderInspector(data);if(state.task)renderDrawer(data,state.task)}
-async function refresh(){const response=await fetch("/api/observability/snapshot",{cache:"no-store"});if(!response.ok)throw new Error("snapshot failed");render(await response.json())}
-$("drawer-close").addEventListener("click",closeDrawer);$("drawer-scrim").addEventListener("click",closeDrawer);
-const stream=new EventSource("/api/observability/events");stream.addEventListener("snapshot",(event)=>{connect(true);render(JSON.parse(event.data))});stream.onerror=()=>connect(false);refresh().catch(()=>connect(false));setInterval(()=>refresh().catch(()=>connect(false)),8000);
+
+function renderQuality(data){
+  const quality=data.project.quality;
+  set("q-unit",quality.unit.value?quality.unit.value.files+"f / "+quality.unit.value.tests+"t":"—");set("q-unit-state",statusText(quality.unit.status));
+  set("q-e2e",quality.e2e.value?quality.e2e.value.passed+" / "+quality.e2e.value.total:"—");set("q-e2e-state",statusText(quality.e2e.status));
+  set("q-build",quality.build.value?quality.build.value.chunkKb+" kB":"—");set("q-build-state",quality.build.value?"gzip "+quality.build.value.gzipKb+" kB · "+statusText(quality.build.status):"미수신");
+  set("q-loc",quality.loc.value?quality.loc.value.value+" / "+quality.loc.value.limit:"—");set("q-loc-state",statusText(quality.loc.status));
+  set("quality-source",sourceLabel(quality.source));
+  const list=byId("gate-list");clear(list);
+  quality.gates.forEach((gate)=>{const row=node("div",undefined,"evidence-row");const detail=node("span",undefined);detail.append(node("strong",gate.gate),node("div",gate.notes,"source"));row.append(detail,node("span",statusText(gate.status)));list.append(row)});
+}
+function attentionItems(data){
+  const items=[],producer=data.metrics.events.producer,tokens=data.metrics.tokens;
+  if(producer.status!=="live")items.push({level:"warn",title:producer.status==="stale"?"런타임 이벤트 생산자가 오래됨":"런타임 이벤트 생산자 미수신",detail:producer.latestAt?"마지막 이벤트 "+age(producer.latestAt):"실시간 추적 근거가 아직 없습니다."});
+  if(tokens.status==="unknown")items.push({level:"warn",title:"토큰 메트릭 미수신",detail:"0이 아니라 사용량 이벤트가 수집되지 않은 상태입니다."});
+  if(tokens.coverage.conflictingUsageIdCount)items.push({level:"bad",title:"토큰 무결성 충돌",detail:tokens.coverage.conflictingUsageIdCount+"개의 usageId 충돌을 합계에서 제외했습니다."});
+  Object.entries(data.collectors||{}).forEach(([name,result])=>{if(result.status!=="available")items.push({level:result.status==="failed"?"bad":"warn",title:name+" collector · "+statusText(result.status),detail:result.error||"수집기 근거 없음"})});
+  const stale=data.agents.filter((agent)=>agent.operationalState==="stale");if(stale.length)items.push({level:"warn",title:"에이전트 heartbeat 오래됨 · "+stale.length,detail:stale.map((agent)=>agent.agentId).join(", ")});
+  const unknown=data.agents.filter((agent)=>agent.operationalState==="unknown");if(unknown.length)items.push({level:"warn",title:"실행 근거 없는 구성 에이전트 · "+unknown.length,detail:"configured 상태를 running으로 계산하지 않습니다."});
+  data.kanban.columns.blocked.forEach((card)=>items.push({level:"bad",title:"차단 작업 · "+card.taskId,detail:card.title}));
+  data.kanban.columns.stale.forEach((card)=>items.push({level:"warn",title:"대기/오래된 작업 · "+card.taskId,detail:card.title}));
+  data.project.risks.forEach((risk)=>items.push({level:risk.impact==="high"?"bad":"warn",title:"제품 리스크 · "+risk.impact,detail:risk.risk+" · "+risk.status}));
+  return items;
+}
+function renderAttention(data){
+  const target=byId("attention-list");clear(target);const items=attentionItems(data);set("attention-count",items.length+" items");
+  if(!items.length){target.append(node("div","현재 주의 항목이 없습니다.","source"));return}
+  items.forEach((item)=>{const card=node("article",undefined,"attention-item"+(item.level==="bad"?" bad":""));card.append(node("strong",item.title),node("span",item.detail));target.append(card)});
+}
+function renderAll(data){
+  ui.snapshot=data;renderHeader(data);renderMetrics(data);renderProject(data);renderKanban(data);renderGraph(data);renderInspector(data);renderCommunicationStream(data);renderQuality(data);renderAttention(data);
+}
+async function fetchSnapshot(){const response=await fetch("/api/observability/snapshot",{cache:"no-store"});if(!response.ok)throw new Error("snapshot "+response.status);renderAll(await response.json())}
+function connectStream(){
+  const stream=new EventSource("/api/observability/events");
+  stream.addEventListener("open",()=>{ui.streamConnected=true;if(ui.snapshot)renderHeader(ui.snapshot)});
+  stream.addEventListener("snapshot",(event)=>{ui.streamConnected=true;renderAll(JSON.parse(event.data))});
+  stream.addEventListener("error",()=>{ui.streamConnected=false;if(ui.snapshot)renderHeader(ui.snapshot)});
+}
+byId("observed-toggle").addEventListener("click",()=>{ui.showConfigured=false;byId("observed-toggle").classList.add("active");byId("configured-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot)}});
+byId("configured-toggle").addEventListener("click",()=>{ui.showConfigured=true;byId("configured-toggle").classList.add("active");byId("observed-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot)}});
+const closeDrawer=()=>{byId("task-drawer").classList.remove("open");byId("drawer-scrim").classList.remove("open");byId("task-drawer").setAttribute("aria-hidden","true")};
+byId("drawer-close").addEventListener("click",closeDrawer);byId("drawer-scrim").addEventListener("click",closeDrawer);document.addEventListener("keydown",(event)=>{if(event.key==="Escape")closeDrawer()});
+fetchSnapshot().catch(()=>{set("connection-state","스냅샷 로드 실패")});connectStream();
 </script>
 </body>
 </html>
-
-
-
-
-
-

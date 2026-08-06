@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai-project.invalid/hermes/harness-event.schema.json",
+  "title": "Hermes append-only state event",
+  "type": "object",
+  "required": ["schema_version", "sequence", "timestamp", "severity", "event", "run_id", "operation_id", "correlation_id", "state", "progress", "outcome", "message", "artifact_refs", "source", "snapshot"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "severity": { "enum": ["debug", "info", "warn", "error"] },
+    "event": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "operation_id": { "type": "string", "minLength": 1 },
+    "correlation_id": { "type": "string", "minLength": 1 },
+    "state": { "type": "string", "minLength": 1 },
+    "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+    "outcome": { "type": "string", "minLength": 1 },
+    "message": { "type": "string" },
+    "artifact_refs": { "type": "array", "items": { "type": "string" } },
+    "source": { "const": "hermes-ssot" },
+    "snapshot": { "$ref": "harness-state.schema.json" }
+  },
+  "additionalProperties": true
+}

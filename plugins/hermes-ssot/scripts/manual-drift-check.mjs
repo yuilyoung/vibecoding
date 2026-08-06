@@ -1,8 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = process.cwd();
+const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(pluginRoot, "..", "..");
 const catalogPath = path.join(repoRoot, "codex", "manuals", "catalog.json");
 const baseIndex = process.argv.indexOf("--base");
 const base = baseIndex >= 0 ? process.argv[baseIndex + 1] : "HEAD";

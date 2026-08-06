@@ -6,13 +6,43 @@ const filePath = String(payload.tool_input?.file_path ?? "");
 const agentType = String(payload.agent_type ?? "");
 
 const normalized = filePath.replace(/\\/g, "/");
+const isMailboxFile = /(^|\/)work\/[^/]+\/\.mailbox\/[^/]+\.md$/u.test(normalized);
+const isHermesStateFile = /(^|\/)\.claude\/state\/ssot-(metadata|evidence)\.json$/u.test(normalized);
+
+if (agentType === "hermes") {
+  if (isMailboxFile || isHermesStateFile) {
+    process.exit(0);
+  }
+
+  process.stdout.write(
+    JSON.stringify({
+      decision: "block",
+      reason: "[GUARD] hermes may edit only SSOT state files and project mailboxes."
+    })
+  );
+  process.exit(0);
+}
+
+if (agentType === "adversarial-validator") {
+  if (isMailboxFile) {
+    process.exit(0);
+  }
+
+  process.stdout.write(
+    JSON.stringify({
+      decision: "block",
+      reason: "[GUARD] adversarial-validator may edit only project mailboxes."
+    })
+  );
+  process.exit(0);
+}
 
 if (normalized.includes("/work/") || normalized.startsWith("work/")) {
   if (/\/docs\/.*\.md$/u.test(normalized) && agentType.length > 0 && agentType !== "doc-writer") {
     process.stdout.write(
       JSON.stringify({
         decision: "block",
-        reason: "[GUARD] work/**/docs/*.md 문서는 doc-writer만 수정 가능합니다."
+        reason: "[GUARD] work/**/docs/*.md documents may be modified only by doc-writer."
       })
     );
   }
@@ -24,7 +54,7 @@ if (/(^|\/)(\.claude\/|CLAUDE\.md$|\.mcp\.json$|\.gitignore$)/u.test(normalized)
   process.stdout.write(
     JSON.stringify({
       decision: "block",
-      reason: "[GUARD] 루트 설정 파일 수정 금지. work/ 하위 프로젝트에서만 작업하세요."
+      reason: "[GUARD] Root configuration files may not be modified. Work only inside work/ projects."
     })
   );
 }

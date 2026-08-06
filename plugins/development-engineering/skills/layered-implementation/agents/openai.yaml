@@ -1,0 +1,4 @@
+interface:
+  display_name: "Layered Implementation"
+  short_description: "Build layered, DI-managed, concurrency-safe systems"
+  default_prompt: "Use $layered-implementation to implement a layered, dependency-injected, concurrency-safe feature."

@@ -86,7 +86,10 @@ saves/
 # Dev cycle mailbox (agent working files)
 .dev-cycle/
 .vercel
+.tmp/
+.worktrees/
 
 # Dashboard runtime telemetry (append-only local journal)
 dashboard/runtime/
+.codex/runtime/hermes/
 test-results/

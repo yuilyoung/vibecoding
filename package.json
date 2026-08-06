@@ -1,21 +1,26 @@
 {
-  "name": "ai-project-workspace",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "workspace-status": "node scripts/workspace-status.mjs",
-    "project-status": "node scripts/project-status.mjs",
-    "next-tasks": "node scripts/next-tasks.mjs",
-    "codex-preflight": "node codex/hooks/preflight-check.mjs",
-    "codex-postflight": "node codex/hooks/postflight-sync.mjs",
-    "dashboard": "node scripts/dashboard-server.mjs",
-    "dashboard:event": "node scripts/dashboard-event.mjs",
-    "dashboard:snapshot": "node scripts/dashboard-observability.mjs",
-    "test:dashboard": "node --test scripts/dashboard-observability.test.mjs",
-    "test:dashboard:ui": "playwright test scripts/dashboard-ui.spec.mjs --workers=1 --output C:/tmp/dashboard-playwright-results"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.62.1"
-  }
+    "name": "ai-project-workspace",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "workspace-status": "node scripts/workspace-status.mjs",
+        "project-status": "node scripts/project-status.mjs",
+        "next-tasks": "node scripts/next-tasks.mjs",
+        "codex-preflight": "node codex/hooks/preflight-check.mjs",
+        "codex-postflight": "node codex/hooks/postflight-sync.mjs",
+        "harness-audit": "node scripts/harness-audit.mjs",
+        "harness-refresh": "node scripts/refresh-harness-catalog.mjs",
+        "harness:test": "node --test plugins/hermes-ssot/scripts/harness-controller.test.mjs",
+        "hermes:audit": "node plugins/hermes-ssot/scripts/harness-audit.mjs",
+        "hermes:drift": "node plugins/hermes-ssot/scripts/manual-drift-check.mjs",
+        "dashboard": "node scripts/dashboard-server.mjs",
+        "dashboard:event": "node scripts/dashboard-event.mjs",
+        "dashboard:snapshot": "node scripts/dashboard-observability.mjs",
+        "test:dashboard": "node --test scripts/dashboard-observability.test.mjs",
+        "test:dashboard:ui": "playwright test scripts/dashboard-ui.spec.mjs --workers=1 --output C:/tmp/dashboard-playwright-results"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.62.1"
+    }
 }

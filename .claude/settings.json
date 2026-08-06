@@ -1,376 +1,358 @@
 {
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] [STOP] 세션 종료 - PM: 보고서 및 대시보드 업데이트 필요\" >> /Users/iyyu/Documents/vibecoding/.claude/pm-hook.log",
-            "statusMessage": "PM 보고서 업데이트 알림 중..."
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] [AGENT-DONE] 에이전트 작업 완료 감지 - PM 진행 추적 트리거\" >> /Users/iyyu/Documents/vibecoding/.claude/pm-hook.log",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))\" 2>/dev/null); LOG=/Users/iyyu/Documents/vibecoding/.claude/pm-hook.log; TS=\"[$(date '+%Y-%m-%d %H:%M:%S')]\"; if echo \"$FILE\" | grep -qE 'doc/planning/prd\\.md$'; then echo \"$TS [HOOK] PRD 수정 감지 - [RULE] prd-validator 검증 필요 (90점 이상 달성 시 비전 승인 요청)\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'doc/planning/prd-draft\\.md$'; then echo \"$TS [HOOK] PRD 초안 수정 감지 - [RULE] prd-generator → prd-validator 검증 단계 실행 필요\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'doc/architecture/'; then echo \"$TS [HOOK] 아키텍처 문서 수정 감지 - [RULE] architect 리뷰 및 비전 승인 요청 필요\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE '(Assets|src)/.*\\.(cs|js|ts|tsx|jsx|go|py)$'; then echo \"$TS [HOOK] 소스코드 수정 감지 ($FILE) - [RULE] code-reviewer 검토 필요 (90점 이상 달성 시 qa 단계 진행)\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'doc/test/'; then echo \"$TS [HOOK] 테스트 문서 수정 감지 - [RULE] qa 검증 완료 확인 후 doc-writer 기술문서 작성 단계 진행\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'doc/(api|guides|changelog)/'; then echo \"$TS [HOOK] 기술문서 수정 감지 ($FILE) - [RULE] doc-writer 완료 → PM 보고서 2종 생성 단계 진행\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'doc/reports/project-status\\.md$'; then echo \"$TS [HOOK] PM MD 보고서 생성 감지 - [RULE] 비전 검토 후 이상 없으면 대시보드 생성 요청\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'reports/project-status\\.html$'; then echo \"$TS [HOOK] PM HTML 보고서 생성 감지 - [RULE] 비전: 누락 섹션 확인 필요\" >> \"$LOG\"; fi; if echo \"$FILE\" | grep -qE 'dashboard/index\\.html$'; then echo \"$TS [HOOK] 대시보드 생성 완료 - [RULE] 비전: 사용자에게 결과 보고 및 dashboard/index.html 경로 안내\" >> \"$LOG\"; fi",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] [USER] 사용자 입력 수신 - 비전 처리 시작\" >> /Users/iyyu/Documents/vibecoding/.claude/pm-hook.log",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
-  "permissions": {
-    "allow": [
-      "Bash(git *)",
-      "Bash(npm *)",
-      "Bash(node *)",
-      "Bash(npx *)",
-      "Bash(python *)",
-      "Bash(python3 *)",
-      "Bash(ls *)",
-      "Bash(mkdir *)",
-      "Bash(cp *)",
-      "Bash(mv *)",
-      "Bash(rm -rf work/*)",
-      "Bash(rm work/*)",
-      "Bash(cat *)",
-      "Bash(echo *)",
-      "Bash(touch *)",
-      "Bash(where *)",
-      "WebSearch",
-      "Read",
-      "Glob",
-      "Grep",
-      "WebFetch",
-      "Write(work/**)",
-      "Edit(work/**)"
-    ]
-  },
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 세션 종료 - PM: 보고서 및 대시보드 업데이트 필요\"",
-            "statusMessage": "PM 보고서 업데이트 알림 중..."
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-tool-guard.mjs\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-shrimp.mjs\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestration-write-guard.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-guard.mjs\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[AGENT-DONE] agent work completed - PM tracking trigger\"",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-log.mjs\"",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestration-demand.mjs\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[USER] 사용자 입력 수신 - 비전 처리 시작\"",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "planner",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] planner: 요구사항 분석 → 페르소나·마일스톤·WBS·FSD·MVP 정의. 완료 후 prd-generator에게 PRD 작성 위임. [SKILLS] /analyze-prd 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "prd-generator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] prd-generator: PRD 문서 작성. docs/planning/에 저장. 완료 후 prd-validator 검증 진행. [SKILLS] /analyze-prd 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "prd-validator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] prd-validator: PRD 100점 기준 검증. 90점 미만→반려. 90점 이상→비전 승인 요청. [SKILLS] /review-prd 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "architect",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] architect: C4·ERD·API 계약·ADR 설계. docs/architecture/에 저장. 비전 승인 후 개발팀 배포. [SKILLS] /teach-impeccable 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "create-tasks",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] create-tasks: WBS 기반 태스크 분해. 1~4시간 단위, 의존관계 명시. [SKILLS] /create-tasks 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "frontend",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] frontend: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /frontend-design, /adapt, /animate, /arrange, /bolder, /clarify, /colorize, /critique, /delight, /distill, /extract, /normalize, /onboard, /typeset, /overdrive, /polish, /quieter, /optimize 사용 가능.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "backend",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] backend: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /harden 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "app-developer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] app-developer: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /harden 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "devops",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] devops: CI/CD·인프라·모니터링·배포. 완료 후 code-reviewer 검토. [SKILLS] /harden, /optimize 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "code-reviewer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] code-reviewer: 100점 기준 독립 검토. 90점 미만→반려. Critical→비전 긴급 알림. 90점 이상→qa. [SKILLS] /review-code 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "qa",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] qa: 테스트 케이스→단위→통합→E2E. 90점 기준. 실패 시 코드 수정 반복. 완료 후 doc-writer 단계. [SKILLS] /verify, /audit, /critique, /polish 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "doc-writer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] doc-writer: 모든 문서 독점 작성. docs/ 하위 분류 저장. 200줄 제한→초과 시 분리+참조 링크. 완료 후 PM 보고서 단계. [SKILLS] 스킬 없음 — 직접 문서 작성.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "pm",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] pm: 서브에이전트 조율·진행 추적. 보고서 2종 필수 (docs/reports/project-status.md + reports/project-status.html). 비전 검수 후 dashboard/index.html. [SKILLS] /dev-cycle 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "git-manager",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] git-manager: 브랜치 관리·PR·커밋. main/dev/feature/*/fix/*. 접두사: feat/fix/refactor/chore/docs/assets. [SKILLS] 스킬 없음 — git CLI 직접 사용.\"}}'",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "planner|prd-generator|prd-validator|architect",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 설계 에이전트 작업 완료 - PM 진행 추적 업데이트\"",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "frontend|backend|app-developer|devops",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 개발 에이전트 작업 완료 - code-reviewer 검토 단계 진행 필요\"",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "code-reviewer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 코드 리뷰 완료 - qa 테스트 단계 진행 필요\"",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "qa",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] QA 완료 - doc-writer 기술문서 단계 진행 필요\"",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "doc-writer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 기술문서 완료 - PM 보고서 2종 생성 단계 진행 필요\"",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:/Users/yuiy/Documents/Dev/ai-project"
-      ]
-    },
-    "github": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
-      }
-    }
-  }
+    "hooks":  {
+                  "Stop":  [
+                               {
+                                   "matcher":  "",
+                                   "hooks":  [
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 세션 종료 - PM: 보고서 및 대시보드 업데이트 필요\"",
+                                                     "statusMessage":  "PM 보고서 업데이트 알림 중..."
+                                                 }
+                                             ]
+                               }
+                           ],
+                  "PreToolUse":  [
+                                     {
+                                         "matcher":  "mcp__.*",
+                                         "hooks":  [
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-tool-guard.mjs\"",
+                                                           "timeout":  10
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-shrimp.mjs\"",
+                                                           "timeout":  10
+                                                       }
+                                                   ]
+                                     },
+                                     {
+                                         "matcher":  "Write|Edit",
+                                         "hooks":  [
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestration-write-guard.mjs\"",
+                                                           "timeout":  5
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-guard.mjs\"",
+                                                           "timeout":  5
+                                                       }
+                                                   ]
+                                     }
+                                 ],
+                  "PostToolUse":  [
+                                      {
+                                          "matcher":  "Agent",
+                                          "hooks":  [
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[AGENT-DONE] agent work completed - PM tracking trigger\"",
+                                                            "async":  true
+                                                        }
+                                                    ]
+                                      },
+                                      {
+                                          "matcher":  "Write|Edit",
+                                          "hooks":  [
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-log.mjs\"",
+                                                            "async":  true
+                                                        }
+                                                    ]
+                                      }
+                                  ],
+                  "UserPromptSubmit":  [
+                                           {
+                                               "matcher":  "",
+                                               "hooks":  [
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestration-demand.mjs\"",
+                                                                 "timeout":  5
+                                                             },
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[USER] 사용자 입력 수신 - 비전 처리 시작\"",
+                                                                 "async":  true
+                                                             }
+                                                         ]
+                                           }
+                                       ],
+                  "SubagentStart":  [
+                                        {
+                                            "matcher":  "planner",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] planner: 요구사항 분석 → 페르소나·마일스톤·WBS·FSD·MVP 정의. 완료 후 prd-generator에게 PRD 작성 위임. [SKILLS] /analyze-prd 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "prd-generator",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] prd-generator: PRD 문서 작성. docs/planning/에 저장. 완료 후 prd-validator 검증 진행. [SKILLS] /analyze-prd 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "prd-validator",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] prd-validator: PRD 100점 기준 검증. 90점 미만→반려. 90점 이상→비전 승인 요청. [SKILLS] /review-prd 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "architect",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] architect: C4·ERD·API 계약·ADR 설계. docs/architecture/에 저장. 비전 승인 후 개발팀 배포. [SKILLS] /teach-impeccable 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "create-tasks",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] create-tasks: WBS 기반 태스크 분해. 1~4시간 단위, 의존관계 명시. [SKILLS] /create-tasks 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "frontend",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] frontend: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /frontend-design, /adapt, /animate, /arrange, /bolder, /clarify, /colorize, /critique, /delight, /distill, /extract, /normalize, /onboard, /typeset, /overdrive, /polish, /quieter, /optimize 사용 가능.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "backend",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] backend: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /harden 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "app-developer",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] app-developer: TDD 구현. 자체 코드리뷰 필수. 완료 후 code-reviewer 검토. [SKILLS] /develop, /harden 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "devops",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] devops: CI/CD·인프라·모니터링·배포. 완료 후 code-reviewer 검토. [SKILLS] /harden, /optimize 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "code-reviewer",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] code-reviewer: 100점 기준 독립 검토. 90점 미만→반려. Critical→비전 긴급 알림. 90점 이상→qa. [SKILLS] /review-code 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "qa",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] qa: 테스트 케이스→단위→통합→E2E. 90점 기준. 실패 시 코드 수정 반복. 완료 후 doc-writer 단계. [SKILLS] /verify, /audit, /critique, /polish 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "doc-writer",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] doc-writer: 모든 문서 독점 작성. docs/ 하위 분류 저장. 200줄 제한→초과 시 분리+참조 링크. 완료 후 PM 보고서 단계. [SKILLS] 스킬 없음 — 직접 문서 작성.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "pm",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] pm: 서브에이전트 조율·진행 추적. 보고서 2종 필수 (docs/reports/project-status.md + reports/project-status.html). 비전 검수 후 dashboard/index.html. [SKILLS] /dev-cycle 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "git-manager",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[WORKFLOW] git-manager: 브랜치 관리·PR·커밋. main/dev/feature/*/fix/*. 접두사: feat/fix/refactor/chore/docs/assets. [SKILLS] 스킬 없음 — git CLI 직접 사용.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "hermes",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[SSOT] hermes: read .claude/state/ssot-metadata.json and run npm run harness-audit. It may write only approved SSOT state files and project mailboxes. Run npm run harness-refresh only after user approval.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "matcher":  "adversarial-validator",
+                                            "hooks":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[SSOT] adversarial-validator: independently generate counterexample questions and require file, command, or source evidence for every conclusion. Do not edit code or manuals; write findings only to work/*/.mailbox.\"}}\u0027",
+                                                              "timeout":  5
+                                                          }
+                                                      ]
+                                        }
+                                    ],
+                  "SubagentStop":  [
+                                       {
+                                           "matcher":  "planner|prd-generator|prd-validator|architect",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 설계 에이전트 작업 완료 - PM 진행 추적 업데이트\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       },
+                                       {
+                                           "matcher":  "frontend|backend|app-developer|devops",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 개발 에이전트 작업 완료 - code-reviewer 검토 단계 진행 필요\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       },
+                                       {
+                                           "matcher":  "code-reviewer",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 코드 리뷰 완료 - qa 테스트 단계 진행 필요\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       },
+                                       {
+                                           "matcher":  "qa",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] QA 완료 - doc-writer 기술문서 단계 진행 필요\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       },
+                                       {
+                                           "matcher":  "doc-writer",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] 기술문서 완료 - PM 보고서 2종 생성 단계 진행 필요\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       },
+                                       {
+                                           "matcher":  "hermes|adversarial-validator",
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/append-log.mjs\" \"[STOP] SSOT or adversarial validation completed - PM must check evidence and terminal state\"",
+                                                             "async":  true
+                                                         }
+                                                     ]
+                                       }
+                                   ]
+              },
+    "permissions":  {
+                        "allow":  [
+                                      "Bash(git *)",
+                                      "Bash(npm *)",
+                                      "Bash(node *)",
+                                      "Bash(npx *)",
+                                      "Bash(python *)",
+                                      "Bash(python3 *)",
+                                      "Bash(ls *)",
+                                      "Bash(mkdir *)",
+                                      "Bash(cp *)",
+                                      "Bash(mv *)",
+                                      "Bash(rm -rf work/*)",
+                                      "Bash(rm work/*)",
+                                      "Bash(cat *)",
+                                      "Bash(echo *)",
+                                      "Bash(touch *)",
+                                      "Bash(where *)",
+                                      "WebSearch",
+                                      "Read",
+                                      "Glob",
+                                      "Grep",
+                                      "WebFetch",
+                                      "Write(work/**)",
+                                      "Edit(work/**)"
+                                  ]
+                    },
+    "mcpServers":  {
+                       "filesystem":  {
+                                          "command":  "npx",
+                                          "args":  [
+                                                       "-y",
+                                                       "@modelcontextprotocol/server-filesystem",
+                                                       "C:/Users/yuiy/Documents/Dev/ai-project"
+                                                   ]
+                                      },
+                       "github":  {
+                                      "command":  "npx",
+                                      "args":  [
+                                                   "-y",
+                                                   "@modelcontextprotocol/server-github"
+                                               ],
+                                      "env":  {
+                                                  "GITHUB_PERSONAL_ACCESS_TOKEN":  ""
+                                              }
+                                  }
+                   }
 }

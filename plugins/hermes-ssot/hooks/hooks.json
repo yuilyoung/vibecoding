@@ -1,0 +1,104 @@
+{
+  "description": "Hermes design-to-delivery state-machine guardrails.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Loading Hermes delivery state",
+            "additionalContextLimit": 1200
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Classifying Hermes delivery gate",
+            "additionalContextLimit": 1200
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "product.?owner|reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Applying Hermes role contract",
+            "additionalContextLimit": 1200
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "product.?owner|reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Validating Hermes role evidence"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Checking Hermes design approval"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 20,
+            "statusMessage": "Recording Hermes delivery evidence"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$PLUGIN_ROOT/scripts/harness-controller.mjs\"",
+            "commandWindows": "node \"%PLUGIN_ROOT%\\scripts\\harness-controller.mjs\"",
+            "timeout": 20,
+            "statusMessage": "Checking Hermes completion gates"
+          }
+        ]
+      }
+    ]
+  }
+}

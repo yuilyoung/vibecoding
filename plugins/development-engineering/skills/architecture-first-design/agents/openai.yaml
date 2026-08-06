@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture-First Design"
+  short_description: "Design UML, boundaries, interfaces, and schemas first"
+  default_prompt: "Use $architecture-first-design to define UML, boundaries, interfaces, and schemas before implementation."

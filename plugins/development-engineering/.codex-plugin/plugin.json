@@ -1,0 +1,38 @@
+{
+  "name": "development-engineering",
+  "version": "0.1.0+codex.20260806142427",
+  "description": "Indexed architecture-first and layered implementation skills for reliable application, database, UI, concurrency, and native C++ development.",
+  "author": {
+    "name": "ai-project",
+    "email": "local@workspace.invalid"
+  },
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "development",
+    "di",
+    "mvvm",
+    "database",
+    "cpp",
+    "observability"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Development Engineering",
+    "shortDescription": "Routes design and implementation to focused skills.",
+    "longDescription": "Progressively discloses architecture-first design, three-layer implementation, DI and lifetime, database pools, MVVM and concurrency, native C++ ownership, and verification observability guidance.",
+    "developerName": "ai-project",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Route this non-trivial development task to the smallest required skill.",
+      "Design the architecture, interfaces, schema, ownership, and UML before implementation.",
+      "Implement this vertical slice with layered boundaries, verification logs, and status callbacks."
+    ],
+    "brandColor": "#4F46E5"
+  }
+}
