@@ -96,7 +96,7 @@ Use dense display type for emotional hooks and deliberately compact labels for p
 
 ## Components
 
-Use paper cards for ideas, storyboards, and deliverables; use dark panels for active work and policy states. Make the primary action singular on every screen. Mark all generated-result placeholders as `DEMO` until a real media pipeline exists.
+Use paper cards for ideas, storyboards, and deliverables; use dark panels for active work and policy states. Make the primary action singular on every screen. Mark legacy local-preview placeholders as `DEMO`. The trusted-local real-image experiment must distinguish observed server milestones from any unavailable provider render percentage. Its smooth bar is a lifecycle-plus-duration completion forecast, reaches 100% only after a validated terminal artifact, and labels ETA as an estimate. A motion GIF must state that it is a deterministic pan/zoom of one still, not AI video.
 
 ## Trust and safety
 

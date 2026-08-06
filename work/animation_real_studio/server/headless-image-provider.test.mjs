@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -130,6 +130,19 @@ test("headless provider preserves a timeout failure code and deletes its tempora
   } finally { await rm(outputDirectory, { recursive: true, force: true }); }
 });
 
+test("headless provider uses a bounded configurable execution deadline", () => {
+  const defaultProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1" } });
+  assert.equal(defaultProvider.timeoutMs, 300_000);
+  const configuredProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "120000" } });
+  assert.equal(configuredProvider.timeoutMs, 120_000);
+  const clampedProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "1" } });
+  assert.equal(clampedProvider.timeoutMs, 60_000);
+  const upperBoundProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "900000" } });
+  assert.equal(upperBoundProvider.timeoutMs, 600_000);
+  const invalidProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "not-a-number" } });
+  assert.equal(invalidProvider.timeoutMs, 300_000);
+});
+
 function lockedCleanupError(code = "EBUSY") {
   const error = new Error(`cleanup ${code}`);
   error.code = code;
@@ -211,4 +224,97 @@ test("workspace cleanup rejects sibling and parent paths", async () => {
     assert.equal(cleanupCalled, false);
     await access(marker);
   } finally { await rm(temporaryDirectory, { recursive: true, force: true }); await rm(sibling, { recursive: true, force: true }); }
+});
+test("headless provider attaches an attested 2D input only to the Codex invocation", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  let invocation;
+  const phases = [];
+  const reference = portraitPng();
+  const provider = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    userOutputDirectory: join(outputDirectory, "user-photorealistic-stills"),
+    newId: () => "user-photo",
+    run: async (call) => {
+      invocation = call;
+      call.onStarted();
+      const imageArgumentIndex = call.args.indexOf("--image");
+      assert.equal(call.args.filter((argument) => argument === "--image").length, 1);
+      assert.ok(call.args.indexOf(call.prompt) >= 0 && call.args.indexOf(call.prompt) < imageArgumentIndex);
+      assert.equal(call.args[imageArgumentIndex + 1], join(call.cwd, "source.png"));
+      assert.deepEqual(await readFile(call.args[imageArgumentIndex + 1]), reference);
+      await writeFile(call.outputPath, portraitPng(1080, 1920));
+      return { exitCode: 0 };
+    },
+  });
+  try {
+    const asset = await provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait.", reference: { mimeType: "image/png", bytes: reference }, onPhase: (phase) => phases.push(phase) });
+    assert.equal(asset.kind, "user_photorealistic_still");
+    assert.equal(asset.aspectRatio, "9:16");
+    assert.deepEqual(phases, ["workspace_prepared", "provider_started", "output_validated"]);
+    assert.match(invocation.prompt, /original adult-safe rain-lit portrait/);
+    assert.match(invocation.prompt, /primary visual reference/);
+    assert.match(invocation.prompt, /story direction wins for the subject's action, emotion, event/);
+    assert.match(invocation.prompt, /Follow the validated story direction for action, emotion, event/);
+    assert.match(invocation.prompt, /silhouette and pose/);
+    assert.match(invocation.prompt, /background setting, layout/);
+    assert.match(invocation.prompt, /camera angle, framing, and perspective/);
+    assert.match(asset.notice, /attached to Codex/);
+    await assert.rejects(access(invocation.cwd));
+    await access(join(outputDirectory, "user-photorealistic-stills", "photo-user-photo.png"));
+  } finally { await rm(outputDirectory, { recursive: true, force: true }); }
+});
+test("headless provider removes an attached 2D source when Codex fails", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  let invocation;
+  const phases = [];
+  const provider = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    run: async (call) => {
+      invocation = call;
+      await access(call.args[call.args.indexOf("--image") + 1]);
+      return { exitCode: 1, providerDiagnostics: { diagnosticCode: "provider_exit_nonzero", exitCode: 1, stderrBytes: 128, stderrTruncated: false } };
+    },
+  });
+  try {
+    await assert.rejects(provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait.", reference: { mimeType: "image/png", bytes: portraitPng() }, onPhase: (phase) => phases.push(phase) }), (error) => error instanceof HeadlessImageProviderError && error.code === "provider_failed" && error.providerDiagnostics?.diagnosticCode === "provider_exit_nonzero");
+    assert.deepEqual(phases, ["workspace_prepared"]);
+    await assert.rejects(access(invocation.cwd));
+  } finally { await rm(outputDirectory, { recursive: true, force: true }); }
+});
+test("headless provider assembles a requested motion GIF only after validating the generated PNG", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  const phases = [];
+  let receivedSource;
+  const provider = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    userOutputDirectory: join(outputDirectory, "stills"),
+    motionGifOutputDirectory: join(outputDirectory, "gifs"),
+    motionGifRenderer: { render: async ({ sourceBytes, frameCount, onFrame }) => {
+      receivedSource = sourceBytes;
+      onFrame({ currentFrame: 1, frameCount });
+      onFrame({ currentFrame: frameCount, frameCount });
+      return { bytes: Buffer.from("GIF89a"), mimeType: "image/gif", width: 432, height: 768, frameCount, fps: 10, durationSeconds: frameCount / 10, byteLength: 6 };
+    } },
+    newId: () => "motion-gif",
+    run: async (call) => {
+      call.onStarted();
+      assert.equal(call.args.includes("--image"), false);
+      await assert.rejects(access(join(call.cwd, "source.png")));
+      await writeFile(call.outputPath, portraitPng(1080, 1920));
+      return { exitCode: 0 };
+    },
+  });
+  try {
+    const asset = await provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait.", output: { kind: "motion_gif", frameCount: 12 }, onPhase: (...event) => phases.push(event) });
+    assert.equal(asset.kind, "user_motion_gif");
+    assert.equal(asset.mimeType, "image/gif");
+    assert.equal(asset.frameCount, 12);
+    assert.equal(asset.fps, 10);
+    assert.equal(receivedSource.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), true);
+    assert.deepEqual(phases.map(([phase]) => phase), ["workspace_prepared", "provider_started", "output_validated", "gif_encoding", "gif_encoding", "gif_encoding"]);
+    await access(join(outputDirectory, "gifs", "photo-motion-gif.gif"));
+  } finally { await rm(outputDirectory, { recursive: true, force: true }); }
 });

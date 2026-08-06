@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { HeadlessImageProbe } from "./HeadlessImageProbe";
+import { RealPhotoStudio } from "./RealPhotoStudio";
 import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject, type LocalPreviewAsset } from "./studio-api";
 
 type Route = string;
@@ -17,7 +18,7 @@ const beats = [
 
 function routeFromLocation(): Route {
   const pathname = window.location.pathname;
-  return pathname === "/create" || pathname === "/safety" || pathname.startsWith("/projects/")
+  return pathname === "/create" || pathname === "/real" || pathname === "/safety" || pathname.startsWith("/projects/")
     ? pathname
     : "/";
 }
@@ -48,12 +49,13 @@ function App() {
           <button onClick={() => navigate("/safety")}>RIGHTS &amp; SAFETY</button>
           <RuntimeIndicator />
           <button onClick={() => navigate("/projects/demo-001")}>MY STUDIO</button>
-          <button className="nav-cta" onClick={() => navigate("/create")}>장면 의뢰하기 <span>↗</span></button>
+          <button className="nav-cta" onClick={() => navigate("/real")}>장면 의뢰하기 <span>↗</span></button>
         </nav>
       </header>
       <main>
         {route === "/" && <Home navigate={navigate} />}
         {route === "/create" && <Create navigate={navigate} />}
+        {route === "/real" && <RealPhotoStudio />}
         {route.startsWith("/projects/") && <><Project navigate={navigate} projectId={route.split("/").at(-1)} /><div className="project-page"><HeadlessImageProbe /></div></>}
         {route === "/safety" && <Safety navigate={navigate} />}
       </main>
@@ -80,10 +82,10 @@ function Home({ navigate }: { navigate: (route: Route) => void }) {
         </div>
         <div className="hero-reel hero-reel-pending" aria-label="실사 이미지 생성 준비 상태">
           <div className="reel-status">
-            <p>IMAGE OUTPUT / NOT CONNECTED</p>
-            <h2>실사 이미지<br /><i>생성 준비 중</i></h2>
-            <p className="reel-status-copy">현재는 로컬 2D 프리뷰만 가능합니다. 장면 의뢰 후 연출 프리셋을 선택해 주세요.</p>
-            <div><span>LOCAL 2D PREVIEW</span><span>EXTERNAL API OFFLINE</span></div>
+            <p>TRUSTED LOCAL IMAGE GENERATION</p>
+            <h2>실사 이미지<br /><i>로컬 실험 준비 완료</i></h2>
+            <p className="reel-status-copy">로컬 API에서 실제 Codex 이미지 생성을 실행할 수 있습니다. API를 시작할 때 <code>STUDIO_HEADLESS_IMAGEGEN=1</code>을 설정한 신뢰 가능한 개발 환경에서만 사용해 주세요.</p>
+            <div><span>LOCAL EXPERIMENT</span><span>STUDIO_HEADLESS_IMAGEGEN=1</span></div>
           </div>
         </div>
       </section>

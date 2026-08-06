@@ -124,3 +124,46 @@ test("HTTP API returns current probe state with in-flight and allowance rejectio
     assert.equal(exhaustedBody.remainingAttempts, 0);
   } finally { server.close(); await once(server, "close"); }
 });
+const photoRequest = { mode: "text_to_photo", detailPrompt: "A fictional adult stands beneath rain reflections in an original city street with natural cinematic light.", conditions: { subject: "fictional_adult", age: "adult_30s", era: "contemporary", setting: "city_night", presentation: "unspecified", framing: "upper_body", cameraAngle: "three_quarter", clothing: "casual", peopleCount: "one" }, rightsAccepted: true, clientRequestId: "http-photo-request-0001" };
+
+test("HTTP API starts and polls a real-image job without returning source input", async () => {
+  const scheduled = [];
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: async ({ onPhase }) => {
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      onPhase("output_validated");
+      return { id: "photo-http", kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: 9, height: 16, aspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", notice: "test asset" };
+    },
+  };
+  const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const server = createStudioHttpServer(service);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  try {
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const created = await fetch(`${baseUrl}/api/photorealistic-projects`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...photoRequest, mode: "animation_2d_to_photo", clientRequestId: "http-photo-request-0002", referenceImage: { mimeType: "image/png", dataUrl: "data:image/png;base64,iVBORw0KGgo=" } }) });
+    assert.equal(created.status, 202);
+    const initial = (await created.json()).project;
+    assert.equal(JSON.stringify(initial).includes("data:image"), false);
+    scheduled.shift()();
+    await new Promise((resolve) => setImmediate(resolve));
+    const completed = await fetch(`${baseUrl}/api/photorealistic-projects/${initial.id}`);
+    assert.equal(completed.status, 200);
+    const project = (await completed.json()).project;
+    assert.equal(project.status, "completed");
+    assert.equal(project.delivery.asset.mimeType, "image/png");
+  } finally { server.close(); await once(server, "close"); }
+});
+
+test("HTTP API gives an actionable disabled-provider result for user image jobs", async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/photorealistic-projects`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(photoRequest) });
+    assert.equal(response.status, 503);
+    const body = await response.json();
+    assert.equal(body.error, "provider_not_configured");
+    assert.equal(typeof body.message, "string");
+  });
+});

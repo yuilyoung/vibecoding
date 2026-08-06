@@ -2,6 +2,7 @@ import { HeadlessCodexImageProvider, HeadlessImageProviderError } from "./headle
 import { randomUUID } from "node:crypto";
 const ALLOWED_REFERENCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const TERMINAL_STATUSES = new Set(["completed", "failed", "review_required"]);
+const PROVIDER_DIAGNOSTIC_CODES = new Set(["process_permission_denied", "codex_command_not_found", "codex_not_authenticated", "sandbox_rejected", "quota_or_rate_limited", "provider_exit_nonzero", "provider_start_failed", "provider_timeout"]);
 const LOCAL_BLOCK_RULES = [
   { code: "copyrighted_work", pattern: /\b(one piece|luffy|naruto|pokemon|demon slayer|attack on titan)\b|원피스|루피|나루토|포켓몬|귀멸|진격의 거인/i },
   { code: "copied_scene", pattern: /(장면|대사).{0,40}(그대로|똑같이|정확하게).{0,24}(재현|복제)|\b(recreate|copy)\b.{0,40}\b(scene|dialogue)\b/i },
@@ -10,6 +11,18 @@ const LOCAL_BLOCK_RULES = [
 
 const text = (value) => typeof value === "string" ? value.trim() : "";
 const issue = (field, message, code) => ({ field, message, code });
+
+function safeProviderDiagnostics(value) {
+  if (!value || typeof value !== "object" || !PROVIDER_DIAGNOSTIC_CODES.has(value.diagnosticCode)) return null;
+  const safe = { diagnosticCode: value.diagnosticCode };
+  if (Number.isInteger(value.exitCode) && value.exitCode >= 0 && value.exitCode <= 255) safe.exitCode = value.exitCode;
+  if (typeof value.signal === "string" && /^[A-Z0-9_]{1,32}$/.test(value.signal)) safe.signal = value.signal;
+  if (Number.isInteger(value.elapsedSeconds) && value.elapsedSeconds >= 0 && value.elapsedSeconds <= 600) safe.elapsedSeconds = value.elapsedSeconds;
+  if (Number.isInteger(value.stderrBytes) && value.stderrBytes >= 0 && value.stderrBytes <= 1_048_576) safe.stderrBytes = value.stderrBytes;
+  if (typeof value.stderrTruncated === "boolean") safe.stderrTruncated = value.stderrTruncated;
+  if (Number.isInteger(value.timeoutSeconds) && value.timeoutSeconds >= 0 && value.timeoutSeconds <= 600) safe.timeoutSeconds = value.timeoutSeconds;
+  return safe;
+}
 
 function localPrecheck(scene) {
   return LOCAL_BLOCK_RULES.filter((rule) => rule.pattern.test(scene)).map((rule) => rule.code);
@@ -23,6 +36,7 @@ function validate(input) {
   if (input.rightsAccepted !== true) errors.push(issue("rightsAccepted", "Rights and safety acknowledgement is required.", "rights_acknowledgement"));
   const blockedRules = localPrecheck(scene);
   if (blockedRules.length) errors.push(issue("scene", "This local simulation cannot accept an obvious protected-work, copied-scene, or real-person request.", blockedRules.join(",")));
+
   if (input.referenceMedia) {
     const reference = input.referenceMedia;
     if (!ALLOWED_REFERENCE_TYPES.has(reference.mimeType)) errors.push(issue("referenceMedia.mimeType", "Only JPEG, PNG, WebP, or MP4 metadata is accepted.", "reference_mime"));
@@ -32,6 +46,88 @@ function validate(input) {
   return { scene, errors, blockedRules };
 }
 
+export const PHOTO_CONDITION_OPTIONS = Object.freeze({
+  subject: Object.freeze({ no_person: "No people", fictional_adult: "Fictional adult person" }),
+  age: Object.freeze({ not_applicable: "Not applicable", adult_20s: "Adult in their 20s", adult_30s: "Adult in their 30s", adult_40s: "Adult in their 40s", adult_50_plus: "Adult 50+" }),
+  era: Object.freeze({ contemporary: "Contemporary", nineties: "1990s", historical: "Early 20th century", future: "Near future" }),
+  setting: Object.freeze({ city_night: "Rainy city at night", sunlit_room: "Sunlit interior", coastal_nature: "Coastal nature", studio_set: "Original studio set" }),
+  presentation: Object.freeze({ unspecified: "Unspecified", feminine: "Feminine", masculine: "Masculine", androgynous: "Androgynous" }),
+  framing: Object.freeze({ portrait: "Portrait", upper_body: "Upper body", full_body: "Full body", hands_detail: "Hands detail" }),
+  cameraAngle: Object.freeze({ eye_level: "Eye level", low_angle: "Low angle", high_angle: "High angle", three_quarter: "Three-quarter view" }),
+  clothing: Object.freeze({ casual: "Casual everyday clothing", tailored: "Tailored clothing", historical: "Period-inspired clothing", functional: "Functional outerwear" }),
+  peopleCount: Object.freeze({ zero: "No people", one: "One adult", two: "Two adults", group: "Three or more adults" }),
+});
+export const PHOTO_DEFAULT_CONDITIONS = Object.freeze({ subject: "fictional_adult", age: "adult_30s", era: "contemporary", setting: "city_night", presentation: "unspecified", framing: "upper_body", cameraAngle: "three_quarter", clothing: "casual", peopleCount: "one" });
+const PHOTO_MODES = new Set(["text_to_photo", "animation_2d_to_photo"]);
+const PHOTO_OUTPUT_KINDS = new Set(["still", "motion_gif"]);
+const DEFAULT_GIF_FRAME_COUNT = 12;
+const GIF_FRAME_RATE = 10;
+const PHOTO_REFERENCE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_PHOTO_REFERENCE_BYTES = 6 * 1024 * 1024;
+const PHOTO_UNSAFE_RULES = [
+  { code: "unsafe_minor", pattern: /\b(minor|child|children|underage|teen(?:ager)?)\b/i },
+  { code: "unsafe_sexual", pattern: /\b(nude|nudity|explicit|sexual|nsfw)\b/i },
+];
+const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 91, label: "gif_encoding" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
+const MIN_DURATION_SAMPLES = 3;
+
+function photoIssue(field, message, code) { return issue(field, message, code); }
+function hasPhotoSignature(bytes, mimeType) {
+  if (!Buffer.isBuffer(bytes)) return false;
+  if (mimeType === "image/png") return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (mimeType === "image/jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  return bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+}
+function decodePhotoReference(reference) {
+  const dataUrl = text(reference?.dataUrl);
+  const mimeType = text(reference?.mimeType);
+  const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!PHOTO_REFERENCE_TYPES.has(mimeType) || !match || match[1] !== mimeType) return { error: "reference_format" };
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > MAX_PHOTO_REFERENCE_BYTES) return { error: "reference_size" };
+  if (!hasPhotoSignature(bytes, mimeType)) return { error: "reference_signature" };
+  return { mimeType, bytes };
+}
+export function composePhotorealisticPrompt(detailPrompt, conditions, mode) {
+  const named = Object.fromEntries(Object.entries(PHOTO_CONDITION_OPTIONS).map(([key, options]) => [key, options[conditions[key]]]));
+  const modeLead = mode === "animation_2d_to_photo"
+    ? "Transform the supplied user-attested original 2D illustration into a new photorealistic interpretation. The story direction and structured visual brief define the subject's action, emotion, event, and intended scene meaning; they take precedence over conflicting source-image traits."
+    : "Create one original photorealistic still from the user direction.";
+  return [
+    modeLead,
+    `Visual brief: ${named.subject}; ${named.age}; ${named.presentation} presentation; ${named.era}; ${named.setting}; ${named.framing}; ${named.cameraAngle}; ${named.clothing}; ${named.peopleCount}.`,
+    `Story direction (authoritative for action, emotion, event, and intended scene change): ${detailPrompt.replace(/\s+/g, " ").trim()}`,
+    "Keep it cinematic, physically plausible, and non-identifying. Do not include logos, readable text, watermarks, copyrighted characters, or recognisable real people.",
+  ].join("\n");
+}
+function validatePhotorealisticDraft(input = {}) {
+  const errors = [];
+  const mode = text(input.mode);
+  const detailPrompt = text(input.detailPrompt);
+  const conditions = input.conditions && typeof input.conditions === "object" ? input.conditions : {};
+  if (!PHOTO_MODES.has(mode)) errors.push(photoIssue("mode", "Choose a supported image-generation mode.", "photo_mode"));
+  if (detailPrompt.length < 20 || detailPrompt.length > 700) errors.push(photoIssue("detailPrompt", "Describe the image in 20 to 700 characters.", "photo_prompt_length"));
+  if (input.rightsAccepted !== true) errors.push(photoIssue("rightsAccepted", "Original-content and adult-only acknowledgement is required.", "photo_rights_acknowledgement"));
+  for (const [key, options] of Object.entries(PHOTO_CONDITION_OPTIONS)) if (!Object.hasOwn(options, conditions[key])) errors.push(photoIssue(`conditions.${key}`, "Choose one supported visual condition.", "photo_condition"));
+  if (conditions.subject === "no_person" && conditions.peopleCount !== "zero") errors.push(photoIssue("conditions.peopleCount", "A no-person scene must use no people.", "photo_people_mismatch"));
+  if (conditions.subject === "fictional_adult" && conditions.peopleCount === "zero") errors.push(photoIssue("conditions.peopleCount", "A person scene needs at least one adult.", "photo_people_mismatch"));
+  const blockedRules = [...localPrecheck(detailPrompt), ...PHOTO_UNSAFE_RULES.filter((rule) => rule.pattern.test(detailPrompt)).map((rule) => rule.code)];
+  if (blockedRules.length) errors.push(photoIssue("detailPrompt", "This experimental generator accepts only original, non-identifying, adult-safe image directions.", blockedRules.join(",")));
+  let reference = null;
+  if (mode === "animation_2d_to_photo") {
+    const decoded = decodePhotoReference(input.referenceImage);
+    if (decoded.error) errors.push(photoIssue("referenceImage", "Attach one original PNG, JPEG, or WebP 2D image under 6 MB.", decoded.error));
+    else reference = decoded;
+  }
+  const outputKind = text(input.outputKind || "still");
+  const requestedFrameCount = input.frameCount ?? DEFAULT_GIF_FRAME_COUNT;
+  if (!PHOTO_OUTPUT_KINDS.has(outputKind)) errors.push(photoIssue("outputKind", "Choose a still image or a motion GIF output.", "photo_output_kind"));
+  if (outputKind === "motion_gif" && (!Number.isInteger(requestedFrameCount) || requestedFrameCount < 2 || requestedFrameCount > 30)) errors.push(photoIssue("frameCount", "Choose between 2 and 30 motion GIF frames.", "photo_frame_count"));
+  const frameCount = outputKind === "motion_gif" && Number.isInteger(requestedFrameCount) ? requestedFrameCount : 1;
+  const clientRequestId = text(input.clientRequestId);
+  if (!/^[a-zA-Z0-9-]{12,80}$/.test(clientRequestId)) errors.push(photoIssue("clientRequestId", "A valid local submission identifier is required.", "photo_submission_id"));
+  return { errors, mode, detailPrompt, conditions, reference, outputKind, frameCount, clientRequestId, blockedRules };
+}
 function storyboard(scene) {
   const source = scene.replace(/\s+/g, " ").slice(0, 160);
   return { format: "1080x1920", seconds: 15, captions: "ko", beats: [
@@ -181,12 +277,171 @@ export class StudioService {
       })
       .then((asset) => this.finishHeadlessImageProbeAttempt(attempt, { status: "completed", job: { ...attempt.job, phase: "completed", progress: 100 }, asset }))
       .catch((error) => {
-        const code = error instanceof HeadlessImageProviderError ? error.code : "provider_failed";
+        const code = typeof error?.code === "string" ? error.code : error instanceof HeadlessImageProviderError ? error.code : "provider_failed";
         const message = error instanceof Error ? error.message : "Headless image generation failed.";
         const cleanupWarning = error && typeof error === "object" ? error.cleanupWarning : null;
-        this.finishHeadlessImageProbeAttempt(attempt, { status: "failed", job: { ...attempt.job, phase: "failed" }, error: { code, message, ...(cleanupWarning ? { cleanupWarning } : {}) } });
+        const providerDiagnostics = safeProviderDiagnostics(error?.providerDiagnostics);
+        this.finishHeadlessImageProbeAttempt(attempt, { status: "failed", job: { ...attempt.job, phase: "failed" }, error: { code, message, ...(providerDiagnostics ? { providerDiagnostics } : {}), ...(cleanupWarning ? { cleanupWarning } : {}) } });
       });
     return { ok: true, status: 202, generation: this.snapshot(attempt), capabilityToken: this.localCapabilityToken, remainingAttempts: this.remainingHeadlessImageProbeAttempts() };
+  }
+  durationBucket(output, mode) {
+    const outputBucket = output.kind !== "motion_gif" ? "still" : output.frameCount <= 10 ? "motion_gif_short" : output.frameCount <= 20 ? "motion_gif_medium" : "motion_gif_long";
+    return `${mode}_${outputBucket}`;
+  }
+  estimatedPhotorealisticDurationSeconds(output, mode) {
+    const bucket = this.durationBucket(output, mode);
+    const values = (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === bucket).map((sample) => sample.seconds);
+    if (values.length < MIN_DURATION_SAMPLES) return null;
+    const ordered = [...values].sort((left, right) => left - right);
+    return Math.max(15, ordered[Math.floor(ordered.length / 2)]);
+  }
+  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds) {
+    return Math.min(90, Math.floor((90 * elapsedSeconds) / Math.max(1, estimatedDurationSeconds)));
+  }
+  setPhotorealisticPhase(project, phase, details = {}) {
+    const state = PHOTO_PHASES[phase];
+    if (!state || phase === "completed" || phase === "failed" || !project || project.status === "completed" || project.status === "failed") return;
+    project.job.phase = state.label;
+    project.job.phaseStartedAt = this.now().toISOString();
+    if (phase === "gif_encoding") {
+      project.job.encodedFrameCount = Math.max(0, Math.min(project.output.frameCount, Number(details.currentFrame) || 0));
+      project.job.observedProgress = Math.min(99, state.progress + Math.floor((project.job.encodedFrameCount / project.output.frameCount) * 9));
+      project.job.progress = project.job.observedProgress;
+    } else {
+      project.job.observedProgress = state.progress;
+      project.job.progress = state.progress;
+    }
+    project.updatedAt = this.now().toISOString();
+    project.audit.push({ at: project.updatedAt, event: `photo_${state.label}`, jobId: project.job.id, ...(phase === "gif_encoding" ? { currentFrame: project.job.encodedFrameCount, frameCount: project.output.frameCount } : {}) });
+  }
+  snapshotPhotorealisticProject(project) {
+    const snapshot = this.snapshot(project);
+    const startedAt = snapshot.job?.startedAt ? Date.parse(snapshot.job.startedAt) : NaN;
+    const now = this.now().getTime();
+    const completedAt = snapshot.job?.completedAt ? Date.parse(snapshot.job.completedAt) : NaN;
+    const elapsedEnd = (snapshot.status === "completed" || snapshot.status === "failed") && Number.isFinite(completedAt) ? completedAt : now;
+    const rawElapsedSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((elapsedEnd - startedAt) / 1000)) : 0;
+    const recordedElapsedSeconds = Number.isFinite(project.job?.elapsedSeconds) ? project.job.elapsedSeconds : 0;
+    const elapsedSeconds = Math.max(recordedElapsedSeconds, rawElapsedSeconds);
+    if (snapshot.job) {
+      snapshot.job.elapsedSeconds = elapsedSeconds;
+      const observedProgress = Number.isFinite(snapshot.job.observedProgress) ? snapshot.job.observedProgress : snapshot.job.progress ?? 0;
+      const retainedForecast = Number.isFinite(project.job?.forecastHighWater) ? project.job.forecastHighWater : 0;
+      snapshot.job.observedProgress = observedProgress;
+      snapshot.job.forecastHighWater = retainedForecast;
+      if (project.job) {
+        project.job.elapsedSeconds = elapsedSeconds;
+        project.job.observedProgress ??= observedProgress;
+        project.job.forecastHighWater ??= retainedForecast;
+      }
+      if (snapshot.status === "completed" || snapshot.status === "failed") {
+        snapshot.job.estimatedRemainingSeconds = 0;
+        snapshot.job.etaState = "terminal";
+        snapshot.job.progressBasis = "observed_server_lifecycle";
+        snapshot.job.progress = snapshot.status === "completed" ? 100 : Math.max(observedProgress, retainedForecast);
+      } else {
+        if (snapshot.job.estimatedDurationSeconds === null) {
+          snapshot.job.estimatedRemainingSeconds = null;
+          snapshot.job.etaState = "awaiting_observed_samples";
+          snapshot.job.progressBasis = "observed_server_lifecycle";
+          snapshot.job.progress = observedProgress;
+        } else {
+          const remaining = snapshot.job.estimatedDurationSeconds - elapsedSeconds;
+          snapshot.job.estimatedRemainingSeconds = remaining > 0 ? remaining : null;
+          snapshot.job.etaState = remaining > 0 ? "estimated" : "estimate_exceeded";
+          const supportsForecast = snapshot.status === "in_progress" && ["provider_started", "output_validated", "gif_encoding"].includes(snapshot.job.phase);
+          if (supportsForecast) {
+            const forecast = this.forecastPhotorealisticProgress(elapsedSeconds, snapshot.job.estimatedDurationSeconds);
+            const forecastHighWater = Math.max(retainedForecast, forecast);
+            if (project.job) project.job.forecastHighWater = forecastHighWater;
+            snapshot.job.forecastHighWater = forecastHighWater;
+            snapshot.job.progress = Math.max(observedProgress, forecastHighWater);
+            snapshot.job.progressBasis = "server_lifecycle_and_duration_forecast";
+          } else { snapshot.job.progress = observedProgress; snapshot.job.progressBasis = "observed_server_lifecycle"; }
+        }
+      }
+    }
+    return snapshot;
+  }
+  createPhotorealisticProject(input = {}) {
+    const draft = validatePhotorealisticDraft(input);
+    if (draft.errors.length) return { ok: false, status: 422, errors: draft.errors };
+    const provider = this.headlessImageProvider.status();
+    if (!provider.enabled) return { ok: false, status: 503, error: "provider_not_configured", message: provider.notice };
+    this.photorealisticProjects ??= new Map();
+    this.photorealisticSubmissionIds ??= new Map();
+    this.photorealisticDurationSamples ??= [];
+    const duplicateId = this.photorealisticSubmissionIds.get(draft.clientRequestId);
+    if (duplicateId) return { ok: false, status: 409, error: "duplicate_submission", message: "This image request is already active or complete.", project: this.snapshotPhotorealisticProject(this.photorealisticProjects.get(duplicateId)) };
+    const at = this.now().toISOString();
+    const id = `photo-${String(++this.sequence).padStart(4, "0")}`;
+    const composedPrompt = composePhotorealisticPrompt(draft.detailPrompt, draft.conditions, draft.mode);
+    const output = { kind: draft.outputKind, frameCount: draft.frameCount, fps: draft.outputKind === "motion_gif" ? GIF_FRAME_RATE : null };
+    const estimate = this.estimatedPhotorealisticDurationSeconds(output, draft.mode);
+    const project = {
+      id,
+      createdAt: at,
+      updatedAt: at,
+      status: "queued",
+      mode: draft.mode,
+      conditions: { ...draft.conditions },
+      detailPrompt: draft.detailPrompt,
+      composedPrompt,
+      output,
+      source: draft.reference ? { kind: "attested_original_2d", processing: "ephemeral_codex_image_attachment" } : null,
+      job: { id: `photo-job-${id}`, provider: provider.provider, mode: draft.mode, outputKind: output.kind, requestedFrameCount: output.frameCount, encodedFrameCount: 0, fps: output.fps, status: "queued", phase: "validated", progress: PHOTO_PHASES.validated.progress, observedProgress: PHOTO_PHASES.validated.progress, forecastHighWater: 0, progressBasis: "observed_server_lifecycle", startedAt: null, phaseStartedAt: at, completedAt: null, estimatedDurationSeconds: estimate, elapsedSeconds: 0, estimatedRemainingSeconds: estimate === null ? null : estimate, etaState: estimate === null ? "awaiting_observed_samples" : "estimated", durationSampleCount: (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === this.durationBucket(output, draft.mode)).length },
+      delivery: null,
+      error: null,
+      audit: [{ at, event: "photo_validated", jobId: `photo-job-${id}` }],
+    };
+    this.photorealisticProjects.set(id, project);
+    this.photorealisticSubmissionIds.set(draft.clientRequestId, id);
+    this.schedule(() => { void this.startPhotorealisticProject(id, draft.reference); }, 0);
+    return { ok: true, status: 202, project: this.snapshotPhotorealisticProject(project) };
+  }
+  getPhotorealisticProject(id) {
+    const project = this.photorealisticProjects?.get(id);
+    return project ? { ok: true, status: 200, project: this.snapshotPhotorealisticProject(project) } : { ok: false, status: 404, error: "Image project not found." };
+  }
+  async startPhotorealisticProject(id, reference) {
+    const project = this.photorealisticProjects?.get(id);
+    if (!project || project.status !== "queued") return;
+    project.status = "in_progress";
+    project.job.status = "in_progress";
+    project.job.startedAt = this.now().toISOString();
+    this.setPhotorealisticPhase(project, "validated");
+    try {
+      const asset = await this.headlessImageProvider.generateUserImage({ prompt: project.composedPrompt, reference, output: project.output, onPhase: (phase, details) => this.setPhotorealisticPhase(project, phase, details) });
+      project.status = "completed";
+      project.job.status = "completed";
+      project.job.completedAt = this.now().toISOString();
+      project.job.phase = PHOTO_PHASES.completed.label;
+      project.job.progress = PHOTO_PHASES.completed.progress;
+      project.job.observedProgress = PHOTO_PHASES.completed.progress;
+      project.updatedAt = project.job.completedAt;
+      project.delivery = { mode: project.mode, output: project.output, notice: project.output.kind === "motion_gif" ? "Trusted-local deterministic motion GIF complete. It is built from one generated still, not AI video or frame-by-frame generation." : "Trusted-local experimental photorealistic image complete. It remains local to this API session.", asset };
+      project.audit.push({ at: project.updatedAt, event: "photo_completed", jobId: project.job.id });
+      const elapsed = Math.max(1, project.job.elapsedSeconds ?? 0, Math.floor((Date.parse(project.job.completedAt) - Date.parse(project.job.startedAt)) / 1000));
+      project.job.elapsedSeconds = elapsed;
+      const bucket = this.durationBucket(project.output, project.mode);
+      const otherBuckets = (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket !== bucket);
+      const priorBucketSamples = (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === bucket).slice(-7);
+      this.photorealisticDurationSamples = [...otherBuckets, ...priorBucketSamples, { bucket, seconds: elapsed }];
+    } catch (error) {
+      const code = typeof error?.code === "string" ? error.code : error instanceof HeadlessImageProviderError ? error.code : "provider_failed";
+      const message = error instanceof Error ? error.message : "Photorealistic image generation failed.";
+      const cleanupWarning = error && typeof error === "object" ? error.cleanupWarning : null;
+      const providerDiagnostics = safeProviderDiagnostics(error?.providerDiagnostics);
+      project.status = "failed";
+      project.job.status = "failed";
+      project.job.completedAt = this.now().toISOString();
+      project.job.phase = PHOTO_PHASES.failed.label;
+      project.job.progress = Math.max(project.job.observedProgress ?? project.job.progress ?? 0, project.job.forecastHighWater ?? 0);
+      project.updatedAt = project.job.completedAt;
+      project.error = { code, message, ...(providerDiagnostics ? { providerDiagnostics } : {}), ...(cleanupWarning ? { cleanupWarning } : {}) };
+      project.audit.push({ at: project.updatedAt, event: "photo_failed", jobId: project.job.id, code, ...(providerDiagnostics ? { diagnosticCode: providerDiagnostics.diagnosticCode } : {}) });
+    }
   }
   snapshot(project) { return JSON.parse(JSON.stringify(project)); }
 }

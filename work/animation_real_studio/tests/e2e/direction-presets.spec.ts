@@ -1,13 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-test("home shows a non-interactive pending image-generation status", async ({ page }, testInfo) => {
+test("home presents the opt-in real-image experiment without starting a job", async ({ page }, testInfo) => {
   await page.goto("/");
-  const panel = page.getByLabel("실사 이미지 생성 준비 상태");
-
-  await expect(panel.getByRole("heading", { name: /실사 이미지\s*생성 준비 중/ })).toBeVisible();
-  await expect(panel).toContainText("현재는 로컬 2D 프리뷰만 가능합니다.");
-  await expect(panel).toContainText("EXTERNAL API OFFLINE");
-  await expect(panel.locator(".reel-figure, img, button, a, input, [role=button], [tabindex]")).toHaveCount(0);
+  const panel = page.locator(".hero-reel-pending");
+  await expect(panel).toContainText("TRUSTED LOCAL IMAGE GENERATION");
+  await expect(panel).toContainText("STUDIO_HEADLESS_IMAGEGEN=1");
+  await expect(panel.locator("button, a, input, [role=button], [tabindex]")).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("home-generation-status.png"), fullPage: true });
 });
 test("direction presets are explicit controls and do not start generation", async ({ page }) => {

@@ -136,3 +136,198 @@ test("releases the in-flight lock after a provider failure", async () => {
   await nextTick();
   assert.equal(service.getHeadlessImageSpike().generation.status, "completed");
 });
+const validPhotoConditions = { subject: "fictional_adult", age: "adult_30s", era: "contemporary", setting: "city_night", presentation: "unspecified", framing: "upper_body", cameraAngle: "three_quarter", clothing: "casual", peopleCount: "one" };
+const validPhotoDraft = { mode: "text_to_photo", detailPrompt: "A fictional adult waits beneath rain reflections on an original city street, with cinematic but natural lighting.", conditions: validPhotoConditions, rightsAccepted: true, clientRequestId: "photo-request-0001" };
+const validPngDataUrl = "data:image/png;base64,iVBORw0KGgo=";
+
+test("creates a trusted-local photo job with observed lifecycle phases and no source-data leak", async () => {
+  const scheduled = [];
+  let resolveGeneration;
+  let time = Date.parse("2026-08-05T12:00:00.000Z");
+  let received;
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: ({ prompt, reference, onPhase }) => {
+      received = { prompt, reference };
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      return new Promise((resolve) => { resolveGeneration = resolve; });
+    },
+  };
+  const service = new StudioService({ now: () => new Date(time), schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-request-0002", referenceImage: { mimeType: "image/png", dataUrl: validPngDataUrl } });
+  assert.equal(created.status, 202);
+  assert.equal(created.project.status, "queued");
+  assert.equal(created.project.job.phase, "validated");
+  assert.equal(created.project.job.progressBasis, "observed_server_lifecycle");
+  assert.equal(JSON.stringify(created.project).includes("data:image"), false);
+  scheduled.shift()();
+  await nextTick();
+  const active = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(active.status, "in_progress");
+  assert.equal(active.job.phase, "provider_started");
+  assert.equal(active.job.progress, 55);
+  assert.equal(active.job.observedProgress, 55);
+  assert.equal(active.job.forecastHighWater, 0);
+  assert.equal(active.job.estimatedRemainingSeconds, null);
+  assert.equal(active.job.etaState, "awaiting_observed_samples");
+  assert.equal(received.reference.mimeType, "image/png");
+  assert.equal(received.prompt.includes("A fictional adult waits"), true);
+  time += 12_000;
+  assert.equal(service.getPhotorealisticProject(created.project.id).project.job.estimatedRemainingSeconds, null);
+  resolveGeneration({ id: "photo-result", kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: 9, height: 16, aspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", notice: "test" });
+  await nextTick();
+  const completed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.job.phase, "completed");
+  assert.equal(completed.job.estimatedRemainingSeconds, 0);
+  assert.equal(completed.delivery.asset.generatedByAi, true);
+  assert.equal(JSON.stringify(completed.audit).includes("data:image"), false);
+  const duplicate = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-request-0002", referenceImage: { mimeType: "image/png", dataUrl: validPngDataUrl } });
+  assert.equal(duplicate.status, 409);
+  assert.equal(duplicate.error, "duplicate_submission");
+});
+
+test("rejects unsafe, invalid, and unconfigured real-image requests without starting a provider", () => {
+  let called = 0;
+  const disabled = new StudioService({ headlessImageProvider: { status: () => ({ enabled: false, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "disabled" }), generateUserImage: () => { called += 1; } } });
+  const unavailable = disabled.createPhotorealisticProject(validPhotoDraft);
+  assert.equal(unavailable.status, 503);
+  assert.equal(called, 0);
+  const service = new StudioService({ headlessImageProvider: { status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }), generateUserImage: () => { called += 1; } } });
+  const missingSource = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-request-0003" });
+  assert.equal(missingSource.status, 422);
+  assert.equal(missingSource.errors.some((entry) => entry.code === "reference_format"), true);
+  const unsafe = service.createPhotorealisticProject({ ...validPhotoDraft, detailPrompt: "Create an explicit nude child portrait in a realistic style with visible details.", clientRequestId: "photo-request-0004" });
+  assert.equal(unsafe.status, 422);
+  assert.equal(unsafe.errors.some((entry) => entry.code.includes("unsafe")), true);
+  assert.equal(called, 0);
+});
+test("calculates server-side gradual forecast progress only after matching observed samples and keeps terminal completion exact", async () => {
+  const scheduled = [];
+  let resolveGeneration;
+  let time = Date.parse("2026-08-05T12:00:00.000Z");
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: ({ onPhase }) => {
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      return new Promise((resolve) => { resolveGeneration = resolve; });
+    },
+  };
+  const service = new StudioService({ now: () => new Date(time), schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  assert.equal(service.forecastPhotorealisticProgress(61, 75), 73);
+  service.photorealisticDurationSamples = [{ bucket: "text_to_photo_still", seconds: 60 }, { bucket: "text_to_photo_still", seconds: 75 }];
+  assert.equal(service.estimatedPhotorealisticDurationSeconds({ kind: "still" }, "text_to_photo"), null);
+  service.photorealisticDurationSamples.push({ bucket: "text_to_photo_still", seconds: 90 });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-request-0005" });
+  scheduled.shift()();
+  await nextTick();
+  time += 60_000;
+  const forecast = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(forecast.job.estimatedDurationSeconds, 75);
+  assert.equal(forecast.job.estimatedRemainingSeconds, 15);
+  assert.equal(forecast.job.etaState, "estimated");
+  assert.equal(forecast.job.progressBasis, "server_lifecycle_and_duration_forecast");
+  assert.equal(forecast.job.progress, 72);
+  assert.equal(forecast.job.observedProgress, 55);
+  assert.equal(forecast.job.forecastHighWater, 72);
+  time -= 10_000;
+  const clockRollback = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(clockRollback.job.elapsedSeconds, 60);
+  assert.equal(clockRollback.job.estimatedRemainingSeconds, 15);
+  assert.equal(clockRollback.job.progress, 72);
+  time += 26_000;
+  const overdue = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(overdue.job.estimatedRemainingSeconds, null);
+  assert.equal(overdue.job.etaState, "estimate_exceeded");
+  assert.equal(overdue.job.progressBasis, "server_lifecycle_and_duration_forecast");
+  assert.equal(overdue.job.progress, 90);
+  resolveGeneration({ id: "photo-result-warning", kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: 9, height: 16, aspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", notice: "test", cleanupWarning: { code: "cleanup_warning", osCode: "EBUSY", workspace: "ars-headless-imagegen-test" } });
+  await nextTick();
+  const completed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(completed.job.elapsedSeconds, 76);
+  assert.equal(completed.job.progress, 100);
+  assert.equal(completed.job.progressBasis, "observed_server_lifecycle");
+  assert.deepEqual(completed.delivery.asset.cleanupWarning, { code: "cleanup_warning", osCode: "EBUSY", workspace: "ars-headless-imagegen-test" });
+  time += 20_000;
+  assert.equal(service.getPhotorealisticProject(created.project.id).project.job.elapsedSeconds, 76);
+});
+
+test("records an asynchronous trusted-local photo provider failure with a safe cleanup warning", async () => {
+  const scheduled = [];
+  const cleanupWarning = { code: "cleanup_warning", osCode: "EBUSY", workspace: "ars-headless-imagegen-test" };
+  const unsafeProviderDiagnostics = { diagnosticCode: "provider_exit_nonzero", exitCode: 1, elapsedSeconds: 2, stderrBytes: 91, stderrTruncated: false, stderrText: "data:image/png;base64,private", sourcePath: "C:\\Temp\\source.png" };
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: async ({ onPhase }) => {
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      onPhase("completed");
+      throw Object.assign(new Error("The local provider stopped after starting."), { cleanupWarning, providerDiagnostics: unsafeProviderDiagnostics });
+    },
+  };
+  const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-request-0006" });
+  assert.equal(created.status, 202);
+  scheduled.shift()();
+  await nextTick();
+  const failed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.job.phase, "failed");
+  assert.equal(failed.job.progress < 100, true);
+  assert.equal(failed.job.progress, 55);
+  assert.equal(failed.error.code, "provider_failed");
+  assert.deepEqual(failed.error.cleanupWarning, cleanupWarning);
+  assert.deepEqual(failed.error.providerDiagnostics, { diagnosticCode: "provider_exit_nonzero", exitCode: 1, elapsedSeconds: 2, stderrBytes: 91, stderrTruncated: false });
+  assert.equal(failed.audit.at(-1).diagnosticCode, "provider_exit_nonzero");
+  assert.equal(JSON.stringify({ error: failed.error, audit: failed.audit }).includes("data:image"), false);
+  assert.deepEqual(service.photorealisticDurationSamples, []);
+});
+test("creates a motion GIF job with observed frame encoding and a terminal-only 100 percent result", async () => {
+  const scheduled = [];
+  let resolveGeneration;
+  let requestedOutput;
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: ({ output, onPhase }) => {
+      requestedOutput = output;
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      onPhase("output_validated");
+      onPhase("gif_encoding", { currentFrame: 0, frameCount: output.frameCount });
+      onPhase("gif_encoding", { currentFrame: output.frameCount, frameCount: output.frameCount });
+      return new Promise((resolve) => { resolveGeneration = resolve; });
+    },
+  };
+  const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, outputKind: "motion_gif", frameCount: 12, clientRequestId: "photo-motion-gif-0001" });
+  assert.equal(created.status, 202);
+  assert.deepEqual(created.project.output, { kind: "motion_gif", frameCount: 12, fps: 10 });
+  assert.equal(created.project.job.progress, 10);
+  scheduled.shift()();
+  await nextTick();
+  const encoding = service.getPhotorealisticProject(created.project.id).project;
+  assert.deepEqual(requestedOutput, { kind: "motion_gif", frameCount: 12, fps: 10 });
+  assert.equal(encoding.status, "in_progress");
+  assert.equal(encoding.job.phase, "gif_encoding");
+  assert.equal(encoding.job.encodedFrameCount, 12);
+  assert.equal(encoding.job.progress, 99);
+  resolveGeneration({ id: "gif-result", kind: "user_motion_gif", origin: "local_motion_gif_from_generated_still", generatedByAi: true, mimeType: "image/gif", width: 432, height: 768, aspectRatio: "9:16", frameCount: 12, fps: 10, durationSeconds: 1.2, byteLength: 1024, dataUri: "data:image/gif;base64,R0lGODlh", notice: "motion test" });
+  await nextTick();
+  const completed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.job.progress, 100);
+  assert.equal(completed.delivery.asset.mimeType, "image/gif");
+  assert.equal(completed.delivery.asset.frameCount, 12);
+  assert.equal(JSON.stringify(completed.audit).includes("data:image"), false);
+});
+
+test("rejects out-of-range motion GIF frame counts before provider start", () => {
+  let called = 0;
+  const service = new StudioService({ headlessImageProvider: { status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }), generateUserImage: () => { called += 1; } } });
+  const invalid = service.createPhotorealisticProject({ ...validPhotoDraft, outputKind: "motion_gif", frameCount: 31, clientRequestId: "photo-motion-gif-0002" });
+  assert.equal(invalid.status, 422);
+  assert.equal(invalid.errors.some((entry) => entry.code === "photo_frame_count"), true);
+  assert.equal(called, 0);
+});

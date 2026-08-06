@@ -8,15 +8,16 @@
     "dev:api": "node server/server.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test:api": "node --test server/headless-image-provider.test.mjs server/studio-service.test.mjs server/server.test.mjs",
+    "test:api": "node --test --experimental-test-isolation=none server/motion-gif-renderer.test.mjs server/headless-image-provider.test.mjs server/studio-service.test.mjs server/server.test.mjs",
     "test:e2e": "playwright test",
     "check:ars-001": "node scripts/check-ars-001-readiness.mjs",
-    "test:ars-001": "node --test scripts/check-ars-001-readiness.test.mjs"
+    "test:ars-001": "node --test --experimental-test-isolation=none scripts/check-ars-001-readiness.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "sharp": "^0.35.3",
     "typescript": "latest",
     "vite": "latest"
   },

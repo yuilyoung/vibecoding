@@ -38,3 +38,13 @@ Before selecting or integrating any video provider, obtain:
 
 - [OpenAI Sora discontinuation notice](https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation)
 - [OpenAI API deprecations](https://developers.openai.com/api/docs/deprecations)
+## Additive trusted-local photorealistic-still experiment
+
+The local 2D preview remains the default MVP path described above. A separate opt-in local experiment now exists for a trusted developer machine with `STUDIO_HEADLESS_IMAGEGEN=1`: it produces one actual 9:16 photorealistic PNG through local `codex exec` and `$imagegen`, either from a structured/user-authored prompt or from one user-attested original 2D still.
+
+This is deliberately not a provider selection or a public product launch. The API remains loopback-only, no browser secret is exposed, source 2D bytes are limited to one PNG/JPEG/WebP under 6 MB and live only in a disposable local workspace, and the result remains in the ignored local `generated/` directory plus the in-memory session response. The server rejects unsupported conditions and obvious protected-work, real-person, minor, and sexual wording, but this is not image scanning, identity verification, or a complete policy review.
+
+The interface shows observed server lifecycle milestones and GIF frame encoding progress. After at least three matching successful local-session duration samples, it advances an elapsed-time forecast only up to 90%; output validation is 90%, actual GIF-frame callbacks occupy 91 to 99%, and only a validated terminal artifact reaches 100%. Codex still exposes neither model-render percent nor a provider ETA. In 2D-to-photo mode only, the validated source is staged in the disposable workspace and passed once to the signed-in Codex CLI with `--image <absolute staged path>`, so the image generator can use it as a visual reference while the user story remains authoritative for the intended action, emotion, and event. Text-to-photo mode has no attachment. The workspace is deleted after the nested command and the source bytes, filename, and path are not retained in project, audit, or generated output records. See [trusted-local experiment](11-trusted-local-photorealistic-experiment.md) for the operating boundary.
+## Motion-GIF addendum
+
+The trusted-local experiment may encode a 2 to 30 frame, 10fps, 9:16 GIF only after its one generated PNG has been validated. The encoder uses a deterministic local pan/zoom over that single still and writes an ignored local artifact. It is neither AI video nor per-frame AI regeneration, does not consume extra image-generation allowance, and does not satisfy any of the future video release gates above. The observed lifecycle bar remains below 100% until terminal artifact validation.

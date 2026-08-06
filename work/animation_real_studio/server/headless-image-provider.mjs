@@ -6,12 +6,18 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from "node:pat
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
+import { MotionGifRenderer } from "./motion-gif-renderer.mjs";
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const CHILD_ENVIRONMENT_KEYS = ["PATH", "PATHEXT", "SystemRoot", "SYSTEMROOT", "WINDIR", "ComSpec", "COMSPEC", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "TEMP", "TMP"];
 const TARGET_ASPECT_RATIO = 9 / 16;
 const TARGET_ASPECT_RATIO_TOLERANCE = 0.001;
+const USER_REFERENCE_EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const DEFAULT_TIMEOUT_MS = 300_000;
+const MIN_TIMEOUT_MS = 60_000;
+const MAX_TIMEOUT_MS = 600_000;
+const STDERR_DIAGNOSTIC_LIMIT = 8 * 1024;
 const PROBE_PROMPT = `
 Use $imagegen to create exactly one original, non-identifying photorealistic still for a local capability probe.
 
@@ -87,23 +93,77 @@ function crc32(bytes) {
   }
   return (value ^ 0xffffffff) >>> 0;
 }
-function runCodexExec({ command, args, cwd, environment, timeoutMs }) {
+function boundedTimeoutMs(value, fallback = DEFAULT_TIMEOUT_MS) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.floor(parsed)));
+}
+
+function diagnosticCodeForSpawnError(error) {
+  if (error?.code === "EPERM" || error?.code === "EACCES") return "process_permission_denied";
+  if (error?.code === "ENOENT") return "codex_command_not_found";
+  return "provider_start_failed";
+}
+
+function diagnosticCodeForStderr(stderr) {
+  const normalized = stderr.toLowerCase();
+  if (/not logged|sign in|authentication|auth(?:entication)? required/.test(normalized)) return "codex_not_authenticated";
+  if (/sandbox|permission denied|approval required/.test(normalized)) return "sandbox_rejected";
+  if (/rate limit|quota|allowance/.test(normalized)) return "quota_or_rate_limited";
+  return "provider_exit_nonzero";
+}
+
+function providerFailure(execution) {
+  const error = new HeadlessImageProviderError("provider_failed", "Codex headless image generation ended before it produced result.png.");
+  if (execution?.providerDiagnostics) error.providerDiagnostics = execution.providerDiagnostics;
+  return error;
+}
+
+function runCodexExec({ command, args, cwd, environment, timeoutMs, onStarted = () => {} }) {
   return new Promise((resolveRun, rejectRun) => {
     let finished = false;
     let timeout;
+    const startedAt = Date.now();
+    let stderrBytes = 0;
+    let stderrTruncated = false;
+    let capturedStderrBytes = 0;
+    const stderrChunks = [];
+    const diagnostics = (extra = {}) => ({ elapsedSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)), stderrBytes, stderrTruncated, ...extra });
     const finish = (action) => {
       if (finished) return;
       finished = true;
       clearTimeout(timeout);
       action();
     };
-    const child = spawn(command, args, { cwd, env: environment, windowsHide: true, stdio: "ignore" });
+    const child = spawn(command, args, { cwd, env: environment, windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+    child.once("spawn", onStarted);
+    child.stderr?.on("data", (chunk) => {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      stderrBytes += bytes.length;
+      if (stderrBytes > STDERR_DIAGNOSTIC_LIMIT) stderrTruncated = true;
+      if (capturedStderrBytes < STDERR_DIAGNOSTIC_LIMIT) {
+        const retained = bytes.subarray(0, STDERR_DIAGNOSTIC_LIMIT - capturedStderrBytes);
+        stderrChunks.push(retained);
+        capturedStderrBytes += retained.length;
+      }
+    });
     timeout = setTimeout(() => {
       child.kill();
-      finish(() => rejectRun(new HeadlessImageProviderError("provider_timeout", "Headless image generation timed out.")));
+      const error = new HeadlessImageProviderError("provider_timeout", `Headless image generation timed out after ${Math.ceil(timeoutMs / 1000)} seconds. The provider did not save result.png before the deadline.`);
+      error.providerDiagnostics = diagnostics({ diagnosticCode: "provider_timeout", timeoutSeconds: Math.ceil(timeoutMs / 1000) });
+      finish(() => rejectRun(error));
     }, timeoutMs);
-    child.once("error", () => finish(() => rejectRun(new HeadlessImageProviderError("provider_unavailable", "Codex headless execution could not be started."))));
-    child.once("exit", (exitCode) => finish(() => resolveRun({ exitCode })));
+    child.once("error", (spawnError) => {
+      const error = new HeadlessImageProviderError("provider_unavailable", "Codex headless execution could not be started.");
+      error.providerDiagnostics = diagnostics({ diagnosticCode: diagnosticCodeForSpawnError(spawnError) });
+      finish(() => rejectRun(error));
+    });
+    child.once("exit", (exitCode, signal) => {
+      const capturedStderr = Buffer.concat(stderrChunks).toString("utf8");
+      stderrChunks.length = 0;
+      const providerDiagnostics = diagnostics({ exitCode, ...(signal ? { signal } : {}), ...(exitCode === 0 ? {} : { diagnosticCode: diagnosticCodeForStderr(capturedStderr) }) });
+      finish(() => resolveRun({ exitCode, signal, providerDiagnostics }));
+    });
   });
 }
 
@@ -149,8 +209,11 @@ export class HeadlessCodexImageProvider {
     command = "codex",
     run = runCodexExec,
     outputDirectory = resolve(PROJECT_ROOT, "generated", "headless-image-probe"),
+    userOutputDirectory = resolve(PROJECT_ROOT, "generated", "user-photorealistic-stills"),
+    motionGifOutputDirectory = resolve(PROJECT_ROOT, "generated", "user-motion-gifs"),
+    motionGifRenderer = new MotionGifRenderer(),
     temporaryDirectory = tmpdir(),
-    timeoutMs = 180_000,
+    timeoutMs = null,
     newId = randomUUID,
     cleanup = rm,
     wait = delay,
@@ -160,8 +223,11 @@ export class HeadlessCodexImageProvider {
     this.command = command;
     this.run = run;
     this.outputDirectory = outputDirectory;
+    this.userOutputDirectory = userOutputDirectory;
+    this.motionGifOutputDirectory = motionGifOutputDirectory;
+    this.motionGifRenderer = motionGifRenderer;
     this.temporaryDirectory = temporaryDirectory;
-    this.timeoutMs = timeoutMs;
+    this.timeoutMs = boundedTimeoutMs(timeoutMs ?? environment.STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS);
     this.newId = newId;
     this.cleanup = cleanup;
     this.wait = wait;
@@ -199,7 +265,7 @@ export class HeadlessCodexImageProvider {
         outputPath: isolatedOutputPath,
         prompt,
       });
-      if (execution.exitCode !== 0) throw new HeadlessImageProviderError("provider_failed", "Codex headless image generation did not complete successfully.");
+      if (execution.exitCode !== 0) throw providerFailure(execution);
       let bytes;
       try {
         bytes = await readFile(isolatedOutputPath);
@@ -226,6 +292,53 @@ export class HeadlessCodexImageProvider {
     } catch (error) {
       primaryError = error;
     }
+    const warning = await cleanupProbeWorkspace({ workspace, temporaryDirectory: this.temporaryDirectory, remove: this.cleanup, wait: this.wait, attempts: this.cleanupAttempts });
+    if (primaryError) {
+      if (warning && typeof primaryError === "object") primaryError.cleanupWarning = warning;
+      throw primaryError;
+    }
+    return warning ? { ...asset, cleanupWarning: warning } : asset;
+  }
+  async generateUserImage({ prompt, reference = null, output = { kind: "still", frameCount: 1 }, onPhase = () => {} } = {}) {
+    if (!this.status().enabled) throw new HeadlessImageProviderError("provider_not_configured", "Headless image generation is disabled on this Studio API process.");
+    if (typeof prompt !== "string" || !prompt.trim()) throw new HeadlessImageProviderError("invalid_prompt", "A validated image prompt is required.");
+    if (reference && (!Buffer.isBuffer(reference.bytes) || !USER_REFERENCE_EXTENSIONS[reference.mimeType])) throw new HeadlessImageProviderError("invalid_reference", "The 2D reference image is invalid.");
+    if (!output || !["still", "motion_gif"].includes(output.kind) || (output.kind === "motion_gif" && (!Number.isInteger(output.frameCount) || output.frameCount < 2 || output.frameCount > 30))) throw new HeadlessImageProviderError("invalid_output", "Choose a still or a 2 to 30 frame motion GIF output.");
+    const id = `photo-${this.newId()}`;
+    const outputPath = resolve(this.userOutputDirectory, `${id}.png`);
+    const motionGifOutputPath = resolve(this.motionGifOutputDirectory, `${id}.gif`);
+    const workspace = await mkdtemp(join(this.temporaryDirectory, "ars-headless-imagegen-"));
+    const isolatedOutputPath = resolve(workspace, "result.png");
+    const stagedReferencePath = reference ? resolve(workspace, `source.${USER_REFERENCE_EXTENSIONS[reference.mimeType]}`) : null;
+    const sourceInstruction = reference ? "Reference precedence: after hard safety/rights constraints and the validated visual brief plus story direction, use the attached user-attested original 2D image as the primary visual reference for rendering continuity. The story direction wins for the subject's action, emotion, event, and intentional scene change; do not let the unchanged source pose or background replace that story. For all non-conflicting traits, first inspect and preserve: subject count; fictional adult silhouette and pose; non-identifying hairstyle; clothing category, colour, and material; non-logo accessories; camera angle, framing, and perspective; background setting, layout, focal-object placement, lighting, weather, and colour palette. Preserve only original, non-identifying design traits: never reproduce a real-person likeness or face identity, a celebrity, a copyrighted character or protected distinctive design, a logo, signature, watermark, or readable text. If a source trait conflicts with the validated brief, story direction, or safety constraints, replace only that conflicting trait while preserving the remaining visual continuity." : "There is no source image. Create the image from the validated visual brief and story direction only.";
+    const providerPrompt = `Use $imagegen to create exactly one original, non-identifying photorealistic still for the trusted-local Animation Real Studio experiment.\n\n${sourceInstruction}\n\n${prompt.trim()}\n\nFollow the validated story direction for action, emotion, event, and intentional scene change; use the source only for non-conflicting visual continuity.\nComposition/framing: vertical 9:16 portrait, 1152 by 2048 pixels.\nHard constraints: all people must be clearly fictional adults; do not create a recognisable real person, celebrity, copyrighted character, logo, signature, watermark, readable text, graphic sexual content, or violence.\nSave the final PNG to this exact relative path: result.png.\nDo not read, create, or edit any other file except the attached reference and result.png. In your final response, report only whether result.png was saved.`;
+    let asset;
+    let primaryError;
+    try {
+      if (stagedReferencePath) await writeFile(stagedReferencePath, reference.bytes);
+      onPhase("workspace_prepared");
+      let providerStarted = false;
+      const onProviderStarted = () => { if (!providerStarted) { providerStarted = true; onPhase("provider_started"); } };
+      const execution = await this.run({ command: this.command, args: ["exec", "--ephemeral", "--sandbox", "workspace-write", "--skip-git-repo-check", "--cd", workspace, providerPrompt, ...(stagedReferencePath ? ["--image", stagedReferencePath] : [])], cwd: workspace, environment: sanitizedEnvironment(this.environment), timeoutMs: this.timeoutMs, outputPath: isolatedOutputPath, prompt: providerPrompt, onStarted: onProviderStarted });
+      if (execution.exitCode !== 0) throw providerFailure(execution);
+      let bytes;
+      try { bytes = await readFile(isolatedOutputPath); }
+      catch { throw new HeadlessImageProviderError("provider_output_missing", "Codex completed without saving the expected PNG output."); }
+      const dimensions = imageDimensions(bytes);
+      if (!dimensions || !matchesTargetAspect(dimensions)) throw new HeadlessImageProviderError("provider_invalid_output", "The generated image is not within the 0.1% 9:16 aspect-ratio tolerance.");
+      onPhase("output_validated");
+      await mkdir(dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, bytes);
+      if (output.kind === "motion_gif") {
+        onPhase("gif_encoding", { currentFrame: 0, frameCount: output.frameCount });
+        const encoded = await this.motionGifRenderer.render({ sourceBytes: bytes, frameCount: output.frameCount, onFrame: ({ currentFrame, frameCount }) => onPhase("gif_encoding", { currentFrame, frameCount }) });
+        await mkdir(dirname(motionGifOutputPath), { recursive: true });
+        await writeFile(motionGifOutputPath, encoded.bytes);
+        asset = { id, kind: "user_motion_gif", origin: "local_motion_gif_from_generated_still", generatedByAi: true, mimeType: encoded.mimeType, width: encoded.width, height: encoded.height, aspectRatio: "9:16", frameCount: encoded.frameCount, fps: encoded.fps, durationSeconds: encoded.durationSeconds, byteLength: encoded.byteLength, dataUri: `data:image/gif;base64,${encoded.bytes.toString("base64")}`, notice: "Trusted-local deterministic motion GIF built from one generated photorealistic still. It is not AI video or frame-by-frame image generation." };
+      } else {
+        asset = { id, kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: dimensions.width, height: dimensions.height, aspectRatio: "9:16", frameCount: 1, fps: null, durationSeconds: null, byteLength: bytes.length, dataUri: `data:image/png;base64,${bytes.toString("base64")}`, notice: reference ? "Trusted-local experimental image. The user-attested 2D reference was attached to Codex for this request." : "Trusted-local experimental image generated from the validated visual brief." };
+      }
+    } catch (error) { primaryError = error; }
     const warning = await cleanupProbeWorkspace({ workspace, temporaryDirectory: this.temporaryDirectory, remove: this.cleanup, wait: this.wait, attempts: this.cleanupAttempts });
     if (primaryError) {
       if (warning && typeof primaryError === "object") primaryError.cleanupWarning = warning;
