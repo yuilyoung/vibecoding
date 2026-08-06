@@ -251,7 +251,7 @@ test("headless provider attaches an attested 2D input only to the Codex invocati
     const asset = await provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait.", reference: { mimeType: "image/png", bytes: reference }, onPhase: (phase) => phases.push(phase) });
     assert.equal(asset.kind, "user_photorealistic_still");
     assert.equal(asset.aspectRatio, "9:16");
-    assert.deepEqual(phases, ["workspace_prepared", "provider_started", "output_validated"]);
+    assert.deepEqual(phases, ["workspace_prepared", "provider_started", "output_validated", "artifact_ready"]);
     assert.match(invocation.prompt, /original adult-safe rain-lit portrait/);
     assert.match(invocation.prompt, /primary visual reference/);
     assert.match(invocation.prompt, /story direction wins for the subject's action, emotion, event/);
@@ -314,7 +314,7 @@ test("headless provider assembles a requested motion GIF only after validating t
     assert.equal(asset.frameCount, 12);
     assert.equal(asset.fps, 10);
     assert.equal(receivedSource.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), true);
-    assert.deepEqual(phases.map(([phase]) => phase), ["workspace_prepared", "provider_started", "output_validated", "gif_encoding", "gif_encoding", "gif_encoding"]);
+    assert.deepEqual(phases.map(([phase]) => phase), ["workspace_prepared", "provider_started", "output_validated", "gif_encoding", "gif_encoding", "gif_encoding", "artifact_ready"]);
     await access(join(outputDirectory, "gifs", "photo-motion-gif.gif"));
   } finally { await rm(outputDirectory, { recursive: true, force: true }); }
 });

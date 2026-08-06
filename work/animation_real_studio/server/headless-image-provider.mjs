@@ -338,6 +338,7 @@ export class HeadlessCodexImageProvider {
       } else {
         asset = { id, kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: dimensions.width, height: dimensions.height, aspectRatio: "9:16", frameCount: 1, fps: null, durationSeconds: null, byteLength: bytes.length, dataUri: `data:image/png;base64,${bytes.toString("base64")}`, notice: reference ? "Trusted-local experimental image. The user-attested 2D reference was attached to Codex for this request." : "Trusted-local experimental image generated from the validated visual brief." };
       }
+      onPhase("artifact_ready");
     } catch (error) { primaryError = error; }
     const warning = await cleanupProbeWorkspace({ workspace, temporaryDirectory: this.temporaryDirectory, remove: this.cleanup, wait: this.wait, attempts: this.cleanupAttempts });
     if (primaryError) {

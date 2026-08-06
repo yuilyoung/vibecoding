@@ -17,7 +17,7 @@ const CONDITION_GROUPS: Array<{ key: ConditionKey; label: string; options: Condi
   { key: "peopleCount", label: "사람 수", options: [{ value: "zero", label: "0명" }, { value: "one", label: "1명" }, { value: "two", label: "2명" }, { value: "group", label: "3명 이상" }] },
 ];
 
-const PHASE_COPY: Record<PhotorealisticProject["job"]["phase"], string> = { validated: "요청과 조건을 검증했습니다", workspace_prepared: "안전한 임시 작업공간을 준비했습니다", provider_started: "이미지 생성기에 실제 요청을 전달했습니다", output_validated: "반환 이미지를 검증하고 있습니다", gif_encoding: "모션 GIF를 조립하고 있습니다", completed: "이미지 생성이 완료되었습니다", failed: "생성 작업이 실패했습니다" };
+const PHASE_COPY: Record<PhotorealisticProject["job"]["phase"], string> = { validated: "요청과 조건을 검증했습니다", workspace_prepared: "안전한 임시 작업공간을 준비했습니다", provider_started: "이미지 생성기에 실제 요청을 전달했습니다", output_validated: "반환 이미지를 검증하고 있습니다", gif_encoding: "모션 GIF를 조립하고 있습니다", artifact_ready: "\uACB0\uACFC \uD30C\uC77C\uC744 \uAC80\uC99D\uD574 \uC804\uB2EC \uC900\uBE44\uB97C \uB9C8\uCCE4\uC2B5\uB2C8\uB2E4", completed: "이미지 생성이 완료되었습니다", failed: "생성 작업이 실패했습니다" };
 
 function makeDefaultPrompt(conditions: PhotoConditions) {
   const group = (key: ConditionKey, value: string) => CONDITION_GROUPS.find((item) => item.key === key)?.options.find((option) => option.value === value)?.label ?? "";
@@ -25,12 +25,17 @@ function makeDefaultPrompt(conditions: PhotoConditions) {
   return `${group("setting", conditions.setting)}에서 ${group("age", conditions.age)} ${group("presentation", conditions.presentation)} 가상 성인이 ${group("clothing", conditions.clothing)} 차림으로 서 있는, ${group("framing", conditions.framing)} ${group("cameraAngle", conditions.cameraAngle)} 실사 시네마틱 장면. 자연스러운 빛과 물리적으로 설득력 있는 질감을 강조해 주세요.`;
 }
 function secondsCopy(seconds: number | null, etaState: PhotorealisticProject["job"]["etaState"]) {
-  if (seconds === null && etaState === "awaiting_observed_samples") return "\uB3D9\uC77C \uC720\uD615 \uC644\uB8CC \uD45C\uBCF8 3\uAC1C\uB97C \uBAA8\uC73C\uB294 \uC911";
   if (seconds === null) return "예상 시간을 넘겼습니다 — 계속 생성 중";
   if (seconds === 0) return "\uc644\ub8cc";
   if (seconds < 60) return `약 ${Math.max(1, seconds)}초 남음`;
   return `약 ${Math.ceil(seconds / 60)}분 남음`;
 }
+function etaSourceCopy(project: PhotorealisticProject) {
+  if (project.job.etaSource === "bucket_bootstrap") return "초기 추정 · 서버 제한시간과 결과 처리 여유 기준";
+  if (project.job.etaSource === "bucket_median") return `완료 표본 ${project.job.durationSampleCount}개 기반 추정`;
+  return "완료된 작업";
+}
+
 function phaseCopy(project: PhotorealisticProject) {
   if (project.job.phase === "gif_encoding") return `모션 GIF 프레임 ${project.job.encodedFrameCount}/${project.job.requestedFrameCount}을 조립하고 있습니다`;
   return PHASE_COPY[project.job.phase];
@@ -41,9 +46,12 @@ function observedProgress(project: PhotorealisticProject) {
 }
 function progressBasisCopy(project: PhotorealisticProject) {
   if (project.job.progressBasis === "server_lifecycle_and_duration_forecast") {
-    return "\uC11C\uBC84 \uC0DD\uBA85\uC8FC\uAE30\uC640 \uB3D9\uC77C \uC720\uD615\uC758 \uC2E4\uC81C \uC644\uB8CC \uC2DC\uAC04 \uD45C\uBCF8\uC73C\uB85C \uACC4\uC0B0\uD55C \uC644\uB8CC \uC608\uC0C1\uCE58\uC785\uB2C8\uB2E4. \uC2DC\uAC04 \uAE30\uBC18 \uC608\uC0C1\uC740 90%\uAE4C\uC9C0\uB9CC \uD45C\uC2DC\uD558\uACE0, 91~100%\uB294 \uC2E4\uC81C \uCD9C\uB825\u00B7\uC644\uB8CC \uAC80\uC99D\uC5D0\uC11C\uB9CC \uD45C\uC2DC\uD569\uB2C8\uB2E4.";
+    return `${etaSourceCopy(project)}입니다. 시간 기반 예상은 5% 단위로 95%까지만 표시하고, 100%는 실제 완료 검증에서만 표시합니다.`;
   }
   return "\uBAA8\uB378 \uB80C\uB354 \uBE44\uC728\uC774 \uC544\uB2CC \uC11C\uBC84 \uD655\uC778 \uB2E8\uACC4\uC785\uB2C8\uB2E4.";
+}
+function progressAriaText(project: PhotorealisticProject) {
+  return `${etaSourceCopy(project)}, 관측 단계: ${phaseCopy(project)}, ${observedProgress(project)}%`;
 }
 function dataUrlFromFile(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -141,9 +149,17 @@ export function RealPhotoStudio() {
       <section className="photo-control-panel photo-confirm"><label><input type="checkbox" checked={rightsAccepted} aria-describedby={mode === "animation_2d_to_photo" ? "photo-reference-egress" : undefined} onChange={(event) => setRightsAccepted(event.target.checked)} /><span>업로드하는 2D 이미지는 내가 권리를 보유한 원본이며, 실존 인물·유명인·미성년자·원작 캐릭터·로고·워터마크를 포함하지 않습니다. 생성 결과는 내 로컬 API 세션에만 남는 실험 결과임을 이해합니다.</span></label><button className="button button-primary" type="submit" disabled={isSubmitting || isActive}>{isSubmitting ? "작업 준비 중" : outputKind === "motion_gif" ? "모션 GIF 생성" : mode === "text_to_photo" ? "실사 이미지 생성" : "2D 원본 실사화"}<span>→</span></button></section>
       {error && <p className="photo-error" role="alert">{error}</p>}
     </form>
-    {project && <section className="photo-job" aria-live="polite">
-      <div className="photo-job-head"><div><p>LOCAL JOB / {project.id.toUpperCase()}</p><h2>{phaseCopy(project)}</h2><span>{project.job.progressBasis === "server_lifecycle_and_duration_forecast" ? "예상 진행률은 90%까지만 표시합니다. 91~100%는 서버가 검증한 실제 출력·완료 단계이며, 완료 이벤트 전에는 100%가 되지 않습니다." : "동일 유형의 완료 표본 3개 전에는 실제 서버 생명주기 단계만 표시합니다. 표본이 쌓이면 예상 진행률도 90%까지만 표시합니다."}</span></div><b>{project.status === "completed" ? "DONE" : project.status === "failed" ? "FAILED" : "LIVE"}</b></div>
-      {showProgress && <><div className="photo-phase-track" role="progressbar" aria-label={project.job.progressBasis === "server_lifecycle_and_duration_forecast" ? "서버 단계 및 완료 시간 표본 기반 예상 진행률" : "관측된 서버 생명주기 진행률"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={displayProgress}><span style={{ width: `${displayProgress}%` }} /></div><div className="photo-progress-copy"><b>{displayProgress}%</b><span>{progressBasisCopy(project)}</span></div><div className="photo-timing"><div><span>경과 시간</span><b>{displayElapsed}초</b></div><div><span>예상 잔여 시간</span><b>{secondsCopy(project.job.estimatedRemainingSeconds, project.job.etaState)}</b></div><div><span>현재 단계</span><b>{phaseCopy(project)}</b></div>{project.output.kind === "motion_gif" && <div><span>GIF 프레임</span><b>{project.job.encodedFrameCount}/{project.job.requestedFrameCount}</b></div>}</div></>}
+    {project && <section className={`photo-job ${isActive ? "is-active" : ""}`} aria-live="polite">
+      <div className="photo-job-head">
+        <div><p>LOCAL JOB / {project.id.toUpperCase()}</p><h2>{phaseCopy(project)}</h2><span>{project.job.etaSource === "bucket_bootstrap" ? "초기 추정 진행률은 5% 단위로 95%까지 표시합니다. 실제 완료 검증 전에는 100%가 되지 않습니다." : project.job.etaSource === "bucket_median" ? "완료 표본 기반 예상 진행률은 5% 단위로 95%까지 표시합니다. 실제 완료 검증 전에는 100%가 되지 않습니다." : "완료 상태는 서버가 검증한 실제 결과를 기준으로 표시합니다."}</span></div>
+        {isActive && <div className="photo-live-indicator" aria-hidden="true"><i /><span>서버 상태 확인 중</span></div>}
+        <b>{project.status === "completed" ? "DONE" : project.status === "failed" ? "FAILED" : "LIVE"}</b>
+      </div>
+      {showProgress && <>
+        <div className="photo-phase-track" role="progressbar" aria-label={project.job.etaSource === "bucket_bootstrap" ? "서버 초기 완료 예상 진행률" : project.job.etaSource === "bucket_median" ? "서버 완료 표본 기반 예상 진행률" : "관측된 서버 생명주기 진행률"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={displayProgress} aria-valuetext={progressAriaText(project)}><span style={{ width: `${displayProgress}%` }} /></div>
+        <div className="photo-progress-copy"><b>{displayProgress}%</b><span>{progressBasisCopy(project)}</span></div>
+        <div className="photo-timing"><div><span>경과 시간</span><b>{displayElapsed}초</b></div><div><span>예상 잔여 시간</span><b>{secondsCopy(project.job.estimatedRemainingSeconds, project.job.etaState)}</b></div><div><span>현재 단계</span><b>{phaseCopy(project)}</b></div><div><span>예상 기준</span><b>{etaSourceCopy(project)}</b></div>{project.output.kind === "motion_gif" && <div><span>GIF 프레임</span><b>{project.job.encodedFrameCount}/{project.job.requestedFrameCount}</b></div>}</div>
+      </>}
       {project.delivery && <figure className="photo-result"><img src={project.delivery.asset.dataUri} width={project.delivery.asset.width} height={project.delivery.asset.height} alt={project.delivery.asset.kind === "user_motion_gif" ? "생성된 비식별 실사 모션 GIF" : "생성된 비식별 실사 이미지"} /><figcaption><b>{project.delivery.asset.kind === "user_motion_gif" ? "MOTION GIF / 9:16" : "PHOTOREALISTIC STILL / 9:16"}</b><span>{project.delivery.asset.width} × {project.delivery.asset.height} · {project.delivery.asset.frameCount}프레임 · {project.delivery.asset.fps ? `${project.delivery.asset.fps}fps · ${project.delivery.asset.durationSeconds?.toFixed(1)}초` : "실사 PNG 한 장"}</span>{project.delivery.asset.kind === "user_motion_gif" && <small>한 장의 생성된 실사 이미지를 기반으로 한 결정적 pan/zoom GIF이며, AI 비디오·프레임별 재생성이 아닙니다.</small>}</figcaption></figure>}
       {project.delivery?.asset.cleanupWarning && <p className="photo-cleanup-warning" role="status">임시 작업 공간 정리 경고: <b>{project.delivery.asset.cleanupWarning.code}</b>. 업로드한 2D 원본의 임시 사본이 로컬 작업 공간에 남았을 수 있습니다. 로컬 운영자에게 정리를 요청하세요.</p>}
       {project.error && <div className="photo-error" role="alert"><b>{project.error.code}</b>{project.error.providerDiagnostics?.diagnosticCode && <small>진단 코드: <b>{project.error.providerDiagnostics.diagnosticCode}</b></small>}<span>{project.error.message}</span></div>}

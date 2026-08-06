@@ -68,8 +68,9 @@ const PHOTO_UNSAFE_RULES = [
   { code: "unsafe_minor", pattern: /\b(minor|child|children|underage|teen(?:ager)?)\b/i },
   { code: "unsafe_sexual", pattern: /\b(nude|nudity|explicit|sexual|nsfw)\b/i },
 ];
-const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 91, label: "gif_encoding" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
+const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 95, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
 const MIN_DURATION_SAMPLES = 3;
+const DEFAULT_BOOTSTRAP_PROVIDER_DEADLINE_SECONDS = 300;
 
 function photoIssue(field, message, code) { return issue(field, message, code); }
 function hasPhotoSignature(bytes, mimeType) {
@@ -296,18 +297,38 @@ export class StudioService {
     const ordered = [...values].sort((left, right) => left - right);
     return Math.max(15, ordered[Math.floor(ordered.length / 2)]);
   }
-  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds) {
-    return Math.min(90, Math.floor((90 * elapsedSeconds) / Math.max(1, estimatedDurationSeconds)));
+  photorealisticDurationSampleCount(output, mode) {
+    return (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === this.durationBucket(output, mode)).length;
+  }
+  bootstrapPhotorealisticDurationSeconds(output) {
+    const configuredTimeoutSeconds = Math.floor(Number(this.headlessImageProvider?.timeoutMs) / 1000);
+    const providerDeadlineSeconds = Number.isFinite(configuredTimeoutSeconds) && configuredTimeoutSeconds >= 60 && configuredTimeoutSeconds <= 600 ? configuredTimeoutSeconds : DEFAULT_BOOTSTRAP_PROVIDER_DEADLINE_SECONDS;
+    const outputBufferSeconds = output.kind === "still" ? 15 : output.frameCount <= 10 ? 25 : output.frameCount <= 20 ? 35 : 50;
+    return providerDeadlineSeconds + outputBufferSeconds;
+  }
+  photorealisticDurationEstimate(output, mode) {
+    const sampledSeconds = this.estimatedPhotorealisticDurationSeconds(output, mode);
+    const sampleCount = this.photorealisticDurationSampleCount(output, mode);
+    return sampledSeconds === null
+      ? { seconds: this.bootstrapPhotorealisticDurationSeconds(output), source: "bucket_bootstrap", sampleCount }
+      : { seconds: sampledSeconds, source: "bucket_median", sampleCount };
+  }
+  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds, maximumProgress = 95) {
+    const startProgress = Math.min(PHOTO_PHASES.provider_started.progress, maximumProgress);
+    const ratio = Math.min(1, Math.max(0, elapsedSeconds) / Math.max(1, estimatedDurationSeconds));
+    return Math.min(maximumProgress, Math.floor((startProgress + ((maximumProgress - startProgress) * ratio)) / 5) * 5);
   }
   setPhotorealisticPhase(project, phase, details = {}) {
     const state = PHOTO_PHASES[phase];
     if (!state || phase === "completed" || phase === "failed" || !project || project.status === "completed" || project.status === "failed") return;
     project.job.phase = state.label;
-    project.job.phaseStartedAt = this.now().toISOString();
+    const phaseStartedAt = this.now().toISOString();
+    project.job.phaseStartedAt = phaseStartedAt;
+    if (phase === "provider_started") project.job.forecastStartedAt = phaseStartedAt;
     if (phase === "gif_encoding") {
       project.job.encodedFrameCount = Math.max(0, Math.min(project.output.frameCount, Number(details.currentFrame) || 0));
-      project.job.observedProgress = Math.min(99, state.progress + Math.floor((project.job.encodedFrameCount / project.output.frameCount) * 9));
-      project.job.progress = project.job.observedProgress;
+      project.job.observedProgress = state.progress;
+      project.job.progress = state.progress;
     } else {
       project.job.observedProgress = state.progress;
       project.job.progress = state.progress;
@@ -324,39 +345,56 @@ export class StudioService {
     const rawElapsedSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((elapsedEnd - startedAt) / 1000)) : 0;
     const recordedElapsedSeconds = Number.isFinite(project.job?.elapsedSeconds) ? project.job.elapsedSeconds : 0;
     const elapsedSeconds = Math.max(recordedElapsedSeconds, rawElapsedSeconds);
+    const forecastStartedAt = snapshot.job?.forecastStartedAt ? Date.parse(snapshot.job.forecastStartedAt) : NaN;
+    const rawForecastElapsedSeconds = Number.isFinite(forecastStartedAt) ? Math.max(0, Math.floor((elapsedEnd - forecastStartedAt) / 1000)) : 0;
+    const recordedForecastElapsedSeconds = Number.isFinite(project.job?.forecastElapsedSeconds) ? project.job.forecastElapsedSeconds : 0;
+    const forecastElapsedSeconds = Math.max(recordedForecastElapsedSeconds, rawForecastElapsedSeconds);
     if (snapshot.job) {
       snapshot.job.elapsedSeconds = elapsedSeconds;
+      snapshot.job.forecastElapsedSeconds = forecastElapsedSeconds;
       const observedProgress = Number.isFinite(snapshot.job.observedProgress) ? snapshot.job.observedProgress : snapshot.job.progress ?? 0;
       const retainedForecast = Number.isFinite(project.job?.forecastHighWater) ? project.job.forecastHighWater : 0;
       snapshot.job.observedProgress = observedProgress;
       snapshot.job.forecastHighWater = retainedForecast;
       if (project.job) {
         project.job.elapsedSeconds = elapsedSeconds;
+        project.job.forecastElapsedSeconds = forecastElapsedSeconds;
         project.job.observedProgress ??= observedProgress;
         project.job.forecastHighWater ??= retainedForecast;
+      }
+      if (snapshot.status !== "completed" && snapshot.status !== "failed") {
+        const durationEstimate = this.photorealisticDurationEstimate(snapshot.output, snapshot.mode);
+        snapshot.job.estimatedDurationSeconds = durationEstimate.seconds;
+        snapshot.job.durationSampleCount = durationEstimate.sampleCount;
+        snapshot.job.etaSource = durationEstimate.source;
+        if (project.job) Object.assign(project.job, { estimatedDurationSeconds: durationEstimate.seconds, durationSampleCount: durationEstimate.sampleCount, etaSource: durationEstimate.source });
       }
       if (snapshot.status === "completed" || snapshot.status === "failed") {
         snapshot.job.estimatedRemainingSeconds = 0;
         snapshot.job.etaState = "terminal";
+        snapshot.job.etaSource = null;
         snapshot.job.progressBasis = "observed_server_lifecycle";
         snapshot.job.progress = snapshot.status === "completed" ? 100 : Math.max(observedProgress, retainedForecast);
       } else {
         if (snapshot.job.estimatedDurationSeconds === null) {
           snapshot.job.estimatedRemainingSeconds = null;
-          snapshot.job.etaState = "awaiting_observed_samples";
+          snapshot.job.etaState = "bootstrap";
+          snapshot.job.etaSource = "bucket_bootstrap";
           snapshot.job.progressBasis = "observed_server_lifecycle";
           snapshot.job.progress = observedProgress;
         } else {
-          const remaining = snapshot.job.estimatedDurationSeconds - elapsedSeconds;
+          const remaining = snapshot.job.estimatedDurationSeconds - forecastElapsedSeconds;
           snapshot.job.estimatedRemainingSeconds = remaining > 0 ? remaining : null;
-          snapshot.job.etaState = remaining > 0 ? "estimated" : "estimate_exceeded";
-          const supportsForecast = snapshot.status === "in_progress" && ["provider_started", "output_validated", "gif_encoding"].includes(snapshot.job.phase);
+          snapshot.job.etaState = remaining > 0 ? snapshot.job.etaSource === "bucket_median" ? "sampled" : "bootstrap" : "estimate_exceeded";
+          const supportsForecast = snapshot.status === "in_progress" && ["provider_started", "output_validated", "gif_encoding", "artifact_ready"].includes(snapshot.job.phase);
           if (supportsForecast) {
-            const forecast = this.forecastPhotorealisticProgress(elapsedSeconds, snapshot.job.estimatedDurationSeconds);
+            const forecastCap = snapshot.output.kind === "motion_gif" && snapshot.job.phase !== "artifact_ready" ? 90 : 95;
+            const forecast = this.forecastPhotorealisticProgress(forecastElapsedSeconds, snapshot.job.estimatedDurationSeconds, forecastCap);
             const forecastHighWater = Math.max(retainedForecast, forecast);
+            const visibleForecastHighWater = Math.min(forecastCap, forecastHighWater);
             if (project.job) project.job.forecastHighWater = forecastHighWater;
-            snapshot.job.forecastHighWater = forecastHighWater;
-            snapshot.job.progress = Math.max(observedProgress, forecastHighWater);
+            snapshot.job.forecastHighWater = visibleForecastHighWater;
+            snapshot.job.progress = Math.max(observedProgress, visibleForecastHighWater);
             snapshot.job.progressBasis = "server_lifecycle_and_duration_forecast";
           } else { snapshot.job.progress = observedProgress; snapshot.job.progressBasis = "observed_server_lifecycle"; }
         }
@@ -378,7 +416,8 @@ export class StudioService {
     const id = `photo-${String(++this.sequence).padStart(4, "0")}`;
     const composedPrompt = composePhotorealisticPrompt(draft.detailPrompt, draft.conditions, draft.mode);
     const output = { kind: draft.outputKind, frameCount: draft.frameCount, fps: draft.outputKind === "motion_gif" ? GIF_FRAME_RATE : null };
-    const estimate = this.estimatedPhotorealisticDurationSeconds(output, draft.mode);
+    const durationEstimate = this.photorealisticDurationEstimate(output, draft.mode);
+    const estimate = durationEstimate.seconds;
     const project = {
       id,
       createdAt: at,
@@ -390,7 +429,7 @@ export class StudioService {
       composedPrompt,
       output,
       source: draft.reference ? { kind: "attested_original_2d", processing: "ephemeral_codex_image_attachment" } : null,
-      job: { id: `photo-job-${id}`, provider: provider.provider, mode: draft.mode, outputKind: output.kind, requestedFrameCount: output.frameCount, encodedFrameCount: 0, fps: output.fps, status: "queued", phase: "validated", progress: PHOTO_PHASES.validated.progress, observedProgress: PHOTO_PHASES.validated.progress, forecastHighWater: 0, progressBasis: "observed_server_lifecycle", startedAt: null, phaseStartedAt: at, completedAt: null, estimatedDurationSeconds: estimate, elapsedSeconds: 0, estimatedRemainingSeconds: estimate === null ? null : estimate, etaState: estimate === null ? "awaiting_observed_samples" : "estimated", durationSampleCount: (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === this.durationBucket(output, draft.mode)).length },
+      job: { id: `photo-job-${id}`, provider: provider.provider, mode: draft.mode, outputKind: output.kind, requestedFrameCount: output.frameCount, encodedFrameCount: 0, fps: output.fps, status: "queued", phase: "validated", progress: PHOTO_PHASES.validated.progress, observedProgress: PHOTO_PHASES.validated.progress, forecastHighWater: 0, progressBasis: "observed_server_lifecycle", startedAt: null, phaseStartedAt: at, forecastStartedAt: null, completedAt: null, estimatedDurationSeconds: estimate, elapsedSeconds: 0, forecastElapsedSeconds: 0, estimatedRemainingSeconds: estimate, etaState: durationEstimate.source === "bucket_median" ? "sampled" : "bootstrap", etaSource: durationEstimate.source, durationSampleCount: durationEstimate.sampleCount },
       delivery: null,
       error: null,
       audit: [{ at, event: "photo_validated", jobId: `photo-job-${id}` }],
@@ -424,10 +463,13 @@ export class StudioService {
       project.audit.push({ at: project.updatedAt, event: "photo_completed", jobId: project.job.id });
       const elapsed = Math.max(1, project.job.elapsedSeconds ?? 0, Math.floor((Date.parse(project.job.completedAt) - Date.parse(project.job.startedAt)) / 1000));
       project.job.elapsedSeconds = elapsed;
+      const forecastStartAt = Date.parse(project.job.forecastStartedAt ?? project.job.startedAt);
+      const forecastElapsed = Math.max(1, project.job.forecastElapsedSeconds ?? 0, Math.floor((Date.parse(project.job.completedAt) - forecastStartAt) / 1000));
+      project.job.forecastElapsedSeconds = forecastElapsed;
       const bucket = this.durationBucket(project.output, project.mode);
       const otherBuckets = (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket !== bucket);
       const priorBucketSamples = (this.photorealisticDurationSamples ?? []).filter((sample) => sample.bucket === bucket).slice(-7);
-      this.photorealisticDurationSamples = [...otherBuckets, ...priorBucketSamples, { bucket, seconds: elapsed }];
+      this.photorealisticDurationSamples = [...otherBuckets, ...priorBucketSamples, { bucket, seconds: forecastElapsed }];
     } catch (error) {
       const code = typeof error?.code === "string" ? error.code : error instanceof HeadlessImageProviderError ? error.code : "provider_failed";
       const message = error instanceof Error ? error.message : "Photorealistic image generation failed.";
