@@ -1,9 +1,10 @@
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { createBoundedPromptPreview, redactSensitiveText } from "./safe-preview.mjs";
 
 const safeId = (value) => String(value ?? "unknown").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 96) || "unknown";
-const redact = (value) => String(value ?? "").replace(/(api[_-]?key|token|secret|password|authorization)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]").replace(/\bsk-[a-z0-9_-]{8,}\b/gi, "[REDACTED]");
+const redact = redactSensitiveText;
 const runtimeRoot = (workspace, environment) => environment.HERMES_STATE_DIR || environment.PLUGIN_DATA || path.join(workspace, ".codex", "runtime", "hermes");
 
 export class JsonlHarnessStore {
@@ -109,12 +110,15 @@ export class CompositeStatusObserver {
 }
 
 const agentId = (value) => safeId(value).slice(0, 64);
-const eventText = (value) => redact(value).replace(/(?:api[_-]?key|token|secret|password|authorization)=\[REDACTED\]/gi, "[REDACTED]").slice(0, 280);
+const eventText = (value) => redact(value).slice(0, 280);
+const promptPreview = createBoundedPromptPreview;
 
 export class NullAgentActivityObserver {
   heartbeat() {}
   lifecycle() {}
   communication() {}
+  prompt() {}
+  invocation() {}
 }
 
 export class DashboardAgentActivityObserver {
@@ -145,6 +149,31 @@ export class DashboardAgentActivityObserver {
   communication(from, to, kind, taskId, summary, correlationId) {
     const fromAgentId = agentId(from), toAgentId = agentId(to);
     this.append({ agentId: fromAgentId, state: "active", eventType: kind, taskId: safeId(taskId).slice(0, 128), communication: { fromAgentId, toAgentId, kind, summary: eventText(summary), correlationId: safeId(correlationId).slice(0, 128) } });
+  }
+
+  prompt(subject, taskId, value, details = {}) {
+    this.append({ agentId: agentId(subject), state: "active", eventType: "prompt", taskId: safeId(taskId).slice(0, 128), ...(details.invocationId ? { invocationId: safeId(details.invocationId).slice(0, 128), invocationProvider: details.invocationProvider ?? "runtime" } : {}), prompt: promptPreview(value) });
+  }
+
+  invocation(parent, child, taskId, details) {
+    const parentAgentId = agentId(parent), childAgentId = agentId(child), direction = details.direction;
+    this.append({
+      agentId: direction === "call" ? parentAgentId : childAgentId,
+      state: details.stage === "failed" ? "failed" : details.stage === "stopped" ? "idle" : "active",
+      eventType: "invocation",
+      taskId: safeId(taskId).slice(0, 128),
+      invocation: {
+        invocationId: safeId(details.invocationId).slice(0, 128),
+        parentInvocationId: details.parentInvocationId ? safeId(details.parentInvocationId).slice(0, 128) : null,
+        rootInvocationId: safeId(details.rootInvocationId ?? details.invocationId).slice(0, 128),
+        parentAgentId,
+        childAgentId,
+        stage: details.stage,
+        direction,
+        sequence: details.sequence,
+        provenance: { provider: "runtime", reference: eventText(details.reference ?? "hermes:subagent") },
+      },
+    });
   }
 }
 

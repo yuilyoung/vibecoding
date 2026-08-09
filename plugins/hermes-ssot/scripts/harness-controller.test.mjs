@@ -116,10 +116,55 @@ test("dashboard activity observer emits validated heartbeat and communication ev
   observer.heartbeat("ultron", "run-1");
   observer.heartbeat("reviewer", "run-1");
   observer.communication("ultron", "reviewer", "delegation", "run-1", "Review api_key=hidden", "correlation-1");
+  observer.prompt("ultron", "run-1", "Review password=hidden " + "가".repeat(200));
+  const invocation = { invocationId: "review-1", parentInvocationId: null, rootInvocationId: "review-1" };
+  observer.invocation("ultron", "reviewer", "run-1", { ...invocation, stage: "created", direction: "call", sequence: 1, reference: "hermes:test" });
+  observer.invocation("ultron", "reviewer", "run-1", { ...invocation, stage: "called", direction: "call", sequence: 2, reference: "hermes:test" });
+  observer.invocation("ultron", "reviewer", "run-1", { ...invocation, stage: "responded", direction: "return", sequence: 3, reference: "hermes:test" });
   const rows = readFileSync(path.join(dashboard, "runtime", "agent-events.jsonl"), "utf8").trim().split(/\r?\n/).map(JSON.parse);
-  assert.equal(rows.length, 3);
+  assert.equal(rows.length, 7);
   rows.forEach((row) => assert.doesNotThrow(() => validateAgentEvent(row, NOW)));
   assert.equal(rows[2].communication.summary, "Review [REDACTED]");
+  assert.equal(rows[3].prompt.redactionStatus, "redacted");
+  assert.ok(rows[3].prompt.capturedLength <= 160);
+  assert.equal(rows[4].invocation.direction, "call");
+  assert.equal(rows[6].invocation.direction, "return");
+  assert.doesNotMatch(JSON.stringify(rows), /password=hidden/);
+}));
+
+test("hook emits bounded prompt and only documented subagent call-stop evidence", () => withRuntime((root) => {
+  mkdirSync(path.join(root, "dashboard"), { recursive: true });
+  const environment = { HERMES_STATE_DIR: path.join(root, "hermes") }, base = { cwd: root, session_id: "session-v4", turn_id: "turn-v4" };
+  const options = { workspace: root, environment, fingerprint: () => "fp-v4", now: NOW };
+  const submitted = "implement dashboard API key: journal-space-api\nsecret key: journal-space-secret\naccess key: journal-space-access\nOPENAI_API_KEY=never-store\nAWS_SECRET_ACCESS_KEY='aws secret value'\nAuthorization: Basic dXNlcjpwYXNz";
+  processHook({ ...base, hook_event_name: "UserPromptSubmit", prompt: submitted }, options);
+  processHook({ ...base, hook_event_name: "SubagentStart", agent_type: "product_owner", agent_id: "po-v4", parent_invocation_id: "invented-parent" }, options);
+  const design = "# Goal\nG\n## Scope boundaries\nS\n## Acceptance criteria\nA\n## Required manuals\nM\n## Verification plan\nV\nDecision: approved";
+  processHook({ ...base, hook_event_name: "SubagentStop", agent_type: "product_owner", agent_id: "po-v4", last_assistant_message: design, agent_status: "failed", stop_reason: "cancelled", parent_invocation_id: "invented-parent" }, options);
+  const target = path.join(root, "dashboard", "runtime", "agent-events.jsonl"), raw = readFileSync(target, "utf8"), rows = raw.trim().split(/\r?\n/).map(JSON.parse);
+  rows.forEach((row) => assert.doesNotThrow(() => validateAgentEvent(row, NOW)));
+  ["journal-space-api", "journal-space-secret", "journal-space-access", "never-store", "aws secret value", "dXNlcjpwYXNz", "invented-parent"].forEach((secret) => assert.equal(raw.includes(secret), false));
+  assert.equal(rows.find((row) => row.eventType === "prompt").prompt.redactionStatus, "redacted");
+  const invocations = rows.filter((row) => row.eventType === "invocation").map((row) => row.invocation);
+  assert.deepEqual(invocations.map((row) => row.stage), ["called", "stopped"]);
+  assert.equal(invocations[0].parentAgentId, "codex-session-session-v4");
+  assert.equal(invocations[0].childAgentId, "codex-agent-po-v4");
+  assert.equal(invocations[0].parentInvocationId, null);
+  assert.equal(invocations[1].stage, "stopped");
+}));
+
+test("documented hook agent_id keeps repeated roles as separate invocation nodes", () => withRuntime((root) => {
+  mkdirSync(path.join(root, "dashboard"), { recursive: true });
+  const environment = { HERMES_STATE_DIR: path.join(root, "hermes") }, base = { cwd: root, session_id: "session-workers", turn_id: "turn-workers" };
+  const options = { workspace: root, environment, fingerprint: () => "fp-workers", now: NOW };
+  processHook({ ...base, hook_event_name: "UserPromptSubmit", prompt: "implement worker telemetry" }, options);
+  for (const agent_id of ["worker-1", "worker-2"]) {
+    processHook({ ...base, hook_event_name: "SubagentStart", agent_type: "researcher", agent_id }, options);
+    processHook({ ...base, hook_event_name: "SubagentStop", agent_type: "researcher", agent_id, last_assistant_message: "done" }, options);
+  }
+  const rows = readFileSync(path.join(root, "dashboard", "runtime", "agent-events.jsonl"), "utf8").trim().split(/\r?\n/).map(JSON.parse);
+  const children = new Set(rows.filter((row) => row.eventType === "invocation").map((row) => row.invocation.childAgentId));
+  assert.deepEqual([...children].sort(), ["codex-agent-worker-1", "codex-agent-worker-2"]);
 }));
 
 test("journal redacts secrets while preserving structured status fields", () => withRuntime((root) => {
@@ -127,7 +172,7 @@ test("journal redacts secrets while preserving structured status fields", () => 
   const run = createRun({ sessionId: "secret-session", mode: "delivery", now: NOW, runId: "run-secret" });
   run.version = 1;
   const event = store.commit(null, run, { event: "run.started", message: "api_key=do-not-log", operationId: "op-1" });
-  assert.equal(event.message, "api_key=[REDACTED]");
+  assert.equal(event.message, "[REDACTED]");
   assert.equal(event.operation_id, "op-1");
   assert.equal(event.progress, 0.1);
 }));

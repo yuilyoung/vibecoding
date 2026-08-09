@@ -19,6 +19,8 @@
 - Use PO and reviewer as the only standing subagent roles; testing is a verification gate, not an organizational role.
 - Prefer source-backed evidence, a named owner, and an expiry or drift signal over self-assessment.
 - Store runtime evidence as append-only JSONL plus an atomic status snapshot under the plugin data directory.
+- Dashboard telemetry may contain only a bounded, redacted prompt preview and structured invocation stages; never persist a raw/full prompt, tool payload, credential, or full role transcript. Use the shared redaction utility and provider-qualified invocation keys.
+- Hook telemetry is evidence-limited: Codex `SubagentStart` proves a session-to-unique-agent call and `SubagentStop` proves only an outcome-unknown stop. Do not infer parent nesting, response success, failure, or cancellation from undocumented fields.
 - Treat any edit after verification as evidence invalidation: verification, review, and drift must run again.
 
 ## Cautions

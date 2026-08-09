@@ -13,6 +13,23 @@
     @media(max-width:430px){.metrics{grid-template-columns:1fr 1fr}.metric{padding:12px}.metric strong{font-size:21px}.quality-grid{grid-template-columns:1fr 1fr}.meta-pill:nth-of-type(2){display:none}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
   </style>
+  <style>
+    .metrics{grid-template-columns:1.25fr repeat(10,minmax(0,1fr))}
+    .metric.prompt-metric{grid-column:span 2;background:linear-gradient(145deg,#101f3c,#273d68);color:#fff}
+    .prompt-metric .metric-label,.prompt-metric small{color:#aabbd5}.prompt-metric strong{font-size:13px;line-height:1.25;letter-spacing:-.01em;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:32px}
+    .roadmap-wrap{margin-top:14px}.roadmap-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.sprint-chip{padding:5px 8px;border-radius:999px;background:#ecf7f5;color:#157557;font-size:10px;font-weight:800}.sprint-chip.none{background:#fff4df;color:#9a5b08}
+    .roadmap-track{display:flex;gap:7px;overflow:auto;padding:2px 1px 7px;scrollbar-width:thin}.roadmap-phase{position:relative;min-width:104px;padding:9px 10px;border:1px solid #e1e4f0;border-radius:10px;background:#f8f9fc}.roadmap-phase:after{content:"";position:absolute;left:100%;top:50%;width:8px;height:1px;background:#c7ccdc}.roadmap-phase:last-child:after{display:none}.roadmap-phase b,.roadmap-phase span{display:block}.roadmap-phase b{font-size:11px}.roadmap-phase span{margin-top:4px;color:var(--muted);font-size:9px}.roadmap-phase.complete{background:#eff8f4;border-color:#cbe8dc}.roadmap-phase.active{background:#f1efff;border-color:#c9c2fa}.roadmap-phase.decision{background:#fff7e9;border-color:#f1d39b}.roadmap-progress{height:3px;margin-top:7px;border-radius:8px;background:#e2e5ee;overflow:hidden}.roadmap-progress i{display:block;height:100%;background:var(--indigo)}
+    .paperclip-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(169,131,255,.35);background:rgba(124,58,237,.13);color:#cbb9ff;border-radius:999px;padding:5px 8px;font-size:10px}
+    .graph-stage{background:radial-gradient(circle at 15% 50%,rgba(80,72,211,.22),transparent 27%),radial-gradient(circle at 82% 35%,rgba(53,210,229,.12),transparent 25%),linear-gradient(rgba(71,111,146,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(71,111,146,.08) 1px,transparent 1px),#061322;background-size:auto,auto,28px 28px,28px 28px}.graph-stage svg{height:370px}
+    .depth-lane{fill:rgba(255,255,255,.018);stroke:rgba(120,157,198,.09);stroke-dasharray:3 8}.depth-label{fill:#56708e;font-size:8px;font-weight:800;letter-spacing:.12em}.edge{stroke:#60718c;transition:stroke .2s,filter .2s,opacity .2s}.edge.invocation.call{stroke:#41dbe7;marker-end:url(#arrow-call)}.edge.invocation.return{stroke:#c887ff;marker-end:url(#arrow-return)}.edge.organization{stroke:#725f9f;stroke-dasharray:2 7;marker-end:url(#arrow-org)}.edge.communication{stroke:#5d708c;stroke-dasharray:5 7}.edge.live{filter:url(#edge-glow);stroke-width:3}.edge.new-edge{stroke-dasharray:1;stroke-dashoffset:1;animation:draw-edge .8s ease-out forwards}.edge-text.call{fill:#65edf5}.edge-text.return{fill:#d5a8ff}.edge-text.organization{fill:#9c8bc4}.edge-packet.call{fill:#72f4ff;filter:url(#packet-glow)}.edge-packet.return{fill:#d6a5ff;filter:url(#packet-glow)}
+    .node-orbit{fill:none;stroke:#284761;stroke-width:1;stroke-dasharray:3 4}.node[data-state="active"] .node-orbit{stroke:#47d9d0;animation:orbit 6s linear infinite}.node.provider-paperclip .node-core{fill:#2b2354;stroke:#ac86ff}.node.provider-paperclip .node-orbit{stroke:#906ae2}.node-role{fill:#6d819d;font-size:8px;text-anchor:middle;pointer-events:none}.node-badge{fill:#7351c7}.node-badge-text{fill:#fff;font-size:6px;font-weight:900;text-anchor:middle;pointer-events:none}
+    .agent-bottom{grid-template-columns:.8fr .9fr 1.1fr}.invocation-metrics{min-height:150px;max-height:215px;overflow:auto;padding:13px;border-right:1px solid rgba(255,255,255,.08)}.prompt-preview{padding:8px;border-radius:8px;background:rgba(121,91,219,.12);color:#dfe9ff;font-size:10px;line-height:1.45;word-break:break-word}.token-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:7px}.token-cell{padding:7px;border-radius:7px;background:rgba(255,255,255,.04)}.token-cell span,.token-cell small{display:block;color:#8295b4;font-size:8px}.token-cell b{display:block;margin:3px 0;color:#fff;font-size:12px}.invocation-caption{margin-top:7px;color:#758ba9;font-size:9px}
+    @keyframes draw-edge{to{stroke-dashoffset:0}}@keyframes orbit{to{stroke-dashoffset:-28}}
+    @media(max-width:1500px){.metrics{grid-template-columns:1.25fr repeat(7,minmax(0,1fr))}.metric.prompt-metric{grid-column:span 2}}
+    @media(max-width:1240px){.metrics{grid-template-columns:repeat(4,1fr)}.agent-bottom{grid-template-columns:1fr 1fr}.comm-stream{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.08)}}
+    @media(max-width:760px){.metrics{grid-template-columns:repeat(2,1fr)}.metric.prompt-metric{grid-column:1/-1}.agent-bottom{grid-template-columns:1fr}.invocation-metrics{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}.comm-stream{grid-column:auto}.roadmap-phase{min-width:92px}.graph-stage svg{height:350px}}
+    @media(prefers-reduced-motion:reduce){.edge-packet{display:none}.edge.new-edge,.node[data-state="active"] .node-orbit{animation:none!important}}
+  </style>
 </head>
 <body>
   <div class="shell">
@@ -40,6 +57,9 @@
         <article class="metric"><span class="metric-label">Live agents</span><strong id="live-agents">—</strong><small id="live-agents-note">heartbeat 근거</small></article>
         <article class="metric"><span class="metric-label">Live links</span><strong id="live-links">—</strong><small id="live-links-note">통신 + 양쪽 heartbeat</small></article>
         <article class="metric"><span class="metric-label">Tokens</span><strong id="token-total">—</strong><small id="token-total-note">사용량 이벤트 확인 중</small></article>
+        <article class="metric"><span class="metric-label">Input tokens</span><strong id="token-input">—</strong><small id="token-input-note">exact / partial</small></article>
+        <article class="metric"><span class="metric-label">Output tokens</span><strong id="token-output">—</strong><small id="token-output-note">exact / partial</small></article>
+        <article class="metric prompt-metric"><span class="metric-label">Latest prompt input</span><strong id="prompt-preview">—</strong><small id="prompt-preview-note">bounded · redacted · local journal</small></article>
       </section>
 
       <section class="panel project-overview">
@@ -48,7 +68,7 @@
             <div><p class="eyebrow">현재 제품 기준선</p><h2 id="phase-title">프로젝트 상태 로드 중</h2><p class="phase-summary" id="phase-summary">2D-FPS 실행 보고서와 WBS를 결합하고 있습니다.</p></div>
             <div class="phase-score"><strong id="phase-percent">—</strong><span id="phase-status">reported progress</span></div>
           </div>
-          <div class="timeline" id="milestone-timeline" aria-label="프로젝트 마일스톤"></div>
+          <div class="roadmap-wrap"><div class="roadmap-head"><span class="eyebrow">Roadmap · phase / sprint</span><span class="sprint-chip none" id="sprint-status">활성 스프린트 확인 중</span></div><div class="roadmap-track" id="milestone-timeline" aria-label="프로젝트 로드맵과 스프린트 진행 상태"></div></div>
         </article>
         <aside class="project-signals" aria-label="프로젝트 판단 근거">
           <p class="eyebrow">Delivery signals</p>
@@ -72,19 +92,21 @@
 
         <article class="panel agent-panel">
           <div class="panel-head">
-            <div><p class="eyebrow">Agent observability</p><h2>통신 토폴로지</h2><span class="source" id="topology-status">관측 노드 로드 중</span></div>
+            <div><p class="eyebrow">Agent observability</p><h2>실시간 에이전트 콘스텔레이션</h2><span class="source" id="topology-status">관측 노드 로드 중</span></div>
             <div class="agent-toolbar" role="toolbar" aria-label="에이전트 표시 범위">
+              <span class="paperclip-badge" id="paperclip-status">Paperclip · 확인 중</span>
               <button class="toggle active" id="observed-toggle" type="button">관측 노드</button>
               <button class="toggle" id="configured-toggle" type="button">전체 구성</button>
             </div>
           </div>
           <div class="graph-stage">
-            <svg id="agent-graph" viewBox="0 0 640 340" role="img" aria-label="에이전트 통신 노드 그래프"></svg>
+            <svg id="agent-graph" viewBox="0 0 760 370" role="img" aria-label="부모와 서브에이전트 호출 방향이 표시되는 실시간 트리"></svg>
             <div class="graph-empty" id="graph-empty"><div><strong>관측된 에이전트 노드가 없습니다</strong>이벤트 생산자가 통신·heartbeat 이벤트를 보내면 여기에 노드와 방향 링크가 나타납니다.</div></div>
           </div>
           <div class="agent-bottom">
             <section class="agent-inspector"><p class="subhead">선택 항목 상세</p><div id="agent-inspector"></div></section>
-            <section class="comm-stream"><p class="subhead">통신 추적 · 최신순</p><div id="communication-stream"></div></section>
+            <section class="invocation-metrics"><p class="subhead">Prompt & token metrics</p><div id="invocation-metrics"></div></section>
+            <section class="comm-stream"><p class="subhead">호출·응답·통신 추적 · 최신순</p><div id="communication-stream"></div></section>
           </div>
         </article>
       </section>
@@ -116,16 +138,17 @@
 <script>
 const byId=(id)=>document.getElementById(id);
 const ns="http://www.w3.org/2000/svg";
-const ui={snapshot:null,showConfigured:false,selectedAgentId:null,selectedEdgeId:null,selectedTaskId:null,streamConnected:false};
+const ui={snapshot:null,showConfigured:false,selectedAgentId:null,selectedEdgeId:null,selectedTaskId:null,streamConnected:false,seenEdges:new Set()};
 const node=(tag,value,className)=>{const item=document.createElement(tag);if(value!==undefined)item.textContent=value;if(className)item.className=className;return item};
 const svgNode=(tag,attrs={})=>{const item=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([key,value])=>item.setAttribute(key,value));return item};
 const clear=(target)=>{while(target.firstChild)target.firstChild.remove()};
+const qualifiedAgentId=(provider,id)=>provider==="runtime"?id:provider+":"+id;
 const formatNumber=(value)=>value===null||value===undefined?"—":new Intl.NumberFormat("en-US").format(value);
 const when=(value)=>value?new Date(value).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}):"관측 없음";
 const age=(value)=>{if(!value)return"관측 없음";const seconds=Math.max(0,Math.round((Date.now()-Date.parse(value))/1000));if(seconds<60)return seconds+"초 전";if(seconds<3600)return Math.round(seconds/60)+"분 전";if(seconds<86400)return Math.round(seconds/3600)+"시간 전";return Math.round(seconds/86400)+"일 전"};
 const sourceLabel=(source)=>source&&source.path?source.path:"근거 없음";
 const set=(id,value)=>{byId(id).textContent=value};
-const statusText=(value)=>({pass:"통과",complete:"완료",live:"실시간",stale:"오래됨",unavailable:"미수신",unknown:"근거 없음",failed:"실패",active:"작업 중",blocked:"차단",historical:"기록"}[value]||value||"—");
+const statusText=(value)=>({pass:"통과",complete:"완료",live:"실시간",stale:"오래됨",unavailable:"미수신",unknown:"근거 없음",failed:"실패",active:"작업 중",blocked:"차단",historical:"기록",structural:"조직 관계",exact:"exact",derived:"derived",partial:"partial",conflicted:"충돌",called:"호출",created:"생성",responded:"응답",cancelled:"취소",decision:"결정 대기",planned:"계획"}[value]||value||"—");
 const metricValue=(metric,formatter)=>metric&&metric.value!==null&&metric.value!==undefined?formatter(metric.value):"—";
 
 function renderHeader(data){
@@ -140,7 +163,7 @@ function renderHeader(data){
 }
 
 function renderMetrics(data){
-  const project=data.project,metrics=data.metrics,quality=project.quality||{},progress=project.progress,tokens=metrics.tokens;
+  const project=data.project,metrics=data.metrics,quality=project.quality||{},progress=project.progress,tokens=metrics.tokens,prompts=metrics.prompts;
   set("project-progress",progress.status==="known"?progress.done+" / "+progress.total:"—");
   set("project-progress-note",progress.status==="known"?progress.percentage+"% · WBS 작업 기준":"진행률 근거 미수신");
   set("progress-state",progress.status==="known"?"known":"unknown");
@@ -159,6 +182,14 @@ function renderMetrics(data){
   set("live-links-note",metrics.events.lastFiveMinutes+" events · 5분");
   set("token-total",metricValue(tokens.total,formatNumber));
   set("token-total-note",tokens.total.value===null?"사용량 이벤트 미수신":statusText(tokens.total.status)+" · "+tokens.providers.join(", "));
+  set("token-input",metricValue(tokens.input,formatNumber));
+  set("token-input-note",tokens.input.value===null?"입력 토큰 미수신":statusText(tokens.input.status)+" · "+tokens.input.observedEventCount+" events");
+  set("token-output",metricValue(tokens.output,formatNumber));
+  set("token-output-note",tokens.output.value===null?"출력 토큰 미수신":statusText(tokens.output.status)+" · "+tokens.output.observedEventCount+" events");
+  const latestPrompt=prompts&&prompts.latest;
+  set("prompt-preview",latestPrompt&&latestPrompt.preview?latestPrompt.preview:"—");
+  set("prompt-preview-note",latestPrompt?latestPrompt.originalLength+" chars · "+latestPrompt.redactionStatus+(latestPrompt.truncated?" · truncated":""):"prompt 이벤트 미수신");
+  byId("prompt-preview").title=latestPrompt?latestPrompt.preview:"";
 }
 
 function renderProject(data){
@@ -172,11 +203,16 @@ function renderProject(data){
   set("blocked-count",project.blockedCount===null?"근거 확인 필요":project.blockedCount+"건");
   set("next-decision",project.next.length?project.next[0].taskId:"없음");
   set("report-date",project.reportDate||"—");
-  const timeline=byId("milestone-timeline");clear(timeline);
-  [...project.milestones,...project.next].forEach((item)=>{
-    const card=node("div",item.title,"milestone"+(item.state==="decision"?" decision":""));
-    card.title=sourceLabel(item.source);timeline.append(card);
+  const roadmap=data.roadmap,timeline=byId("milestone-timeline");clear(timeline);
+  roadmap.phases.forEach((phase)=>{
+    const card=node("article",undefined,"roadmap-phase "+phase.state);card.tabIndex=0;card.title=sourceLabel(phase.source);
+    const label=phase.phaseNumber===roadmap.currentPhaseNumber?"Phase "+phase.phaseNumber+" · 현재":"Phase "+phase.phaseNumber;
+    card.append(node("b",label),node("span",phase.state==="decision"?"다음 제품 결정":phase.progress.total?phase.progress.done+" / "+phase.progress.total+" · "+phase.progress.percentage+"%":statusText(phase.state)));
+    const progressBar=node("div",undefined,"roadmap-progress"),fill=node("i");fill.style.width=(phase.progress.percentage||0)+"%";progressBar.append(fill);card.append(progressBar);timeline.append(card);
   });
+  const sprint=roadmap.activeSprint,sprintStatus=byId("sprint-status");
+  sprintStatus.classList.toggle("none",!sprint);
+  set("sprint-status",sprint?"Sprint "+sprint.sprintNumber+" · "+sprint.progress.done+"/"+sprint.progress.total:"활성 스프린트 없음 · "+(roadmap.nextDecision?roadmap.nextDecision.taskId+" 결정 대기":"다음 계획 미수신"));
 }
 
 const columns=[
@@ -196,7 +232,7 @@ function openTask(card,data){
   if(agent)ui.selectedAgentId=agent.agentId;
   const linked=data.topology.edges.find((edge)=>(!agent||edge.fromAgentId===agent.agentId||edge.toAgentId===agent.agentId)&&edge.communications.some((trace)=>trace.taskId===card.taskId));
   ui.selectedEdgeId=linked?linked.id:null;
-  renderKanban(data);renderGraph(data);renderInspector(data);renderCommunicationStream(data);
+  renderKanban(data);renderGraph(data);renderInspector(data);renderInvocationMetrics(data);renderCommunicationStream(data);
   set("drawer-title",card.taskId+" · "+card.title);
   const content=byId("drawer-content");clear(content);
   const summary=node("section",undefined,"drawer-section");summary.append(node("h3","작업 설명"),node("p",card.description||"별도 설명 없음"));
@@ -233,45 +269,49 @@ function visibleAgents(data){
   const linked=new Set(data.topology.edges.flatMap((edge)=>[edge.fromAgentId,edge.toAgentId]));
   return data.topology.nodes.filter((agent)=>agent.lastEvent||linked.has(agent.agentId));
 }
-function graphPositions(agents){
-  const positions=new Map(),count=agents.length;
-  if(count===1){positions.set(agents[0].agentId,{x:320,y:170});return positions}
-  agents.forEach((agent,index)=>{
-    let slot=index,total=count,rx=225,ry=115;
-    if(count>10){const innerCount=8;if(index<innerCount){slot=index;total=innerCount;rx=125;ry=68}else{slot=index-innerCount;total=count-innerCount;rx=245;ry=125}}
-    const angle=-Math.PI/2+(slot/total)*Math.PI*2;
-    positions.set(agent.agentId,{x:320+Math.cos(angle)*rx,y:170+Math.sin(angle)*ry});
-  });
-  return positions;
+function graphLayout(agents,data){
+  const ids=new Set(agents.map((agent)=>agent.agentId)),parents=data.topology.hierarchy&&data.topology.hierarchy.parentByAgent||{},depthMemo=new Map(),created=new Map();
+  (data.topology.invocations||[]).forEach((invocation)=>{const id=(invocation.provenance.provider==="runtime"?"":invocation.provenance.provider+":")+invocation.childAgentId;created.set(id,invocation.createdAt)});
+  const depth=(id,visiting=new Set())=>{if(depthMemo.has(id))return depthMemo.get(id);const parent=parents[id];if(!parent||!ids.has(parent)||visiting.has(id)){depthMemo.set(id,0);return 0}const value=1+depth(parent,new Set([...visiting,id]));depthMemo.set(id,value);return value};
+  const lanes=new Map();agents.forEach((agent)=>{const level=depth(agent.agentId),items=lanes.get(level)||[];items.push(agent);lanes.set(level,items)});
+  lanes.forEach((items)=>items.sort((left,right)=>(Date.parse(created.get(left.agentId)||0)-Date.parse(created.get(right.agentId)||0))||left.agentId.localeCompare(right.agentId)));
+  const maxDepth=Math.max(0,...lanes.keys()),maxLane=Math.max(1,...[...lanes.values()].map((items)=>items.length)),width=Math.max(760,180+maxDepth*210),height=Math.max(370,70+maxLane*78),positions=new Map();
+  lanes.forEach((items,level)=>items.forEach((agent,index)=>positions.set(agent.agentId,{x:maxDepth?85+level*((width-170)/maxDepth):width/2,y:(index+1)*(height/(items.length+1)),depth:level})));
+  return{positions,width,height,maxDepth};
 }
 function renderGraph(data){
-  const graph=byId("agent-graph");clear(graph);
-  const defs=svgNode("defs"),marker=svgNode("marker",{id:"arrow",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",markerHeight:"6",orient:"auto-start-reverse"});
-  marker.append(svgNode("path",{d:"M 0 0 L 10 5 L 0 10 z",fill:"#71839f"}));defs.append(marker);graph.append(defs);
-  const agents=visibleAgents(data),ids=new Set(agents.map((agent)=>agent.agentId)),positions=graphPositions(agents);
-  byId("graph-empty").style.display=agents.length?"none":"grid";
+  const graph=byId("agent-graph");clear(graph),defs=svgNode("defs");
+  [["arrow","#71839f"],["arrow-call","#61eff8"],["arrow-return","#d2a1ff"],["arrow-org","#8f78c2"]].forEach(([id,fill])=>{const marker=svgNode("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",markerHeight:"6",orient:"auto"});marker.append(svgNode("path",{d:"M 0 0 L 10 5 L 0 10 z",fill}));defs.append(marker)});
+  const glow=svgNode("filter",{id:"edge-glow",x:"-30%",y:"-30%",width:"160%",height:"160%"}),blur=svgNode("feGaussianBlur",{stdDeviation:"3",result:"blur"}),glowMerge=svgNode("feMerge");glowMerge.append(svgNode("feMergeNode",{in:"blur"}),svgNode("feMergeNode",{in:"SourceGraphic"}));glow.append(blur,glowMerge);defs.append(glow);
+  const packetGlow=svgNode("filter",{id:"packet-glow",x:"-100%",y:"-100%",width:"300%",height:"300%"}),packetBlur=svgNode("feGaussianBlur",{stdDeviation:"2",result:"packetBlur"}),packetMerge=svgNode("feMerge");packetMerge.append(svgNode("feMergeNode",{in:"packetBlur"}),svgNode("feMergeNode",{in:"SourceGraphic"}));packetGlow.append(packetBlur,packetMerge);defs.append(packetGlow);graph.append(defs);
+  const agents=visibleAgents(data),ids=new Set(agents.map((agent)=>agent.agentId)),layout=graphLayout(agents,data),positions=layout.positions;
+  graph.setAttribute("viewBox","0 0 "+layout.width+" "+layout.height);byId("graph-empty").style.display=agents.length?"none":"grid";
+  for(let level=0;level<=layout.maxDepth;level++){const laneWidth=layout.maxDepth?(layout.width-50)/(layout.maxDepth+1):layout.width-40,x=layout.maxDepth?25+level*laneWidth:20;graph.append(svgNode("rect",{x,y:"18",width:Math.max(80,laneWidth-10),height:layout.height-36,rx:"15",class:"depth-lane"}));const label=svgNode("text",{x:x+9,y:"34",class:"depth-label"});label.textContent=level===0?"ORCHESTRATOR / ROOT":"SUBAGENT DEPTH "+level;graph.append(label)}
   const edges=data.topology.edges.filter((edge)=>ids.has(edge.fromAgentId)&&ids.has(edge.toAgentId));
   edges.forEach((edge,index)=>{
     const from=positions.get(edge.fromAgentId),to=positions.get(edge.toAgentId);if(!from||!to)return;
-    const dx=to.x-from.x,dy=to.y-from.y,len=Math.max(1,Math.hypot(dx,dy)),nx=-dy/len,ny=dx/len,bend=(index%2?1:-1)*Math.min(38,len*.12),cx=(from.x+to.x)/2+nx*bend,cy=(from.y+to.y)/2+ny*bend;
-    const d="M "+from.x+" "+from.y+" Q "+cx+" "+cy+" "+to.x+" "+to.y;
-    const path=svgNode("path",{d,class:"edge "+edge.state+(ui.selectedEdgeId===edge.id?" selected":"")});graph.append(path);
-    const hit=svgNode("path",{d,class:"edge-hit",tabindex:"0",role:"button","aria-label":edge.fromAgentId+"에서 "+edge.toAgentId+" 통신 링크"});
-    const select=()=>{ui.selectedEdgeId=edge.id;ui.selectedAgentId=null;renderGraph(data);renderInspector(data);renderCommunicationStream(data)};
+    const sign=edge.direction==="return"?-1:edge.edgeType==="communication"?(index%2?1:-1):1,offset=sign*(edge.edgeType==="invocation"?12:5),startX=from.x+(to.x>=from.x?31:-31),endX=to.x+(to.x>=from.x?-31:31),mid=(startX+endX)/2,d="M "+startX+" "+(from.y+offset)+" C "+mid+" "+(from.y+offset)+", "+mid+" "+(to.y+offset)+", "+endX+" "+(to.y+offset);
+    const marker=edge.edgeType==="organization"?"url(#arrow-org)":edge.direction==="call"?"url(#arrow-call)":edge.direction==="return"?"url(#arrow-return)":"url(#arrow)",isNew=!ui.seenEdges.has(edge.id),classes=["edge",edge.edgeType,edge.direction,edge.state,ui.selectedEdgeId===edge.id?"selected":"",isNew?"new-edge":""].filter(Boolean).join(" ");
+    graph.append(svgNode("path",{d,class:classes,"marker-end":marker,pathLength:"1","data-edge-id":edge.id,"data-direction":edge.direction,"data-stage":edge.latestStage}));
+    const aria=edge.fromAgentId+"에서 "+edge.toAgentId+" "+edge.direction+" "+edge.latestStage+" "+statusText(edge.state),hit=svgNode("path",{d,class:"edge-hit",tabindex:"0",role:"button","aria-label":aria,"data-edge-control":edge.id});
+    const select=()=>{ui.selectedEdgeId=edge.id;ui.selectedAgentId=null;renderGraph(data);renderInspector(data);renderInvocationMetrics(data);renderCommunicationStream(data)};
     hit.addEventListener("click",select);hit.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(hit);
-    const label=svgNode("text",{x:cx,y:cy-5,class:"edge-text","text-anchor":"middle"});label.textContent=edge.latestKind+" · "+edge.eventCount;graph.append(label);
+    const label=svgNode("text",{x:mid,y:(from.y+to.y)/2+offset-6,class:"edge-text "+edge.direction+" "+edge.edgeType,"text-anchor":"middle"});label.textContent=(edge.direction==="call"?"↓ CALL ":edge.direction==="return"?"↑ RETURN ":"↔ ")+statusText(edge.latestStage)+" · "+edge.eventCount;graph.append(label);
+    if(edge.state==="live"&&!matchMedia("(prefers-reduced-motion: reduce)").matches){const packet=svgNode("circle",{r:"4",class:"edge-packet "+edge.direction,"aria-hidden":"true"}),motion=svgNode("animateMotion",{dur:(1.1+(index%3)*.2)+"s",repeatCount:"indefinite",path:d,begin:(index%5)*-.17+"s"});packet.append(motion);graph.append(packet)}
+    ui.seenEdges.add(edge.id);
   });
   agents.forEach((agent)=>{
-    const point=positions.get(agent.agentId),group=svgNode("g",{class:"node"+(ui.selectedAgentId===agent.agentId?" selected":""),tabindex:"0",role:"button","aria-label":agent.agentId+" "+statusText(agent.operationalState),"data-agent-id":agent.agentId,"data-state":agent.operationalState});
-    group.append(svgNode("circle",{cx:point.x,cy:point.y,r:"32",class:"node-halo"}),svgNode("circle",{cx:point.x,cy:point.y,r:"24",class:"node-core"}));
+    const point=positions.get(agent.agentId),group=svgNode("g",{class:"node"+(ui.selectedAgentId===agent.agentId?" selected":"")+" provider-"+agent.provider,tabindex:"0",role:"button","aria-label":agent.agentId+" "+statusText(agent.operationalState),"data-agent-id":agent.agentId,"data-state":agent.operationalState});
+    group.append(svgNode("circle",{cx:point.x,cy:point.y,r:"38",class:"node-orbit"}),svgNode("circle",{cx:point.x,cy:point.y,r:"32",class:"node-halo"}),svgNode("circle",{cx:point.x,cy:point.y,r:"24",class:"node-core"}));
     if(agent.operationalState==="active")group.append(svgNode("circle",{cx:point.x+18,cy:point.y-17,r:"4",class:"node-pulse"}));
-    const name=svgNode("text",{x:point.x,y:point.y-1,class:"node-name"});name.textContent=agent.agentId.length>16?agent.agentId.slice(0,14)+"…":agent.agentId;
-    const state=svgNode("text",{x:point.x,y:point.y+14,class:"node-state"});state.textContent=statusText(agent.operationalState);group.append(name,state);
-    const select=()=>{ui.selectedAgentId=agent.agentId;ui.selectedEdgeId=null;renderGraph(data);renderInspector(data);renderCommunicationStream(data)};
+    const display=agent.displayAgentId||agent.agentId,name=svgNode("text",{x:point.x,y:point.y-4,class:"node-name"});name.textContent=display.length>16?display.slice(0,14)+"…":display;
+    const state=svgNode("text",{x:point.x,y:point.y+10,class:"node-state"});state.textContent=statusText(agent.operationalState);const role=svgNode("text",{x:point.x,y:point.y+48,class:"node-role"});role.textContent=agent.organization?(agent.organization.team||"team")+" · "+(agent.organization.role||"role"):(agent.provider==="paperclip"?"Paperclip":"runtime");group.append(name,state,role);
+    if(agent.provider==="paperclip"){group.append(svgNode("circle",{cx:point.x+27,cy:point.y-24,r:"9",class:"node-badge"}));const badge=svgNode("text",{x:point.x+27,y:point.y-22,class:"node-badge-text"});badge.textContent="PC";group.append(badge)}
+    const select=()=>{ui.selectedAgentId=agent.agentId;ui.selectedEdgeId=null;renderGraph(data);renderInspector(data);renderInvocationMetrics(data);renderCommunicationStream(data)};
     group.addEventListener("click",select);group.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(group);
   });
-  const producer=data.metrics.events.producer;
-  set("topology-status",agents.length+" observed · "+data.agents.length+" configured · producer "+statusText(producer.status));
+  const producer=data.metrics.events.producer,paperclip=data.integrations.paperclip;set("paperclip-status","Paperclip · "+(paperclip.observedState==="observed"?paperclip.observedValueCount+" observed":paperclip.observedState==="configured-no-values"?"configured · no observed values":"unobserved"));
+  set("topology-status",agents.length+" observed · "+data.agents.length+" configured · "+data.topology.invocations.length+" invocations · producer "+statusText(producer.status));
 }
 
 function inspectCell(label,value){
@@ -283,22 +323,26 @@ function renderInspector(data){
   const agent=data.agents.find((item)=>item.agentId===ui.selectedAgentId);
   if(edge){
     target.append(node("div",edge.fromAgentId+" → "+edge.toAgentId,"inspect-title"));
-    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("링크 상태",statusText(edge.state)),inspectCell("통신 횟수",edge.eventCount),inspectCell("최근 종류",edge.latestKind),inspectCell("최근 관측",age(edge.latestAt)));target.append(grid);
+    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("링크 상태",statusText(edge.state)),inspectCell("방향",edge.direction),inspectCell("최근 단계",statusText(edge.latestStage)),inspectCell("최근 관측",age(edge.latestAt)));target.append(grid);
     const ids=node("div","Event IDs · "+edge.sourceEventIds.map((id)=>id.slice(0,8)).join(", "),"trace-meta");ids.style.marginTop="9px";target.append(ids);return;
   }
   if(agent){
     const inbound=data.topology.edges.filter((item)=>item.toAgentId===agent.agentId),outbound=data.topology.edges.filter((item)=>item.fromAgentId===agent.agentId),usage=data.metrics.tokens.byAgent[agent.agentId];
     target.append(node("div",agent.agentId,"inspect-title"));
-    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("운영 상태",statusText(agent.operationalState)),inspectCell("최근 관측",age(agent.lastSeenAt)),inspectCell("통신 In / Out",inbound.length+" / "+outbound.length),inspectCell("토큰",usage?formatNumber(usage.total.value):"미수신"));target.append(grid);
-    const task=agent.lastEvent&&agent.lastEvent.taskId?"최근 작업 · "+agent.lastEvent.taskId:"최근 작업 근거 없음";const detail=node("div",task,"trace-meta");detail.style.marginTop="9px";target.append(detail);return;
+    const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("운영 상태",statusText(agent.operationalState)),inspectCell("Provider",agent.provider),inspectCell("통신 In / Out",inbound.length+" / "+outbound.length),inspectCell("토큰",usage?formatNumber(usage.total.value):"미수신"));target.append(grid);
+    const details=[agent.lastEvent&&agent.lastEvent.taskId?"최근 작업 · "+agent.lastEvent.taskId:"최근 작업 근거 없음"];if(agent.organization)details.push("조직 "+agent.organization.organizationId+" · "+(agent.organization.team||"team 없음")+" · "+(agent.organization.role||"role 없음"),"근거 "+agent.organization.reference);const detail=node("div",details.join(" / "),"trace-meta");detail.style.marginTop="9px";target.append(detail);return;
   }
   const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("관측 노드",visibleAgents(data).length),inspectCell("실시간 링크",data.topology.liveEdgeCount),inspectCell("5분 이벤트",data.metrics.events.lastFiveMinutes),inspectCell("handoff",data.metrics.events.handoffsLastFiveMinutes));target.append(node("div","토폴로지 요약","inspect-title"),grid);
 }
 
+function activityTraces(data){
+  const invocations=(data.invocationActivities||[]).map((trace)=>{const prefix=trace.provenance.provider==="runtime"?"":trace.provenance.provider+":",call=trace.direction==="call";return{...trace,fromAgentId:prefix+(call?trace.parentAgentId:trace.childAgentId),toAgentId:prefix+(call?trace.childAgentId:trace.parentAgentId),kind:trace.stage,summary:(call?"Parent called subagent":"Subagent returned to parent")+" · "+trace.invocationId,provider:trace.provenance.provider,invocationKey:trace.key}});
+  return [...invocations,...data.communications].sort((left,right)=>Date.parse(right.timestamp)-Date.parse(left.timestamp));
+}
 function relevantTraces(data){
-  let traces=data.communications;
+  let traces=activityTraces(data);
   const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId);
-  if(edge)traces=traces.filter((trace)=>trace.fromAgentId===edge.fromAgentId&&trace.toAgentId===edge.toAgentId);
+  if(edge)traces=edge.invocationKey?traces.filter((trace)=>trace.invocationKey===edge.invocationKey&&trace.direction===edge.direction):traces.filter((trace)=>trace.fromAgentId===edge.fromAgentId&&trace.toAgentId===edge.toAgentId);
   else if(ui.selectedAgentId)traces=traces.filter((trace)=>trace.fromAgentId===ui.selectedAgentId||trace.toAgentId===ui.selectedAgentId);
   else if(ui.selectedTaskId)traces=traces.filter((trace)=>trace.taskId===ui.selectedTaskId);
   return traces.slice(0,12);
@@ -307,12 +351,26 @@ function renderCommunicationStream(data){
   const target=byId("communication-stream");clear(target);const traces=relevantTraces(data);
   if(!traces.length){target.append(node("div","선택 범위에 통신 이벤트가 없습니다.","source"));return}
   traces.forEach((trace)=>{
-    const edge=data.topology.edges.find((item)=>item.fromAgentId===trace.fromAgentId&&item.toAgentId===trace.toAgentId);
+    const edge=data.topology.edges.find((item)=>(trace.invocationKey?item.invocationKey===trace.invocationKey&&item.direction===trace.direction:item.fromAgentId===trace.fromAgentId&&item.toAgentId===trace.toAgentId));
     const item=node("article",undefined,"trace"+(edge&&edge.state==="live"?" live":""));
-    item.append(node("strong",trace.fromAgentId+" → "+trace.toAgentId+" · "+trace.kind),node("div",trace.summary||"요약 없음"));
+    const direction=trace.direction==="call"?"↓ CALL":trace.direction==="return"?"↑ RETURN":"↔ COMM";
+    item.append(node("strong",direction+" · "+trace.fromAgentId+" → "+trace.toAgentId+" · "+trace.kind),node("div",trace.summary||"요약 없음"));
     const parts=[when(trace.timestamp),trace.taskId||"task 없음","event "+trace.eventId.slice(0,8)];if(trace.correlationId)parts.push("corr "+trace.correlationId);
+    if(trace.provider)parts.push("provider "+trace.provider);
     item.append(node("div",parts.join(" · "),"trace-meta"));target.append(item);
   });
+}
+
+function renderInvocationMetrics(data){
+  const target=byId("invocation-metrics");clear(target);
+  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId),invocation=edge&&edge.invocationKey?data.topology.invocations.find((item)=>item.key===edge.invocationKey):ui.selectedAgentId?data.topology.invocations.find((item)=>[qualifiedAgentId(item.provenance.provider,item.parentAgentId),qualifiedAgentId(item.provenance.provider,item.childAgentId)].includes(ui.selectedAgentId)):data.topology.invocations[0];
+  const unknown={input:{value:null,status:"unknown"},output:{value:null,status:"unknown"},total:{value:null,status:"unknown"}},usage=(invocation?data.metrics.tokens.byInvocation[invocation.key]:data.metrics.tokens)||unknown,prompt=invocation?data.metrics.prompts.byInvocation[invocation.key]||null:data.metrics.prompts.latest;
+  target.append(node("div",invocation?"Invocation · "+invocation.invocationId:"전체 관측 메트릭","inspect-title"));
+  const preview=node("div",prompt&&prompt.preview?prompt.preview:"prompt 이벤트 미수신","prompt-preview");preview.title=prompt&&prompt.preview||"";target.append(preview);
+  const strip=node("div",undefined,"token-strip");
+  [["INPUT",usage.input],["OUTPUT",usage.output],["TOTAL",usage.total]].forEach(([label,metric])=>{const cell=node("div",undefined,"token-cell");cell.append(node("span",label),node("b",metricValue(metric,formatNumber)),node("small",statusText(metric.status)));strip.append(cell)});target.append(strip);
+  const detail=prompt?prompt.originalLength+" chars · "+prompt.redactionStatus+(prompt.truncated?" · truncated":""):"문자 길이와 토큰 수를 추정 결합하지 않음";
+  target.append(node("div",detail+" · "+(invocation?invocation.provenance.provider+" / "+statusText(invocation.stage):"all providers"),"invocation-caption"));
 }
 
 function renderQuality(data){
@@ -330,6 +388,9 @@ function attentionItems(data){
   if(producer.status!=="live")items.push({level:"warn",title:producer.status==="stale"?"런타임 이벤트 생산자가 오래됨":"런타임 이벤트 생산자 미수신",detail:producer.latestAt?"마지막 이벤트 "+age(producer.latestAt):"실시간 추적 근거가 아직 없습니다."});
   if(tokens.status==="unknown")items.push({level:"warn",title:"토큰 메트릭 미수신",detail:"0이 아니라 사용량 이벤트가 수집되지 않은 상태입니다."});
   if(tokens.coverage.conflictingUsageIdCount)items.push({level:"bad",title:"토큰 무결성 충돌",detail:tokens.coverage.conflictingUsageIdCount+"개의 usageId 충돌을 합계에서 제외했습니다."});
+  if(data.errors.invocations.length)items.push({level:"bad",title:"호출 생명주기 오류 · "+data.errors.invocations.length,detail:"순서 또는 terminal 계약을 위반한 invocation 이벤트를 그래프에서 제외했습니다."});
+  if(data.errors.identities.length)items.push({level:"warn",title:"Provider ID 충돌 · "+data.errors.identities.length,detail:"runtime과 Paperclip ID를 provider-qualified node로 분리했습니다."});
+  if(data.integrations.paperclip.observedState==="configured-no-values")items.push({level:"warn",title:"Paperclip configured · no observed values",detail:"환경 설정만으로 조직이나 에이전트 값을 생성하지 않습니다."});
   Object.entries(data.collectors||{}).forEach(([name,result])=>{if(result.status!=="available")items.push({level:result.status==="failed"?"bad":"warn",title:name+" collector · "+statusText(result.status),detail:result.error||"수집기 근거 없음"})});
   const stale=data.agents.filter((agent)=>agent.operationalState==="stale");if(stale.length)items.push({level:"warn",title:"에이전트 heartbeat 오래됨 · "+stale.length,detail:stale.map((agent)=>agent.agentId).join(", ")});
   const unknown=data.agents.filter((agent)=>agent.operationalState==="unknown");if(unknown.length)items.push({level:"warn",title:"실행 근거 없는 구성 에이전트 · "+unknown.length,detail:"configured 상태를 running으로 계산하지 않습니다."});
@@ -344,7 +405,7 @@ function renderAttention(data){
   items.forEach((item)=>{const card=node("article",undefined,"attention-item"+(item.level==="bad"?" bad":""));card.append(node("strong",item.title),node("span",item.detail));target.append(card)});
 }
 function renderAll(data){
-  ui.snapshot=data;renderHeader(data);renderMetrics(data);renderProject(data);renderKanban(data);renderGraph(data);renderInspector(data);renderCommunicationStream(data);renderQuality(data);renderAttention(data);
+  ui.snapshot=data;renderHeader(data);renderMetrics(data);renderProject(data);renderKanban(data);renderGraph(data);renderInspector(data);renderInvocationMetrics(data);renderCommunicationStream(data);renderQuality(data);renderAttention(data);
 }
 async function fetchSnapshot(){const response=await fetch("/api/observability/snapshot",{cache:"no-store"});if(!response.ok)throw new Error("snapshot "+response.status);renderAll(await response.json())}
 function connectStream(){
@@ -353,8 +414,8 @@ function connectStream(){
   stream.addEventListener("snapshot",(event)=>{ui.streamConnected=true;renderAll(JSON.parse(event.data))});
   stream.addEventListener("error",()=>{ui.streamConnected=false;if(ui.snapshot)renderHeader(ui.snapshot)});
 }
-byId("observed-toggle").addEventListener("click",()=>{ui.showConfigured=false;byId("observed-toggle").classList.add("active");byId("configured-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot)}});
-byId("configured-toggle").addEventListener("click",()=>{ui.showConfigured=true;byId("configured-toggle").classList.add("active");byId("observed-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot)}});
+byId("observed-toggle").addEventListener("click",()=>{ui.showConfigured=false;byId("observed-toggle").classList.add("active");byId("configured-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot);renderInvocationMetrics(ui.snapshot)}});
+byId("configured-toggle").addEventListener("click",()=>{ui.showConfigured=true;byId("configured-toggle").classList.add("active");byId("observed-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot);renderInvocationMetrics(ui.snapshot)}});
 const closeDrawer=()=>{byId("task-drawer").classList.remove("open");byId("drawer-scrim").classList.remove("open");byId("task-drawer").setAttribute("aria-hidden","true")};
 byId("drawer-close").addEventListener("click",closeDrawer);byId("drawer-scrim").addEventListener("click",closeDrawer);document.addEventListener("keydown",(event)=>{if(event.key==="Escape")closeDrawer()});
 fetchSnapshot().catch(()=>{set("connection-state","스냅샷 로드 실패")});connectStream();

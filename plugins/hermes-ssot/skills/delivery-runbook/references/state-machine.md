@@ -24,9 +24,11 @@ Any later edit resets verification, review, and finalization. A failed check or 
 - `SubagentStart` / `SubagentStop`: inject and validate product-owner/reviewer output contracts.
 - `Stop`: continue once with the exact missing gate, or complete when every fingerprint matches.
 
-The hook adapter also emits safe dashboard heartbeat, lifecycle, delegation, and reviewer-message events. It never copies prompts, tool payloads, or full role transcripts into the dashboard journal.
+The hook adapter also emits safe dashboard heartbeat, lifecycle, delegation, reviewer-message, bounded prompt-preview, and subagent invocation events. It never copies a raw/full prompt, tool payload, or full role transcript into the dashboard journal. Prompt preview redaction is centralized with dashboard ingestion, covers prefixed credential variables, space-separated credential labels, and Basic/Bearer credentials, and happens before a 160-code-point limit; high-risk content is suppressed.
 
-Runtime state is stored outside source control as an atomic `status.json` cache and append-only `events.jsonl`. The schemas live under `schemas/`. Do not log prompts, tool payloads, credentials, or raw reviewer transcripts.
+Codex hook telemetry must use only documented input fields. `SubagentStart` maps parent `session_id` to unique `agent_id` as a `called` edge. `SubagentStop` maps to `stopped` because the hook does not expose a reliable success, failure, or cancellation outcome. Do not read or invent `parent_invocation_id`, `parent_agent_type`, `agent_status`, or `stop_reason`; nested and outcome-specific stages require an explicit provider adapter with provenance.
+
+Runtime state is stored outside source control as an atomic `status.json` cache and append-only `events.jsonl`. The schemas live under `schemas/`. Do not log raw/full prompts, tool payloads, credentials, or raw reviewer transcripts.
 
 ## Enforcement boundary
 

@@ -1,6 +1,6 @@
 {
   "name": "hermes-ssot",
-  "version": "0.1.0+codex.20260806143018",
+  "version": "0.1.0+codex.20260809160349",
   "description": "Codex delivery harness with trust-reviewed lifecycle hooks, demand-loaded manuals, PO planning, and fingerprinted evidence gates.",
   "author": {
     "name": "ai-project",

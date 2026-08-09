@@ -23,6 +23,12 @@ const designEvidenceValid = (message) => DESIGN_SECTIONS.every((heading) => new 
 const productOwnerDecision = (message) => message.match(/(?:^|\n)\s*(?:\*\*)?Decision(?:\*\*)?\s*:\s*(approved|blocked)\s*$/i)?.[1]?.toLowerCase() ?? null;
 const reviewerVerdict = (message) => message.match(/(?:^|\n)\s*(?:\*\*)?Verdict(?:\*\*)?\s*:\s*(pass|revise|blocked)\s*$/i)?.[1]?.toLowerCase() ?? null;
 const commandValue = (input) => String(input.tool_input?.command ?? "");
+const safeHookId = (value) => String(value ?? "unknown").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 96) || "unknown";
+const documentedInvocationIdentity = (input) => {
+  if (typeof input.agent_id !== "string" || !input.agent_id.trim() || typeof input.session_id !== "string" || !input.session_id.trim()) return null;
+  const invocationId = safeHookId(input.agent_id);
+  return { invocationId, parentInvocationId: null, rootInvocationId: invocationId, parentAgentId: "codex-session-" + safeHookId(input.session_id), childAgentId: "codex-agent-" + invocationId };
+};
 const isMutationCommand = (command) => /(?:\b(?:set-content|add-content|out-file|new-item|remove-item|move-item|copy-item)\b|\bnpm\s+(?:install|ci)\b|\bgit\s+(?:add|commit|apply|cherry-pick|rebase)\b|(?:^|[;&|]\s*)(?:rm|mv|cp|touch|mkdir)\s)/i.test(command);
 const isDriftCommand = (command) => /manual-drift-check|hermes:drift/i.test(command);
 const isVerificationCommand = (command) => /(?:npm\s+(?:run\s+)?(?:test|lint|build|type-check|harness:test|test:[\w:-]+)|npx\s+(?:playwright|vitest)|node\s+--test|git\s+diff\s+--check|harness-audit|hermes:audit)/i.test(command);
@@ -101,6 +107,7 @@ export const processHook = (input, options = {}) => {
         fresh.version = (state?.version ?? 0) + 1;
         state = commit(state, fresh, { event: "run.started", gateId: "design", message: mode + " harness run started", operationId: input.turn_id ?? fresh.runId });
       }
+      activity.prompt("ultron", state?.runId ?? input.turn_id ?? sessionId, input.prompt);
       if (state && !state.terminal) {
         activity.heartbeat("ultron", state.runId, "Hermes " + state.state);
         const gateFingerprint = state.design.approved && state.mode !== "design" ? currentFingerprint() : null;
@@ -111,49 +118,58 @@ export const processHook = (input, options = {}) => {
     if (!state || state.terminal) return {};
     if (event === "SubagentStart") {
       const role = String(input.agent_type ?? "");
+      const identity = documentedInvocationIdentity(input);
+      if (identity) {
+        activity.heartbeat(identity.parentAgentId, state.runId, "Codex parent session");
+        activity.heartbeat(identity.childAgentId, state.runId, "Codex subagent " + role);
+        activity.invocation(identity.parentAgentId, identity.childAgentId, state.runId, { ...identity, stage: "called", direction: "call", sequence: 1, reference: "codex-hook:SubagentStart" });
+      }
       if (/product.?owner/i.test(role)) {
-        activity.heartbeat("ultron", state.runId);
-        activity.heartbeat(role, state.runId);
-        activity.communication("ultron", role, "delegation", state.runId, "Hermes product-owner design gate requested", state.correlationId);
+        if (identity) activity.communication(identity.parentAgentId, identity.childAgentId, "delegation", state.runId, "Hermes product-owner design gate requested", state.correlationId);
         return hookContext(event, "Return the exact sections Goal, Scope boundaries, Acceptance criteria, Required manuals, and Verification plan, followed by Decision: approved|blocked.");
       }
       if (/reviewer/i.test(role)) {
-        activity.heartbeat("ultron", state.runId);
-        activity.heartbeat(role, state.runId);
-        activity.communication("ultron", role, "delegation", state.runId, "Hermes independent review gate requested", state.correlationId);
+        if (identity) activity.communication(identity.parentAgentId, identity.childAgentId, "delegation", state.runId, "Hermes independent review gate requested", state.correlationId);
         return hookContext(event, "End with an exact line: Verdict: pass, Verdict: revise, or Verdict: blocked. Review the current deterministic evidence and workspace fingerprint.");
       }
       return {};
     }
     if (event === "SubagentStop") {
       const role = String(input.agent_type ?? ""), message = String(input.last_assistant_message ?? "");
+      const identity = documentedInvocationIdentity(input);
+      const telemetryChild = identity?.childAgentId ?? role, telemetryParent = identity?.parentAgentId ?? "ultron";
+      if (identity) {
+        activity.heartbeat(identity.parentAgentId, state.runId, "Codex parent session");
+        activity.heartbeat(identity.childAgentId, state.runId, "Codex subagent " + role);
+        activity.invocation(identity.parentAgentId, identity.childAgentId, state.runId, { ...identity, stage: "stopped", direction: "return", sequence: 2, reference: "codex-hook:SubagentStop" });
+      }
       if (/product.?owner/i.test(role)) {
         const decision = productOwnerDecision(message);
-        activity.heartbeat(role, state.runId);
+        activity.heartbeat(telemetryChild, state.runId);
         if (!designEvidenceValid(message) || !decision) {
-          activity.communication(role, "ultron", "message", state.runId, "Product-owner evidence rejected by Hermes contract", state.correlationId);
+          activity.communication(telemetryChild, telemetryParent, "message", state.runId, "Product-owner evidence rejected by Hermes contract", state.correlationId);
           return { decision: "block", reason: "Product-owner evidence requires the five sections plus a final Decision: approved|blocked line." };
         }
         if (decision === "blocked") {
-          activity.communication(role, "ultron", "message", state.runId, "Product owner blocked the design", state.correlationId);
-          activity.lifecycle(role, "blocked", state.runId, "Design conflict requires resolution");
+          activity.communication(telemetryChild, telemetryParent, "message", state.runId, "Product owner blocked the design", state.correlationId);
+          activity.lifecycle(telemetryChild, "blocked", state.runId, "Design conflict requires resolution");
           return { decision: "block", reason: "Product owner blocked the design. Resolve the stated conflict before implementation." };
         }
         apply(state, { type: "design-approved", evidenceValid: true, evidenceRef: "subagent:" + (input.agent_id ?? "product-owner") }, { gateId: "design", artifactRefs: ["product-owner"], message: "Product-owner design approved" });
-        activity.communication(role, "ultron", "message", state.runId, "Product-owner design evidence approved", state.correlationId);
-        activity.lifecycle(role, "complete", state.runId, "Product-owner gate complete");
+        activity.communication(telemetryChild, telemetryParent, "message", state.runId, "Product-owner design evidence approved", state.correlationId);
+        activity.lifecycle(telemetryChild, "complete", state.runId, "Product-owner gate complete");
         return {};
       }
       if (/reviewer/i.test(role)) {
         const verdict = reviewerVerdict(message);
-        activity.heartbeat(role, state.runId);
+        activity.heartbeat(telemetryChild, state.runId);
         if (!verdict) {
-          activity.communication(role, "ultron", "message", state.runId, "Reviewer evidence rejected by Hermes contract", state.correlationId);
+          activity.communication(telemetryChild, telemetryParent, "message", state.runId, "Reviewer evidence rejected by Hermes contract", state.correlationId);
           return { decision: "block", reason: "Reviewer output must end with Verdict: pass|revise|blocked." };
         }
         apply(state, { type: "review-recorded", verdict, fingerprint: currentFingerprint(), evidenceRef: "subagent:" + (input.agent_id ?? "reviewer") }, { gateId: "review", artifactRefs: ["reviewer"], outcome: verdict, message: "Reviewer verdict " + verdict });
-        activity.communication(role, "ultron", "message", state.runId, "Reviewer verdict " + verdict, state.correlationId);
-        activity.lifecycle(role, verdict === "blocked" ? "blocked" : verdict === "pass" ? "complete" : "active", state.runId, "Reviewer gate " + verdict);
+        activity.communication(telemetryChild, telemetryParent, "message", state.runId, "Reviewer verdict " + verdict, state.correlationId);
+        activity.lifecycle(telemetryChild, verdict === "blocked" ? "blocked" : verdict === "pass" ? "complete" : "active", state.runId, "Reviewer gate " + verdict);
         return {};
       }
       return {};
