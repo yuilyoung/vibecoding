@@ -64,11 +64,13 @@ const DEFAULT_GIF_FRAME_COUNT = 12;
 const GIF_FRAME_RATE = 10;
 const PHOTO_REFERENCE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_PHOTO_REFERENCE_BYTES = 6 * 1024 * 1024;
+const PHOTO_REFERENCE_FOCUS_KEYS = Object.freeze(["preserveSubjectVisuals", "preserveBackgroundLayout", "preserveCameraComposition"]);
+const DEFAULT_PHOTO_REFERENCE_FOCUS = Object.freeze({ preserveSubjectVisuals: true, preserveBackgroundLayout: true, preserveCameraComposition: true });
 const PHOTO_UNSAFE_RULES = [
   { code: "unsafe_minor", pattern: /\b(minor|child|children|underage|teen(?:ager)?)\b/i },
   { code: "unsafe_sexual", pattern: /\b(nude|nudity|explicit|sexual|nsfw)\b/i },
 ];
-const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 95, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
+const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 90, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
 const MIN_DURATION_SAMPLES = 3;
 const DEFAULT_BOOTSTRAP_PROVIDER_DEADLINE_SECONDS = 300;
 
@@ -89,15 +91,34 @@ function decodePhotoReference(reference) {
   if (!hasPhotoSignature(bytes, mimeType)) return { error: "reference_signature" };
   return { mimeType, bytes };
 }
-export function composePhotorealisticPrompt(detailPrompt, conditions, mode) {
+function normalizePhotoReferenceFocus(value) {
+  if (value === undefined) return { focus: { ...DEFAULT_PHOTO_REFERENCE_FOCUS } };
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { error: "reference_focus_format" };
+  const focus = {};
+  for (const key of PHOTO_REFERENCE_FOCUS_KEYS) {
+    if (value[key] === undefined) focus[key] = DEFAULT_PHOTO_REFERENCE_FOCUS[key];
+    else if (typeof value[key] !== "boolean") return { error: "reference_focus_format" };
+    else focus[key] = value[key];
+  }
+  return PHOTO_REFERENCE_FOCUS_KEYS.some((key) => focus[key]) ? { focus } : { error: "reference_focus_empty" };
+}
+function referenceFocusInstruction(focus) {
+  const requested = [];
+  if (focus.preserveSubjectVisuals) requested.push("fictional-adult silhouette and pose; non-identifying hairstyle; clothing category, palette, material, and non-logo accessories");
+  if (focus.preserveBackgroundLayout) requested.push("background setting, spatial layout, focal-object placement, lighting, weather, and colour palette");
+  if (focus.preserveCameraComposition) requested.push("camera angle, framing, perspective, and composition");
+  return requested.join("; ");
+}
+export function composePhotorealisticPrompt(detailPrompt, conditions, mode, referenceFocus = null) {
   const named = Object.fromEntries(Object.entries(PHOTO_CONDITION_OPTIONS).map(([key, options]) => [key, options[conditions[key]]]));
   const modeLead = mode === "animation_2d_to_photo"
-    ? "Transform the supplied user-attested original 2D illustration into a new photorealistic interpretation. The story direction and structured visual brief define the subject's action, emotion, event, and intended scene meaning; they take precedence over conflicting source-image traits."
+    ? "Transform the supplied user-attested original 2D illustration into a new photorealistic interpretation. Hard safety constraints come first, then the structured visual brief and story direction define the subject's action, emotion, event, and intended scene change."
     : "Create one original photorealistic still from the user direction.";
   return [
     modeLead,
     `Visual brief: ${named.subject}; ${named.age}; ${named.presentation} presentation; ${named.era}; ${named.setting}; ${named.framing}; ${named.cameraAngle}; ${named.clothing}; ${named.peopleCount}.`,
     `Story direction (authoritative for action, emotion, event, and intended scene change): ${detailPrompt.replace(/\s+/g, " ").trim()}`,
+    ...(mode === "animation_2d_to_photo" ? [`Reference continuity requested by the user: preserve only these non-conflicting visual domains from the attached original 2D image: ${referenceFocusInstruction(referenceFocus ?? DEFAULT_PHOTO_REFERENCE_FOCUS)}.`] : []),
     "Keep it cinematic, physically plausible, and non-identifying. Do not include logos, readable text, watermarks, copyrighted characters, or recognisable real people.",
   ].join("\n");
 }
@@ -115,10 +136,16 @@ function validatePhotorealisticDraft(input = {}) {
   const blockedRules = [...localPrecheck(detailPrompt), ...PHOTO_UNSAFE_RULES.filter((rule) => rule.pattern.test(detailPrompt)).map((rule) => rule.code)];
   if (blockedRules.length) errors.push(photoIssue("detailPrompt", "This experimental generator accepts only original, non-identifying, adult-safe image directions.", blockedRules.join(",")));
   let reference = null;
+  let referenceFocus = null;
   if (mode === "animation_2d_to_photo") {
     const decoded = decodePhotoReference(input.referenceImage);
     if (decoded.error) errors.push(photoIssue("referenceImage", "Attach one original PNG, JPEG, or WebP 2D image under 6 MB.", decoded.error));
     else reference = decoded;
+    const normalizedFocus = normalizePhotoReferenceFocus(input.referenceFocus);
+    if (normalizedFocus.error) errors.push(photoIssue("referenceFocus", "Choose at least one reference element to preserve using supported boolean options.", normalizedFocus.error));
+    else referenceFocus = normalizedFocus.focus;
+  } else if (input.referenceFocus !== undefined) {
+    errors.push(photoIssue("referenceFocus", "Reference preservation choices are available only with a 2D original.", "reference_focus_mode"));
   }
   const outputKind = text(input.outputKind || "still");
   const requestedFrameCount = input.frameCount ?? DEFAULT_GIF_FRAME_COUNT;
@@ -127,7 +154,7 @@ function validatePhotorealisticDraft(input = {}) {
   const frameCount = outputKind === "motion_gif" && Number.isInteger(requestedFrameCount) ? requestedFrameCount : 1;
   const clientRequestId = text(input.clientRequestId);
   if (!/^[a-zA-Z0-9-]{12,80}$/.test(clientRequestId)) errors.push(photoIssue("clientRequestId", "A valid local submission identifier is required.", "photo_submission_id"));
-  return { errors, mode, detailPrompt, conditions, reference, outputKind, frameCount, clientRequestId, blockedRules };
+  return { errors, mode, detailPrompt, conditions, reference, referenceFocus, outputKind, frameCount, clientRequestId, blockedRules };
 }
 function storyboard(scene) {
   const source = scene.replace(/\s+/g, " ").slice(0, 160);
@@ -313,7 +340,7 @@ export class StudioService {
       ? { seconds: this.bootstrapPhotorealisticDurationSeconds(output), source: "bucket_bootstrap", sampleCount }
       : { seconds: sampledSeconds, source: "bucket_median", sampleCount };
   }
-  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds, maximumProgress = 95) {
+  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds, maximumProgress = 90) {
     const startProgress = Math.min(PHOTO_PHASES.provider_started.progress, maximumProgress);
     const ratio = Math.min(1, Math.max(0, elapsedSeconds) / Math.max(1, estimatedDurationSeconds));
     return Math.min(maximumProgress, Math.floor((startProgress + ((maximumProgress - startProgress) * ratio)) / 5) * 5);
@@ -325,6 +352,9 @@ export class StudioService {
     const phaseStartedAt = this.now().toISOString();
     project.job.phaseStartedAt = phaseStartedAt;
     if (phase === "provider_started") project.job.forecastStartedAt = phaseStartedAt;
+    if (phase === "output_validated") project.job.finalizationState = "validating_image";
+    if (phase === "gif_encoding") project.job.finalizationState = "encoding_gif";
+    if (phase === "artifact_ready") project.job.finalizationState = "saving_artifact";
     if (phase === "gif_encoding") {
       project.job.encodedFrameCount = Math.max(0, Math.min(project.output.frameCount, Number(details.currentFrame) || 0));
       project.job.observedProgress = state.progress;
@@ -373,8 +403,9 @@ export class StudioService {
         snapshot.job.estimatedRemainingSeconds = 0;
         snapshot.job.etaState = "terminal";
         snapshot.job.etaSource = null;
+        snapshot.job.finalizationState = "terminal";
         snapshot.job.progressBasis = "observed_server_lifecycle";
-        snapshot.job.progress = snapshot.status === "completed" ? 100 : Math.max(observedProgress, retainedForecast);
+        snapshot.job.progress = snapshot.status === "completed" ? 100 : Math.min(90, Math.max(observedProgress, retainedForecast));
       } else {
         if (snapshot.job.estimatedDurationSeconds === null) {
           snapshot.job.estimatedRemainingSeconds = null;
@@ -388,16 +419,22 @@ export class StudioService {
           snapshot.job.etaState = remaining > 0 ? snapshot.job.etaSource === "bucket_median" ? "sampled" : "bootstrap" : "estimate_exceeded";
           const supportsForecast = snapshot.status === "in_progress" && ["provider_started", "output_validated", "gif_encoding", "artifact_ready"].includes(snapshot.job.phase);
           if (supportsForecast) {
-            const forecastCap = snapshot.output.kind === "motion_gif" && snapshot.job.phase !== "artifact_ready" ? 90 : 95;
+            const forecastCap = 90;
             const forecast = this.forecastPhotorealisticProgress(forecastElapsedSeconds, snapshot.job.estimatedDurationSeconds, forecastCap);
-            const forecastHighWater = Math.max(retainedForecast, forecast);
-            const visibleForecastHighWater = Math.min(forecastCap, forecastHighWater);
+            const forecastHighWater = Math.min(forecastCap, Math.max(retainedForecast, forecast));
             if (project.job) project.job.forecastHighWater = forecastHighWater;
-            snapshot.job.forecastHighWater = visibleForecastHighWater;
-            snapshot.job.progress = Math.max(observedProgress, visibleForecastHighWater);
+            snapshot.job.forecastHighWater = forecastHighWater;
+            snapshot.job.progress = Math.max(observedProgress, forecastHighWater);
             snapshot.job.progressBasis = "server_lifecycle_and_duration_forecast";
           } else { snapshot.job.progress = observedProgress; snapshot.job.progressBasis = "observed_server_lifecycle"; }
         }
+      }
+      if (snapshot.status !== "completed" && snapshot.status !== "failed" && snapshot.job.progress >= 90) {
+        const finalizationState = ["validating_image", "encoding_gif", "saving_artifact"].includes(snapshot.job.finalizationState)
+          ? snapshot.job.finalizationState
+          : "awaiting_provider_output";
+        snapshot.job.finalizationState = finalizationState;
+        if (project.job) project.job.finalizationState = finalizationState;
       }
     }
     return snapshot;
@@ -414,7 +451,7 @@ export class StudioService {
     if (duplicateId) return { ok: false, status: 409, error: "duplicate_submission", message: "This image request is already active or complete.", project: this.snapshotPhotorealisticProject(this.photorealisticProjects.get(duplicateId)) };
     const at = this.now().toISOString();
     const id = `photo-${String(++this.sequence).padStart(4, "0")}`;
-    const composedPrompt = composePhotorealisticPrompt(draft.detailPrompt, draft.conditions, draft.mode);
+    const composedPrompt = composePhotorealisticPrompt(draft.detailPrompt, draft.conditions, draft.mode, draft.referenceFocus);
     const output = { kind: draft.outputKind, frameCount: draft.frameCount, fps: draft.outputKind === "motion_gif" ? GIF_FRAME_RATE : null };
     const durationEstimate = this.photorealisticDurationEstimate(output, draft.mode);
     const estimate = durationEstimate.seconds;
@@ -428,8 +465,8 @@ export class StudioService {
       detailPrompt: draft.detailPrompt,
       composedPrompt,
       output,
-      source: draft.reference ? { kind: "attested_original_2d", processing: "ephemeral_codex_image_attachment" } : null,
-      job: { id: `photo-job-${id}`, provider: provider.provider, mode: draft.mode, outputKind: output.kind, requestedFrameCount: output.frameCount, encodedFrameCount: 0, fps: output.fps, status: "queued", phase: "validated", progress: PHOTO_PHASES.validated.progress, observedProgress: PHOTO_PHASES.validated.progress, forecastHighWater: 0, progressBasis: "observed_server_lifecycle", startedAt: null, phaseStartedAt: at, forecastStartedAt: null, completedAt: null, estimatedDurationSeconds: estimate, elapsedSeconds: 0, forecastElapsedSeconds: 0, estimatedRemainingSeconds: estimate, etaState: durationEstimate.source === "bucket_median" ? "sampled" : "bootstrap", etaSource: durationEstimate.source, durationSampleCount: durationEstimate.sampleCount },
+      source: draft.reference ? { kind: "attested_original_2d", processing: "ephemeral_codex_image_attachment", focus: draft.referenceFocus } : null,
+      job: { id: `photo-job-${id}`, provider: provider.provider, mode: draft.mode, outputKind: output.kind, requestedFrameCount: output.frameCount, encodedFrameCount: 0, fps: output.fps, status: "queued", phase: "validated", progress: PHOTO_PHASES.validated.progress, observedProgress: PHOTO_PHASES.validated.progress, forecastHighWater: 0, progressBasis: "observed_server_lifecycle", startedAt: null, phaseStartedAt: at, forecastStartedAt: null, completedAt: null, estimatedDurationSeconds: estimate, elapsedSeconds: 0, forecastElapsedSeconds: 0, estimatedRemainingSeconds: estimate, etaState: durationEstimate.source === "bucket_median" ? "sampled" : "bootstrap", etaSource: durationEstimate.source, durationSampleCount: durationEstimate.sampleCount, finalizationState: "none" },
       delivery: null,
       error: null,
       audit: [{ at, event: "photo_validated", jobId: `photo-job-${id}` }],
@@ -458,6 +495,7 @@ export class StudioService {
       project.job.phase = PHOTO_PHASES.completed.label;
       project.job.progress = PHOTO_PHASES.completed.progress;
       project.job.observedProgress = PHOTO_PHASES.completed.progress;
+      project.job.finalizationState = "terminal";
       project.updatedAt = project.job.completedAt;
       project.delivery = { mode: project.mode, output: project.output, notice: project.output.kind === "motion_gif" ? "Trusted-local deterministic motion GIF complete. It is built from one generated still, not AI video or frame-by-frame generation." : "Trusted-local experimental photorealistic image complete. It remains local to this API session.", asset };
       project.audit.push({ at: project.updatedAt, event: "photo_completed", jobId: project.job.id });
@@ -479,7 +517,9 @@ export class StudioService {
       project.job.status = "failed";
       project.job.completedAt = this.now().toISOString();
       project.job.phase = PHOTO_PHASES.failed.label;
-      project.job.progress = Math.max(project.job.observedProgress ?? project.job.progress ?? 0, project.job.forecastHighWater ?? 0);
+      project.job.finalizationState = "terminal";
+      project.job.forecastHighWater = Math.min(90, project.job.forecastHighWater ?? 0);
+      project.job.progress = Math.min(90, Math.max(project.job.observedProgress ?? project.job.progress ?? 0, project.job.forecastHighWater));
       project.updatedAt = project.job.completedAt;
       project.error = { code, message, ...(providerDiagnostics ? { providerDiagnostics } : {}), ...(cleanupWarning ? { cleanupWarning } : {}) };
       project.audit.push({ at: project.updatedAt, event: "photo_failed", jobId: project.job.id, code, ...(providerDiagnostics ? { diagnosticCode: providerDiagnostics.diagnosticCode } : {}) });

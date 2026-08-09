@@ -140,6 +140,28 @@ const validPhotoConditions = { subject: "fictional_adult", age: "adult_30s", era
 const validPhotoDraft = { mode: "text_to_photo", detailPrompt: "A fictional adult waits beneath rain reflections on an original city street, with cinematic but natural lighting.", conditions: validPhotoConditions, rightsAccepted: true, clientRequestId: "photo-request-0001" };
 const validPngDataUrl = "data:image/png;base64,iVBORw0KGgo=";
 
+test("keeps user-selected 2D visual anchors subordinate to story direction", () => {
+  const provider = { status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }), generateUserImage: () => Promise.resolve() };
+  const service = new StudioService({ schedule: () => {}, headlessImageProvider: provider });
+  const focus = { preserveSubjectVisuals: true, preserveBackgroundLayout: false, preserveCameraComposition: true };
+  const selected = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-focus-0001", referenceImage: { mimeType: "image/png", dataUrl: validPngDataUrl }, referenceFocus: focus });
+  assert.equal(selected.status, 202);
+  assert.deepEqual(selected.project.source.focus, focus);
+  assert.match(selected.project.composedPrompt, /Story direction \(authoritative for action, emotion, event, and intended scene change\)/);
+  assert.match(selected.project.composedPrompt, /fictional-adult silhouette and pose/);
+  assert.match(selected.project.composedPrompt, /camera angle, framing, perspective, and composition/);
+  assert.doesNotMatch(selected.project.composedPrompt, /background setting, spatial layout, focal-object placement/);
+  const defaulted = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-focus-0002", referenceImage: { mimeType: "image/png", dataUrl: validPngDataUrl } });
+  assert.equal(defaulted.status, 202);
+  assert.deepEqual(defaulted.project.source.focus, { preserveSubjectVisuals: true, preserveBackgroundLayout: true, preserveCameraComposition: true });
+  const empty = service.createPhotorealisticProject({ ...validPhotoDraft, mode: "animation_2d_to_photo", clientRequestId: "photo-focus-0003", referenceImage: { mimeType: "image/png", dataUrl: validPngDataUrl }, referenceFocus: { preserveSubjectVisuals: false, preserveBackgroundLayout: false, preserveCameraComposition: false } });
+  assert.equal(empty.status, 422);
+  assert.equal(empty.errors.some((entry) => entry.code === "reference_focus_empty"), true);
+  const textOnly = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-focus-0004", referenceFocus: focus });
+  assert.equal(textOnly.status, 422);
+  assert.equal(textOnly.errors.some((entry) => entry.code === "reference_focus_mode"), true);
+});
+
 test("creates a trusted-local photo job with observed lifecycle phases and no source-data leak", async () => {
   const scheduled = [];
   let resolveGeneration;
@@ -190,15 +212,18 @@ test("creates a trusted-local photo job with observed lifecycle phases and no so
   const outputValidated = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(outputValidated.job.phase, "output_validated");
   assert.equal(outputValidated.job.progress, 90);
+  assert.equal(outputValidated.job.finalizationState, "validating_image");
   reportPhase("artifact_ready");
   const artifactReady = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(artifactReady.job.phase, "artifact_ready");
-  assert.equal(artifactReady.job.progress, 95);
+  assert.equal(artifactReady.job.progress, 90);
+  assert.equal(artifactReady.job.finalizationState, "saving_artifact");
   resolveGeneration({ id: "photo-result", kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: 9, height: 16, aspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", notice: "test" });
   await nextTick();
   const completed = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(completed.status, "completed");
   assert.equal(completed.job.phase, "completed");
+  assert.equal(completed.job.finalizationState, "terminal");
   assert.equal(completed.job.estimatedRemainingSeconds, 0);
   assert.equal(completed.job.forecastElapsedSeconds, 190);
   assert.equal(service.photorealisticDurationSamples.at(-1).seconds, 190);
@@ -237,7 +262,8 @@ test("calculates server-side gradual forecast progress only after matching obser
     },
   };
   const service = new StudioService({ now: () => new Date(time), schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
-  assert.equal(service.forecastPhotorealisticProgress(61, 75), 85);
+  assert.equal(service.forecastPhotorealisticProgress(61, 75), 80);
+  assert.equal(service.forecastPhotorealisticProgress(75, 75), 90);
   service.photorealisticDurationSamples = [{ bucket: "text_to_photo_still", seconds: 60 }, { bucket: "text_to_photo_still", seconds: 75 }];
   assert.equal(service.estimatedPhotorealisticDurationSeconds({ kind: "still" }, "text_to_photo"), null);
   const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-request-0005" });
@@ -252,20 +278,21 @@ test("calculates server-side gradual forecast progress only after matching obser
   assert.equal(forecast.job.etaState, "sampled");
   assert.equal(forecast.job.etaSource, "bucket_median");
   assert.equal(forecast.job.progressBasis, "server_lifecycle_and_duration_forecast");
-  assert.equal(forecast.job.progress, 85);
+  assert.equal(forecast.job.progress, 80);
   assert.equal(forecast.job.observedProgress, 55);
-  assert.equal(forecast.job.forecastHighWater, 85);
+  assert.equal(forecast.job.forecastHighWater, 80);
   time -= 10_000;
   const clockRollback = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(clockRollback.job.elapsedSeconds, 60);
   assert.equal(clockRollback.job.estimatedRemainingSeconds, 15);
-  assert.equal(clockRollback.job.progress, 85);
+  assert.equal(clockRollback.job.progress, 80);
   time += 26_000;
   const overdue = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(overdue.job.estimatedRemainingSeconds, null);
   assert.equal(overdue.job.etaState, "estimate_exceeded");
   assert.equal(overdue.job.progressBasis, "server_lifecycle_and_duration_forecast");
-  assert.equal(overdue.job.progress, 95);
+  assert.equal(overdue.job.progress, 90);
+  assert.equal(overdue.job.finalizationState, "awaiting_provider_output");
   resolveGeneration({ id: "photo-result-warning", kind: "user_photorealistic_still", origin: "codex_headless_imagegen", generatedByAi: true, mimeType: "image/png", width: 9, height: 16, aspectRatio: "9:16", dataUri: "data:image/png;base64,AA==", notice: "test", cleanupWarning: { code: "cleanup_warning", osCode: "EBUSY", workspace: "ars-headless-imagegen-test" } });
   await nextTick();
   const completed = service.getPhotorealisticProject(created.project.id).project;
@@ -279,15 +306,16 @@ test("calculates server-side gradual forecast progress only after matching obser
 
 test("records an asynchronous trusted-local photo provider failure with a safe cleanup warning", async () => {
   const scheduled = [];
+  let rejectGeneration;
   const cleanupWarning = { code: "cleanup_warning", osCode: "EBUSY", workspace: "ars-headless-imagegen-test" };
   const unsafeProviderDiagnostics = { diagnosticCode: "provider_exit_nonzero", exitCode: 1, elapsedSeconds: 2, stderrBytes: 91, stderrTruncated: false, stderrText: "data:image/png;base64,private", sourcePath: "C:\\Temp\\source.png" };
   const provider = {
     status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
-    generateUserImage: async ({ onPhase }) => {
+    generateUserImage: ({ onPhase }) => {
       onPhase("workspace_prepared");
       onPhase("provider_started");
       onPhase("completed");
-      throw Object.assign(new Error("The local provider stopped after starting."), { cleanupWarning, providerDiagnostics: unsafeProviderDiagnostics });
+      return new Promise((resolve, reject) => { rejectGeneration = reject; });
     },
   };
   const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
@@ -295,11 +323,14 @@ test("records an asynchronous trusted-local photo provider failure with a safe c
   assert.equal(created.status, 202);
   scheduled.shift()();
   await nextTick();
+  service.photorealisticProjects.get(created.project.id).job.forecastHighWater = 95;
+  rejectGeneration(Object.assign(new Error("The local provider stopped after starting."), { cleanupWarning, providerDiagnostics: unsafeProviderDiagnostics }));
+  await nextTick();
   const failed = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(failed.status, "failed");
   assert.equal(failed.job.phase, "failed");
   assert.equal(failed.job.progress < 100, true);
-  assert.equal(failed.job.progress, 55);
+  assert.equal(failed.job.progress, 90);
   assert.equal(failed.error.code, "provider_failed");
   assert.deepEqual(failed.error.cleanupWarning, cleanupWarning);
   assert.deepEqual(failed.error.providerDiagnostics, { diagnosticCode: "provider_exit_nonzero", exitCode: 1, elapsedSeconds: 2, stderrBytes: 91, stderrTruncated: false });
@@ -339,6 +370,7 @@ test("creates a motion GIF job with observed frame encoding and a terminal-only 
   assert.deepEqual(requestedOutput, { kind: "motion_gif", frameCount: 12, fps: 10 });
   assert.equal(encoding.status, "in_progress");
   assert.equal(encoding.job.phase, "gif_encoding");
+  assert.equal(encoding.job.finalizationState, "encoding_gif");
   assert.equal(encoding.job.encodedFrameCount, 12);
   assert.equal(encoding.job.progress, 90);
   assert.equal(encoding.job.forecastHighWater, 90);
@@ -346,10 +378,12 @@ test("creates a motion GIF job with observed frame encoding and a terminal-only 
   reportPhase("gif_encoding", { currentFrame: 12, frameCount: 12 });
   const encodingAfterFrame = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(encodingAfterFrame.job.progress, 90);
+  assert.equal(encodingAfterFrame.job.forecastHighWater, 90);
   reportPhase("artifact_ready");
   const artifactReady = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(artifactReady.job.phase, "artifact_ready");
-  assert.equal(artifactReady.job.progress, 95);
+  assert.equal(artifactReady.job.progress, 90);
+  assert.equal(artifactReady.job.finalizationState, "saving_artifact");
   resolveGeneration({ id: "gif-result", kind: "user_motion_gif", origin: "local_motion_gif_from_generated_still", generatedByAi: true, mimeType: "image/gif", width: 432, height: 768, aspectRatio: "9:16", frameCount: 12, fps: 10, durationSeconds: 1.2, byteLength: 1024, dataUri: "data:image/gif;base64,R0lGODlh", notice: "motion test" });
   await nextTick();
   const completed = service.getPhotorealisticProject(created.project.id).project;

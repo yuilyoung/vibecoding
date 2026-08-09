@@ -240,7 +240,7 @@ test("headless provider attaches an attested 2D input only to the Codex invocati
       call.onStarted();
       const imageArgumentIndex = call.args.indexOf("--image");
       assert.equal(call.args.filter((argument) => argument === "--image").length, 1);
-      assert.ok(call.args.indexOf(call.prompt) >= 0 && call.args.indexOf(call.prompt) < imageArgumentIndex);
+      assert.ok(imageArgumentIndex >= 0 && imageArgumentIndex < call.args.indexOf(call.prompt));
       assert.equal(call.args[imageArgumentIndex + 1], join(call.cwd, "source.png"));
       assert.deepEqual(await readFile(call.args[imageArgumentIndex + 1]), reference);
       await writeFile(call.outputPath, portraitPng(1080, 1920));
@@ -253,12 +253,9 @@ test("headless provider attaches an attested 2D input only to the Codex invocati
     assert.equal(asset.aspectRatio, "9:16");
     assert.deepEqual(phases, ["workspace_prepared", "provider_started", "output_validated", "artifact_ready"]);
     assert.match(invocation.prompt, /original adult-safe rain-lit portrait/);
-    assert.match(invocation.prompt, /primary visual reference/);
-    assert.match(invocation.prompt, /story direction wins for the subject's action, emotion, event/);
+    assert.match(invocation.prompt, /Reference handling: use the attached user-attested original 2D image only through the requested visual domains/);
+    assert.match(invocation.prompt, /First compare the source with that contract/);
     assert.match(invocation.prompt, /Follow the validated story direction for action, emotion, event/);
-    assert.match(invocation.prompt, /silhouette and pose/);
-    assert.match(invocation.prompt, /background setting, layout/);
-    assert.match(invocation.prompt, /camera angle, framing, and perspective/);
     assert.match(asset.notice, /attached to Codex/);
     await assert.rejects(access(invocation.cwd));
     await access(join(outputDirectory, "user-photorealistic-stills", "photo-user-photo.png"));
