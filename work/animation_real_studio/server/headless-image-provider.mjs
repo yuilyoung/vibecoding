@@ -119,7 +119,13 @@ function providerFailure(execution) {
   return error;
 }
 
-function runCodexExec({ command, args, cwd, environment, timeoutMs, onStarted = () => {} }) {
+function providerStartError(spawnError, diagnostics) {
+  const error = new HeadlessImageProviderError("provider_unavailable", "Codex headless execution could not be started. Restart the local Studio API from a trusted terminal that is allowed to launch child processes.");
+  error.providerDiagnostics = diagnostics({ diagnosticCode: diagnosticCodeForSpawnError(spawnError) });
+  return error;
+}
+
+export function runCodexExec({ command, args, cwd, environment, timeoutMs, onStarted = () => {}, spawnProcess = spawn }) {
   return new Promise((resolveRun, rejectRun) => {
     let finished = false;
     let timeout;
@@ -135,7 +141,13 @@ function runCodexExec({ command, args, cwd, environment, timeoutMs, onStarted = 
       clearTimeout(timeout);
       action();
     };
-    const child = spawn(command, args, { cwd, env: environment, windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+    let child;
+    try {
+      child = spawnProcess(command, args, { cwd, env: environment, windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+    } catch (spawnError) {
+      finish(() => rejectRun(providerStartError(spawnError, diagnostics)));
+      return;
+    }
     child.once("spawn", onStarted);
     child.stderr?.on("data", (chunk) => {
       const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
@@ -154,9 +166,7 @@ function runCodexExec({ command, args, cwd, environment, timeoutMs, onStarted = 
       finish(() => rejectRun(error));
     }, timeoutMs);
     child.once("error", (spawnError) => {
-      const error = new HeadlessImageProviderError("provider_unavailable", "Codex headless execution could not be started.");
-      error.providerDiagnostics = diagnostics({ diagnosticCode: diagnosticCodeForSpawnError(spawnError) });
-      finish(() => rejectRun(error));
+      finish(() => rejectRun(providerStartError(spawnError, diagnostics)));
     });
     child.once("exit", (exitCode, signal) => {
       const capturedStderr = Buffer.concat(stderrChunks).toString("utf8");

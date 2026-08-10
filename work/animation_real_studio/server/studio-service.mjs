@@ -70,9 +70,13 @@ const PHOTO_UNSAFE_RULES = [
   { code: "unsafe_minor", pattern: /\b(minor|child|children|underage|teen(?:ager)?)\b/i },
   { code: "unsafe_sexual", pattern: /\b(nude|nudity|explicit|sexual|nsfw)\b/i },
 ];
-const PHOTO_PHASES = Object.freeze({ validated: { progress: 10, label: "validated" }, workspace_prepared: { progress: 30, label: "workspace_prepared" }, provider_started: { progress: 55, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 90, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
+const PHOTO_PHASES = Object.freeze({ validated: { progress: 0, label: "validated" }, workspace_prepared: { progress: 0, label: "workspace_prepared" }, provider_started: { progress: 5, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 90, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
 const MIN_DURATION_SAMPLES = 3;
 const DEFAULT_BOOTSTRAP_PROVIDER_DEADLINE_SECONDS = 300;
+const FORECAST_INITIAL_PROGRESS = 5;
+const FORECAST_STEP_COUNT = 100;
+const FORECAST_STEP_PERCENT = 1;
+const FORECAST_MAX_PROGRESS = 90;
 
 function photoIssue(field, message, code) { return issue(field, message, code); }
 function hasPhotoSignature(bytes, mimeType) {
@@ -340,10 +344,10 @@ export class StudioService {
       ? { seconds: this.bootstrapPhotorealisticDurationSeconds(output), source: "bucket_bootstrap", sampleCount }
       : { seconds: sampledSeconds, source: "bucket_median", sampleCount };
   }
-  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds, maximumProgress = 90) {
-    const startProgress = Math.min(PHOTO_PHASES.provider_started.progress, maximumProgress);
-    const ratio = Math.min(1, Math.max(0, elapsedSeconds) / Math.max(1, estimatedDurationSeconds));
-    return Math.min(maximumProgress, Math.floor((startProgress + ((maximumProgress - startProgress) * ratio)) / 5) * 5);
+  forecastPhotorealisticProgress(elapsedSeconds, estimatedDurationSeconds, maximumProgress = FORECAST_MAX_PROGRESS) {
+    const stepSeconds = Math.max(1, estimatedDurationSeconds) / FORECAST_STEP_COUNT;
+    const completedSteps = Math.floor(Math.max(0, elapsedSeconds) / stepSeconds);
+    return Math.min(maximumProgress, FORECAST_INITIAL_PROGRESS + (completedSteps * FORECAST_STEP_PERCENT));
   }
   setPhotorealisticPhase(project, phase, details = {}) {
     const state = PHOTO_PHASES[phase];
@@ -419,7 +423,7 @@ export class StudioService {
           snapshot.job.etaState = remaining > 0 ? snapshot.job.etaSource === "bucket_median" ? "sampled" : "bootstrap" : "estimate_exceeded";
           const supportsForecast = snapshot.status === "in_progress" && ["provider_started", "output_validated", "gif_encoding", "artifact_ready"].includes(snapshot.job.phase);
           if (supportsForecast) {
-            const forecastCap = 90;
+            const forecastCap = FORECAST_MAX_PROGRESS;
             const forecast = this.forecastPhotorealisticProgress(forecastElapsedSeconds, snapshot.job.estimatedDurationSeconds, forecastCap);
             const forecastHighWater = Math.min(forecastCap, Math.max(retainedForecast, forecast));
             if (project.job) project.job.forecastHighWater = forecastHighWater;

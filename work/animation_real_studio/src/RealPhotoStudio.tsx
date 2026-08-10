@@ -52,6 +52,12 @@ function finalizationCopy(project: PhotorealisticProject) {
   if (project.job.finalizationState === "saving_artifact") return "결과 파일을 저장하고 완료를 확인하고 있습니다.";
   return "실제 완료 이벤트를 확인하고 있습니다.";
 }
+function providerErrorCopy(project: PhotorealisticProject) {
+  if (project.error?.providerDiagnostics?.diagnosticCode === "process_permission_denied") {
+    return "로컬 API가 Codex 프로세스를 시작할 권한 없이 실행되었습니다. API를 종료한 뒤 자식 프로세스 실행이 허용된 신뢰 가능한 로컬 터미널에서 다시 시작해 주세요.";
+  }
+  return project.error?.message ?? "이미지 생성 작업이 실패했습니다.";
+}
 function referenceFocusCopy(focus: PhotoReferenceFocus) {
   const selected = REFERENCE_FOCUS_OPTIONS.filter((option) => focus[option.key]).map((option) => option.title);
   return selected.join(" · ");
@@ -62,12 +68,12 @@ function observedProgress(project: PhotorealisticProject) {
 }
 function progressBasisCopy(project: PhotorealisticProject) {
   if (project.job.progressBasis === "server_lifecycle_and_duration_forecast") {
-    return `${etaSourceCopy(project)}입니다. 시간 기반 예상은 5% 단위로 90%까지만 표시하고, 100%는 실제 완료 검증에서만 표시합니다.`;
+    return `${etaSourceCopy(project)}입니다. provider 시작 시 5%부터 표시하고, 예상시간을 100등분해 1%씩 90%까지 증가시킵니다. 100%는 실제 완료 검증에서만 표시합니다.`;
   }
   return "모델 렌더 비율이 아닌 서버 확인 단계입니다.";
 }
 function progressAriaText(project: PhotorealisticProject) {
-  return `${etaSourceCopy(project)}, 관측 단계: ${phaseCopy(project)}, ${observedProgress(project)}%${isFinalizing(project) ? `, 완료 마무리: ${finalizationCopy(project)}` : ""}`;
+  return `${etaSourceCopy(project)}, 관측 단계: ${phaseCopy(project)}, ${observedProgress(project)}%${isFinalizing(project) ? `, 완료 대기: ${finalizationCopy(project)}` : ""}`;
 }
 function dataUrlFromFile(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -181,19 +187,19 @@ export function RealPhotoStudio() {
     </form>
     {project && <section className={`photo-job ${isActive ? "is-active" : ""} ${finalizing ? "is-finalizing" : ""}`} aria-live="polite">
       <div className="photo-job-head">
-        <div><p>LOCAL JOB / {project.id.toUpperCase()}</p><h2>{finalizing ? "완료 마무리 중" : phaseCopy(project)}</h2><span>{finalizing ? "90% 이후에는 실제 파일 검증과 완료 이벤트가 확인될 때만 100%로 완료됩니다." : project.job.etaSource === "bucket_bootstrap" ? "초기 추정 진행률은 5% 단위로 90%까지 표시됩니다. 실제 완료 검증 전에는 100%가 되지 않습니다." : project.job.etaSource === "bucket_median" ? "완료 표본 기반 예상 진행률은 5% 단위로 90%까지 표시됩니다. 실제 완료 검증 전에는 100%가 되지 않습니다." : "완료 상태는 서버가 검증한 실제 결과를 기준으로 표시합니다."}</span></div>
+        <div><p>LOCAL JOB / {project.id.toUpperCase()}</p><h2>{finalizing ? "완료 대기 중" : phaseCopy(project)}</h2><span>{finalizing ? "90%에서 생성 결과를 기다립니다. 실제 파일 검증과 완료 이벤트가 확인될 때만 100%로 완료됩니다." : project.job.etaSource === "bucket_bootstrap" ? "provider 시작 시 5%부터 표시하고, 완료 예상 시간을 100등분해 1%씩 90%까지 증가시킵니다." : project.job.etaSource === "bucket_median" ? "provider 시작 시 5%부터 표시하고, 완료 표본의 예상 시간을 100등분해 1%씩 90%까지 증가시킵니다." : "완료 상태는 서버가 검증한 실제 결과를 기준으로 표시합니다."}</span></div>
         {isActive && <div className="photo-live-indicator" aria-hidden="true"><i /><span>서버 상태 확인 중</span></div>}
         <b>{project.status === "completed" ? "DONE" : project.status === "failed" ? "FAILED" : "LIVE"}</b>
       </div>
       {showProgress && <>
-        <div className="photo-phase-track" role="progressbar" aria-label={finalizing ? "서버 완료 마무리 진행률" : project.job.etaSource === "bucket_bootstrap" ? "서버 초기 완료 예상 진행률" : project.job.etaSource === "bucket_median" ? "서버 완료 표본 기반 예상 진행률" : "관측된 서버 생명주기 진행률"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={displayProgress} aria-valuetext={progressAriaText(project)}><span style={{ width: `${displayProgress}%` }} /></div>
+        <div className="photo-phase-track" role="progressbar" aria-label={finalizing ? "서버 완료 대기 진행률" : project.job.etaSource === "bucket_bootstrap" ? "서버 초기 완료 예상 진행률" : project.job.etaSource === "bucket_median" ? "서버 완료 표본 기반 예상 진행률" : "관측된 서버 생명주기 진행률"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={displayProgress} aria-valuetext={progressAriaText(project)}><span style={{ width: `${displayProgress}%` }} /></div>
         <div className="photo-progress-copy"><b>{displayProgress}%</b><span>{progressBasisCopy(project)}</span></div>
-        {finalizing && <div className="photo-finalization" role="status"><i aria-hidden="true" /><div><span>COMPLETION FINALIZATION / 90%</span><b>완료 마무리 중</b><p>{finalizationCopy(project)}</p><small>90% 이후에는 실제 파일 검증과 완료 이벤트가 확인될 때만 100%로 완료됩니다.</small></div></div>}
+        {finalizing && <div className="photo-finalization" role="status"><i aria-hidden="true" /><div><span>COMPLETION WAIT / 90%</span><b>완료 대기 중</b><p>{finalizationCopy(project)}</p><small>실제 결과 파일이 검증될 때까지 90%를 유지하며, 검증된 완료 이벤트에서만 100%가 됩니다.</small></div></div>}
         <div className="photo-timing"><div><span>경과 시간</span><b>{displayElapsed}초</b></div><div><span>{finalizing ? "완료 처리" : "예상 잔여 시간"}</span><b>{finalizing ? finalizationCopy(project) : secondsCopy(project.job.estimatedRemainingSeconds, project.job.etaState)}</b></div><div><span>현재 단계</span><b>{phaseCopy(project)}</b></div><div><span>예상 기준</span><b>{etaSourceCopy(project)}</b></div>{project.output.kind === "motion_gif" && <div><span>GIF 프레임</span><b>{project.job.encodedFrameCount}/{project.job.requestedFrameCount}</b></div>}</div>
       </>}
       {project.delivery && <figure className="photo-result"><img src={project.delivery.asset.dataUri} width={project.delivery.asset.width} height={project.delivery.asset.height} alt={project.delivery.asset.kind === "user_motion_gif" ? "생성된 비식별 실사 모션 GIF" : "생성된 비식별 실사 이미지"} /><figcaption><b>{project.delivery.asset.kind === "user_motion_gif" ? "MOTION GIF / 9:16" : "PHOTOREALISTIC STILL / 9:16"}</b><span>{project.delivery.asset.width} × {project.delivery.asset.height} · {project.delivery.asset.frameCount}프레임 · {project.delivery.asset.fps ? `${project.delivery.asset.fps}fps · ${project.delivery.asset.durationSeconds?.toFixed(1)}초` : "실사 PNG 한 장"}</span>{project.delivery.asset.kind === "user_motion_gif" && <small>한 장의 생성된 실사 이미지를 기반으로 한 결정적 pan/zoom GIF이며, AI 비디오·프레임별 재생성이 아닙니다.</small>}</figcaption></figure>}
       {project.delivery?.asset.cleanupWarning && <p className="photo-cleanup-warning" role="status">임시 작업 공간 정리 경고: <b>{project.delivery.asset.cleanupWarning.code}</b>. 업로드한 2D 원본의 임시 사본이 로컬 작업 공간에 남았을 수 있습니다. 로컬 운영자에게 정리를 요청하세요.</p>}
-      {project.error && <div className="photo-error" role="alert"><b>{project.error.code}</b>{project.error.providerDiagnostics?.diagnosticCode && <small>진단 코드: <b>{project.error.providerDiagnostics.diagnosticCode}</b></small>}<span>{project.error.message}</span></div>}
+      {project.error && <div className="photo-error" role="alert"><b>{project.error.code}</b>{project.error.providerDiagnostics?.diagnosticCode && <small>진단 코드: <b>{project.error.providerDiagnostics.diagnosticCode}</b></small>}<span>{providerErrorCopy(project)}</span></div>}
       <button type="button" className="button button-quiet" onClick={() => { setProject(null); setError(""); }}>새 작업 만들기</button>
     </section>}
   </div>;

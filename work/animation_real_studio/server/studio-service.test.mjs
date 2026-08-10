@@ -182,6 +182,7 @@ test("creates a trusted-local photo job with observed lifecycle phases and no so
   assert.equal(created.status, 202);
   assert.equal(created.project.status, "queued");
   assert.equal(created.project.job.phase, "validated");
+  assert.equal(created.project.job.progress, 0);
   assert.equal(created.project.job.progressBasis, "observed_server_lifecycle");
   assert.equal(JSON.stringify(created.project).includes("data:image"), false);
   scheduled.shift()();
@@ -191,9 +192,9 @@ test("creates a trusted-local photo job with observed lifecycle phases and no so
   const active = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(active.status, "in_progress");
   assert.equal(active.job.phase, "provider_started");
-  assert.equal(active.job.progress, 55);
-  assert.equal(active.job.observedProgress, 55);
-  assert.equal(active.job.forecastHighWater, 55);
+  assert.equal(active.job.progress, 5);
+  assert.equal(active.job.observedProgress, 5);
+  assert.equal(active.job.forecastHighWater, 5);
   assert.equal(active.job.elapsedSeconds, 30);
   assert.equal(active.job.forecastElapsedSeconds, 0);
   assert.equal(active.job.forecastStartedAt, "2026-08-05T12:00:30.000Z");
@@ -207,7 +208,7 @@ test("creates a trusted-local photo job with observed lifecycle phases and no so
   time += 190_000;
   const bootstrapForecast = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(bootstrapForecast.job.estimatedRemainingSeconds, 125);
-  assert.equal(bootstrapForecast.job.progress, 75);
+  assert.equal(bootstrapForecast.job.progress, 65);
   reportPhase("output_validated");
   const outputValidated = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(outputValidated.job.phase, "output_validated");
@@ -249,6 +250,51 @@ test("rejects unsafe, invalid, and unconfigured real-image requests without star
   assert.equal(unsafe.errors.some((entry) => entry.code.includes("unsafe")), true);
   assert.equal(called, 0);
 });
+test("preserves zero when process permission fails before provider spawn", async () => {
+  const scheduled = [];
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: () => {
+      throw Object.assign(new Error("Codex headless execution could not be started."), {
+        code: "provider_unavailable",
+        providerDiagnostics: { diagnosticCode: "process_permission_denied", elapsedSeconds: 0, stderrBytes: 0, stderrTruncated: false },
+      });
+    },
+  };
+  const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-permission-before-spawn" });
+  assert.equal(created.project.job.progress, 0);
+  scheduled.shift()();
+  await nextTick();
+  const failed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.job.progress, 0);
+  assert.equal(failed.error.code, "provider_unavailable");
+  assert.equal(failed.error.providerDiagnostics.diagnosticCode, "process_permission_denied");
+});
+test("preserves five percent when process permission fails after provider spawn", async () => {
+  const scheduled = [];
+  const provider = {
+    status: () => ({ enabled: true, provider: "codex-headless-imagegen", mode: "fixed_original_probe", notice: "enabled" }),
+    generateUserImage: ({ onPhase }) => {
+      onPhase("workspace_prepared");
+      onPhase("provider_started");
+      return Promise.reject(Object.assign(new Error("Codex headless execution could not be started."), {
+        code: "provider_unavailable",
+        providerDiagnostics: { diagnosticCode: "process_permission_denied", elapsedSeconds: 0, stderrBytes: 0, stderrTruncated: false },
+      }));
+    },
+  };
+  const service = new StudioService({ schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
+  const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-permission-after-spawn" });
+  scheduled.shift()();
+  await nextTick();
+  const failed = service.getPhotorealisticProject(created.project.id).project;
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.job.progress, 5);
+  assert.equal(failed.error.code, "provider_unavailable");
+  assert.equal(failed.error.providerDiagnostics.diagnosticCode, "process_permission_denied");
+});
 test("calculates server-side gradual forecast progress only after matching observed samples and keeps terminal completion exact", async () => {
   const scheduled = [];
   let resolveGeneration;
@@ -262,8 +308,13 @@ test("calculates server-side gradual forecast progress only after matching obser
     },
   };
   const service = new StudioService({ now: () => new Date(time), schedule: (work) => scheduled.push(work), headlessImageProvider: provider });
-  assert.equal(service.forecastPhotorealisticProgress(61, 75), 80);
-  assert.equal(service.forecastPhotorealisticProgress(75, 75), 90);
+  assert.equal(service.forecastPhotorealisticProgress(0, 200), 5);
+  assert.equal(service.forecastPhotorealisticProgress(1, 200), 5);
+  assert.equal(service.forecastPhotorealisticProgress(2, 200), 6);
+  assert.equal(service.forecastPhotorealisticProgress(4, 200), 7);
+  assert.equal(service.forecastPhotorealisticProgress(168, 200), 89);
+  assert.equal(service.forecastPhotorealisticProgress(170, 200), 90);
+  assert.equal(service.forecastPhotorealisticProgress(200, 200), 90);
   service.photorealisticDurationSamples = [{ bucket: "text_to_photo_still", seconds: 60 }, { bucket: "text_to_photo_still", seconds: 75 }];
   assert.equal(service.estimatedPhotorealisticDurationSeconds({ kind: "still" }, "text_to_photo"), null);
   const created = service.createPhotorealisticProject({ ...validPhotoDraft, clientRequestId: "photo-request-0005" });
@@ -278,14 +329,14 @@ test("calculates server-side gradual forecast progress only after matching obser
   assert.equal(forecast.job.etaState, "sampled");
   assert.equal(forecast.job.etaSource, "bucket_median");
   assert.equal(forecast.job.progressBasis, "server_lifecycle_and_duration_forecast");
-  assert.equal(forecast.job.progress, 80);
-  assert.equal(forecast.job.observedProgress, 55);
-  assert.equal(forecast.job.forecastHighWater, 80);
+  assert.equal(forecast.job.progress, 85);
+  assert.equal(forecast.job.observedProgress, 5);
+  assert.equal(forecast.job.forecastHighWater, 85);
   time -= 10_000;
   const clockRollback = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(clockRollback.job.elapsedSeconds, 60);
   assert.equal(clockRollback.job.estimatedRemainingSeconds, 15);
-  assert.equal(clockRollback.job.progress, 80);
+  assert.equal(clockRollback.job.progress, 85);
   time += 26_000;
   const overdue = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(overdue.job.estimatedRemainingSeconds, null);
@@ -323,14 +374,14 @@ test("records an asynchronous trusted-local photo provider failure with a safe c
   assert.equal(created.status, 202);
   scheduled.shift()();
   await nextTick();
-  service.photorealisticProjects.get(created.project.id).job.forecastHighWater = 95;
+  service.photorealisticProjects.get(created.project.id).job.forecastHighWater = 48;
   rejectGeneration(Object.assign(new Error("The local provider stopped after starting."), { cleanupWarning, providerDiagnostics: unsafeProviderDiagnostics }));
   await nextTick();
   const failed = service.getPhotorealisticProject(created.project.id).project;
   assert.equal(failed.status, "failed");
   assert.equal(failed.job.phase, "failed");
   assert.equal(failed.job.progress < 100, true);
-  assert.equal(failed.job.progress, 90);
+  assert.equal(failed.job.progress, 48);
   assert.equal(failed.error.code, "provider_failed");
   assert.deepEqual(failed.error.cleanupWarning, cleanupWarning);
   assert.deepEqual(failed.error.providerDiagnostics, { diagnosticCode: "provider_exit_nonzero", exitCode: 1, elapsedSeconds: 2, stderrBytes: 91, stderrTruncated: false });
@@ -362,7 +413,7 @@ test("creates a motion GIF job with observed frame encoding and a terminal-only 
   const created = service.createPhotorealisticProject({ ...validPhotoDraft, outputKind: "motion_gif", frameCount: 12, clientRequestId: "photo-motion-gif-0001" });
   assert.equal(created.status, 202);
   assert.deepEqual(created.project.output, { kind: "motion_gif", frameCount: 12, fps: 10 });
-  assert.equal(created.project.job.progress, 10);
+  assert.equal(created.project.job.progress, 0);
   scheduled.shift()();
   await nextTick();
   time += 100_000;

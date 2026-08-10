@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
-import { cleanupProbeWorkspace, HeadlessCodexImageProvider, HeadlessImageProviderError } from "./headless-image-provider.mjs";
+import { cleanupProbeWorkspace, HeadlessCodexImageProvider, HeadlessImageProviderError, runCodexExec } from "./headless-image-provider.mjs";
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -35,6 +36,46 @@ function portraitPng(width = 9, height = 16) {
   const pixels = Buffer.alloc((width + 1) * height);
   return Buffer.concat([PNG_SIGNATURE, pngChunk("IHDR", ihdr), pngChunk("IDAT", deflateSync(pixels)), pngChunk("IEND", Buffer.alloc(0))]);
 }
+
+function fakeChild(schedule) {
+  const child = new EventEmitter();
+  child.stderr = null;
+  child.kill = () => {};
+  queueMicrotask(() => schedule(child));
+  return child;
+}
+
+test("Codex process launch normalizes synchronous and asynchronous permission failures", async () => {
+  const invocation = { command: "codex", args: ["--version"], cwd: tmpdir(), environment: {}, timeoutMs: 1_000 };
+  const permissionError = () => Object.assign(new Error("spawn EPERM"), { code: "EPERM" });
+  const assertPermissionFailure = (error) => {
+    assert.equal(error instanceof HeadlessImageProviderError, true);
+    assert.equal(error.code, "provider_unavailable");
+    assert.equal(error.providerDiagnostics.diagnosticCode, "process_permission_denied");
+    assert.doesNotMatch(error.message, /spawn EPERM/);
+    return true;
+  };
+  await assert.rejects(runCodexExec({ ...invocation, spawnProcess: () => { throw permissionError(); } }), assertPermissionFailure);
+  await assert.rejects(runCodexExec({ ...invocation, spawnProcess: () => fakeChild((child) => child.emit("error", permissionError())) }), assertPermissionFailure);
+});
+
+test("Codex process launch reports started only after the child spawn event", async () => {
+  let started = 0;
+  const result = await runCodexExec({
+    command: "codex",
+    args: ["--version"],
+    cwd: tmpdir(),
+    environment: {},
+    timeoutMs: 1_000,
+    onStarted: () => { started += 1; },
+    spawnProcess: () => fakeChild((child) => {
+      child.emit("spawn");
+      child.emit("exit", 0, null);
+    }),
+  });
+  assert.equal(started, 1);
+  assert.equal(result.exitCode, 0);
+});
 
 test("headless provider invokes Codex in a disposable workspace and maps a complete PNG", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));

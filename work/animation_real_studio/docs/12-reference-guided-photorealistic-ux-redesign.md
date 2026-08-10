@@ -10,7 +10,7 @@ Keep one trusted-local Codex image-generation call per user request. In 2D-to-ph
 - The local process sends the staged source once with `codex exec --image`; text-to-photo requests never attach an image.
 - Safety, original-content, fictional-adult, and non-identifying constraints override every other direction.
 - A provider model may still interpret visual continuity imperfectly. The product communicates a requested preservation plan, not a similarity guarantee.
-- The existing server-owned 5% ETA, 90% finalization, and terminal-only 100% state machine remains unchanged.
+- The server-owned forecast starts at 5% after provider launch, divides ETA into 100 equal time slices, advances by 1% per completed slice, waits at 90%, and reaches 100% only for a validated terminal artifact.
 
 ## Layer and component contract
 
@@ -86,13 +86,13 @@ Accessibility requirements:
 
 The redesign preserves the server-owned progress model. It does not represent a provider model-render percentage and does not fabricate a provider ETA.
 
-- Before a real terminal event, elapsed-time forecasts are quantized in 5% increments and capped at 90%.
-- At 90%, the progress bar holds while the completion-finalization panel names the real server state: waiting for provider output, validating the image, encoding GIF frames, or saving the artifact.
+- After the provider actually starts, elapsed-time forecasts use `5 + floor(elapsed / (estimate / 100))`, remain monotonic, and are capped at 90%. Before provider start, the numeric forecast remains 0%.
+- At 90%, the progress bar holds while the completion-wait panel names the real server state: waiting for provider output, validating the image, encoding GIF frames, or saving the artifact.
 - Only a validated terminal artifact transitions to 100%. A failed or over-estimate job remains below 100% and renders the provider failure.
 
 ## Verification and manual quality gate
 
-Deterministic tests verify default/invalid focus handling, story precedence in the composed prompt, one pre-positional `--image` attachment, source-byte non-retention, text-mode reference removal, selected-focus API payloads, and the retained 90%-finalization/terminal-100 behavior.
+Deterministic tests verify default/invalid focus handling, story precedence in the composed prompt, one pre-positional `--image` attachment, source-byte non-retention, text-mode reference removal, selected-focus API payloads, the 5%-start/100-slice forecast, safe process-start failures, and the 90%-wait/terminal-100 behavior.
 
 Live visual fidelity cannot be proved by those contract tests. On a trusted local machine, an operator must use one rights-held, non-identifying 2D fixture with two materially different stories and inspect both outputs:
 
