@@ -104,13 +104,45 @@ p {
 }
 
 .stage-frame {
+  --stage-accent: #ffbd66;
+  --weather-accent: #9ee7ff;
   position: relative;
   overflow: hidden;
   padding: 0;
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(9, 16, 24, 0.16), rgba(6, 10, 16, 0.18));
   box-shadow:
-    0 20px 44px rgba(0, 0, 0, 0.22);
+    0 20px 44px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px color-mix(in srgb, var(--stage-accent) 28%, transparent);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.stage-frame[data-stage-id="foundry"] {
+  border-color: rgba(255, 189, 102, 0.3);
+}
+
+.stage-frame[data-stage-id="relay-yard"] {
+  border-color: rgba(120, 216, 255, 0.32);
+}
+
+.stage-frame[data-stage-id="storm-drain"] {
+  border-color: rgba(121, 216, 189, 0.32);
+}
+
+.stage-frame[data-weather="rain"] {
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.22), inset 0 0 30px rgba(92, 151, 204, 0.12);
+}
+
+.stage-frame[data-weather="fog"] {
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.22), inset 0 0 34px rgba(219, 232, 239, 0.14);
+}
+
+.stage-frame[data-weather="sandstorm"] {
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.22), inset 0 0 34px rgba(242, 184, 102, 0.16);
+}
+
+.stage-frame[data-weather="storm"] {
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28), inset 0 0 38px rgba(201, 180, 255, 0.2);
 }
 
 .stage-frame::before {
@@ -202,6 +234,63 @@ p {
 
 .player-card {
   border-top: 2px solid rgba(120, 201, 255, 0.45);
+}
+
+.identity-head {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.identity-head--enemy {
+  grid-template-columns: minmax(0, 1fr) 58px;
+}
+
+.identity-head--enemy .operator-portrait {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.identity-head--enemy .identity-copy {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: right;
+}
+
+.operator-portrait {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid color-mix(in srgb, var(--cyan) 48%, transparent);
+  border-radius: 14px;
+  padding: 5px;
+  background: radial-gradient(circle, rgba(143, 233, 255, 0.16), rgba(7, 14, 22, 0.82));
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.24));
+}
+
+.identity-head--enemy .operator-portrait {
+  border-color: rgba(255, 133, 133, 0.42);
+  background: radial-gradient(circle, rgba(255, 133, 133, 0.14), rgba(7, 14, 22, 0.82));
+}
+
+.identity-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.identity-copy strong {
+  color: #eef8ff;
+  font-size: 0.95rem;
+}
+
+.identity-copy span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .enemy-card {
@@ -473,13 +562,23 @@ p {
 
 .weapon-slot-tile {
   display: grid;
-  min-height: 58px;
+  grid-template-columns: auto 1fr;
+  min-height: 72px;
   padding: 7px 6px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   align-content: space-between;
   gap: 3px;
+}
+
+.weapon-slot-icon {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 5px rgba(143, 233, 255, 0.18));
 }
 
 .weapon-slot-tile.is-active {
@@ -500,11 +599,16 @@ p {
 }
 
 .weapon-slot-tile strong {
+  grid-column: 1 / -1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.72rem;
   line-height: 1.1;
+}
+
+.weapon-slot-ammo {
+  text-align: right;
 }
 
 .weapon-slot-tile.is-active strong {
@@ -587,6 +691,72 @@ p {
 .support-pill--cooldown strong {
   color: #ffd896;
 }
+
+.support-pill--weather {
+  --weather-accent: #9ee7ff;
+  border-color: color-mix(in srgb, var(--weather-accent) 28%, transparent);
+}
+
+.support-pill--weather strong {
+  color: var(--weather-accent);
+}
+
+.map-object-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  width: min(330px, calc(100% - 24px));
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--stage-accent) 26%, transparent);
+  border-radius: 12px;
+  background: rgba(5, 11, 18, 0.78);
+  backdrop-filter: blur(5px);
+  pointer-events: none;
+}
+
+.map-object-legend > p {
+  margin-bottom: 6px;
+  color: var(--stage-accent);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+}
+
+.map-object-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px 8px;
+}
+
+.map-object-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #cbd8e2;
+  font-size: 0.61rem;
+  white-space: nowrap;
+}
+
+.map-object-legend-item b {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(143, 233, 255, 0.38);
+  border-radius: 5px;
+  color: #eafaff;
+  background: rgba(52, 94, 122, 0.42);
+  font-size: 0.62rem;
+}
+
+.map-object-legend-item[data-object-kind="barrel"] b { color: #ffad66; border-color: rgba(255, 110, 92, 0.55); }
+.map-object-legend-item[data-object-kind="mine"] b { color: #ffdf5d; }
+.map-object-legend-item[data-object-kind="crate"] b { color: #e7bb62; }
+.map-object-legend-item[data-object-kind="cover"] b { color: #b9cedc; }
+.map-object-legend-item[data-object-kind="bounce-wall"] b,
+.map-object-legend-item[data-object-kind="teleporter"] b { color: #64f0ff; }
 
 .ops-panel {
   display: grid;

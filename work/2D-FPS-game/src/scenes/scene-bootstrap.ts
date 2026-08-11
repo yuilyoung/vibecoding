@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import type { GameBalance } from "./scene-types";
 import {
   GROUND_BODY_BLUE_KEY,
   GROUND_BODY_RED_KEY,
@@ -24,7 +23,7 @@ export function getBrowserStorageBackend(): Storage {
   return window.localStorage;
 }
 
-export function preloadMainSceneAssets(scene: Phaser.Scene, gameBalance: GameBalance): void {
+export function preloadMainSceneAssets(scene: Phaser.Scene): void {
   scene.load.image(WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
   scene.load.image(WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
   scene.load.image(GROUND_BODY_BLUE_KEY, "/assets/runtime/sprites/ground-body-blue.png");
@@ -47,12 +46,6 @@ export function preloadMainSceneAssets(scene: Phaser.Scene, gameBalance: GameBal
     frameHeight: TURRET_FRAME_HEIGHT
   });
 
-  if (gameBalance.actorSkinSource === "spritesheet") {
-    scene.load.spritesheet("actor-skins", gameBalance.actorSpritesheetPath, {
-      frameWidth: gameBalance.actorFrameWidth,
-      frameHeight: gameBalance.actorFrameHeight
-    });
-  }
 }
 
 export function createBootstrapVisualRefs(scene: Phaser.Scene): BootstrapVisualRefs {

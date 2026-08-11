@@ -9,12 +9,14 @@
 3. Implement only the accepted slice in `work/2D-FPS-game`.
 4. Run the relevant verification commands and retain their exact results.
 5. Ask the `reviewer` agent to evaluate the diff and evidence before declaring completion.
+6. Resolve reviewer findings, run manual drift and postflight, then synchronize the handoff, project status, and task records before the scoped commit and push.
 
 ## Method
 
 - Treat `scope`, `constraints`, `acceptance`, and `files` as the execution contract.
 - Prefer the active implementation baseline over older roadmap documents when they conflict.
 - Make the smallest defensible change, then update the execution report only with observed results.
+- Keep final status fields consistent: implementation-ready, finalizing, and completed are different delivery states.
 
 ## Cautions
 

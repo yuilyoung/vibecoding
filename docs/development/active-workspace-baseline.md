@@ -2,36 +2,31 @@
 
 ## Purpose
 
-This repository currently has two baselines:
+This repository has two complementary baselines:
 
 1. Root `docs/`
-   - Long-term product roadmap and architecture references.
-   - Some documents still describe the older Unity-based 4v4 2D FPS plan.
+   - Long-term product roadmap, architecture, handoff, and agent-operation references.
+   - Some product documents still describe the older Unity-based 4v4 plan.
 2. `work/2D-FPS-game`
-   - Active implementation and verification workspace.
-   - Phaser + TypeScript + Vite + Vitest web prototype.
+   - Active Phaser + TypeScript + Vite implementation and verification workspace.
 
 ## Operating Rule
 
-- Active coding, testing, build, and runtime checks use `work/2D-FPS-game`.
-- Root `docs/` remains the long-term roadmap reference.
-- Shared agent contracts remain rooted at `AGENTS.md` and `docs/development/`.
-- If the two baselines conflict, use `work/2D-FPS-game` for implementation decisions.
+- Run active coding, tests, builds, and browser checks from `work/2D-FPS-game`.
+- Use root `docs/` for long-term direction and the current handoff, not as a replacement for executable evidence.
+- Keep shared agent contracts rooted at `AGENTS.md`, `docs/development/`, and the demand-loaded `codex/manuals/` catalog.
+- When roadmap text conflicts with the running Phaser prototype, the active game workspace wins for implementation decisions.
 
 ## Current Prototype Status
 
-- Movement, mouse aim, HP, stun, death, shooting, ammo, reload, pickups, rounds, match confirmation, round-start countdown, respawn pulse feedback, dummy AI, collision, authored prototype actor sprites with generated fallback, line-of-sight checks, weapon switching, an interactable gate, a hazard zone, cover-point visualization, AI hazard avoidance, scene-level sound cue emission, and generated audio playback are implemented in the Phaser prototype.
-- Current verification baseline is `npm run type-check`, `npm run lint`, `npm test`, `npm run build`, and browser e2e from `work/2D-FPS-game`.
-- Latest local verification passed with 117 unit tests and 8 browser e2e tests.
-- JARVIS/dashboard roadmap alignment is M0 complete and M1 Phase 1 started on the Phaser baseline.
-- Phase 1 domain foundation now includes `ProjectileRuntime` trajectory handling and `ExplosionLogic` falloff/knockback resolution.
-- Scene weapon flow now routes through `ProjectileRuntime`, `BeamLogic`, `AirStrikeLogic`, and `ExplosionLogic` for six active weapons: Carbine, Scatter, Bazooka, Grenade, Sniper, and Air Strike.
-- `phase1-tasks.json` is synced with T1-T7 completed and T8 pending.
-- Phase 1 pure combat contracts now include `BeamLogic` and `AirStrikeLogic`.
+- The prototype includes movement, aim, health/death, pickups, rounds, dummy AI, collision, line of sight, six weapons, projectile/beam/explosion/air-strike flows, tactical intent, progression/unlocks, three rotating stages, six map-object types, wind, five weather states, generated audio, and QA/debug controls.
+- Phase 8 Environment Audio Polish is complete.
+- Phase 9 Visual Identity & Readability is complete with deterministic verification, current-fingerprint review, manual-drift, and postflight evidence.
+- Phase 9 uses a typed CC0 catalog for Kenney operator portraits, Ground Shaker world tanks/terrain, PIXWEP weapon icons, three stage treatments, six object visuals plus legend, and five transition-safe weather identities.
+- The current deterministic baseline is type-check, lint, 57 Vitest files / 338 tests, production build, 34 Playwright scenarios, Phase 9 screenshot evidence, and the `MainScene.ts` 850-line budget.
 
 ## Next Direction
 
-- Continue extending the Phaser prototype unless a deliberate migration decision is made.
-- Next implementation candidate is T8: HUD weapon slot display and active-slot highlighting for 1-6 weapons.
-- Browser playtest-driven balance adjustments and final art direction decisions remain follow-up work after headed review.
-- If Unity work resumes later, reconcile the root roadmap with the Phaser prototype before implementation.
+- Select one bounded Phase 10 slice: authored interactable art, drivable vehicles, progression/campaign, or accessibility/responsive HUD.
+- Require a new product-owner scope and architecture contract before implementing the selected Phase 10 slice.
+- If Unity work resumes, explicitly reconcile the root roadmap with the Phaser prototype first.

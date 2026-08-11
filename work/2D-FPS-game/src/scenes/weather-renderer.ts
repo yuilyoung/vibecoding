@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { WeatherState } from "../domain/environment/WeatherLogic";
+import { getWeatherVisualTheme } from "../domain/visual/VisualAssetCatalog";
 import type { GameBalanceWeather } from "./scene-types";
 
 const VIEW_WIDTH = 960;
@@ -15,6 +16,7 @@ interface WeatherParticle {
 export class WeatherRenderer {
   private readonly particles: WeatherParticle[] = [];
   private readonly fogOverlay: Phaser.GameObjects.Rectangle;
+  private readonly atmosphereOverlay: Phaser.GameObjects.Rectangle;
   private readonly flashOverlay: Phaser.GameObjects.Rectangle;
   private currentWeather: WeatherState;
   private activeParticleCount = 0;
@@ -34,6 +36,9 @@ export class WeatherRenderer {
     this.fogOverlay = this.scene.add.rectangle(VIEW_WIDTH * 0.5, VIEW_HEIGHT * 0.5, VIEW_WIDTH, VIEW_HEIGHT, 0xbfd7ea, 0)
       .setDepth(40)
       .setScrollFactor(0);
+    this.atmosphereOverlay = this.scene.add.rectangle(VIEW_WIDTH * 0.5, VIEW_HEIGHT * 0.5, VIEW_WIDTH, VIEW_HEIGHT, 0x000000, 0)
+      .setDepth(38)
+      .setScrollFactor(0);
     this.flashOverlay = this.scene.add.rectangle(VIEW_WIDTH * 0.5, VIEW_HEIGHT * 0.5, VIEW_WIDTH, VIEW_HEIGHT, 0xf8fafc, 0)
       .setDepth(41)
       .setScrollFactor(0);
@@ -42,12 +47,12 @@ export class WeatherRenderer {
   public applyWeather(nextWeather: WeatherState): void {
     const previousType = this.currentWeather.type;
     this.currentWeather = nextWeather;
+    const theme = getWeatherVisualTheme(nextWeather.type);
     this.syncParticlePool(previousType !== nextWeather.type);
+    this.atmosphereOverlay.setFillStyle(theme.atmosphereColor, 1).setAlpha(theme.atmosphereAlpha);
     this.fogOverlay.setAlpha(nextWeather.type === "fog" ? 0.34 : 0);
-    if (nextWeather.type !== "storm") {
-      this.flashClockMs = 0;
-      this.flashOverlay.setAlpha(0);
-    }
+    this.flashClockMs = 0;
+    this.flashOverlay.setAlpha(nextWeather.type === "storm" ? 0.22 : 0);
   }
 
   public update(deltaMs: number, focusX: number, focusY: number): void {
@@ -61,6 +66,7 @@ export class WeatherRenderer {
     this.fogOverlay
       .setAlpha(fogAlpha)
       .setPosition(sceneWidth * 0.5, sceneHeight * 0.5);
+    this.atmosphereOverlay.setPosition(sceneWidth * 0.5, sceneHeight * 0.5);
     this.flashOverlay.setPosition(sceneWidth * 0.5, sceneHeight * 0.5);
 
     for (let index = 0; index < this.activeParticleCount; index += 1) {
@@ -83,11 +89,13 @@ export class WeatherRenderer {
     }
   }
 
-  public getDebugState(): { type: WeatherState["type"]; particleCount: number; fogActive: boolean; flashActive: boolean } {
+  public getDebugState(): { type: WeatherState["type"]; particleCount: number; fogActive: boolean; atmosphereActive: boolean; atmosphereColor: number; flashActive: boolean } {
     return {
       type: this.currentWeather.type,
       particleCount: this.activeParticleCount,
       fogActive: this.currentWeather.type === "fog" && this.fogOverlay.alpha > 0,
+      atmosphereActive: this.atmosphereOverlay.alpha > 0,
+      atmosphereColor: this.atmosphereOverlay.fillColor,
       flashActive: this.currentWeather.type === "storm" && this.flashOverlay.alpha > 0
     };
   }
@@ -99,6 +107,7 @@ export class WeatherRenderer {
     this.particles.length = 0;
     this.activeParticleCount = 0;
     this.fogOverlay.destroy();
+    this.atmosphereOverlay.destroy();
     this.flashOverlay.destroy();
   }
 

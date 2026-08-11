@@ -59,3 +59,12 @@ Use this before marking a prototype change as ready for another iteration.
 - Reset the match and immediately restore the same weather; confirm the loop restarts rather than being suppressed by cooldown.
 - During combat, inspect HUD/debug audio state for `activeWeatherLoopCue`, `lastDroppedCue`, and queue count.
 - Record readability issues as balance changes to cue profiles/rules; do not add external audio assets within Phase 8 scope.
+
+## Phase 9 Visual Identity Checks
+
+- Confirm player/enemy Kenney portraits swap with the selected team while Ground Shaker tanks remain the world actors.
+- Confirm all six loadout slots show distinct PIXWEP icons and the active icon matches the selected weapon.
+- Rotate through Foundry, Relay Yard, and Storm Drain; confirm each terrain crop and palette is recognizable without obscuring actors.
+- Confirm the object legend matches barrel, mine, crate, breakable cover, bounce wall, and teleporter world presentation.
+- Switch through all five weather types; confirm storm is visible immediately and clear removes particles, fog, tint, and flash.
+- Check damaged/destructible object status remains readable without changing collision behavior.

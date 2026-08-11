@@ -21,14 +21,16 @@ npm run build
 - `SPACE`: sprint
 - Mouse: aim and fire
 - `R`: reload
-- `1` / `2`: switch between `Carbine` and `Scatter`
+- `1`-`6`: switch across the configured six-weapon loadout
 - `E`: interact with the gate
 - `ENTER`: confirm the next match after the match overlay unlocks
 
 ## Runtime Notes
 
-- Actor skins default to generated placeholder textures.
-- Optional authored actor sprites can use the sprite-sheet path described in `sprite-asset-contract.md`.
+- Ground Shaker CC0 tank bodies and turrets are the in-world actors.
+- Kenney Top-down Shooter CC0 operators provide the player/enemy HUD portraits.
+- PIXWEP CC0 assets provide a distinct HUD icon for every configured weapon slot.
+- Runtime visual paths and their deterministic fallbacks are defined in `src/domain/visual/VisualAssetCatalog.ts`.
 - Sound feedback currently uses generated WebAudio tones from cue names, not external audio files.
 - The round-start countdown briefly locks movement, firing, gate interaction, dummy movement, and hazard ticks before each round resumes.
 

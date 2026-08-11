@@ -107,7 +107,7 @@ test("player can still move right near the top-left playfield corner", async ({ 
   const before = await readSnapshot(page);
   await page.locator("canvas").focus();
   await page.keyboard.down("d");
-  await page.waitForTimeout(220);
+  await expect.poll(async () => (await readSnapshot(page)).playerX, { timeout: 2_000 }).toBeGreaterThan(before.playerX + 10);
   await page.keyboard.up("d");
   const after = await readSnapshot(page);
 
@@ -126,7 +126,7 @@ test("player is not blocked too early when strafing toward the left cover obstac
   const before = await readSnapshot(page);
   await page.locator("canvas").focus();
   await page.keyboard.down("d");
-  await page.waitForTimeout(220);
+  await expect.poll(async () => (await readSnapshot(page)).playerX, { timeout: 2_000 }).toBeGreaterThan(before.playerX + 10);
   await page.keyboard.up("d");
   const after = await readSnapshot(page);
 

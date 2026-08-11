@@ -36,6 +36,10 @@ This note defines the intended runtime art mapping for the current top-down braw
   - HUD icons
     - `sprites/weapon-hud-carbine.png`
     - `sprites/weapon-hud-scatter.png`
+    - `sprites/weapon-hud-bazooka.png`
+    - `sprites/weapon-hud-grenade.png`
+    - `sprites/weapon-hud-sniper.png`
+    - `sprites/weapon-hud-air-strike.png`
   - World-mounted/team weapon presentation
     - `sprites/ground-turret-carbine-blue.png`
     - `sprites/ground-turret-carbine-red.png`
@@ -46,6 +50,16 @@ This note defines the intended runtime art mapping for the current top-down braw
     - `sprites/weapon-gun.png`
   - Carbine and scatter should each keep one visual language across HUD icon, world turret, projectile tint, and impact feedback.
 
+- Actor identity
+  - Ground Shaker tank bodies and turrets remain the world actors.
+  - Kenney Top-down Shooter operator sprites are used as player/enemy HUD portraits.
+  - This separation keeps collision and aim silhouettes stable while adding recognizable character identity.
+
+- Source policy
+  - Runtime paths resolve through `src/domain/visual/VisualAssetCatalog.ts`.
+  - Kenney Top-down Shooter, Ground Shaker, and PIXWEP provenance remains recorded in `../source/ASSET_MANIFEST.md`.
+  - All selected packs are CC0; original source and local license records remain vendored.
+
 ## Consistency rules
 
 - Actors must remain the highest-contrast moving read on the map.
@@ -54,8 +68,7 @@ This note defines the intended runtime art mapping for the current top-down braw
 - Pickups should be brighter than floor but simpler than actors.
 - Blue/red team accents should appear on team-owned props and weapon families, not across every neutral object.
 
-## Next bounded asset work
+## Remaining bounded asset work
 
 - Add dedicated pickup sprites under `sprites/` for ammo and health.
-- Add one gate-specific sprite or decal variant so interactive cover is readable without debug outlines.
-- Add vent/hazard decal sprites that sit in the floor family instead of relying on raw geometry.
+- Replace generated pickup, gate, and vent presentation only when a future slice includes an authored sprite family with equivalent automated readability coverage.

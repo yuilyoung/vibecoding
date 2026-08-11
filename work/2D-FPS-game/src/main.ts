@@ -10,6 +10,14 @@ import {
 } from "./domain/tutorial/TutorialOverlayLogic";
 import { MainScene } from "./scenes/MainScene";
 import type { GameBalance } from "./scenes/scene-types";
+import {
+  MAP_OBJECT_KINDS,
+  getMapObjectVisual,
+  getOperatorPortraits,
+  getStageVisualTheme,
+  getWeaponHudAsset,
+  getWeatherVisualTheme
+} from "./domain/visual/VisualAssetCatalog";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
   applySettingsPanelDraft,
@@ -58,7 +66,14 @@ appRoot.innerHTML = `
       <section class="stage-panel">
         <div class="hud-strip hud-strip--top">
           <section class="hud-card player-card">
-            <p class="hud-label">Player</p>
+            <div class="identity-head">
+              <img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />
+              <div class="identity-copy">
+                <p class="hud-label">Player Operator</p>
+                <strong id="player-operator-text">Blue operator</strong>
+                <span>Kenney / CC0</span>
+              </div>
+            </div>
             <div class="hud-statline">
               <span id="team-chip" class="team-chip">UNSET</span>
               <span id="phase-chip" class="phase-chip">STAGE ENTRY</span>
@@ -92,7 +107,14 @@ appRoot.innerHTML = `
           </section>
 
           <section class="hud-card enemy-card">
-            <p class="hud-label">Match</p>
+            <div class="identity-head identity-head--enemy">
+              <img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />
+              <div class="identity-copy">
+                <p class="hud-label">Enemy Operator</p>
+                <strong id="enemy-operator-text">Red hitman</strong>
+                <span>Ground Shaker vehicle</span>
+              </div>
+            </div>
             <div class="scoreline">
               <span id="score-text">0 : 0</span>
               <span id="round-text">Round 1</span>
@@ -108,10 +130,14 @@ appRoot.innerHTML = `
           </section>
         </div>
 
-        <div class="stage-frame">
+        <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear">
           <div id="game-root" class="game-root"></div>
           <div id="blast-preview" class="blast-preview"></div>
           <div id="cover-vision" class="cover-vision"></div>
+          <aside id="map-object-legend" class="map-object-legend" aria-label="Arena object legend">
+            <p>OBJECT INTEL</p>
+            <div class="map-object-legend-grid">${renderMapObjectLegendMarkup()}</div>
+          </aside>
           <div class="hud-overlay" aria-live="polite">
             <section id="banner-card" class="banner-card">
               <p id="banner-kicker" class="banner-kicker">MATCH FLOW</p>
@@ -195,6 +221,10 @@ appRoot.innerHTML = `
               <p class="micro-label">Area</p>
               <strong id="stage-text">Foundry 1/3</strong>
             </div>
+            <div id="weather-pill" class="support-pill support-pill--weather" data-weather="clear" data-testid="weather-pill">
+              <p class="micro-label">Weather</p>
+              <strong id="weather-text">CLR / Clear</strong>
+            </div>
             <div class="support-pill support-pill--cooldown">
               <p class="micro-label">Weapon Ready</p>
               <strong id="cooldown-text">Ready</strong>
@@ -240,6 +270,10 @@ if (gameContainer === null) {
 
 const mainScene = new MainScene(gameBalance as unknown as GameBalance);
 const hudElements = {
+  playerPortrait: queryElement("#player-portrait"),
+  playerOperatorText: queryText("#player-operator-text"),
+  enemyPortrait: queryElement("#enemy-portrait"),
+  enemyOperatorText: queryText("#enemy-operator-text"),
   teamChip: queryText("#team-chip"),
   phaseChip: queryText("#phase-chip"),
   playerHealthText: queryText("#player-health-text"),
@@ -267,6 +301,9 @@ const hudElements = {
   progressionText: queryText("#progression-text"),
   unlockText: queryText("#unlock-text"),
   stageText: queryText("#stage-text"),
+  weatherText: queryText("#weather-text"),
+  weatherPill: queryElement("#weather-pill"),
+  stageFrame: queryElement("#stage-frame"),
   cooldownText: queryText("#cooldown-text"),
   blastPreview: queryElement("#blast-preview"),
   coverVision: queryElement("#cover-vision")
@@ -573,7 +610,18 @@ function removeUiListeners(): void {
 
 function renderHud(snapshot: HudSnapshot): void {
   const coverVision = toCoverVisionState(snapshot);
+  const portraits = getOperatorPortraits(snapshot.team);
+  const activeWeaponId = snapshot.weaponSlots.find((slot) => slot.isActive)?.id ?? "unknown";
+  const weaponAsset = getWeaponHudAsset(activeWeaponId);
+  const stageTheme = getStageVisualTheme(snapshot.areaPreview?.stageId ?? "foundry");
+  const weatherTheme = getWeatherVisualTheme(snapshot.weather?.type ?? "clear");
 
+  updateImageSource(hudElements.playerPortrait, portraits.playerPath, "player-portrait-src");
+  updateAttribute(hudElements.playerPortrait, "alt", portraits.playerLabel, "player-portrait-alt");
+  updateText(hudElements.playerOperatorText, portraits.playerLabel, "player-operator-text");
+  updateImageSource(hudElements.enemyPortrait, portraits.enemyPath, "enemy-portrait-src");
+  updateAttribute(hudElements.enemyPortrait, "alt", portraits.enemyLabel, "enemy-portrait-alt");
+  updateText(hudElements.enemyOperatorText, portraits.enemyLabel, "enemy-operator-text");
   updateText(hudElements.teamChip, snapshot.team, "team-chip-text");
   updateClassState(hudElements.teamChip, "team-chip--blue", snapshot.team === "BLUE", "team-chip-blue");
   updateClassState(hudElements.teamChip, "team-chip--red", snapshot.team === "RED", "team-chip-red");
@@ -581,7 +629,7 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.playerHealthText, `${snapshot.playerHealth}/${snapshot.playerMaxHealth}`, "player-health-text");
   updateImageSource(
     hudElements.weaponIcon,
-    snapshot.weaponSlot === 2 ? "/assets/runtime/sprites/weapon-hud-scatter.png" : "/assets/runtime/sprites/weapon-hud-carbine.png",
+    weaponAsset.iconPath,
     "weapon-icon-src"
   );
   updateText(hudElements.weaponName, snapshot.activeWeapon, "weapon-name-text");
@@ -604,6 +652,13 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.progressionText, formatProgressionStatus(snapshot), "progression-text");
   updateText(hudElements.unlockText, formatUnlockStatus(snapshot), "unlock-text");
   updateText(hudElements.stageText, formatStageStatus(snapshot), "stage-text");
+  updateText(hudElements.weatherText, `${weatherTheme.icon} / ${weatherTheme.label}`, "weather-text");
+  updateAttribute(hudElements.stageFrame, "data-stage-id", stageTheme.id, "stage-frame-stage");
+  updateAttribute(hudElements.stageFrame, "data-weather", weatherTheme.type, "stage-frame-weather");
+  updateAttribute(hudElements.weatherPill, "data-weather", weatherTheme.type, "weather-pill-state");
+  updateStyleVar(hudElements.stageFrame, "--stage-accent", stageTheme.accentCss, "stage-frame-accent");
+  updateStyleVar(hudElements.stageFrame, "--weather-accent", weatherTheme.accentCss, "stage-frame-weather-accent");
+  updateStyleVar(hudElements.weatherPill, "--weather-accent", weatherTheme.accentCss, "weather-pill-accent");
   updateText(hudElements.cooldownText, formatCooldownStatus(snapshot), "cooldown-text");
   renderBlastPreview(snapshot);
   updateClassState(hudElements.coverVision, "is-active", snapshot.coverVisionActive, "cover-vision-active");
@@ -759,6 +814,27 @@ function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnap
           y: fallbackNumber(snapshot.blastPreview.y, 270),
           radius: fallbackNumber(snapshot.blastPreview.radius, 0)
         },
+    weather: snapshot?.weather === undefined
+      ? {
+          visible: true,
+          type: "clear",
+          label: "Clear",
+          icon: "CLR",
+          movementMultiplier: 1,
+          visionRange: 300,
+          windStrengthMultiplier: 1,
+          minesDisabled: false
+        }
+      : {
+          visible: Boolean(snapshot.weather.visible),
+          type: snapshot.weather.type,
+          label: fallbackText(snapshot.weather.label, "Clear"),
+          icon: fallbackText(snapshot.weather.icon, "CLR"),
+          movementMultiplier: fallbackNumber(snapshot.weather.movementMultiplier, 1),
+          visionRange: fallbackNumber(snapshot.weather.visionRange, 300),
+          windStrengthMultiplier: fallbackNumber(snapshot.weather.windStrengthMultiplier, 1),
+          minesDisabled: Boolean(snapshot.weather.minesDisabled)
+        },
     tactical: snapshot?.tactical === undefined
       ? undefined
       : {
@@ -823,11 +899,16 @@ function renderWeaponSlots(snapshot: HudSnapshot): void {
       const name = document.createElement("strong");
       name.textContent = slot.label;
 
+      const icon = document.createElement("img");
+      icon.className = "weapon-slot-icon";
+      icon.src = getWeaponHudAsset(slot.id).iconPath;
+      icon.alt = "";
+
       const ammo = document.createElement("span");
       ammo.className = "weapon-slot-ammo";
       ammo.textContent = slot.isReloading ? "Reloading" : `${slot.ammoInMagazine}/${slot.reserveAmmo}`;
 
-      element.append(slotLabel, name, ammo);
+      element.append(slotLabel, icon, name, ammo);
       return element;
     })
   );
@@ -1039,6 +1120,22 @@ function updateImageSource(element: HTMLElement, value: string, cacheKey: string
 
   element.setAttribute("src", value);
   hudRenderCache.set(cacheKey, value);
+}
+
+function updateAttribute(element: HTMLElement, attributeName: string, value: string, cacheKey: string): void {
+  if (hudRenderCache.get(cacheKey) === value) {
+    return;
+  }
+
+  element.setAttribute(attributeName, value);
+  hudRenderCache.set(cacheKey, value);
+}
+
+function renderMapObjectLegendMarkup(): string {
+  return MAP_OBJECT_KINDS.map((kind) => {
+    const visual = getMapObjectVisual(kind);
+    return `<span class="map-object-legend-item" data-object-kind="${kind}" title="${visual.description}"><b>${visual.glyph}</b>${visual.label}</span>`;
+  }).join("");
 }
 
 function updateClassState(element: HTMLElement, className: string, enabled: boolean, cacheKey: string): void {

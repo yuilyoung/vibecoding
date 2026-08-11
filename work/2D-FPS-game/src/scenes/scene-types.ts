@@ -162,10 +162,6 @@ export interface GameBalance {
   hazardDamage: number;
   hazardTickMs: number;
   coverPointRadius: number;
-  actorSkinSource: string;
-  actorSpritesheetPath: string;
-  actorFrameWidth: number;
-  actorFrameHeight: number;
   progression: {
     xpPerKill: number;
     xpPerRoundClear: number;

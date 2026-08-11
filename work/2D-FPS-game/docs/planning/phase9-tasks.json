@@ -1,0 +1,104 @@
+{
+  "phase": "phase-9",
+  "name": "Visual Identity & Readability",
+  "wbs": "./phase9-wbs.md",
+  "architecture": "./phase9-visual-identity-architecture.md",
+  "created": "2026-08-10",
+  "status": "complete",
+  "previousPhase": {
+    "id": "phase-8-environment-audio-polish",
+    "tasks": "./phase8-tasks.json",
+    "status": "complete",
+    "completedAt": "2026-04-27"
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Lock architecture, provenance, scope, and verification contract",
+      "assignee": "ultron/codex + product_owner",
+      "status": "completed",
+      "files": ["docs/planning/phase9-visual-identity-architecture.md", "docs/planning/phase9-wbs.md"],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "Add typed visual asset catalog and remove stale actor spritesheet configuration",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T0"],
+      "files": ["src/domain/visual/VisualAssetCatalog.ts", "src/scenes/scene-bootstrap.ts", "src/scenes/scene-types.ts", "assets/data/game-balance.json"],
+      "acceptance": ["A2"]
+    },
+    {
+      "id": "T2",
+      "subject": "Apply Kenney portraits, Ground Shaker identity, and six weapon icon mappings",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T1"],
+      "files": ["src/main.ts", "src/styles.css", "public/assets/runtime/sprites"],
+      "acceptance": ["A3"]
+    },
+    {
+      "id": "T3",
+      "subject": "Apply three stage surface themes and six coherent object visuals and legend entries",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T1"],
+      "files": ["src/scenes/stage-visual-controller.ts", "src/scenes/map-object-controller.ts", "src/main.ts", "src/styles.css"],
+      "acceptance": ["A4"]
+    },
+    {
+      "id": "T4",
+      "subject": "Harden all five weather visuals and clear-state cleanup",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T1"],
+      "files": ["src/scenes/weather-renderer.ts", "src/main.ts", "src/styles.css"],
+      "acceptance": ["A5"]
+    },
+    {
+      "id": "T5",
+      "subject": "Add focused unit and Phase 9 browser coverage",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T2", "T3", "T4"],
+      "files": ["tests/VisualAssetCatalog.test.ts", "tests/WeatherRenderer.test.ts", "tests/e2e/phase9-visual-identity.spec.ts"],
+      "acceptance": ["A6"]
+    },
+    {
+      "id": "T6",
+      "subject": "Run full verification, visual review, and MainScene LOC gate",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T5"],
+      "acceptance": ["A7"]
+    },
+    {
+      "id": "T7",
+      "subject": "Refresh project status, execution handoff, and next-task automation",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T6"],
+      "acceptance": ["A8"]
+    },
+    {
+      "id": "T8",
+      "subject": "Obtain independent review and run manual drift/postflight gates",
+      "assignee": "reviewer + ultron/codex",
+      "status": "completed",
+      "depends": ["T7"],
+      "acceptance": ["A9"]
+    }
+  ],
+  "acceptanceMap": {
+    "A1": "Product-owner approval and an interface-first three-layer architecture are recorded before implementation.",
+    "A2": "A typed source-aware catalog replaces scattered paths and the unused actor spritesheet configuration is removed.",
+    "A3": "Kenney portraits identify player and enemy, Ground Shaker tanks remain world actors, and all six weapons resolve a distinct HUD icon with one fallback.",
+    "A4": "Three stages have distinct low-contrast surfaces and six map-object kinds have coherent world visuals with a matching legend.",
+    "A5": "All five weather types are immediately distinguishable and clear weather resets particles, fog, tint, and flash.",
+    "A6": "Focused unit and browser tests cover the catalog and visual contracts without console errors.",
+    "A7": "Type-check, lint, full unit, build, full Playwright, screenshot review, and MainScene LOC gates pass.",
+    "A8": "The dashboard status reports Phase 9 complete and next-tasks advances to the next bounded product decision.",
+    "A9": "An independent reviewer passes the final tree and manual drift/postflight gates are clean."
+  }
+}

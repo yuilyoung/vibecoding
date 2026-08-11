@@ -11,8 +11,7 @@ import type { HudSnapshot } from "../../src/ui/hud-events";
  *   4. Level up via XP / weapon unlock progression
  *   5. Screenshots per stage rotation
  *
- * This file uses ONLY existing debug hooks on MainScene. No production code edits.
- * Locked files: src/scenes/MainScene.ts, src/domain/round/MatchFlowOrchestrator.ts.
+ * This file uses the deterministic MainScene debug surface.
  */
 
 interface Phase3Scene {
@@ -40,6 +39,7 @@ interface Phase3Scene {
   debugFire(): void;
   debugFireAt(targetX: number, targetY: number): void;
   debugMovePlayerTo(x: number, y: number): void;
+  debugDamagePlayer(amount: number): void;
   debugMoveDummyTo(x: number, y: number): void;
   debugSetPlayerAimAngle(angleRadians: number): void;
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
@@ -191,25 +191,16 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
     afterAmmo.ammoPickupLabel !== beforeAmmo.ammoPickupLabel;
   expect.soft(ammoPickupRegistered, "ammo pickup should register a state change").toBe(true);
 
-  // Damage the player a little so the health pickup has a measurable effect.
-  // We have no public debug damage hook; the player may still be at full HP. The health
-  // pickup label should still flip to a respawn state once consumed.
+  // Damage the player so the health pickup has a deterministic measurable effect.
+  await withScene(page, (scene: Phase3Scene) => scene.debugDamagePlayer(30));
   const beforeHealth = await readHud(page);
-  await withScene(page, (scene: Phase3Scene) => scene.debugMovePlayerTo(870, 430));
+  await withScene(page, (scene: Phase3Scene) => {
+    scene.debugMovePlayerTo(870, 430);
+    scene.update(0, 100);
+  });
   const afterHealth = await readHud(page);
-  const healthPickupRegistered =
-    afterHealth.lastEvent !== beforeHealth.lastEvent ||
-    afterHealth.healthPickupLabel !== beforeHealth.healthPickupLabel ||
-    afterHealth.playerHealth !== beforeHealth.playerHealth;
-  if (!healthPickupRegistered) {
-    // TODO(phase4): expose a debugDamagePlayer hook so the health pickup can be consumed
-    // in tests. Currently the player spawns at full HP and PlayerLogic.heal returns 0,
-    // so the pickup short-circuits without setting lastEvent or flipping availability.
-    test.info().annotations.push({
-      type: "TODO(phase4)",
-      description: "Need debugDamagePlayer hook to verify health pickup consumption."
-    });
-  }
+  expect(afterHealth.playerHealth).toBeGreaterThan(beforeHealth.playerHealth);
+  expect(afterHealth.healthPickupLabel).not.toBe("READY");
 
   // ---------- 3) Level up / weapon unlock progression ----------
   // Award round wins — each call funnels through registerPlayerRoundWin → awardKillXp /
@@ -219,29 +210,16 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
     await withScene(page, (scene: Phase3Scene) => scene.debugRegisterPlayerRoundWin());
   }
   const afterProgression = (await readHud(page)).progression;
-  if (beforeProgression !== undefined && afterProgression !== undefined) {
-    expect.soft(afterProgression.totalXp).toBeGreaterThan(beforeProgression.totalXp);
-    expect.soft(afterProgression.level).toBeGreaterThanOrEqual(beforeProgression.level + 1);
-  } else {
-    // TODO(phase4): expose progression in hud-snapshot unconditionally so this branch
-    // can become a hard assertion. Currently it is `undefined` until the first publish.
-    test.info().annotations.push({
-      type: "TODO(phase4)",
-      description: "HUD progression snapshot was undefined; cannot assert level-up delta."
-    });
-  }
+  expect(beforeProgression).toBeDefined();
+  expect(afterProgression).toBeDefined();
+  expect(afterProgression?.totalXp).toBeGreaterThan(beforeProgression?.totalXp ?? 0);
+  expect(afterProgression?.level).toBeGreaterThanOrEqual((beforeProgression?.level ?? 0) + 1);
   // In dev mode every weapon is unlocked from boot (unlockAllWeaponsForDev=true), so
   // newlyUnlockedWeaponIds will not change. We assert the unlock pane still reports the
   // full 6-weapon roster.
   const unlocks = (await readHud(page)).weaponUnlock;
-  if (unlocks !== undefined) {
-    expect.soft(unlocks.unlockedWeaponIds.length).toBeGreaterThanOrEqual(6);
-  } else {
-    test.info().annotations.push({
-      type: "TODO(phase4)",
-      description: "HUD weaponUnlock snapshot undefined; cannot assert dev-mode 6-weapon roster."
-    });
-  }
+  expect(unlocks).toBeDefined();
+  expect(unlocks?.unlockedWeaponIds.length).toBeGreaterThanOrEqual(6);
 
   // ---------- 4) Stage rotation across all 3 stages + screenshots ----------
   const observedStageIds: string[] = [];
@@ -269,17 +247,5 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
   // After rotating through 3 matches we should have visited at least 3 distinct stages
   // (the rotation pool defines foundry / relay-yard / storm-drain).
   const uniqueStages = new Set(observedStageIds.filter((id) => !id.startsWith("unknown-")));
-  if (uniqueStages.size >= 3) {
-    expect(uniqueStages.size).toBeGreaterThanOrEqual(3);
-  } else {
-    // TODO(phase4): areaPreview snapshot may not be visible outside stage-entry; add a
-    // dedicated debug hook (e.g. scene.debugGetCurrentStageId()) so rotation is verifiable
-    // in every phase.
-    test.info().annotations.push({
-      type: "TODO(phase4)",
-      description: `Only observed ${uniqueStages.size} unique stage(s) via HUD areaPreview: ${[...uniqueStages].join(", ")}. Need scene.debugGetCurrentStageId().`
-    });
-    // Soft fallback: at minimum we should see the lastEvent change after each rotation.
-    expect.soft(observedStageIds.length).toBe(3);
-  }
+  expect(uniqueStages.size).toBe(3);
 });

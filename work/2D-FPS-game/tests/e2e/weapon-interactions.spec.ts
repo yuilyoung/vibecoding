@@ -32,6 +32,7 @@ interface DebugScene {
   debugMovePlayerTo(x: number, y: number): void;
   debugMoveDummyTo(x: number, y: number): void;
   debugSetPlayerAimAngle(angleRadians: number): void;
+  combatController: { updateAirStrikes(deltaMs: number): void };
   update(time: number, delta: number): void;
 }
 
@@ -141,19 +142,15 @@ test("air strike queues blasts and applies area damage", async ({ page }) => {
   const before = await readSnapshot(page);
   await withScene(page, (scene: DebugScene) => scene.debugFireAt(500, 240));
 
-  let stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
+  const stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
   expect(stats.activeAirStrikes).toBe(1);
 
-  let maxImpactEffects = 0;
-  for (let frame = 0; frame < 4; frame += 1) {
-    await withScene(page, (scene: DebugScene) => scene.update(0, 100));
-    maxImpactEffects = Math.max(maxImpactEffects, (await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats())).impactEffects);
-  }
+  await withScene(page, (scene: DebugScene) => scene.combatController.updateAirStrikes(1_000));
 
   const after = await readSnapshot(page);
-  stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
+  const afterStats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
   expect(after.weaponSlot).toBe(6);
   expect(after.activeWeapon).toBe("Air Strike");
   expect(after.dummyHealth).toBeLessThan(before.dummyHealth);
-  expect(maxImpactEffects).toBeGreaterThan(0);
+  expect(afterStats.impactEffects).toBeGreaterThan(0);
 });

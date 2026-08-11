@@ -105,10 +105,6 @@
   "hazardDamage": 7,
   "hazardTickMs": 900,
   "coverPointRadius": 18,
-  "actorSkinSource": "spritesheet",
-  "actorSpritesheetPath": "/assets/sprites/actors.png",
-  "actorFrameWidth": 44,
-  "actorFrameHeight": 30,
   "progression": {
     "xpPerKill": 25,
     "xpPerRoundClear": 80,

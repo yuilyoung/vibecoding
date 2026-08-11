@@ -143,7 +143,7 @@ describe("WeatherRenderer", () => {
     const renderer = new WeatherRenderer(scene as never, createWeatherConfig());
 
     renderer.applyWeather(createWeatherState("rain"));
-    const particleRects = rectangles.slice(2);
+    const particleRects = rectangles.slice(3);
     const firstParticle = particleRects[0];
     const initialCount = particleRects.length;
     const initialPosition = { x: firstParticle.x, y: firstParticle.y };
@@ -153,7 +153,7 @@ describe("WeatherRenderer", () => {
     expect(movedPosition.y).toBeGreaterThan(initialPosition.y);
 
     renderer.applyWeather(createWeatherState("rain"));
-    expect(rectangles.slice(2)).toHaveLength(initialCount);
+    expect(rectangles.slice(3)).toHaveLength(initialCount);
     expect(firstParticle.destroyed).toBe(false);
     expect(firstParticle.x).toBe(movedPosition.x);
     expect(firstParticle.y).toBe(movedPosition.y);
@@ -166,10 +166,10 @@ describe("WeatherRenderer", () => {
 
     renderer.applyWeather(createWeatherState("rain"));
     expect(renderer.getDebugState().particleCount).toBe(25);
-    expect(rectangles.slice(2)).toHaveLength(25);
+    expect(rectangles.slice(3)).toHaveLength(25);
 
     renderer.applyWeather(createWeatherState("sandstorm"));
-    const particleRects = rectangles.slice(2);
+    const particleRects = rectangles.slice(3);
     expect(renderer.getDebugState().particleCount).toBe(15);
     expect(particleRects).toHaveLength(25);
     expect(particleRects.slice(0, 15).every((particle) => particle.visible)).toBe(true);
@@ -181,10 +181,10 @@ describe("WeatherRenderer", () => {
     const renderer = new WeatherRenderer(scene as never, createWeatherConfig());
 
     renderer.applyWeather(createWeatherState("rain"));
-    const rainParticleRects = rectangles.slice(2);
+    const rainParticleRects = rectangles.slice(3);
 
     renderer.applyWeather(createWeatherState("sandstorm"));
-    const sandstormParticleRects = rectangles.slice(2);
+    const sandstormParticleRects = rectangles.slice(3);
     expect(sandstormParticleRects).toEqual(rainParticleRects);
     expect(renderer.getDebugState().particleCount).toBe(30);
     expect(sandstormParticleRects[0].width).toBe(6);
@@ -203,5 +203,48 @@ describe("WeatherRenderer", () => {
 
     expect(rectangles.every((rectangle) => rectangle.destroyed)).toBe(true);
     expect(renderer.getDebugState().particleCount).toBe(0);
+  });
+
+  it("makes storm visible immediately and clears every overlay and particle state", () => {
+    const { scene, rectangles } = createScene();
+    const renderer = new WeatherRenderer(scene as never, createWeatherConfig());
+
+    renderer.applyWeather(createWeatherState("rain"));
+    expect(renderer.getDebugState()).toMatchObject({
+      type: "rain",
+      particleCount: 50,
+      atmosphereActive: true,
+      fogActive: false,
+      flashActive: false
+    });
+
+    renderer.applyWeather(createWeatherState("fog"));
+    renderer.update(16, 480, 270);
+    expect(renderer.getDebugState()).toMatchObject({
+      type: "fog",
+      particleCount: 0,
+      atmosphereActive: true,
+      fogActive: true,
+      flashActive: false
+    });
+
+    renderer.applyWeather(createWeatherState("storm"));
+    expect(renderer.getDebugState()).toMatchObject({
+      type: "storm",
+      particleCount: 0,
+      atmosphereActive: true,
+      fogActive: false,
+      flashActive: true
+    });
+
+    renderer.applyWeather(createWeatherState("clear"));
+    expect(renderer.getDebugState()).toMatchObject({
+      type: "clear",
+      particleCount: 0,
+      atmosphereActive: false,
+      fogActive: false,
+      flashActive: false
+    });
+    expect(rectangles.slice(3).every((particle) => !particle.visible)).toBe(true);
   });
 });

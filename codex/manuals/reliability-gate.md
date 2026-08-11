@@ -10,8 +10,9 @@
 4. Implement in the main Codex thread. A plugin `PreToolUse` hook denies normal edit paths until design approval.
 5. Run the selected deterministic checks after the latest edit; the harness binds evidence to a workspace fingerprint.
 6. Ask `reviewer` to challenge the current diff and evidence and end with `Verdict: pass|revise|blocked`.
-7. Run `node plugins/hermes-ssot/scripts/manual-drift-check.mjs` after reviewer pass.
-8. Complete only when the hook state is `completed`; record a lesson only when it is reproducible and changes a manual or skill.
+7. If review or drift exposes stale manuals, update the narrow affected manual, rerun deterministic evidence for the new fingerprint, and request review again.
+8. Run `node plugins/hermes-ssot/scripts/manual-drift-check.mjs` after reviewer pass.
+9. Complete only when the hook state is `completed`; record a lesson only when it is reproducible and changes a manual or skill.
 
 ## Method
 
@@ -22,6 +23,7 @@
 - Dashboard telemetry may contain only a bounded, redacted prompt preview and structured invocation stages; never persist a raw/full prompt, tool payload, credential, or full role transcript. Use the shared redaction utility and provider-qualified invocation keys.
 - Hook telemetry is evidence-limited: Codex `SubagentStart` proves a session-to-unique-agent call and `SubagentStop` proves only an outcome-unknown stop. Do not infer parent nesting, response success, failure, or cancellation from undocumented fields.
 - Treat any edit after verification as evidence invalidation: verification, review, and drift must run again.
+- When unrelated concurrent work dirties a watched path, review the affected procedure but keep those unrelated files outside the scoped commit.
 
 ## Cautions
 

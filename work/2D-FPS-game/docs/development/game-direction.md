@@ -92,7 +92,15 @@ QA, 밸런스 조정, 이후 에이전트 작업은 위 필드명을 그대로 �
 ## Phase 8 Completion
 
 - Environment Audio Polish is complete: generated weather loops have controller ownership, deterministic switching/reset behavior, and QA-visible runtime state.
-- Phase 9 remains a product selection among asset/UI readability, vehicle, or progression work.
+
+## Phase 9 Completion and Phase 10 Candidates
+
+- Phase 9 Visual Identity & Readability is complete, including deterministic verification, independent review, manual drift, and postflight gates.
+- The active visual language uses Kenney operator portraits, Ground Shaker world tanks/terrain, and PIXWEP weapon icons under a typed CC0 catalog.
+- Three stage themes, six map-object visuals plus legend, and five transition-safe weather identities are implemented and regression-tested.
+- Phase 10 remains a product decision among authored pickup/gate/vent decals, drivable vehicle mechanics, progression/campaign expansion, or accessibility and responsive HUD refinement.
+- These candidates are intentionally separate from Phase 9 and each requires a new bounded architecture and acceptance contract.
+
   - QA가 HUD/debug만으로도 현재 audio state를 해석할 수 있어야 한다.
 
 ## 상세 스펙

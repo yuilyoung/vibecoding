@@ -21,6 +21,7 @@ import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { VfxController } from "./vfx-controller";
 import type { CombatController } from "./combat-controller";
 import { ACTOR_HALF_SIZE } from "./scene-constants";
+import { getMapObjectVisual } from "../domain/visual/VisualAssetCatalog";
 
 const BARREL_SIZE = 24;
 const CRATE_SIZE = 20;
@@ -30,14 +31,6 @@ const COVER_HEIGHT = 16;
 const BOUNCE_WALL_WIDTH = 48;
 const BOUNCE_WALL_HEIGHT = 8;
 const TELEPORTER_RADIUS = 24;
-
-const BARREL_COLOR = 0xd84040;
-const MINE_COLOR = 0xf2d84c;
-const CRATE_COLOR = 0x8b5a2b;
-const CRATE_STROKE_COLOR = 0xd6a83b;
-const COVER_COLOR = 0x4f3422;
-const BOUNCE_WALL_COLOR = 0x4ab2ff;
-const TELEPORTER_COLOR = 0x52e1ff;
 
 export interface MapObjectCollisionRect {
   readonly id: string;
@@ -94,6 +87,7 @@ interface MapObjectView {
   state: MapObjectState;
   readonly sprite: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Arc;
   readonly visuals: readonly (Phaser.GameObjects.Shape | Phaser.GameObjects.Text)[];
+  readonly statusLabel: Phaser.GameObjects.Text;
   readonly bounds: Rect;
   readonly blinkTween?: Phaser.Tweens.Tween;
 }
@@ -393,7 +387,7 @@ export class MapObjectController {
   }
 
   private createView(state: MapObjectState): MapObjectView {
-    const { sprite, visuals } = this.createSprite(state);
+    const { sprite, visuals, statusLabel } = this.createSprite(state);
     const collisionSize = this.getCollisionSize(state);
     const bounds = createCenteredRect(state.x, state.y, collisionSize.width, collisionSize.height);
     const blinkTween = state.kind === "mine"
@@ -406,76 +400,140 @@ export class MapObjectController {
       })
       : undefined;
 
-    return {
+    const view = {
       state,
       sprite,
       visuals,
+      statusLabel,
       bounds,
       blinkTween
     };
+    this.syncVisual(view);
+    return view;
   }
 
   private createSprite(state: MapObjectState): {
     sprite: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Arc;
     visuals: readonly (Phaser.GameObjects.Shape | Phaser.GameObjects.Text)[];
+    statusLabel: Phaser.GameObjects.Text;
   } {
+    const theme = getMapObjectVisual(state.kind);
+    const createStatusLabel = (text = theme.glyph): Phaser.GameObjects.Text => this.scene.add.text(
+      state.x,
+      state.y,
+      text,
+      { fontFamily: "monospace", fontSize: "10px", fontStyle: "bold", color: `#${theme.accentColor.toString(16).padStart(6, "0")}` }
+    ).setOrigin(0.5).setDepth(6);
+
     if (state.kind === "mine") {
-      const sprite = this.scene.add.circle(state.x, state.y, MINE_RADIUS, MINE_COLOR, 0.9);
-      return { sprite, visuals: [sprite] };
+      const shadow = this.scene.add.circle(state.x + 2, state.y + 3, MINE_RADIUS + 3, theme.shadowColor, 0.48).setDepth(3);
+      const sprite = this.scene.add.circle(state.x, state.y, MINE_RADIUS, theme.fillColor, 0.96)
+        .setStrokeStyle(2, theme.accentColor, 0.9)
+        .setDepth(4);
+      const core = this.scene.add.circle(state.x, state.y, 3, theme.accentColor, 0.9).setDepth(5);
+      const statusLabel = createStatusLabel("…").setY(state.y - 16);
+      return { sprite, visuals: [shadow, sprite, core, statusLabel], statusLabel };
     }
 
     if (state.kind === "crate") {
+      const shadow = this.scene.add.rectangle(state.x + 3, state.y + 4, CRATE_SIZE + 4, CRATE_SIZE + 4, theme.shadowColor, 0.48).setDepth(3);
       const sprite = this.scene.add
-        .rectangle(state.x, state.y, CRATE_SIZE, CRATE_SIZE, CRATE_COLOR, 1)
-        .setStrokeStyle(2, CRATE_STROKE_COLOR, 1);
-      return { sprite, visuals: [sprite] };
+        .rectangle(state.x, state.y, CRATE_SIZE, CRATE_SIZE, theme.fillColor, 1)
+        .setStrokeStyle(2, theme.accentColor, 1)
+        .setDepth(4);
+      const band = this.scene.add.rectangle(state.x, state.y, CRATE_SIZE - 5, 4, theme.accentColor, 0.62).setDepth(5);
+      const statusLabel = createStatusLabel();
+      return { sprite, visuals: [shadow, sprite, band, statusLabel], statusLabel };
     }
 
     if (state.kind === "cover") {
-      const sprite = this.scene.add.rectangle(state.x, state.y, COVER_WIDTH, COVER_HEIGHT, COVER_COLOR, 1);
-      return { sprite, visuals: [sprite] };
+      const shadow = this.scene.add.rectangle(state.x + 3, state.y + 4, COVER_WIDTH + 4, COVER_HEIGHT + 4, theme.shadowColor, 0.45).setDepth(3);
+      const sprite = this.scene.add.rectangle(state.x, state.y, COVER_WIDTH, COVER_HEIGHT, theme.fillColor, 1)
+        .setStrokeStyle(2, theme.accentColor, 0.9)
+        .setDepth(4);
+      const brace = this.scene.add.rectangle(state.x, state.y, 5, COVER_HEIGHT, theme.accentColor, 0.66).setDepth(5);
+      const statusLabel = createStatusLabel();
+      return { sprite, visuals: [shadow, sprite, brace, statusLabel], statusLabel };
     }
 
     if (state.kind === "bounce-wall") {
+      const rotation = Phaser.Math.DegToRad(state.angleDegrees ?? 0);
+      const shadow = this.scene.add.rectangle(state.x + 3, state.y + 4, BOUNCE_WALL_WIDTH + 4, BOUNCE_WALL_HEIGHT + 4, theme.shadowColor, 0.42)
+        .setRotation(rotation)
+        .setDepth(3);
       const sprite = this.scene.add
-        .rectangle(state.x, state.y, BOUNCE_WALL_WIDTH, BOUNCE_WALL_HEIGHT, BOUNCE_WALL_COLOR, 1)
-        .setRotation(Phaser.Math.DegToRad(state.angleDegrees ?? 0));
-      return { sprite, visuals: [sprite] };
+        .rectangle(state.x, state.y, BOUNCE_WALL_WIDTH, BOUNCE_WALL_HEIGHT, theme.fillColor, 1)
+        .setStrokeStyle(2, theme.accentColor, 1)
+        .setRotation(rotation)
+        .setDepth(4);
+      const energy = this.scene.add.rectangle(state.x, state.y, BOUNCE_WALL_WIDTH - 8, 2, theme.accentColor, 0.9)
+        .setRotation(rotation)
+        .setDepth(5);
+      const statusLabel = createStatusLabel().setY(state.y - 13);
+      return { sprite, visuals: [shadow, sprite, energy, statusLabel], statusLabel };
     }
 
     if (state.kind === "teleporter") {
-      const sprite = this.scene.add.circle(state.x, state.y, TELEPORTER_RADIUS, TELEPORTER_COLOR, 0.3)
-        .setStrokeStyle(3, TELEPORTER_COLOR, 0.9);
-      const label = this.scene.add.text(
-        state.x,
-        state.y,
-        (state.pairId ?? "").slice(0, 2).toUpperCase(),
-        { fontSize: "12px", color: "#c6f7ff" }
-      ).setOrigin(0.5).setDepth(7);
-      return { sprite, visuals: [sprite, label] };
+      const shadow = this.scene.add.circle(state.x + 2, state.y + 4, TELEPORTER_RADIUS + 3, theme.shadowColor, 0.42).setDepth(3);
+      const sprite = this.scene.add.circle(state.x, state.y, TELEPORTER_RADIUS, theme.fillColor, 0.32)
+        .setStrokeStyle(3, theme.accentColor, 0.92)
+        .setDepth(4);
+      const core = this.scene.add.circle(state.x, state.y, TELEPORTER_RADIUS - 8, theme.accentColor, 0.12)
+        .setStrokeStyle(1, theme.accentColor, 0.7)
+        .setDepth(5);
+      const statusLabel = createStatusLabel((state.pairId ?? "T").slice(-2).toUpperCase()).setFontSize(9);
+      return { sprite, visuals: [shadow, sprite, core, statusLabel], statusLabel };
     }
 
-    const sprite = this.scene.add.rectangle(state.x, state.y, BARREL_SIZE, BARREL_SIZE, BARREL_COLOR, 1);
-    return { sprite, visuals: [sprite] };
+    const shadow = this.scene.add.ellipse(state.x + 3, state.y + 4, BARREL_SIZE + 4, BARREL_SIZE - 2, theme.shadowColor, 0.5).setDepth(3);
+    const sprite = this.scene.add.rectangle(state.x, state.y, BARREL_SIZE, BARREL_SIZE, theme.fillColor, 1)
+      .setStrokeStyle(2, theme.accentColor, 0.92)
+      .setDepth(4);
+    const band = this.scene.add.rectangle(state.x, state.y, BARREL_SIZE, 5, theme.accentColor, 0.55).setDepth(5);
+    const statusLabel = createStatusLabel();
+    return { sprite, visuals: [shadow, sprite, band, statusLabel], statusLabel };
   }
 
   private syncVisual(view: MapObjectView): void {
-    for (const visual of view.visuals) {
-      visual.setVisible(view.state.active);
-    }
-
     if (!view.state.active) {
       view.blinkTween?.pause();
+      for (const visual of view.visuals) {
+        visual.setVisible(true).setAlpha(0.16);
+      }
+      view.statusLabel.setText("×").setAlpha(0.62).setColor("#94a3b8");
       return;
     }
 
-    if (view.state.kind === "mine" && view.blinkTween?.isPaused()) {
-      view.blinkTween.resume();
+    for (const visual of view.visuals) {
+      visual.setVisible(true);
+      if (view.state.kind !== "mine") {
+        visual.setAlpha(1);
+      }
     }
 
+    const theme = getMapObjectVisual(view.state.kind);
+    if (view.state.kind === "mine") {
+      const armed = this.scene.time.now >= (view.state.armedAt ?? 0);
+      view.statusLabel.setText(armed ? theme.glyph : "…").setColor(armed ? "#ffdf5d" : "#cbd5e1").setAlpha(1);
+      if (armed && view.blinkTween?.isPaused()) {
+        view.blinkTween.resume();
+      } else if (!armed) {
+        view.blinkTween?.pause();
+        view.sprite.setAlpha(0.52);
+      }
+      return;
+    }
+
+    const maxHp = this.getHpForKind(view.state.kind);
+    const hpRatio = maxHp === undefined || view.state.hp === undefined ? 1 : Phaser.Math.Clamp(view.state.hp / maxHp, 0, 1);
+    view.sprite.setAlpha(0.42 + hpRatio * 0.58);
+    view.statusLabel
+      .setText(hpRatio < 1 ? `${Math.ceil(hpRatio * 100)}%` : theme.glyph)
+      .setColor(`#${theme.accentColor.toString(16).padStart(6, "0")}`)
+      .setAlpha(1);
+
     if (view.state.kind === "cover") {
-      const alpha = 0.35 + 0.65 * (view.state.hp / this.deps.gameBalanceMapObjects.cover.hp);
-      view.sprite.setAlpha(Phaser.Math.Clamp(alpha, 0.35, 1));
+      view.sprite.setStrokeStyle(2, hpRatio < 0.5 ? 0xff8a65 : theme.accentColor, 0.9);
     }
   }
 

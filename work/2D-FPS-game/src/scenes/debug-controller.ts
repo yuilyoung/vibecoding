@@ -173,6 +173,11 @@ export class DebugController {
     this.requirePlayerSprite().setPosition(x, y);
   }
 
+  public debugDamagePlayer(amount: number, now: number): void {
+    this.deps.runtimeState.playerLogic.takeDamage(Math.max(0, amount), 0, now);
+    this.refreshDebugHud(now);
+  }
+
   public debugSetPlayerHullAngle(angleRadians: number): void {
     this.deps.runtimeState.playerBodyAngle = Phaser.Math.Angle.Wrap(angleRadians);
     this.requirePlayerSprite().setRotation(this.deps.getActorRotation(this.deps.runtimeState.playerBodyAngle));

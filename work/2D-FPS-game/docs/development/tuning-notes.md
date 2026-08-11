@@ -63,3 +63,11 @@ Manual speaker/headphone review is still required before changing generated tone
 - Tune cue priority/cooldown through `gameBalance.audio.cueRules`; retain deterministic test coverage when changing either.
 - Keep `weatherLoopCooldownMs` for accidental repeat suppression, while reset/explicit stop retains immediate replay behavior.
 - Use HUD/debug audio snapshots and the weather sound E2E before accepting a mix adjustment.
+
+## Phase 9 Visual Tuning
+
+- Keep stage tint below actor and pickup contrast; tune `StageVisualTheme.overlayAlpha` before changing runtime art.
+- Keep weather tint additive to stage identity. Return-to-clear must leave atmosphere alpha at zero.
+- Resolve HUD paths and visual metadata through `VisualAssetCatalog`; do not add literal weapon or portrait paths in render code.
+- Keep object collision constants independent from composite shape sizes so visual polish cannot change gameplay geometry.
+- Use the Phase 9 browser evidence set for all three stages and five weather states before accepting palette changes.

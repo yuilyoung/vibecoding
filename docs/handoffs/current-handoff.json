@@ -1,79 +1,44 @@
 {
-  "id": "phase-8-environment-audio-polish",
-  "timestamp": "2026-04-27",
-  "from": "vision",
-  "to": "ultron",
+  "id": "phase-9-visual-identity-readability",
+  "timestamp": "2026-08-11",
+  "from": "ultron",
+  "to": "vision / product",
   "status": "complete",
-  "previousPhase": {
-    "id": "phase-7-tactical-combat-depth",
-    "status": "complete",
-    "completedAt": "2026-04-27",
-    "executionReport": "docs/handoffs/current-execution-report.md"
-  },
-  "scope": "Phase 8 delivers Environment Audio Polish on top of the completed tactical combat baseline. The focus is generated audio readability, deterministic loop behavior, runtime priority tuning, HUD/debug audio visibility, and repeatable QA guidance.",
+  "scope": "Phase 9 delivers a typed CC0 visual identity and readability pass for operator portraits, Ground Shaker tanks and terrain, six weapon icons, three stage treatments, six map-object visuals plus legend, and five weather states without changing gameplay rules.",
   "constraints": [
-    "Execution baseline remains work/2D-FPS-game and must preserve the completed Phase 7 tactical combat behavior.",
-    "Generated Web Audio remains the playback path in this phase; do not widen scope into external audio asset production.",
-    "Audio behavior should remain testable and mostly config-driven where practical.",
-    "Public debug methods remain stable; additive payload extension is preferred over API churn.",
-    "MainScene.ts must remain within the existing LOC gate.",
-    "Environment audio polish should not turn into a broader UI redesign or vehicle/progression phase."
+    "Execution baseline remains work/2D-FPS-game.",
+    "Only vendored CC0 assets and recorded source packs are used.",
+    "Combat, collision, progression, stage content, and vehicle mechanics remain unchanged.",
+    "MainScene.ts must remain at or below 850 lines.",
+    "Unrelated dirty workspace files are excluded from the Phase 9 commit."
   ],
   "currentState": {
     "implemented": [
-      "Phase 7 tactical combat depth is complete and fully regression-tested.",
-      "Sound cue routing, generated cue playback, and weather loop contracts already exist.",
-      "Weather sound queue dedup and reset coverage already exists in browser tests.",
-      "Phase 8 T1 audit is complete and the execution slice is locked to generated-audio runtime polish plus QA visibility.",
-      "Phase 8 T2 is complete: generated cue tuning is now balance-configurable through audio.maxSimultaneous and audio.cueProfiles."
+      "Typed VisualAssetCatalog with provenance and deterministic fallbacks.",
+      "Kenney HUD portraits, Ground Shaker world tanks and stage terrain, and six PIXWEP weapon icons.",
+      "Three stage themes, six object composites plus legend, and five transition-safe weather identities.",
+      "Deterministic hardening for the stale health-pickup TODO and timing-sensitive browser regressions."
     ],
-    "gaps": [
-      "Generated cue mix and runtime priority still need readability tuning in the active playback layer.",
-      "Audio-specific HUD/debug state is limited for QA and tuning."
-    ]
-  },
-  "files": {
-    "create": [
-      "work/2D-FPS-game/docs/planning/phase8-wbs.md",
-      "work/2D-FPS-game/docs/planning/phase8-tasks.json",
-      "codex/subagents/game-specialist-phase8.md"
+    "verification": [
+      "57 unit files / 338 tests passed.",
+      "Production build passed.",
+      "34 / 34 Playwright tests passed.",
+      "Three stage and five weather screenshots were captured.",
+      "MainScene.ts is 843 / 850 lines."
     ],
-    "modify": [
-      "docs/handoffs/current-handoff.json",
-      "codex/subagents/execution-roles.md",
-      "work/2D-FPS-game/docs/development/game-direction.md",
-      "work/2D-FPS-game/docs/reports/project-status.md"
-    ]
+    "finalization": [
+      "Independent current-fingerprint reviewer verdict: pass.",
+      "Harness audit and manual drift: pass.",
+      "Postflight and dashboard status synchronization: pass.",
+      "Phase 9-only commit and push prepared with unrelated dirty files excluded."
+    ],
+    "remaining": []
   },
-  "acceptance": [
-    "Phase 8 WBS, tasks JSON, and handoff are present and aligned.",
-    "Phase 8 scope is fixed to Environment Audio Polish.",
-    "A specialist brief exists for a game/audio-focused worker.",
-    "T1 audit findings are documented and the execution slice is locked.",
-    "T2 generated cue tuning contract is implemented and verified."
-  ],
-  "priority": [
-    "1. Audit current audio contract and runtime limitations.",
-    "2. Improve generated cue tuning, priority, and loop behavior.",
-    "3. Add QA visibility and verification coverage.",
-    "4. Close with docs, verification, and execution reporting."
-  ],
-  "risks": [
-    {
-      "risk": "Audio polish may overreach into asset production or larger UX redesign.",
-      "mitigation": "Keep Phase 8 constrained to generated cue behavior, runtime polish, and QA visibility."
-    },
-    {
-      "risk": "Cue dedup or cooldown tuning could suppress useful feedback.",
-      "mitigation": "Back all priority and cooldown changes with deterministic unit and browser tests."
-    }
-  ],
   "references": {
-    "currentPhaseWbs": "work/2D-FPS-game/docs/planning/phase8-wbs.md",
-    "currentPhaseTasks": "work/2D-FPS-game/docs/planning/phase8-tasks.json",
-    "previousExecutionReport": "docs/handoffs/current-execution-report.md",
-    "gameDirection": "work/2D-FPS-game/docs/development/game-direction.md",
+    "architecture": "work/2D-FPS-game/docs/planning/phase9-visual-identity-architecture.md",
+    "wbs": "work/2D-FPS-game/docs/planning/phase9-wbs.md",
+    "tasks": "work/2D-FPS-game/docs/planning/phase9-tasks.json",
     "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
-    "specialistBrief": "codex/subagents/game-specialist-phase8.md"
+    "executionReport": "docs/handoffs/current-execution-report.md"
   }
 }

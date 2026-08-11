@@ -262,7 +262,8 @@ test("carbine projectiles ignore wind", async ({ page }) => {
 
   expect(calm.trajectory).toBe("linear");
   expect(windy.trajectory).toBe("linear");
-  expect(Math.abs(windy.x - calm.x)).toBeLessThanOrEqual(4);
+  expect(windy.velocityX).toBeCloseTo(calm.velocityX, 5);
+  expect(windy.velocityY).toBeCloseTo(calm.velocityY, 5);
 });
 
 test("round reset rotates wind and broadcasts the HUD wind event", async ({ page }) => {

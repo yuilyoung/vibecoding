@@ -20,33 +20,6 @@ export function createArenaPropTextures(scene: Phaser.Scene): void {
   createPickupTexture(scene, PICKUP_HEALTH_KEY, 0x7cff9e, 0xeafff0, "+");
 }
 
-export function createActorSkins(scene: Phaser.Scene): void {
-  createActorTexture(scene, "skin-player-blue", {
-    bodyColor: 0x4ec9ff,
-    headColor: 0xffffff,
-    accentColor: 0x1d6cb5,
-    weaponColor: 0xffcf4c
-  });
-  createActorTexture(scene, "skin-player-red", {
-    bodyColor: 0xff6d7a,
-    headColor: 0xfff3f3,
-    accentColor: 0xbe3348,
-    weaponColor: 0xffbf54
-  });
-  createActorTexture(scene, "skin-dummy-blue", {
-    bodyColor: 0x70d8ff,
-    headColor: 0xf8fdff,
-    accentColor: 0x1b6eb1,
-    weaponColor: 0xffd464
-  });
-  createActorTexture(scene, "skin-dummy-red", {
-    bodyColor: 0xff7a6d,
-    headColor: 0xfff2f2,
-    accentColor: 0xc14431,
-    weaponColor: 0xffd464
-  });
-}
-
 export function createActorImage(scene: Phaser.Scene, actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
   const textureKey = actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
   return scene.add.image(x, y, textureKey).setDepth(5).setScale(ACTOR_BODY_SCALE);
@@ -59,14 +32,21 @@ export function createTurretAnimations(scene: Phaser.Scene): void {
   ensureTurretAnimation(scene, GROUND_TURRET_SCATTER_RED_KEY, SCATTER_TURRET_FRAMES, 22);
 }
 
-export function addArenaBackdrop(scene: Phaser.Scene): void {
+export interface ArenaBackdropVisuals {
+  readonly background: Phaser.GameObjects.Rectangle;
+  readonly terrain: Phaser.GameObjects.Image;
+  readonly toneOverlay: Phaser.GameObjects.Rectangle;
+  readonly border: Phaser.GameObjects.Rectangle;
+}
+
+export function addArenaBackdrop(scene: Phaser.Scene): ArenaBackdropVisuals {
   const playfieldWidth = PLAYFIELD_MAX_X - PLAYFIELD_MIN_X;
   const playfieldHeight = PLAYFIELD_MAX_Y - PLAYFIELD_MIN_Y;
   const playfieldCenterX = (PLAYFIELD_MIN_X + PLAYFIELD_MAX_X) * 0.5;
   const playfieldCenterY = (PLAYFIELD_MIN_Y + PLAYFIELD_MAX_Y) * 0.5;
 
-  scene.add.rectangle(480, 270, 960, 540, 0x0a121b, 0.02).setDepth(-2);
-  addTerrainSurface(
+  const background = scene.add.rectangle(480, 270, 960, 540, 0x0a121b, 0.02).setDepth(-2);
+  const terrain = addTerrainSurface(
     scene,
     playfieldCenterX,
     playfieldCenterY,
@@ -76,8 +56,10 @@ export function addArenaBackdrop(scene: Phaser.Scene): void {
     0.94,
     -1
   );
-  scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x10273a, 0.035).setDepth(0);
-  scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x234f85, 0).setStrokeStyle(2, 0xa7ddff, 0.42).setDepth(1);
+  const toneOverlay = scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x10273a, 0.035).setDepth(0);
+  const border = scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x234f85, 0).setStrokeStyle(2, 0xa7ddff, 0.42).setDepth(1);
+
+  return { background, terrain, toneOverlay, border };
 }
 
 export function addTerrainSurface(
@@ -230,53 +212,5 @@ function createPickupTexture(scene: Phaser.Scene, textureKey: string, fillColor:
   }
 
   graphics.generateTexture(textureKey, size, size);
-  graphics.destroy();
-}
-
-function createActorTexture(
-  scene: Phaser.Scene,
-  textureKey: string,
-  palette: {
-    readonly bodyColor: number;
-    readonly headColor: number;
-    readonly accentColor: number;
-    readonly weaponColor: number;
-  }
-): void {
-  if (scene.textures.exists(textureKey)) {
-    return;
-  }
-
-  const isDummy = textureKey.includes("dummy");
-  const graphics = scene.add.graphics();
-  graphics.fillStyle(0x000000, 0);
-  graphics.fillRect(0, 0, 48, 48);
-  graphics.fillStyle(0x102030, 0.28);
-  graphics.fillEllipse(24, 33, 26, 14);
-  graphics.fillStyle(palette.accentColor, 1);
-  graphics.fillCircle(24, 24, 17);
-  graphics.lineStyle(3, 0xffffff, 0.95);
-  graphics.strokeCircle(24, 24, 17);
-  graphics.fillStyle(palette.bodyColor, 1);
-
-  if (isDummy) {
-    graphics.fillRoundedRect(13, 13, 22, 22, 8);
-    graphics.fillStyle(palette.headColor, 1);
-    graphics.fillCircle(24, 24, 7);
-    graphics.fillStyle(palette.weaponColor, 1);
-    graphics.fillRoundedRect(24, 21, 15, 6, 3);
-    graphics.lineStyle(2, 0x203040, 0.45);
-    graphics.strokeRoundedRect(13, 13, 22, 22, 8);
-  } else {
-    graphics.fillTriangle(11, 14, 11, 34, 34, 24);
-    graphics.fillStyle(palette.headColor, 1);
-    graphics.fillCircle(20, 24, 6);
-    graphics.fillStyle(palette.weaponColor, 1);
-    graphics.fillRoundedRect(29, 21, 12, 6, 3);
-    graphics.lineStyle(2, 0x203040, 0.45);
-    graphics.strokeTriangle(11, 14, 11, 34, 34, 24);
-  }
-
-  graphics.generateTexture(textureKey, 48, 48);
   graphics.destroy();
 }

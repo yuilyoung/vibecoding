@@ -31,7 +31,6 @@ import type { HudSnapshot } from "../ui/hud-events";
 import { createPlayerWeaponSlots, createDummyWeaponSlots } from "./weapon-slot-factory";
 import {
   createArenaPropTextures,
-  createActorSkins as createActorSkinsTextures,
   createActorImage,
   createTurretAnimations,
   addArenaBackdrop,
@@ -65,6 +64,7 @@ import { VisualController } from "./visual-controller";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
+import { StageVisualController } from "./stage-visual-controller";
 import type { TacticalPositionConfig } from "../domain/ai/TacticalPositionLogic";
 import type { MoveKeys } from "./input-bindings";
 import { createMainSceneDebugController } from "./main-scene-debug";
@@ -151,6 +151,7 @@ export class MainScene extends Phaser.Scene {
   private readonly visualController: VisualController;
   private readonly debugController: DebugController;
   private weatherRenderer!: WeatherRenderer;
+  private stageVisualController!: StageVisualController;
   private roundResetAtMs: number | null;
   private roundStartUntilMs: number;
   private respawnFxUntilMs: number;
@@ -443,7 +444,10 @@ export class MainScene extends Phaser.Scene {
       clearBullets: () => this.combatController.clearBullets(),
       resetPickupState: () => this.stageGeometry.resetPickupState(),
       resetHazardState: () => this.stageGeometry.resetHazardState(),
-      applyStageGeometry: () => this.stageGeometry.applyStageGeometry(this.currentStage),
+      applyStageGeometry: () => {
+        this.stageVisualController.applyStage(this.currentStage.id);
+        this.stageGeometry.applyStageGeometry(this.currentStage);
+      },
       applyStageContentToRuntime: () => {
         this.stageGeometry.applyStageContent(this.activeStageContentPlan);
         this.mapObjectController.applyMapObjects(this.activeStageContentPlan.mapObjects);
@@ -534,7 +538,7 @@ export class MainScene extends Phaser.Scene {
   private createSpawnTableFromStage(stage: StageDefinition): TeamSpawnTable { return { BLUE: stage.blueSpawns, RED: stage.redSpawns }; }
 
   public preload(): void {
-    preloadMainSceneAssets(this, this.gameBalance);
+    preloadMainSceneAssets(this);
   }
 
   public create(): void {
@@ -545,9 +549,9 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.muzzleFlash = this.muzzleFlash;
 
     createArenaPropTextures(this);
-    createActorSkinsTextures(this);
     createTurretAnimations(this);
-    addArenaBackdrop(this);
+    this.stageVisualController = new StageVisualController(addArenaBackdrop(this));
+    this.stageVisualController.applyStage(this.currentStage.id);
     this.stageGeometry.applyStageGeometry(this.currentStage);
     const staticStageObjects = this.stageGeometry.createStaticRuntimeObjects();
     this.gate = staticStageObjects.gate;
@@ -603,6 +607,7 @@ export class MainScene extends Phaser.Scene {
     unbindMainScenePointer(this, this.handlePointerDown, this);
     this.hudController.publishShutdownSnapshot();
     this.mapObjectController.destroy();
+    this.stageVisualController?.destroy();
     this.damageNumberRenderer?.destroy();
     this.weatherRenderer?.destroy();
   }
@@ -775,7 +780,7 @@ export class MainScene extends Phaser.Scene {
   public debugEnterStage(): void { this.debugController.debugEnterStage(); } public debugSelectTeam(team: DebugTeamSelection): void { this.debugController.debugSelectTeam(team); } public debugConfirmTeamSelection(): void { this.debugController.debugConfirmTeamSelection(this.time.now); } public debugForceCombatLive(): void { this.debugController.debugForceCombatLive(); }
   public debugSwapWeapon(): void { this.debugController.debugSwapWeapon(this.time.now); } public debugSelectWeaponSlot(slotNumber: number): void { this.debugController.debugSelectWeaponSlot(slotNumber, this.time.now); } public debugFire(): void { this.debugController.debugFire(this.time.now); }
   public debugFireAt(targetX: number, targetY: number): void { this.debugController.debugFireAt(targetX, targetY, this.time.now); } public debugGetMapObjectStates() { return this.debugController.getMapObjectStates(); } public debugGetProjectileSnapshot() { return this.debugController.getProjectileSnapshot(); } public debugAdvanceMapObjects(now: number): void { this.mapObjectController.advanceTick(now, 0); } public debugResolveProjectiles(): void { this.combatController.updateProjectiles(0, this.time.now); } public debugGetWeatherSoundQueue() { return this.audioFeedbackController.getWeatherSoundQueue(); } public debugClearWeatherSoundQueue(): void { this.audioFeedbackController.clearWeatherSoundQueue(); }
-  public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); } public debugSetPlayerHullAngle(angleRadians: number): void { this.debugController.debugSetPlayerHullAngle(angleRadians); } public debugSetPlayerAimAngle(angleRadians: number): void { this.debugController.debugSetPlayerAimAngle(angleRadians); }
+  public debugMovePlayerTo(x: number, y: number): void { this.debugController.debugMovePlayerTo(x, y); } public debugDamagePlayer(amount: number): void { this.debugController.debugDamagePlayer(amount, this.time.now); } public debugSetPlayerHullAngle(angleRadians: number): void { this.debugController.debugSetPlayerHullAngle(angleRadians); } public debugSetPlayerAimAngle(angleRadians: number): void { this.debugController.debugSetPlayerAimAngle(angleRadians); }
   public debugMoveDummyTo(x: number, y: number): void { this.debugController.debugMoveDummyTo(x, y); } public debugToggleGate(): void { this.stageGeometry.debugToggleGate(); } public debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void { this.debugController.debugForceMatchOver(winner, this.time.now); }
   public debugForceBossRound(): void { this.debugController.debugForceBossRound(this.time.now); } public debugRegisterPlayerRoundWin(): void { this.debugController.debugRegisterPlayerRoundWin(this.time.now); } public debugGetWeather(): WeatherState { return this.currentEffectiveWeather; }
   public debugSetWeather(type: WeatherState["type"]): void { this.debugController.debugSetWeather(type, this.time.now); } public clearBullets(): void { this.combatController.clearBullets(); } public updateDummyCoverState(now: number): void { this.dummyActorController.updateCoverState(now); }

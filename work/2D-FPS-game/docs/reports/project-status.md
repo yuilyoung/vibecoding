@@ -1,48 +1,59 @@
 # 2D-FPS-game Project Status Report
 
-- Date: 2026-04-27
+- Date: 2026-08-11
 - Author: ultron
-- **Phase:** Phase 8 - Environment Audio Polish (complete)
-- Previous Phase: Phase 6 Sprint 3 - Refactoring & Hardening (complete, 2026-04-27)
-- Status: Phase 8 implemented, independently reviewed, and fully verified
+- **Phase:** Phase 9 - Visual Identity & Readability (complete)
+- Previous Phase: Phase 8 - Environment Audio Polish (complete, 2026-04-27)
+- Status: complete; implementation, deterministic verification, independent review, drift, and postflight gates passed
 
 | Key | Value |
 | --- | --- |
-| Active milestone | Phase 8 - Environment Audio Polish |
-| Development status | Phase 8 T0-T8 are complete: controller-owned generated weather loops, QA observability, automated verification, and PR CI are ready. |
+| Active milestone | Phase 9 - Visual Identity & Readability |
+| Development status | Phase 9 T0-T8 complete; scoped commit and push are the delivery handoff. |
 | Verification | pass |
 
 ## Summary
 
-Phase 8 is complete in the active workspace. Generated Web Audio is config-driven, weather loops are controller-owned, reset-safe replay is deterministic, and HUD/debug exposes active loop and suppression state for QA.
+Phase 9 applies the repository's vendored CC0 art library as a typed visual system. Kenney operator portraits identify the HUD teams, Ground Shaker tanks and terrain remain the in-world vehicle language, and PIXWEP covers all six weapon icons. Three stage palettes/crops, six map-object composites plus legend, and five transition-safe weather identities are implemented without changing combat, collision, progression, or stage content rules.
 
 ## Completed Work
 
-### Phase 7 - Tactical Combat Depth
-
-- Added combat balance contracts for `botTactics`, `weaponRoles`, and `combatTuning`.
-- Expanded AI tactical states to `pressure`, `hold`, `retreat`, and `flank`.
-- Added `TacticalPositionLogic.ts` and connected it to cover and line-of-sight helpers.
-- Reworked bot weapon choice to use role-aware evaluation instead of distance-only switching.
-- Exposed tactical intent, target cover, chosen weapon id, and chosen weapon role through HUD and debug snapshots.
-- Added tactical verification through targeted unit tests and `tests/e2e/combat-depth.spec.ts`.
-- Refreshed Phase 7 tuning and playtest guidance and synced the execution handoff.
+- Added a pure `VisualAssetCatalog` for source provenance, portraits, six weapon icons, three stages, six map-object kinds, five weather states, and deterministic fallbacks.
+- Removed the loaded-but-unused actor spritesheet configuration and generated actor texture path.
+- Added Kenney player/enemy operator portraits to the HUD while retaining Ground Shaker tank bodies/turrets in-world.
+- Added four runtime PIXWEP icons so all six configured weapon slots have distinct mappings.
+- Added stage-specific terrain crops, tints, overlays, borders, DOM QA state, and a scene-lifetime visual controller.
+- Replaced flat map-object geometry with catalog-driven composite visuals and added a matching six-entry object legend.
+- Added weather atmosphere tint, immediate storm flash, and full clear-state cleanup for particles, fog, tint, and flash.
+- Closed the stale health-pickup debug TODO and replaced timing-sensitive movement, wind, and air-strike assertions with deterministic contracts.
+- Updated setup, sprite contract, playtest, tuning, runtime asset direction, Phase 9 architecture, WBS, and task records.
 
 ## Verification
 
 | Gate | Result | Notes |
-|------|--------|-------|
+| --- | --- | --- |
 | type-check | **pass** | `npm run type-check` |
 | lint | **pass** | `npm run lint` |
-| tactical unit suite | **pass** | 8 files / 67 tests |
-| build | **pass** | Largest chunk 260.49 kB, gzip 71.63 kB |
-| tactical E2E | **pass** | 2 / 2 tactical specs |
-| full Playwright | **pass** | 30 / 30 browser specs |
-| MainScene LOC | **pass** | `835 / 850` |
+| focused unit | **pass** | 2 files / 11 Phase 9 tests |
+| full unit | **pass** | 57 files / 338 tests |
+| build | **pass** | Vite production build; largest chunk 260.49 kB, gzip 71.63 kB |
+| focused browser | **pass** | Phase 3 hardening 1/1, Phase 9 visual 3/3, wind 3/3, weapon 4/4 |
+| full Playwright | **pass** | 34 / 34 browser tests |
+| visual evidence | **pass** | 3 stage screenshots and 5 weather screenshots captured |
+| MainScene LOC | **pass** | 843 / 850 |
+| independent review | **pass** | Current-fingerprint read-only review found no blocking issue |
+| harness / manual drift | **pass** | Harness audit and all triggered manuals are current |
 
-## In Progress
+## Undeveloped-Item Audit
 
-Phase 8 is closed. Phase 9 selection is the next product decision; no implementation task is active.
+No Phase 9 blocker remains. Historical planning files can contain `pending` entries that were superseded by later completed phases; active runtime tests and this report are the execution baseline.
+
+The following are valid future product slices, not unfinished Phase 9 work:
+
+- Authored pickup, gate, and vent decal production to replace the current coherent generated composites.
+- Drivable vehicle physics and vehicle-specific combat mechanics.
+- Progression/campaign expansion beyond the existing local unlock loop.
+- Accessibility and responsive HUD refinement for smaller screens.
 
 ## Blocking Issues
 
@@ -52,24 +63,23 @@ None.
 
 | Priority | ID | Task | Owner | Estimate |
 | --- | --- | --- | --- | --- |
-| 1 | Phase 9 | Select the next product slice: asset/UI readability, vehicle, or progression. | vision / product | decision |
+| 1 | Phase 10 decision | Select one bounded slice: authored interactable art, drivable vehicles, progression/campaign, or accessibility/responsive HUD. | vision / product | decision |
+| 2 | Phase 10 contract | Create a new architecture and acceptance contract for the selected slice before implementation. | vision + ultron | planning |
 
 ## Risks
 
 | Risk | Impact | Status |
-|------|--------|--------|
-| Tactical HUD/debug payload shape is now shared across more consumers. | low | Managed with optional contract fields |
-| Future AI tuning could reintroduce oscillation if thresholds move without test updates. | low | Managed with deterministic tests |
+| --- | --- | --- |
+| Stage and weather tint can stack too strongly after future palette tuning. | medium | Controlled by catalog alpha values and 8-state screenshot evidence. |
+| Runtime asset copies can drift from source/license records. | medium | Controlled by typed source ids, manifest policy, and file-existence tests. |
+| MainScene is close to the 850-line gate. | medium | 843/850; future scene integration must extract controllers first. |
 
 ## Reference Documents
 
-- [Phase 8 WBS](../planning/phase8-wbs.md)
-- [Phase 8 Tasks JSON](../planning/phase8-tasks.json)
-- [Phase 8 Audio Audit](../development/phase8-audio-audit.md)
-- [Phase 7 WBS](../planning/phase7-wbs.md)
-- [Phase 7 Tasks JSON](../planning/phase7-tasks.json)
+- [Phase 9 Architecture](../planning/phase9-visual-identity-architecture.md)
+- [Phase 9 WBS](../planning/phase9-wbs.md)
+- [Phase 9 Tasks JSON](../planning/phase9-tasks.json)
+- [Sprite Asset Contract](../development/sprite-asset-contract.md)
+- [Runtime Asset Direction](../../public/assets/runtime/asset-direction.md)
 - [Execution Report](../../../../docs/handoffs/current-execution-report.md)
 - [Handoff](../../../../docs/handoffs/current-handoff.json)
-- [Game Direction](../development/game-direction.md)
-- [Playtest Checklist](../development/playtest-checklist.md)
-- [Tuning Notes](../development/tuning-notes.md)
