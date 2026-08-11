@@ -30,6 +30,14 @@
     @media(max-width:760px){.metrics{grid-template-columns:repeat(2,1fr)}.metric.prompt-metric{grid-column:1/-1}.agent-bottom{grid-template-columns:1fr}.invocation-metrics{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}.comm-stream{grid-column:auto}.roadmap-phase{min-width:92px}.graph-stage svg{height:350px}}
     @media(prefers-reduced-motion:reduce){.edge-packet{display:none}.edge.new-edge,.node[data-state="active"] .node-orbit{animation:none!important}}
   </style>
+  <style>
+    .portfolio-panel{overflow:hidden}.portfolio-summary{display:flex;gap:7px;flex-wrap:wrap}.portfolio-summary .tag b{color:var(--ink)}.project-badges{display:flex;justify-content:flex-end;gap:4px;flex-wrap:wrap}.baseline-badge{background:#dff7fb;color:#087887}
+    .project-switcher{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;padding:0 16px 12px}.project-card{position:relative;display:grid;gap:8px;min-width:0;padding:13px;text-align:left;border:1px solid #e0e3ee;border-radius:12px;background:#f8f9fc;color:var(--ink);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}.project-card:hover,.project-card.selected{transform:translateY(-1px);border-color:#7060d7;box-shadow:0 9px 22px rgba(82,68,183,.13)}.project-card.selected:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:12px 0 0 12px;background:linear-gradient(var(--cyan),var(--violet))}.project-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.project-card h3{margin:0;font-size:13px}.project-card-path{color:var(--muted);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-card-work{min-height:31px;color:#505a74;font-size:10px;line-height:1.45}.project-bars{display:grid;grid-template-columns:1fr 1fr;gap:8px}.project-bar span{display:flex;justify-content:space-between;color:var(--muted);font-size:9px}.project-bar i{display:block;height:4px;margin-top:5px;border-radius:5px;background:#e2e5ef;overflow:hidden}.project-bar i:after{content:"";display:block;width:var(--value,0%);height:100%;background:var(--indigo)}.project-bar.completeness i:after{background:var(--green)}.project-badge{padding:3px 6px;border-radius:999px;background:#edeafd;color:#5145a4;font-size:9px;font-weight:850;white-space:nowrap}.project-badge.blocked{background:#ffe8ed;color:#b32748}.project-badge.complete{background:#e7f7f0;color:#177151}
+    .portfolio-detail{margin:0 16px 16px;padding:11px 13px;border-radius:11px;background:linear-gradient(110deg,#f2f0ff,#eef8fb);display:grid;grid-template-columns:minmax(160px,.7fr) 1.3fr auto;gap:14px;align-items:center}.portfolio-detail strong,.portfolio-detail span{display:block}.portfolio-detail span{margin-bottom:4px;color:var(--muted);font-size:9px;text-transform:uppercase;font-weight:800}.portfolio-detail strong{font-size:11px;line-height:1.45}.detail-percent{font-size:22px!important;color:var(--indigo);text-align:right}
+    .cycle-panel{overflow:hidden;background:var(--navy);color:#edf4ff;border-color:rgba(255,255,255,.08)}.cycle-panel .source{color:#8295b4}.cycle-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.cycle-picker{display:flex;gap:5px;flex-wrap:wrap}.cycle-chip{border:1px solid rgba(154,177,211,.2);border-radius:999px;padding:5px 8px;background:rgba(255,255,255,.04);color:#9babc2;cursor:pointer;font-size:10px}.cycle-chip.selected{background:#5c4ec7;border-color:#8d80ee;color:#fff}.cycle-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;border-top:1px solid rgba(255,255,255,.07)}.cycle-stage{position:relative;min-width:0;overflow:auto;background:linear-gradient(rgba(71,111,146,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(71,111,146,.06) 1px,transparent 1px),#071426;background-size:28px 28px}.cycle-stage svg{display:block;width:100%;min-width:720px;height:680px}.cycle-empty{position:absolute;inset:0;display:none;place-items:center;padding:30px;color:#8295b4;text-align:center}.cycle-inspector{padding:15px;border-left:1px solid rgba(255,255,255,.08);min-height:300px}.cycle-inspector .inspect-cell{background:rgba(255,255,255,.05)}.cycle-stage-band{fill:rgba(255,255,255,.015);stroke:rgba(125,157,192,.08)}.cycle-stage-band.active{fill:rgba(60,216,228,.05);stroke:rgba(60,216,228,.3)}.cycle-stage-label{fill:#7890af;font-size:9px;font-weight:850;letter-spacing:.08em}.cycle-agent-line{stroke:#2a425f;stroke-dasharray:3 7}.cycle-agent-label{fill:#dce8f9;font-size:10px;font-weight:800;text-anchor:middle}.cycle-edge{fill:none;stroke:#647997;stroke-width:2;marker-end:url(#cycle-arrow)}.cycle-edge.live{stroke:#55e2ed;stroke-width:3;stroke-dasharray:8 6;filter:url(#cycle-glow);animation:flow 1.2s linear infinite}.cycle-edge.return{stroke:#c690ff}.cycle-edge.new-edge{stroke-dasharray:1;stroke-dashoffset:1;animation:draw-edge .8s ease-out forwards}.cycle-step{cursor:pointer}.cycle-step rect{fill:#122b45;stroke:#7186a3;stroke-width:1.5}.cycle-step text{pointer-events:none;text-anchor:middle}.cycle-step .cycle-step-name{fill:#edf4ff;font-size:9px;font-weight:800}.cycle-step .cycle-step-state{fill:#91a4c0;font-size:8px}.cycle-step.active rect{fill:#103d46;stroke:#55e2ed;stroke-width:2.5;filter:url(#cycle-glow)}.cycle-step.failed rect,.cycle-step.blocked rect{fill:#401d33;stroke:#fa6b85}.cycle-step.complete rect{fill:#12372f;stroke:#48c595}.cycle-step.selected rect{stroke:#f7c76b;stroke-width:3}.cycle-step-seq{fill:#071426!important;font-size:7px!important;font-weight:900}.cycle-seq-dot{fill:#71e9f4}.cycle-pipeline{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.cycle-pipeline span{padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.05);color:#91a4c0;font-size:9px}.cycle-pipeline span.active{background:rgba(74,225,239,.15);color:#73eef5}.cycle-summary{padding:9px;border-radius:8px;background:rgba(121,91,219,.12);color:#dfe9ff;font-size:10px;line-height:1.5}
+    @media(max-width:900px){.portfolio-detail{grid-template-columns:1fr 1fr}.detail-percent{grid-column:1/-1;text-align:left}.cycle-layout{grid-template-columns:1fr}.cycle-inspector{border-left:0;border-top:1px solid rgba(255,255,255,.08)}}
+    @media(max-width:560px){.project-switcher{grid-template-columns:1fr}.portfolio-detail{grid-template-columns:1fr}.cycle-stage svg{height:610px}}
+  </style>
 </head>
 <body>
   <div class="shell">
@@ -60,6 +68,15 @@
         <article class="metric"><span class="metric-label">Input tokens</span><strong id="token-input">—</strong><small id="token-input-note">exact / partial</small></article>
         <article class="metric"><span class="metric-label">Output tokens</span><strong id="token-output">—</strong><small id="token-output-note">exact / partial</small></article>
         <article class="metric prompt-metric"><span class="metric-label">Latest prompt input</span><strong id="prompt-preview">—</strong><small id="prompt-preview-note">bounded · redacted · local journal</small></article>
+      </section>
+
+      <section class="panel portfolio-panel" id="portfolio-panel" aria-label="작업 폴더 프로젝트 포트폴리오">
+        <div class="panel-head">
+          <div><p class="eyebrow">AI-PROJECT / WORK</p><h2>프로젝트 포트폴리오</h2><span class="source" id="portfolio-source">work 폴더 확인 중</span></div>
+          <div class="portfolio-summary" aria-label="프로젝트 상태 요약"><span class="tag">전체 <b id="portfolio-total">--</b></span><span class="tag">진행 <b id="portfolio-active">--</b></span><span class="tag">완료 <b id="portfolio-completed">--</b></span><span class="tag">차단 <b id="portfolio-blocked">--</b></span></div>
+        </div>
+        <div class="project-switcher" id="project-switcher" role="listbox" aria-label="상세 프로젝트 선택"></div>
+        <div class="portfolio-detail" id="portfolio-detail" aria-live="polite"></div>
       </section>
 
       <section class="panel project-overview">
@@ -97,6 +114,7 @@
               <span class="paperclip-badge" id="paperclip-status">Paperclip · 확인 중</span>
               <button class="toggle active" id="observed-toggle" type="button">관측 노드</button>
               <button class="toggle" id="configured-toggle" type="button">전체 구성</button>
+              <button class="toggle" id="unassigned-toggle" type="button">미배정 이력</button>
             </div>
           </div>
           <div class="graph-stage">
@@ -109,6 +127,17 @@
             <section class="comm-stream"><p class="subhead">호출·응답·통신 추적 · 최신순</p><div id="communication-stream"></div></section>
           </div>
         </article>
+      </section>
+
+      <section class="panel cycle-panel" id="orchestration-cycle-panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">Orchestrator cycle / RAG view</p><h2>에이전트 상호작용 파이프라인</h2><span class="source" id="cycle-status">사이클 이벤트 확인 중</span></div>
+          <div class="cycle-toolbar"><span class="tag" id="cycle-live-count">live --</span><div class="cycle-picker" id="cycle-picker" role="listbox" aria-label="오케스트레이션 사이클 선택"></div></div>
+        </div>
+        <div class="cycle-layout">
+          <div class="cycle-stage"><svg id="cycle-graph" viewBox="0 0 900 680" role="img" aria-label="수평 에이전트 호출과 수직 개발 단계 그래프"></svg><div class="cycle-empty" id="cycle-empty"><div><strong>선택 프로젝트의 사이클 근거가 없습니다.</strong><br>분석부터 수정까지의 cycle 이벤트가 기록되면 여기에 표시됩니다.</div></div></div>
+          <aside class="cycle-inspector"><p class="subhead">선택 단계 상세</p><div id="cycle-inspector"></div></aside>
+        </div>
       </section>
 
       <section class="evidence-grid">
@@ -138,7 +167,8 @@
 <script>
 const byId=(id)=>document.getElementById(id);
 const ns="http://www.w3.org/2000/svg";
-const ui={snapshot:null,showConfigured:false,selectedAgentId:null,selectedEdgeId:null,selectedTaskId:null,streamConnected:false,seenEdges:new Set()};
+const requestedProject=new URLSearchParams(location.search).get("project");
+const ui={snapshot:null,showConfigured:false,showUnassigned:false,selectedAgentId:null,selectedEdgeId:null,selectedTaskId:null,selectedProjectId:requestedProject||localStorage.getItem("dashboard-project"),selectedCycleKey:null,selectedCycleStepId:null,lastCycleActiveStepId:null,streamConnected:false,seenEdges:new Set(),seenCycleEdges:new Set()};
 const node=(tag,value,className)=>{const item=document.createElement(tag);if(value!==undefined)item.textContent=value;if(className)item.className=className;return item};
 const svgNode=(tag,attrs={})=>{const item=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([key,value])=>item.setAttribute(key,value));return item};
 const clear=(target)=>{while(target.firstChild)target.firstChild.remove()};
@@ -148,8 +178,60 @@ const when=(value)=>value?new Date(value).toLocaleString("ko-KR",{month:"2-digit
 const age=(value)=>{if(!value)return"관측 없음";const seconds=Math.max(0,Math.round((Date.now()-Date.parse(value))/1000));if(seconds<60)return seconds+"초 전";if(seconds<3600)return Math.round(seconds/60)+"분 전";if(seconds<86400)return Math.round(seconds/3600)+"시간 전";return Math.round(seconds/86400)+"일 전"};
 const sourceLabel=(source)=>source&&source.path?source.path:"근거 없음";
 const set=(id,value)=>{byId(id).textContent=value};
-const statusText=(value)=>({pass:"통과",complete:"완료",live:"실시간",stale:"오래됨",unavailable:"미수신",unknown:"근거 없음",failed:"실패",active:"작업 중",blocked:"차단",historical:"기록",structural:"조직 관계",exact:"exact",derived:"derived",partial:"partial",conflicted:"충돌",called:"호출",created:"생성",responded:"응답",cancelled:"취소",decision:"결정 대기",planned:"계획"}[value]||value||"—");
+const statusText=(value)=>({pass:"통과",complete:"완료",live:"실시간",stale:"오래됨",unavailable:"미수신",unknown:"근거 없음",failed:"실패",active:"작업 중",blocked:"차단",historical:"기록",structural:"조직 관계",exact:"exact",derived:"derived",partial:"partial",conflicted:"충돌",called:"호출",created:"생성",responded:"응답",cancelled:"취소",stopped:"결과 미상",decision:"결정 대기",planned:"계획"}[value]||value||"—");
 const metricValue=(metric,formatter)=>metric&&metric.value!==null&&metric.value!==undefined?formatter(metric.value):"—";
+
+document.title="AI Project Portfolio & Agent Control";
+document.querySelector(".brand-mark").textContent="AI";
+document.querySelector(".topbar h1").textContent="AI Project Portfolio & Agent Control";
+
+const percentLabel=(progress)=>progress&&progress.status==="known"?progress.percentage+"%":"미확인";
+const emptyKanban=()=>({columns:{decision:[],active:[],stale:[],blocked:[],complete:[]},observedAt:null,source:null});
+function selectedPortfolioProject(data){
+  const projects=data.portfolio&&data.portfolio.projects||[];
+  const selected=projects.find((project)=>project.projectId===ui.selectedProjectId)||projects.find((project)=>project.projectId===data.portfolio.baselineProjectId)||projects[0]||null;
+  if(selected)ui.selectedProjectId=selected.projectId;
+  return selected;
+}
+function scopedRoadmap(data,project){
+  if(project.projectId===data.portfolio.baselineProjectId){const phaseNumber=Number(project.phase.title.match(/Phase\s+(\d+)/i)?.[1]||0);return{...data.roadmap,phases:data.roadmap.phases.map((phase)=>phase.phaseNumber===phaseNumber?{...phase,state:project.phase.state,progress:project.progress}:phase)}}
+  const phases=(project.milestones||[]).map((milestone,index)=>({phaseNumber:index+1,id:milestone.id,title:milestone.title,state:milestone.state,progress:{status:"unknown",done:null,total:null,percentage:null},source:milestone.source}));
+  const current=phases.find((phase)=>phase.state==="active")||phases.find((phase)=>phase.state!=="complete")||phases.at(-1)||null;
+  return{phases,currentPhaseNumber:current&&current.phaseNumber,activeSprint:null,nextDecision:(project.next||[])[0]||null,source:project.source};
+}
+function projectScopedData(data){
+  const project=selectedPortfolioProject(data)||data.project,kanban=project.kanban||emptyKanban();
+  const counts=Object.fromEntries(columns.map((column)=>[column.key,(kanban.columns[column.key]||[]).length]));
+  const tokenSlice=data.metrics.tokens.byProject&&data.metrics.tokens.byProject[project.projectId],tokens={...data.metrics.tokens,...(tokenSlice||{input:{value:null,status:"unknown",observedEventCount:0},output:{value:null,status:"unknown",observedEventCount:0},total:{value:null,status:"unknown",observedEventCount:0,derivedEventCount:0},providers:[],coverage:{observedUsageEvents:0,acceptedUniqueUsageDeltas:0,duplicateReplayCount:0,conflictingUsageIdCount:0,untokenizedMetricEventCount:0}}),status:tokenSlice?tokenSlice.status:"unknown"};
+  const promptSlice=data.metrics.prompts.byProject&&data.metrics.prompts.byProject[project.projectId],prompts={...data.metrics.prompts,status:promptSlice?promptSlice.status:"unknown",count:promptSlice?promptSlice.count:0,latest:promptSlice?promptSlice.latest:null};
+  const explicitEdges=data.topology.edges.filter((edge)=>edge.projectId===project.projectId),linkedIds=new Set(explicitEdges.flatMap((edge)=>[edge.fromAgentId,edge.toAgentId]));
+  const projectAgents=data.agents.filter((agent)=>(agent.lastEvent&&agent.lastEvent.projectId===project.projectId)||linkedIds.has(agent.agentId)),agentCounts={active:0,idle:0,blocked:0,failed:0,stale:0,unknown:0};
+  projectAgents.forEach((agent)=>{agentCounts[agent.operationalState]=(agentCounts[agent.operationalState]||0)+1});
+  const eventSlice=data.metrics.events.byProject&&data.metrics.events.byProject[project.projectId]||{total:0,lastFiveMinutes:0,handoffsLastFiveMinutes:0,latestAt:null},events={...data.metrics.events,...eventSlice,producer:data.metrics.events.producer};
+  return{...data,project,kanban,roadmap:scopedRoadmap(data,project),metrics:{...data.metrics,project:{phase:project.phase.title,phaseState:project.phase.state,progress:project.progress,verification:project.verification.state,blocked:{value:project.blockedCount,status:project.blockedCount===null?"unknown":"known"}},agents:{total:projectAgents.length,...agentCounts},tasks:{total:Object.values(counts).reduce((sum,value)=>sum+value,0),...counts},events,tokens,prompts}};
+}
+function selectProject(projectId,data){
+  ui.selectedProjectId=projectId;ui.selectedTaskId=null;ui.selectedAgentId=null;ui.selectedEdgeId=null;ui.selectedCycleKey=null;ui.selectedCycleStepId=null;ui.lastCycleActiveStepId=null;
+  localStorage.setItem("dashboard-project",projectId);const url=new URL(location.href);url.searchParams.set("project",projectId);history.replaceState(null,"",url);renderAll(data);
+}
+function progressBar(label,progress,className=""){
+  const wrap=node("div",undefined,"project-bar "+className),caption=node("span");caption.append(node("span",label),node("b",percentLabel(progress)));const track=node("i");track.style.setProperty("--value",progress&&progress.status==="known"?progress.percentage+"%":"0%");wrap.append(caption,track);return wrap;
+}
+function renderPortfolio(data){
+  const portfolio=data.portfolio,summary=portfolio.summary,target=byId("project-switcher");clear(target);
+  set("portfolio-total",summary.total);set("portfolio-active",summary.active);set("portfolio-completed",summary.completed);set("portfolio-blocked",summary.blocked);set("portfolio-source",sourceLabel(portfolio.source));
+  const selected=selectedPortfolioProject(data);
+  portfolio.projects.forEach((project)=>{
+    const button=node("button",undefined,"project-card"+(selected&&selected.projectId===project.projectId?" selected":""));button.type="button";button.dataset.projectId=project.projectId;button.setAttribute("role","option");button.setAttribute("aria-selected",selected&&selected.projectId===project.projectId?"true":"false");
+    const head=node("div",undefined,"project-card-head"),title=node("div");title.append(node("h3",project.displayName),node("div",project.path,"project-card-path"));
+    const badges=node("div",undefined,"project-badges");if(project.baselineRole==="active-executable")badges.append(node("span","실행 기준","project-badge baseline-badge"));const badge=node("span",project.blockedCount?"차단 "+project.blockedCount:project.status==="complete"?"완료":project.phase.state==="active"?"진행 중":statusText(project.phase.state),"project-badge"+(project.blockedCount?" blocked":project.status==="complete"?" complete":""));badges.append(badge);head.append(title,badges);
+    const work=project.currentWork?project.currentWork.taskId+" · "+project.currentWork.title:"현재 작업 근거 없음",bars=node("div",undefined,"project-bars");bars.append(progressBar("현재 단계",project.progress),progressBar("전체 완성도",project.completeness,"completeness"));button.append(head,node("div",work,"project-card-work"),bars);button.addEventListener("click",()=>selectProject(project.projectId,data));target.append(button);
+  });
+  const detail=byId("portfolio-detail");clear(detail);if(!selected){detail.append(node("strong","work 폴더에서 프로젝트를 찾지 못했습니다."));return}
+  const identity=node("div");identity.append(node("span","선택 프로젝트"),node("strong",selected.displayName+" · "+selected.phase.title));
+  const current=node("div");current.append(node("span","현재 작업"),node("strong",selected.currentWork?selected.currentWork.taskId+" · "+selected.currentWork.title:"관측된 현재 작업 없음"));
+  const complete=node("div");complete.append(node("span","전체 완성도"),node("strong",percentLabel(selected.completeness),"detail-percent"));detail.append(identity,current,complete);
+}
 
 function renderHeader(data){
   const producer=data.metrics.events.producer;
@@ -164,6 +246,7 @@ function renderHeader(data){
 
 function renderMetrics(data){
   const project=data.project,metrics=data.metrics,quality=project.quality||{},progress=project.progress,tokens=metrics.tokens,prompts=metrics.prompts;
+  const edges=projectEdges(data);
   set("project-progress",progress.status==="known"?progress.done+" / "+progress.total:"—");
   set("project-progress-note",progress.status==="known"?progress.percentage+"% · WBS 작업 기준":"진행률 근거 미수신");
   set("progress-state",progress.status==="known"?"known":"unknown");
@@ -178,7 +261,7 @@ function renderMetrics(data){
   set("task-load-note","active / blocked / decision");
   set("live-agents",metrics.agents.active+" / "+metrics.agents.total);
   set("live-agents-note",metrics.agents.active?"heartbeat 기반 active":"fresh heartbeat 없음");
-  set("live-links",data.topology.liveEdgeCount+" / "+data.topology.edges.length);
+  set("live-links",edges.filter((edge)=>edge.state==="live").length+" / "+edges.length);
   set("live-links-note",metrics.events.lastFiveMinutes+" events · 5분");
   set("token-total",metricValue(tokens.total,formatNumber));
   set("token-total-note",tokens.total.value===null?"사용량 이벤트 미수신":statusText(tokens.total.status)+" · "+tokens.providers.join(", "));
@@ -261,17 +344,19 @@ function renderKanban(data){
     if(!data.kanban.columns[column.key].length)body.append(node("div","근거가 있는 작업 없음","source"));
     section.append(body);board.append(section);
   });
-  set("board-progress",data.project.progress.done+"/"+data.project.progress.total+" · "+data.project.progress.percentage+"%");
+  set("board-progress",data.project.progress.status==="known"?data.project.progress.done+"/"+data.project.progress.total+" · "+data.project.progress.percentage+"%":"진행률 미확인");
   set("board-source",sourceLabel(data.project.sources.tasks));
 }
+function projectEdges(data){return data.topology.edges.filter((edge)=>edge.projectId===ui.selectedProjectId||(ui.showUnassigned&&!edge.projectId))}
+function projectInvocations(data){return data.topology.invocations.filter((item)=>item.projectId===ui.selectedProjectId||(ui.showUnassigned&&!item.projectId))}
 function visibleAgents(data){
   if(ui.showConfigured)return data.topology.nodes;
-  const linked=new Set(data.topology.edges.flatMap((edge)=>[edge.fromAgentId,edge.toAgentId]));
-  return data.topology.nodes.filter((agent)=>agent.lastEvent||linked.has(agent.agentId));
+  const linked=new Set(projectEdges(data).flatMap((edge)=>[edge.fromAgentId,edge.toAgentId]));
+  return data.topology.nodes.filter((agent)=>(agent.lastEvent&&(agent.lastEvent.projectId===ui.selectedProjectId||(ui.showUnassigned&&!agent.lastEvent.projectId)))||linked.has(agent.agentId));
 }
 function graphLayout(agents,data){
   const ids=new Set(agents.map((agent)=>agent.agentId)),parents=data.topology.hierarchy&&data.topology.hierarchy.parentByAgent||{},depthMemo=new Map(),created=new Map();
-  (data.topology.invocations||[]).forEach((invocation)=>{const id=(invocation.provenance.provider==="runtime"?"":invocation.provenance.provider+":")+invocation.childAgentId;created.set(id,invocation.createdAt)});
+  projectInvocations(data).forEach((invocation)=>{const id=(invocation.provenance.provider==="runtime"?"":invocation.provenance.provider+":")+invocation.childAgentId;created.set(id,invocation.createdAt)});
   const depth=(id,visiting=new Set())=>{if(depthMemo.has(id))return depthMemo.get(id);const parent=parents[id];if(!parent||!ids.has(parent)||visiting.has(id)){depthMemo.set(id,0);return 0}const value=1+depth(parent,new Set([...visiting,id]));depthMemo.set(id,value);return value};
   const lanes=new Map();agents.forEach((agent)=>{const level=depth(agent.agentId),items=lanes.get(level)||[];items.push(agent);lanes.set(level,items)});
   lanes.forEach((items)=>items.sort((left,right)=>(Date.parse(created.get(left.agentId)||0)-Date.parse(created.get(right.agentId)||0))||left.agentId.localeCompare(right.agentId)));
@@ -287,7 +372,7 @@ function renderGraph(data){
   const agents=visibleAgents(data),ids=new Set(agents.map((agent)=>agent.agentId)),layout=graphLayout(agents,data),positions=layout.positions;
   graph.setAttribute("viewBox","0 0 "+layout.width+" "+layout.height);byId("graph-empty").style.display=agents.length?"none":"grid";
   for(let level=0;level<=layout.maxDepth;level++){const laneWidth=layout.maxDepth?(layout.width-50)/(layout.maxDepth+1):layout.width-40,x=layout.maxDepth?25+level*laneWidth:20;graph.append(svgNode("rect",{x,y:"18",width:Math.max(80,laneWidth-10),height:layout.height-36,rx:"15",class:"depth-lane"}));const label=svgNode("text",{x:x+9,y:"34",class:"depth-label"});label.textContent=level===0?"ORCHESTRATOR / ROOT":"SUBAGENT DEPTH "+level;graph.append(label)}
-  const edges=data.topology.edges.filter((edge)=>ids.has(edge.fromAgentId)&&ids.has(edge.toAgentId));
+  const edges=projectEdges(data).filter((edge)=>ids.has(edge.fromAgentId)&&ids.has(edge.toAgentId));
   edges.forEach((edge,index)=>{
     const from=positions.get(edge.fromAgentId),to=positions.get(edge.toAgentId);if(!from||!to)return;
     const sign=edge.direction==="return"?-1:edge.edgeType==="communication"?(index%2?1:-1):1,offset=sign*(edge.edgeType==="invocation"?12:5),startX=from.x+(to.x>=from.x?31:-31),endX=to.x+(to.x>=from.x?-31:31),mid=(startX+endX)/2,d="M "+startX+" "+(from.y+offset)+" C "+mid+" "+(from.y+offset)+", "+mid+" "+(to.y+offset)+", "+endX+" "+(to.y+offset);
@@ -311,7 +396,8 @@ function renderGraph(data){
     group.addEventListener("click",select);group.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(group);
   });
   const producer=data.metrics.events.producer,paperclip=data.integrations.paperclip;set("paperclip-status","Paperclip · "+(paperclip.observedState==="observed"?paperclip.observedValueCount+" observed":paperclip.observedState==="configured-no-values"?"configured · no observed values":"unobserved"));
-  set("topology-status",agents.length+" observed · "+data.agents.length+" configured · "+data.topology.invocations.length+" invocations · producer "+statusText(producer.status));
+  const unassignedCount=data.topology.edges.filter((edge)=>!edge.projectId).length,unassignedStatus=unassignedCount?(ui.showUnassigned?" · unassigned shown ":" · unassigned hidden ")+unassignedCount:"";
+  set("topology-status",agents.length+" observed · "+data.agents.length+" configured · "+projectInvocations(data).length+" invocations · producer "+statusText(producer.status)+unassignedStatus);
 }
 
 function inspectCell(label,value){
@@ -319,7 +405,7 @@ function inspectCell(label,value){
 }
 function renderInspector(data){
   const target=byId("agent-inspector");clear(target);
-  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId);
+  const edge=projectEdges(data).find((item)=>item.id===ui.selectedEdgeId);
   const agent=data.agents.find((item)=>item.agentId===ui.selectedAgentId);
   if(edge){
     target.append(node("div",edge.fromAgentId+" → "+edge.toAgentId,"inspect-title"));
@@ -327,21 +413,21 @@ function renderInspector(data){
     const ids=node("div","Event IDs · "+edge.sourceEventIds.map((id)=>id.slice(0,8)).join(", "),"trace-meta");ids.style.marginTop="9px";target.append(ids);return;
   }
   if(agent){
-    const inbound=data.topology.edges.filter((item)=>item.toAgentId===agent.agentId),outbound=data.topology.edges.filter((item)=>item.fromAgentId===agent.agentId),usage=data.metrics.tokens.byAgent[agent.agentId];
+    const inbound=projectEdges(data).filter((item)=>item.toAgentId===agent.agentId),outbound=projectEdges(data).filter((item)=>item.fromAgentId===agent.agentId),usage=data.metrics.tokens.byAgent[agent.agentId];
     target.append(node("div",agent.agentId,"inspect-title"));
     const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("운영 상태",statusText(agent.operationalState)),inspectCell("Provider",agent.provider),inspectCell("통신 In / Out",inbound.length+" / "+outbound.length),inspectCell("토큰",usage?formatNumber(usage.total.value):"미수신"));target.append(grid);
     const details=[agent.lastEvent&&agent.lastEvent.taskId?"최근 작업 · "+agent.lastEvent.taskId:"최근 작업 근거 없음"];if(agent.organization)details.push("조직 "+agent.organization.organizationId+" · "+(agent.organization.team||"team 없음")+" · "+(agent.organization.role||"role 없음"),"근거 "+agent.organization.reference);const detail=node("div",details.join(" / "),"trace-meta");detail.style.marginTop="9px";target.append(detail);return;
   }
-  const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("관측 노드",visibleAgents(data).length),inspectCell("실시간 링크",data.topology.liveEdgeCount),inspectCell("5분 이벤트",data.metrics.events.lastFiveMinutes),inspectCell("handoff",data.metrics.events.handoffsLastFiveMinutes));target.append(node("div","토폴로지 요약","inspect-title"),grid);
+  const grid=node("div",undefined,"inspect-grid"),edges=projectEdges(data);grid.append(inspectCell("관측 노드",visibleAgents(data).length),inspectCell("실시간 링크",edges.filter((edge)=>edge.state==="live").length),inspectCell("5분 이벤트",data.metrics.events.lastFiveMinutes),inspectCell("handoff",data.metrics.events.handoffsLastFiveMinutes));target.append(node("div","토폴로지 요약","inspect-title"),grid);
 }
 
 function activityTraces(data){
-  const invocations=(data.invocationActivities||[]).map((trace)=>{const prefix=trace.provenance.provider==="runtime"?"":trace.provenance.provider+":",call=trace.direction==="call";return{...trace,fromAgentId:prefix+(call?trace.parentAgentId:trace.childAgentId),toAgentId:prefix+(call?trace.childAgentId:trace.parentAgentId),kind:trace.stage,summary:(call?"Parent called subagent":"Subagent returned to parent")+" · "+trace.invocationId,provider:trace.provenance.provider,invocationKey:trace.key}});
+  const invocations=(data.invocationActivities||[]).map((trace)=>{const prefix=trace.provenance.provider==="runtime"?"":trace.provenance.provider+":",call=trace.direction==="call",summary=call?"Parent called subagent":trace.stage==="stopped"?"Subagent stopped; outcome unknown":trace.stage==="responded"?"Subagent responded to parent":trace.stage==="failed"?"Subagent failed and returned":trace.stage==="cancelled"?"Subagent cancelled":"Subagent returned to parent";return{...trace,fromAgentId:prefix+(call?trace.parentAgentId:trace.childAgentId),toAgentId:prefix+(call?trace.childAgentId:trace.parentAgentId),kind:trace.stage,summary:summary+" · "+trace.invocationId,provider:trace.provenance.provider,invocationKey:trace.key}});
   return [...invocations,...data.communications].sort((left,right)=>Date.parse(right.timestamp)-Date.parse(left.timestamp));
 }
 function relevantTraces(data){
-  let traces=activityTraces(data);
-  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId);
+  let traces=activityTraces(data).filter((trace)=>trace.projectId===ui.selectedProjectId||(ui.showUnassigned&&!trace.projectId));
+  const edge=projectEdges(data).find((item)=>item.id===ui.selectedEdgeId);
   if(edge)traces=edge.invocationKey?traces.filter((trace)=>trace.invocationKey===edge.invocationKey&&trace.direction===edge.direction):traces.filter((trace)=>trace.fromAgentId===edge.fromAgentId&&trace.toAgentId===edge.toAgentId);
   else if(ui.selectedAgentId)traces=traces.filter((trace)=>trace.fromAgentId===ui.selectedAgentId||trace.toAgentId===ui.selectedAgentId);
   else if(ui.selectedTaskId)traces=traces.filter((trace)=>trace.taskId===ui.selectedTaskId);
@@ -351,7 +437,7 @@ function renderCommunicationStream(data){
   const target=byId("communication-stream");clear(target);const traces=relevantTraces(data);
   if(!traces.length){target.append(node("div","선택 범위에 통신 이벤트가 없습니다.","source"));return}
   traces.forEach((trace)=>{
-    const edge=data.topology.edges.find((item)=>(trace.invocationKey?item.invocationKey===trace.invocationKey&&item.direction===trace.direction:item.fromAgentId===trace.fromAgentId&&item.toAgentId===trace.toAgentId));
+    const edge=projectEdges(data).find((item)=>(trace.invocationKey?item.invocationKey===trace.invocationKey&&item.direction===trace.direction:item.fromAgentId===trace.fromAgentId&&item.toAgentId===trace.toAgentId));
     const item=node("article",undefined,"trace"+(edge&&edge.state==="live"?" live":""));
     const direction=trace.direction==="call"?"↓ CALL":trace.direction==="return"?"↑ RETURN":"↔ COMM";
     item.append(node("strong",direction+" · "+trace.fromAgentId+" → "+trace.toAgentId+" · "+trace.kind),node("div",trace.summary||"요약 없음"));
@@ -363,7 +449,7 @@ function renderCommunicationStream(data){
 
 function renderInvocationMetrics(data){
   const target=byId("invocation-metrics");clear(target);
-  const edge=data.topology.edges.find((item)=>item.id===ui.selectedEdgeId),invocation=edge&&edge.invocationKey?data.topology.invocations.find((item)=>item.key===edge.invocationKey):ui.selectedAgentId?data.topology.invocations.find((item)=>[qualifiedAgentId(item.provenance.provider,item.parentAgentId),qualifiedAgentId(item.provenance.provider,item.childAgentId)].includes(ui.selectedAgentId)):data.topology.invocations[0];
+  const invocations=projectInvocations(data),edge=projectEdges(data).find((item)=>item.id===ui.selectedEdgeId),invocation=edge&&edge.invocationKey?invocations.find((item)=>item.key===edge.invocationKey):ui.selectedAgentId?invocations.find((item)=>[qualifiedAgentId(item.provenance.provider,item.parentAgentId),qualifiedAgentId(item.provenance.provider,item.childAgentId)].includes(ui.selectedAgentId)):invocations[0];
   const unknown={input:{value:null,status:"unknown"},output:{value:null,status:"unknown"},total:{value:null,status:"unknown"}},usage=(invocation?data.metrics.tokens.byInvocation[invocation.key]:data.metrics.tokens)||unknown,prompt=invocation?data.metrics.prompts.byInvocation[invocation.key]||null:data.metrics.prompts.latest;
   target.append(node("div",invocation?"Invocation · "+invocation.invocationId:"전체 관측 메트릭","inspect-title"));
   const preview=node("div",prompt&&prompt.preview?prompt.preview:"prompt 이벤트 미수신","prompt-preview");preview.title=prompt&&prompt.preview||"";target.append(preview);
@@ -381,7 +467,7 @@ function renderQuality(data){
   set("q-loc",quality.loc.value?quality.loc.value.value+" / "+quality.loc.value.limit:"—");set("q-loc-state",statusText(quality.loc.status));
   set("quality-source",sourceLabel(quality.source));
   const list=byId("gate-list");clear(list);
-  quality.gates.forEach((gate)=>{const row=node("div",undefined,"evidence-row");const detail=node("span",undefined);detail.append(node("strong",gate.gate),node("div",gate.notes,"source"));row.append(detail,node("span",statusText(gate.status)));list.append(row)});
+  quality.gates.forEach((gate)=>{const row=node("div",undefined,"evidence-row");const detail=node("span",undefined);detail.append(node("strong",gate.gate),node("div",gate.notes,"source"));row.append(detail,node("span",statusText(gate.status)));list.append(row)});if(!quality.gates.length)list.append(node("div","선택 프로젝트의 검증 게이트 근거가 없습니다.","source"));
 }
 function attentionItems(data){
   const items=[],producer=data.metrics.events.producer,tokens=data.metrics.tokens;
@@ -389,6 +475,7 @@ function attentionItems(data){
   if(tokens.status==="unknown")items.push({level:"warn",title:"토큰 메트릭 미수신",detail:"0이 아니라 사용량 이벤트가 수집되지 않은 상태입니다."});
   if(tokens.coverage.conflictingUsageIdCount)items.push({level:"bad",title:"토큰 무결성 충돌",detail:tokens.coverage.conflictingUsageIdCount+"개의 usageId 충돌을 합계에서 제외했습니다."});
   if(data.errors.invocations.length)items.push({level:"bad",title:"호출 생명주기 오류 · "+data.errors.invocations.length,detail:"순서 또는 terminal 계약을 위반한 invocation 이벤트를 그래프에서 제외했습니다."});
+  if(data.errors.cycles.length)items.push({level:"bad",title:"오케스트레이션 사이클 오류 · "+data.errors.cycles.length,detail:"순서, 선행 단계 또는 단계 ID 계약을 위반한 이벤트를 제외했습니다."});
   if(data.errors.identities.length)items.push({level:"warn",title:"Provider ID 충돌 · "+data.errors.identities.length,detail:"runtime과 Paperclip ID를 provider-qualified node로 분리했습니다."});
   if(data.integrations.paperclip.observedState==="configured-no-values")items.push({level:"warn",title:"Paperclip configured · no observed values",detail:"환경 설정만으로 조직이나 에이전트 값을 생성하지 않습니다."});
   Object.entries(data.collectors||{}).forEach(([name,result])=>{if(result.status!=="available")items.push({level:result.status==="failed"?"bad":"warn",title:name+" collector · "+statusText(result.status),detail:result.error||"수집기 근거 없음"})});
@@ -404,18 +491,53 @@ function renderAttention(data){
   if(!items.length){target.append(node("div","현재 주의 항목이 없습니다.","source"));return}
   items.forEach((item)=>{const card=node("article",undefined,"attention-item"+(item.level==="bad"?" bad":""));card.append(node("strong",item.title),node("span",item.detail));target.append(card)});
 }
+const cycleStageLabel=(stage)=>({analysis:"분석",design:"설계",design_verification:"설계 검증",implementation:"구현",implementation_verification:"구현 검증",feedback:"피드백",revision:"수정"}[stage]||stage);
+const cycleStateLabel=(state)=>({queued:"대기",active:"작업 중",waiting:"응답 대기",complete:"완료",failed:"실패",stopped:"결과 미상",blocked:"차단"}[state]||statusText(state));
+function projectCycles(data){return(data.orchestration&&data.orchestration.cycles||[]).filter((cycle)=>cycle.projectId===ui.selectedProjectId)}
+function selectedCycle(data){
+  const cycles=projectCycles(data),selected=cycles.find((cycle)=>cycle.key===ui.selectedCycleKey)||cycles[0]||null;
+  if(selected)ui.selectedCycleKey=selected.key;
+  return selected;
+}
+function cycleStepAgent(step){return qualifiedAgentId(step.invocationProvider||"runtime",step.agentId)}
+function renderCycleInspector(data,cycle){
+  const target=byId("cycle-inspector");clear(target);if(!cycle){target.append(node("div","선택 프로젝트의 사이클 이벤트가 없습니다.","source"));return}
+  const step=cycle.steps.find((item)=>item.stepId===ui.selectedCycleStepId)||cycle.steps.find((item)=>item.stepId===cycle.activeStepId)||cycle.steps.find((item)=>item.stepId===cycle.latestStepId)||cycle.steps.at(-1);
+  if(step)ui.selectedCycleStepId=step.stepId;
+  target.append(node("div",cycle.cycleId,"inspect-title"));
+  const pipeline=node("div",undefined,"cycle-pipeline");(data.orchestration.stages||[]).forEach((stage)=>pipeline.append(node("span",cycleStageLabel(stage),step&&step.stage===stage?"active":"")));target.append(pipeline);
+  if(!step)return;
+  const grid=node("div",undefined,"inspect-grid");grid.append(inspectCell("단계",cycleStageLabel(step.stage)),inspectCell("상태",cycleStateLabel(step.state)),inspectCell("담당",cycleStepAgent(step)),inspectCell("최근 관측",age(step.latestAt)));target.append(grid);
+  target.append(node("div",step.summary||"단계 요약 근거 없음","cycle-summary"));
+  const facts=node("div",undefined,"trace-meta");facts.style.marginTop="9px";facts.textContent="step "+step.stepId+" · sequence "+step.sequence+(step.predecessorStepId?" · from "+step.predecessorStepId:"")+(step.invocationId?" · invocation "+step.invocationId:"");target.append(facts);
+}
+function renderCycleGraph(data){
+  const graph=byId("cycle-graph"),picker=byId("cycle-picker"),empty=byId("cycle-empty");clear(graph);clear(picker);
+  const cycles=projectCycles(data),cycle=selectedCycle(data),followActive=!ui.selectedCycleStepId||ui.selectedCycleStepId===ui.lastCycleActiveStepId;if(cycle&&cycle.activeStepId&&followActive)ui.selectedCycleStepId=cycle.activeStepId;ui.lastCycleActiveStepId=cycle&&cycle.activeStepId||null;set("cycle-live-count","live "+cycles.filter((item)=>item.activeStepId).length);set("cycle-status",ui.selectedProjectId+" · "+cycles.length+" cycles · "+(cycle?cycleStateLabel(cycle.state):"근거 없음"));
+  cycles.forEach((item)=>{const button=node("button",item.cycleId,"cycle-chip"+(cycle&&cycle.key===item.key?" selected":""));button.type="button";button.dataset.cycleKey=item.key;button.setAttribute("role","option");button.setAttribute("aria-selected",cycle&&cycle.key===item.key?"true":"false");button.addEventListener("click",()=>{ui.selectedCycleKey=item.key;ui.selectedCycleStepId=null;renderCycleGraph(data)});picker.append(button)});
+  empty.style.display=cycle?"none":"grid";if(!cycle){graph.setAttribute("viewBox","0 0 900 680");renderCycleInspector(data,null);return}
+  const stages=data.orchestration.stages||[],agents=[...new Set(cycle.steps.map(cycleStepAgent))],width=Math.max(900,230+agents.length*180),height=Math.max(630,94+stages.length*82),stageY=new Map(stages.map((stage,index)=>[stage,84+index*82])),agentX=new Map(agents.map((agent,index)=>[agent,190+index*180]));graph.setAttribute("viewBox","0 0 "+width+" "+height);
+  const defs=svgNode("defs"),marker=svgNode("marker",{id:"cycle-arrow",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto"});marker.append(svgNode("path",{d:"M 0 0 L 10 5 L 0 10 z",fill:"context-stroke"}));defs.append(marker);const glow=svgNode("filter",{id:"cycle-glow",x:"-40%",y:"-40%",width:"180%",height:"180%"}),blur=svgNode("feGaussianBlur",{stdDeviation:"3",result:"blur"}),merge=svgNode("feMerge");merge.append(svgNode("feMergeNode",{in:"blur"}),svgNode("feMergeNode",{in:"SourceGraphic"}));glow.append(blur,merge);defs.append(glow);graph.append(defs);
+  stages.forEach((stage,index)=>{const y=stageY.get(stage),active=cycle.activeStepId&&cycle.steps.find((step)=>step.stepId===cycle.activeStepId)?.stage===stage;graph.append(svgNode("rect",{x:"8",y:y-32,width:width-16,height:"64",rx:"12",class:"cycle-stage-band"+(active?" active":"")}));const label=svgNode("text",{x:"20",y:y+3,class:"cycle-stage-label"});label.textContent=(index+1)+" · "+cycleStageLabel(stage);graph.append(label)});
+  agents.forEach((agent)=>{const x=agentX.get(agent);graph.append(svgNode("line",{x1:x,y1:"42",x2:x,y2:height-18,class:"cycle-agent-line"}));const label=svgNode("text",{x,y:"28",class:"cycle-agent-label"});label.textContent=agent;graph.append(label)});
+  const positions=new Map(),occupied=new Map();cycle.steps.forEach((step)=>{const key=step.stage+":"+cycleStepAgent(step),offset=occupied.get(key)||0;occupied.set(key,offset+1);positions.set(step.stepId,{x:agentX.get(cycleStepAgent(step))+offset*18,y:stageY.get(step.stage)+offset*8})});
+  cycle.edges.forEach((edge)=>{const from=positions.get(edge.fromStepId),to=positions.get(edge.toStepId);if(!from||!to)return;const midY=(from.y+to.y)/2,d="M "+from.x+" "+(from.y+25)+" C "+from.x+" "+midY+", "+to.x+" "+midY+", "+to.x+" "+(to.y-25),returning=to.x<from.x,isNew=!ui.seenCycleEdges.has(edge.id);graph.append(svgNode("path",{d,class:"cycle-edge "+edge.state+(returning?" return":"")+(isNew?" new-edge":""),"data-cycle-edge-id":edge.id,"data-state":edge.state}));ui.seenCycleEdges.add(edge.id)});
+  cycle.steps.forEach((step)=>{const point=positions.get(step.stepId),active=cycle.activeStepId===step.stepId,selected=ui.selectedCycleStepId===step.stepId,pending=["active","waiting","queued"].includes(step.state),visualState=active?step.state:pending?"historical":step.state,group=svgNode("g",{class:"cycle-step "+visualState+(active?" active":"")+(selected?" selected":""),tabindex:"0",role:"button","aria-label":cycleStageLabel(step.stage)+" "+cycleStepAgent(step)+" "+(active?cycleStateLabel(step.state):pending?"이전 단계":cycleStateLabel(step.state)),"data-cycle-step-id":step.stepId,"data-stage":step.stage,"data-state":step.state});group.append(svgNode("rect",{x:point.x-55,y:point.y-25,width:"110",height:"50",rx:"11"}));const name=svgNode("text",{x:point.x,y:point.y-5,class:"cycle-step-name"});name.textContent=step.stepId.length>18?step.stepId.slice(0,16)+"…":step.stepId;const state=svgNode("text",{x:point.x,y:point.y+11,class:"cycle-step-state"});state.textContent=(active?cycleStateLabel(step.state):pending?"이전 단계":cycleStateLabel(step.state))+" · "+cycleStepAgent(step);group.append(name,state,svgNode("circle",{cx:point.x-47,cy:point.y-18,r:"8",class:"cycle-seq-dot"}));const seq=svgNode("text",{x:point.x-47,y:point.y-15,class:"cycle-step-seq"});seq.textContent=step.sequence;group.append(seq);const select=()=>{ui.selectedCycleStepId=step.stepId;renderCycleGraph(data)};group.addEventListener("click",select);group.addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});graph.append(group)});
+  renderCycleInspector(data,cycle);
+}
 function renderAll(data){
-  ui.snapshot=data;renderHeader(data);renderMetrics(data);renderProject(data);renderKanban(data);renderGraph(data);renderInspector(data);renderInvocationMetrics(data);renderCommunicationStream(data);renderQuality(data);renderAttention(data);
+  ui.snapshot=data;renderPortfolio(data);const scoped=projectScopedData(data);renderHeader(scoped);renderMetrics(scoped);renderProject(scoped);renderKanban(scoped);renderGraph(data);renderInspector(scoped);renderInvocationMetrics(scoped);renderCommunicationStream(data);renderCycleGraph(data);renderQuality(scoped);renderAttention(scoped);
 }
 async function fetchSnapshot(){const response=await fetch("/api/observability/snapshot",{cache:"no-store"});if(!response.ok)throw new Error("snapshot "+response.status);renderAll(await response.json())}
 function connectStream(){
   const stream=new EventSource("/api/observability/events");
-  stream.addEventListener("open",()=>{ui.streamConnected=true;if(ui.snapshot)renderHeader(ui.snapshot)});
+  stream.addEventListener("open",()=>{ui.streamConnected=true;if(ui.snapshot)renderHeader(projectScopedData(ui.snapshot))});
   stream.addEventListener("snapshot",(event)=>{ui.streamConnected=true;renderAll(JSON.parse(event.data))});
-  stream.addEventListener("error",()=>{ui.streamConnected=false;if(ui.snapshot)renderHeader(ui.snapshot)});
+  stream.addEventListener("error",()=>{ui.streamConnected=false;if(ui.snapshot)renderHeader(projectScopedData(ui.snapshot))});
 }
-byId("observed-toggle").addEventListener("click",()=>{ui.showConfigured=false;byId("observed-toggle").classList.add("active");byId("configured-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot);renderInvocationMetrics(ui.snapshot)}});
-byId("configured-toggle").addEventListener("click",()=>{ui.showConfigured=true;byId("configured-toggle").classList.add("active");byId("observed-toggle").classList.remove("active");if(ui.snapshot){renderGraph(ui.snapshot);renderInspector(ui.snapshot);renderInvocationMetrics(ui.snapshot)}});
+byId("observed-toggle").addEventListener("click",()=>{ui.showConfigured=false;byId("observed-toggle").classList.add("active");byId("configured-toggle").classList.remove("active");if(ui.snapshot){const scoped=projectScopedData(ui.snapshot);renderGraph(ui.snapshot);renderInspector(scoped);renderInvocationMetrics(scoped)}});
+byId("configured-toggle").addEventListener("click",()=>{ui.showConfigured=true;byId("configured-toggle").classList.add("active");byId("observed-toggle").classList.remove("active");if(ui.snapshot){const scoped=projectScopedData(ui.snapshot);renderGraph(ui.snapshot);renderInspector(scoped);renderInvocationMetrics(scoped)}});
+byId("unassigned-toggle").addEventListener("click",()=>{ui.showUnassigned=!ui.showUnassigned;byId("unassigned-toggle").classList.toggle("active",ui.showUnassigned);ui.selectedEdgeId=null;if(ui.snapshot){const scoped=projectScopedData(ui.snapshot);renderMetrics(scoped);renderGraph(ui.snapshot);renderInspector(scoped);renderInvocationMetrics(scoped);renderCommunicationStream(ui.snapshot)}});
 const closeDrawer=()=>{byId("task-drawer").classList.remove("open");byId("drawer-scrim").classList.remove("open");byId("task-drawer").setAttribute("aria-hidden","true")};
 byId("drawer-close").addEventListener("click",closeDrawer);byId("drawer-scrim").addEventListener("click",closeDrawer);document.addEventListener("keydown",(event)=>{if(event.key==="Escape")closeDrawer()});
 fetchSnapshot().catch(()=>{set("connection-state","스냅샷 로드 실패")});connectStream();

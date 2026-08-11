@@ -46,6 +46,16 @@ try {
     sequence: numeric("sequence"),
     provenance: { provider: options.provider ?? "runtime", reference: options["provider-ref"] ?? "dashboard-event-cli" },
   } : undefined;
+  const cycle = options["cycle-id"] && options["step-id"] && options["pipeline-stage"] ? {
+    cycleId: options["cycle-id"],
+    stepId: options["step-id"],
+    predecessorStepId: optional(options["predecessor-step-id"]) ?? null,
+    stage: options["pipeline-stage"],
+    sequence: numeric("cycle-sequence"),
+    state: options["cycle-state"] ?? options.state,
+    ...(options["invocation-id"] ? { invocationId: options["invocation-id"], invocationProvider: options["invocation-provider"] ?? options.provider ?? "runtime" } : {}),
+    ...(options.summary || options.message ? { summary: options.summary ?? options.message } : {}),
+  } : undefined;
   const prompt = options.prompt === undefined ? undefined : createPromptPreview(options.prompt);
   const organization = options["organization-id"] && options["entity-id"] ? {
     provider: "paperclip",
@@ -66,12 +76,15 @@ try {
     state: options.state,
     eventType: options.type,
     taskId: optional(options.task),
+    projectId: optional(options.project),
+    cycleId: optional(options["cycle-id"]),
     message: optional(options["event-message"] ?? options.message),
     ...(Object.keys(metrics).length ? { metrics, usageId: options["usage-id"], usageSource: options["usage-source"], usageScope: options["usage-scope"], metricMode: options["metric-mode"] } : {}),
     ...(["metric", "prompt"].includes(options.type) && options["invocation-id"] ? { invocationId: options["invocation-id"], invocationProvider: options["invocation-provider"] ?? (options.type === "metric" ? options["usage-source"] : undefined) } : {}),
     ...(Object.keys(providerReferences).length ? { providers: providerReferences } : {}),
     ...(communication ? { communication } : {}),
     ...(invocation ? { invocation } : {}),
+    ...(cycle ? { cycle } : {}),
     ...(prompt ? { prompt } : {}),
     ...(organization ? { organization } : {}),
   });

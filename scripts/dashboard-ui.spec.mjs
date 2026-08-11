@@ -4,10 +4,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDashboardServer } from "./dashboard-server.mjs";
-import { appendAgentEvent, defaultEventPath } from "./dashboard-observability.mjs";
+import { appendAgentEvent as appendEvent, defaultEventPath } from "./dashboard-observability.mjs";
 
-test("v4 keeps project controls while rendering a live invocation forest and exact metrics", async ({ page }) => {
-  const root = mkdtempSync(path.join(tmpdir(), "dashboard-ui-v4-"));
+const appendAgentEvent = (event, options) => appendEvent({ projectId: "2D-FPS-game", cycleId: "cycle-dashboard-ui", ...event }, options);
+
+test("v5 switches project detail and renders live invocation and orchestration graphs", async ({ page }) => {
+  const root = mkdtempSync(path.join(tmpdir(), "dashboard-ui-v5-"));
   const dashboardPath = fileURLToPath(new URL("../dashboard/index.html", import.meta.url));
   const eventPath = defaultEventPath(root);
   const now = new Date();
@@ -15,6 +17,7 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
   mkdirSync(path.join(root, "dashboard"), { recursive: true });
   mkdirSync(path.join(root, "work", "2D-FPS-game", "docs", "reports"), { recursive: true });
   mkdirSync(path.join(root, "work", "2D-FPS-game", "docs", "planning"), { recursive: true });
+  mkdirSync(path.join(root, "work", "animation_real_studio", "tasks"), { recursive: true });
   mkdirSync(path.join(root, "docs", "handoffs"), { recursive: true });
   copyFileSync(dashboardPath, path.join(root, "dashboard", "index.html"));
   writeFileSync(path.join(root, "work", "2D-FPS-game", "docs", "reports", "project-status.md"), [
@@ -62,6 +65,13 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
       { id: "T1", subject: "Verify command surface", assignee: "reviewer", status: "active", depends: ["T0"], acceptance: ["A2"], files: ["scripts/dashboard-ui.spec.mjs"] },
     ],
   }));
+  writeFileSync(path.join(root, "work", "animation_real_studio", "package.json"), JSON.stringify({ name: "Animation Real Studio" }));
+  writeFileSync(path.join(root, "work", "animation_real_studio", "tasks", "mvp-readiness.json"), JSON.stringify({
+    status: "planned", milestones: [{ id: "M0", name: "Readiness" }], tasks: [
+      { id: "ARS-001", title: "Decide safety contract", status: "ready", milestone: "M0" },
+      { id: "ARS-002", title: "Research provider", status: "blocked-by-research", milestone: "M0", depends: ["ARS-001"] },
+    ],
+  }));
   writeFileSync(path.join(root, "docs", "handoffs", "current-execution-report.md"), [
     "# Dashboard Execution",
     "",
@@ -94,6 +104,12 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
   appendAgentEvent({ agentId: "ultron", timestamp: now.toISOString(), state: "active", eventType: "task", taskId: "task-active", message: "Active implementation" }, { eventPath, now });
   appendAgentEvent({ agentId: "ultron", timestamp: now.toISOString(), state: "failed", eventType: "task", taskId: "task-blocked", message: "Blocked rendering" }, { eventPath, now });
   appendAgentEvent({ agentId: "reviewer", timestamp: staleAt.toISOString(), state: "active", eventType: "task", taskId: "task-stale", message: "Stale review evidence" }, { eventPath, now });
+  const cycleStages = ["analysis", "design", "design_verification", "implementation", "implementation_verification", "feedback"];
+  cycleStages.forEach((stage, index) => appendAgentEvent({ agentId: index % 2 ? "reviewer" : "ultron", timestamp: now.toISOString(), state: index === cycleStages.length - 1 ? "active" : "complete", eventType: "cycle", taskId: "dashboard-ui", cycle: { cycleId: "cycle-dashboard-ui", stepId: "step-" + (index + 1), predecessorStepId: index ? "step-" + index : null, stage, sequence: index + 1, state: index === cycleStages.length - 1 ? "active" : "complete", summary: stage + " fixture evidence" } }, { eventPath, now }));
+  const legacyInvocation = { invocationId: "legacy-inv-dashboard-ui", parentInvocationId: null, rootInvocationId: "legacy-inv-dashboard-ui", parentAgentId: "legacy-parent", childAgentId: "legacy-child", provenance: { provider: "runtime", reference: "ui:legacy-unassigned" } };
+  appendEvent({ id: "71111111-1111-4111-8111-111111111111", agentId: "legacy-parent", timestamp: now.toISOString(), state: "active", eventType: "invocation", taskId: "legacy-ui", invocation: { ...legacyInvocation, stage: "created", direction: "call", sequence: 1 } }, { eventPath, now });
+  appendEvent({ id: "72111111-1111-4111-8111-111111111111", agentId: "legacy-parent", timestamp: now.toISOString(), state: "active", eventType: "invocation", taskId: "legacy-ui", invocation: { ...legacyInvocation, stage: "called", direction: "call", sequence: 2 } }, { eventPath, now });
+  appendEvent({ id: "73111111-1111-4111-8111-111111111111", agentId: "legacy-child", timestamp: now.toISOString(), state: "active", eventType: "invocation", taskId: "legacy-ui", invocation: { ...legacyInvocation, stage: "stopped", direction: "return", sequence: 3 } }, { eventPath, now });
 
   const collectorRunner = (_root, script, optional) => optional
     ? { ok: false, status: "unavailable", source: script, observedAt: null, error: "Optional collector is not installed in this workspace." }
@@ -106,14 +122,25 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
   try {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(origin + "/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".project-card")).toHaveCount(2);
+    await expect(page.locator('.project-card[data-project-id="2D-FPS-game"]')).toHaveClass(/selected/);
+    await expect(page.locator('.project-card[data-project-id="2D-FPS-game"] .baseline-badge')).toHaveText("실행 기준");
+    await expect(page.locator("#portfolio-total")).toHaveText("2");
+    await page.locator('.project-card[data-project-id="animation_real_studio"]').click();
+    await expect(page.locator("#phase-title")).toContainText("M0");
+    await expect(page.locator("#project-progress")).toHaveText("0 / 2");
+    await expect(page.locator("#portfolio-detail")).toContainText("ARS-001");
+    await expect(page.locator("#token-total")).toHaveText("—");
+    await expect(page.locator("#cycle-empty")).toBeVisible();
+    await page.locator('.project-card[data-project-id="2D-FPS-game"]').click();
     await expect(page.locator("#phase-title")).toContainText("Phase 9");
     await expect(page.locator("#project-progress")).toHaveText("1 / 2");
     await expect(page.locator("#unit-tests")).toHaveText("12");
     await expect(page.locator("#e2e-tests")).toHaveText("4 / 4");
     await expect(page.locator("#loc-budget")).toHaveText("100 / 850");
-    await expect(page.locator("#live-agents")).toHaveText("3 / 5");
+    await expect(page.locator("#live-agents")).toHaveText("3 / 4");
     await expect(page.locator("#live-links")).toHaveText("3 / 3");
-    await expect(page.locator("#live-links-note")).toContainText("16 events");
+    await expect(page.locator("#live-links-note")).toContainText("22 events");
     await expect(page.locator("#token-total")).toHaveText("200");
     await expect(page.locator("#token-total-note")).toContainText("exact");
     await expect(page.locator("#token-input")).toHaveText("120");
@@ -126,12 +153,28 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
     await expect(page.locator(".node.provider-paperclip")).toHaveCount(2);
     await expect(page.locator(".edge")).toHaveCount(3);
     await expect(page.locator(".edge.live")).toHaveCount(3);
+    await expect(page.locator("#topology-status")).toContainText("unassigned hidden 2");
+    await expect(page.locator("#communication-stream")).not.toContainText("Subagent stopped; outcome unknown");
+    await page.locator("#unassigned-toggle").click();
+    await expect(page.locator(".edge")).toHaveCount(5);
+    await expect(page.locator("#topology-status")).toContainText("unassigned shown 2");
+    await expect(page.locator("#communication-stream")).toContainText("Subagent stopped; outcome unknown");
+    await expect(page.locator("#communication-stream")).toContainText("stopped");
+    await page.locator("#unassigned-toggle").click();
+    await expect(page.locator(".edge")).toHaveCount(3);
     await expect(page.locator('.edge.invocation[data-direction="call"]')).toHaveCount(2);
     await expect(page.locator(".edge-packet.call")).toHaveCount(2);
     await expect(page.locator(".edge-text.call").first()).toContainText("CALL 호출");
     await expect(page.locator("#paperclip-status")).toContainText("observed");
     await expect(page.locator("#invocation-metrics")).toContainText("inv-dashboard-ui");
     await expect(page.locator("#invocation-metrics")).toContainText("INPUT");
+    await expect(page.locator(".cycle-stage-band")).toHaveCount(7);
+    await expect(page.locator(".cycle-agent-label")).toHaveCount(2);
+    await expect(page.locator(".cycle-step")).toHaveCount(6);
+    await expect(page.locator(".cycle-edge")).toHaveCount(5);
+    await expect(page.locator('.cycle-step.active[data-stage="feedback"]')).toHaveCount(1);
+    await expect(page.locator(".cycle-edge.live")).toHaveCount(1);
+    await expect(page.locator("#cycle-inspector")).toContainText("피드백");
     await page.locator('.edge-hit[data-edge-control="inv:paperclip:inv-dashboard-ui:call"]').evaluate((element) => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await expect(page.locator("#invocation-metrics")).toContainText("Paperclip private prompt");
     await page.locator('.edge-hit[data-edge-control="inv:runtime:inv-dashboard-ui:call"]').evaluate((element) => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
@@ -144,9 +187,9 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
     await expect(page.locator("#attention-list")).toContainText("Blocked rendering");
     await expect(page.locator("#attention-list")).toContainText("토큰 무결성 충돌");
     await expect(page.locator("#attention-list")).toContainText("harness collector");
-    const desktop = await page.evaluate(() => ({ boardTop: document.querySelector(".board").getBoundingClientRect().top, graphTop: document.querySelector(".agent-panel").getBoundingClientRect().top, scrollWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
-    expect(desktop.boardTop).toBeLessThan(900);
-    expect(desktop.graphTop).toBeLessThan(900);
+    const desktop = await page.evaluate(() => ({ portfolioBottom: document.querySelector("#portfolio-panel").getBoundingClientRect().bottom, boardTop: document.querySelector(".board").getBoundingClientRect().top, graphTop: document.querySelector(".agent-panel").getBoundingClientRect().top, scrollWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
+    expect(desktop.boardTop).toBeGreaterThan(desktop.portfolioBottom);
+    expect(Math.abs(desktop.boardTop-desktop.graphTop)).toBeLessThan(2);
     expect(desktop.scrollWidth).toBe(desktop.viewport);
 
     await page.locator('#kanban-board [data-task-id="task-blocked"]').click();
@@ -159,11 +202,16 @@ test("v4 keeps project controls while rendering a live invocation forest and exa
     appendAgentEvent({ agentId: "vision", timestamp: now.toISOString(), state: "active", eventType: "heartbeat", taskId: "dashboard-ui" }, { eventPath, now });
     appendAgentEvent({ agentId: "reviewer", timestamp: now.toISOString(), state: "active", eventType: "message", taskId: "dashboard-ui", communication: { toAgentId: "vision", kind: "message", summary: "Stream node update", correlationId: "dashboard-ui-stream" } }, { eventPath, now });
     appendAgentEvent({ agentId: "reviewer", timestamp: now.toISOString(), state: "active", eventType: "invocation", taskId: "dashboard-ui", invocation: { ...invocation, stage: "responded", direction: "return", sequence: 3 } }, { eventPath, now });
+    appendAgentEvent({ agentId: "ultron", timestamp: now.toISOString(), state: "active", eventType: "cycle", taskId: "dashboard-ui", cycle: { cycleId: "cycle-dashboard-ui", stepId: "step-7", predecessorStepId: "step-6", stage: "revision", sequence: 7, state: "active", summary: "Revision after reviewer feedback" } }, { eventPath, now });
     await expect(page.locator(".node")).toHaveCount(5, { timeout: 4_000 });
     await expect(page.locator(".edge")).toHaveCount(5, { timeout: 4_000 });
     await expect(page.locator('.edge.invocation[data-direction="return"]')).toHaveCount(1);
     await expect(page.locator(".edge-packet.return")).toHaveCount(1);
     await expect(page.locator("#communication-stream")).toContainText("↑ RETURN");
+    await expect(page.locator(".cycle-step")).toHaveCount(7, { timeout: 4_000 });
+    await expect(page.locator('.cycle-step.active[data-stage="revision"]')).toHaveCount(1);
+    await expect(page.locator('.cycle-edge.live[data-cycle-edge-id*="step-6->step-7"]')).toHaveCount(1);
+    await expect(page.locator("#cycle-inspector")).toContainText("Revision after reviewer feedback");
     await page.locator(".edge-hit").first().focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("#agent-inspector")).toContainText("방향");

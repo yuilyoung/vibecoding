@@ -2,6 +2,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { createBoundedPromptPreview, redactSensitiveText } from "./safe-preview.mjs";
+import { DASHBOARD_PROJECT_ID_PATTERN, deriveDashboardProjectId } from "../../../scripts/dashboard-project-id.mjs";
 
 const safeId = (value) => String(value ?? "unknown").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 96) || "unknown";
 const redact = redactSensitiveText;
@@ -112,6 +113,7 @@ export class CompositeStatusObserver {
 const agentId = (value) => safeId(value).slice(0, 64);
 const eventText = (value) => redact(value).slice(0, 280);
 const promptPreview = createBoundedPromptPreview;
+const authoritativeProjectId = (value) => DASHBOARD_PROJECT_ID_PATTERN.test(String(value ?? "")) ? String(value) : deriveDashboardProjectId(value);
 
 export class NullAgentActivityObserver {
   heartbeat() {}
@@ -119,14 +121,20 @@ export class NullAgentActivityObserver {
   communication() {}
   prompt() {}
   invocation() {}
+  cycle() {}
 }
 
 export class DashboardAgentActivityObserver {
-  constructor({ workspace, now = () => new Date() }) {
+  constructor({ workspace, now = () => new Date(), projectId = "workspace" }) {
     this.workspace = path.resolve(workspace);
     this.eventPath = path.join(this.workspace, "dashboard", "runtime", "agent-events.jsonl");
     this.enabled = existsSync(path.join(this.workspace, "dashboard"));
     this.now = typeof now === "function" ? now : () => now;
+    this.projectId = authoritativeProjectId(projectId);
+  }
+
+  context(taskId, details = {}) {
+    return { projectId: authoritativeProjectId(details.projectId ?? this.projectId), cycleId: safeId(details.cycleId ?? taskId).slice(0, 128) };
   }
 
   append(event) {
@@ -139,20 +147,20 @@ export class DashboardAgentActivityObserver {
   }
 
   heartbeat(subject, taskId, message = "Hermes gate activity") {
-    this.append({ agentId: agentId(subject), state: "active", eventType: "heartbeat", taskId: safeId(taskId).slice(0, 128), message: eventText(message) });
+    this.append({ agentId: agentId(subject), state: "active", eventType: "heartbeat", taskId: safeId(taskId).slice(0, 128), ...this.context(taskId), message: eventText(message) });
   }
 
   lifecycle(subject, state, taskId, message) {
-    this.append({ agentId: agentId(subject), state, eventType: "lifecycle", taskId: safeId(taskId).slice(0, 128), message: eventText(message) });
+    this.append({ agentId: agentId(subject), state, eventType: "lifecycle", taskId: safeId(taskId).slice(0, 128), ...this.context(taskId), message: eventText(message) });
   }
 
   communication(from, to, kind, taskId, summary, correlationId) {
     const fromAgentId = agentId(from), toAgentId = agentId(to);
-    this.append({ agentId: fromAgentId, state: "active", eventType: kind, taskId: safeId(taskId).slice(0, 128), communication: { fromAgentId, toAgentId, kind, summary: eventText(summary), correlationId: safeId(correlationId).slice(0, 128) } });
+    this.append({ agentId: fromAgentId, state: "active", eventType: kind, taskId: safeId(taskId).slice(0, 128), ...this.context(taskId), communication: { fromAgentId, toAgentId, kind, summary: eventText(summary), correlationId: safeId(correlationId).slice(0, 128) } });
   }
 
   prompt(subject, taskId, value, details = {}) {
-    this.append({ agentId: agentId(subject), state: "active", eventType: "prompt", taskId: safeId(taskId).slice(0, 128), ...(details.invocationId ? { invocationId: safeId(details.invocationId).slice(0, 128), invocationProvider: details.invocationProvider ?? "runtime" } : {}), prompt: promptPreview(value) });
+    this.append({ agentId: agentId(subject), state: "active", eventType: "prompt", taskId: safeId(taskId).slice(0, 128), ...this.context(taskId, details), ...(details.invocationId ? { invocationId: safeId(details.invocationId).slice(0, 128), invocationProvider: details.invocationProvider ?? "runtime" } : {}), prompt: promptPreview(value) });
   }
 
   invocation(parent, child, taskId, details) {
@@ -162,6 +170,7 @@ export class DashboardAgentActivityObserver {
       state: details.stage === "failed" ? "failed" : details.stage === "stopped" ? "idle" : "active",
       eventType: "invocation",
       taskId: safeId(taskId).slice(0, 128),
+      ...this.context(taskId, details),
       invocation: {
         invocationId: safeId(details.invocationId).slice(0, 128),
         parentInvocationId: details.parentInvocationId ? safeId(details.parentInvocationId).slice(0, 128) : null,
@@ -175,12 +184,45 @@ export class DashboardAgentActivityObserver {
       },
     });
   }
+
+  cycle(subject, taskId, details) {
+    const context = this.context(taskId, details);
+    const cycleState = details.state;
+    const state = cycleState === "complete" ? "complete" : cycleState === "blocked" ? "blocked" : cycleState === "failed" ? "failed" : cycleState === "stopped" ? "idle" : "active";
+    this.append({
+      agentId: agentId(subject),
+      state,
+      eventType: "cycle",
+      taskId: safeId(taskId).slice(0, 128),
+      ...context,
+      cycle: {
+        cycleId: context.cycleId,
+        stepId: safeId(details.stepId).slice(0, 128),
+        predecessorStepId: details.predecessorStepId ? safeId(details.predecessorStepId).slice(0, 128) : null,
+        stage: details.stage,
+        sequence: details.sequence,
+        state: cycleState,
+        ...(details.summary ? { summary: eventText(details.summary) } : {}),
+      },
+    });
+  }
 }
 
 export class DashboardStatusObserver {
   constructor(activity) { this.activity = activity; }
   onStatus(event) {
     const state = event.state === "completed" ? "complete" : ["blocked", "failed"].includes(event.state) ? event.state : "active";
+    const step = (suffix = 0) => "step-" + (event.sequence * 10 + suffix);
+    if (event.event === "run.started") {
+      this.activity.cycle("ultron", event.run_id, { stepId: step(0), predecessorStepId: null, stage: "analysis", sequence: event.sequence * 10, state: "complete", summary: "User request classified for delivery." });
+      this.activity.cycle("ultron", event.run_id, { stepId: step(1), predecessorStepId: step(0), stage: "design", sequence: event.sequence * 10 + 1, state: "active", summary: "Product design gate is active." });
+    } else {
+      const predecessorStepId = event.sequence === 2 ? "step-11" : "step-" + ((event.sequence - 1) * 10);
+      if (event.event === "design-approved") this.activity.cycle("product-owner", event.run_id, { stepId: step(), predecessorStepId, stage: "design_verification", sequence: event.sequence * 10, state: "complete", summary: "Product-owner design evidence approved." });
+      else if (event.event === "implementation-changed") this.activity.cycle("ultron", event.run_id, { stepId: step(), predecessorStepId, stage: event.previous_state === "revision-required" ? "revision" : "implementation", sequence: event.sequence * 10, state: "active", summary: event.previous_state === "revision-required" ? "Revision work observed." : "Implementation change observed." });
+      else if (event.event === "verification-recorded") this.activity.cycle("ultron", event.run_id, { stepId: step(), predecessorStepId, stage: "implementation_verification", sequence: event.sequence * 10, state: event.outcome === "pass" ? "complete" : "blocked", summary: "Deterministic verification " + event.outcome + "." });
+      else if (event.event === "review-recorded") this.activity.cycle("reviewer", event.run_id, { stepId: step(), predecessorStepId, stage: "feedback", sequence: event.sequence * 10, state: event.outcome === "pass" ? "complete" : event.outcome === "blocked" ? "blocked" : "waiting", summary: "Independent reviewer verdict " + event.outcome + "." });
+    }
     this.activity.lifecycle("ultron", state, event.run_id, "Hermes " + event.state + " · " + event.gate_id);
   }
 }

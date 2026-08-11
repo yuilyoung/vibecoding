@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifyPrompt, createRun, pendingGate, transition } from "../lib/harness-engine.mjs";
 import { CompositeStatusObserver, DashboardAgentActivityObserver, DashboardStatusObserver, JsonlHarnessStore, NullAgentActivityObserver } from "../lib/harness-store.mjs";
+import { deriveDashboardProjectId } from "../../../scripts/dashboard-project-id.mjs";
 
 const DESIGN_SECTIONS = ["Goal", "Scope boundaries", "Acceptance criteria", "Required manuals", "Verification plan"];
 const hookContext = (event, additionalContext, extra = {}) => ({ ...extra, hookSpecificOutput: { hookEventName: event, additionalContext } });
@@ -24,6 +25,12 @@ const productOwnerDecision = (message) => message.match(/(?:^|\n)\s*(?:\*\*)?Dec
 const reviewerVerdict = (message) => message.match(/(?:^|\n)\s*(?:\*\*)?Verdict(?:\*\*)?\s*:\s*(pass|revise|blocked)\s*$/i)?.[1]?.toLowerCase() ?? null;
 const commandValue = (input) => String(input.tool_input?.command ?? "");
 const safeHookId = (value) => String(value ?? "unknown").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 96) || "unknown";
+export const dashboardProjectId = (workspace, cwd, environment) => {
+  if (environment.DASHBOARD_PROJECT_ID) return deriveDashboardProjectId(environment.DASHBOARD_PROJECT_ID);
+  const relative = path.relative(path.join(workspace, "work"), path.resolve(cwd ?? workspace));
+  const projectId = relative.split(path.sep)[0];
+  return relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? deriveDashboardProjectId(projectId) : "workspace";
+};
 const documentedInvocationIdentity = (input) => {
   if (typeof input.agent_id !== "string" || !input.agent_id.trim() || typeof input.session_id !== "string" || !input.session_id.trim()) return null;
   const invocationId = safeHookId(input.agent_id);
@@ -82,7 +89,7 @@ export const processHook = (input, options = {}) => {
   const environment = options.environment ?? process.env;
   const workspace = options.workspace ? path.resolve(options.workspace) : resolveWorkspace(input.cwd ?? process.cwd());
   const sessionId = input.session_id ?? options.sessionId ?? "manual";
-  const activity = options.activityObserver ?? new DashboardAgentActivityObserver({ workspace, now: () => options.now ?? new Date() });
+  const activity = options.activityObserver ?? new DashboardAgentActivityObserver({ workspace, now: () => options.now ?? new Date(), projectId: dashboardProjectId(workspace, input.cwd, environment) });
   const observer = options.observer ?? new CompositeStatusObserver([new DashboardStatusObserver(activity)]);
   const store = new JsonlHarnessStore({ workspace, sessionId, environment });
   const event = input.hook_event_name;

@@ -4,22 +4,29 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createBoundedPromptPreview, hasSensitiveContent } from "../plugins/hermes-ssot/lib/safe-preview.mjs";
+import { DASHBOARD_PROJECT_ID_PATTERN, deriveDashboardProjectId } from "./dashboard-project-id.mjs";
 
-export const SNAPSHOT_SCHEMA_VERSION = "4.0.0";
+export const SNAPSHOT_SCHEMA_VERSION = "4.1.0";
 export const DEFAULT_HEARTBEAT_TTL_MS = 120_000;
 export const MAX_FUTURE_SKEW_MS = 60_000;
+export const UNASSIGNED_PROJECT_KEY = "__unassigned__";
 const states = new Set(["active", "idle", "blocked", "complete", "failed"]);
-const types = new Set(["heartbeat", "lifecycle", "task", "metric", "trace", "context", "handoff", "message", "delegation", "prompt", "invocation"]);
+const types = new Set(["heartbeat", "lifecycle", "task", "metric", "trace", "context", "handoff", "message", "delegation", "prompt", "invocation", "cycle"]);
 const communicationKinds = new Set(["handoff", "message", "delegation"]);
 const providers = new Set(["langgraph", "langsmith", "openviking", "paperclip"]);
 const usageSources = new Set(["langgraph", "langsmith", "paperclip", "runtime"]);
 const invocationStages = new Set(["created", "called", "responded", "failed", "cancelled", "stopped"]);
 const invocationTerminalStages = new Set(["responded", "failed", "cancelled", "stopped"]);
+export const CYCLE_STAGES = Object.freeze(["analysis", "design", "design_verification", "implementation", "implementation_verification", "feedback", "revision"]);
+const cycleStages = new Set(CYCLE_STAGES);
+const cycleStepStates = new Set(["queued", "active", "waiting", "complete", "blocked", "failed", "stopped"]);
+const cycleTerminalStates = new Set(["failed", "stopped"]);
 const promptRedactionStates = new Set(["clean", "redacted", "suppressed"]);
 const tokenMetricKeys = ["tokens.input", "tokens.output", "tokens.total"];
 const communicationLiveTtlMs = 15_000;
 const agentLiveTtlMs = 30_000;
 const agentPattern = /^[a-z0-9][a-z0-9._:-]{0,63}$/i;
+const projectPattern = DASHBOARD_PROJECT_ID_PATTERN;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const short = (value, maximum) => typeof value === "string" && value.length <= maximum;
@@ -45,6 +52,10 @@ export const validateAgentEvent = (input, now = new Date()) => {
   if (!types.has(eventType)) throw new Error("eventType is not supported.");
   const taskId = input.taskId === undefined ? undefined : String(input.taskId).trim();
   if (taskId !== undefined && !safeText(taskId, 128)) throw new Error("taskId must be a non-sensitive string of 128 characters or fewer.");
+  const projectId = input.projectId === undefined ? undefined : String(input.projectId).trim();
+  if (projectId !== undefined && !projectPattern.test(projectId)) throw new Error("projectId must contain 1-96 safe project identifier characters.");
+  const linkedCycleId = input.cycleId === undefined ? undefined : String(input.cycleId).trim();
+  if (linkedCycleId !== undefined && (!safeText(linkedCycleId, 128) || !linkedCycleId)) throw new Error("cycleId must be a non-sensitive string of 128 characters or fewer.");
   const message = input.message === undefined ? undefined : String(input.message).trim();
   if (message !== undefined && !safeText(message, 500)) throw new Error("message must be a non-sensitive string of 500 characters or fewer.");
   const metrics = input.metrics;
@@ -107,6 +118,29 @@ export const validateAgentEvent = (input, now = new Date()) => {
     if (!object(provenance) || !usageSources.has(provenance.provider) || !safeText(provenance.reference, 240) || !provenance.reference) throw new Error("invocation provenance requires a runtime or provider reference.");
     invocation = { invocationId, parentInvocationId, rootInvocationId, parentAgentId, childAgentId, stage, direction, sequence, provenance: { provider: provenance.provider, reference: provenance.reference } };
   } else if (eventType === "invocation") throw new Error("invocation events require invocation metadata.");
+  const inputCycle = input.cycle;
+  if (inputCycle !== undefined && !object(inputCycle)) throw new Error("cycle must be an object.");
+  let cycle;
+  if (inputCycle !== undefined) {
+    const cycleId = String(inputCycle.cycleId ?? linkedCycleId ?? "").trim();
+    const stepId = String(inputCycle.stepId ?? "").trim();
+    const predecessorStepId = inputCycle.predecessorStepId === null || inputCycle.predecessorStepId === undefined ? null : String(inputCycle.predecessorStepId).trim();
+    const stage = String(inputCycle.stage ?? "").trim();
+    const sequence = inputCycle.sequence;
+    const stepState = String(inputCycle.state ?? "").trim();
+    const invocationId = inputCycle.invocationId === undefined ? null : String(inputCycle.invocationId).trim();
+    const invocationProvider = invocationId === null ? null : String(inputCycle.invocationProvider ?? "").trim();
+    const summary = inputCycle.summary === undefined ? null : String(inputCycle.summary).trim();
+    if (eventType !== "cycle") throw new Error("cycle metadata must use the cycle event type.");
+    if (!projectId) throw new Error("cycle events require projectId.");
+    if (![cycleId, stepId].every((value) => safeText(value, 128) && value) || (predecessorStepId !== null && (!safeText(predecessorStepId, 128) || !predecessorStepId))) throw new Error("cycle identifiers must be safe strings of 128 characters or fewer.");
+    if (linkedCycleId && linkedCycleId !== cycleId) throw new Error("cycleId must match cycle.cycleId.");
+    if (!cycleStages.has(stage) || !cycleStepStates.has(stepState)) throw new Error("cycle stage or state is unsupported.");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("cycle sequence must be a positive safe integer.");
+    if ((invocationId === null) !== (invocationProvider === null) || (invocationId !== null && (!safeText(invocationId, 128) || !invocationId || !usageSources.has(invocationProvider)))) throw new Error("cycle invocation links require a safe ID and supported provider.");
+    if (summary !== null && !safeText(summary, 280)) throw new Error("cycle summary must be non-sensitive and at most 280 characters.");
+    cycle = { cycleId, stepId, predecessorStepId, stage, sequence, state: stepState, ...(invocationId ? { invocationId, invocationProvider } : {}), ...(summary ? { summary } : {}) };
+  } else if (eventType === "cycle") throw new Error("cycle events require cycle metadata.");
   const inputOrganization = input.organization;
   if (inputOrganization !== undefined && !object(inputOrganization)) throw new Error("organization must be an object.");
   let organization;
@@ -131,7 +165,7 @@ export const validateAgentEvent = (input, now = new Date()) => {
     if (correlationId !== undefined && (!safeText(correlationId, 128) || !correlationId)) throw new Error("correlationId must be a non-sensitive string of 128 characters or fewer.");
     communication = { fromAgentId, toAgentId, kind, summary, ...(correlationId ? { correlationId } : {}) };
   }
-  return { id, agentId, timestamp: new Date(timestamp).toISOString(), state, eventType, ...(taskId ? { taskId } : {}), ...(message ? { message } : {}), ...(metrics ? { metrics } : {}), ...(hasTokenUsage ? { usageId, usageSource, usageScope, metricMode } : {}), ...(linkedInvocationId ? { invocationId: linkedInvocationId, invocationProvider: linkedInvocationProvider } : {}), ...(eventProviders ? { providers: eventProviders } : {}), ...(prompt ? { prompt } : {}), ...(invocation ? { invocation } : {}), ...(organization ? { organization } : {}), ...(communication ? { communication } : {}), ingestedAt: input.ingestedAt && Number.isFinite(Date.parse(input.ingestedAt)) ? new Date(input.ingestedAt).toISOString() : now.toISOString() };
+  return { id, agentId, timestamp: new Date(timestamp).toISOString(), state, eventType, ...(taskId ? { taskId } : {}), ...(projectId ? { projectId } : {}), ...(linkedCycleId || cycle ? { cycleId: linkedCycleId ?? cycle.cycleId } : {}), ...(message ? { message } : {}), ...(metrics ? { metrics } : {}), ...(hasTokenUsage ? { usageId, usageSource, usageScope, metricMode } : {}), ...(linkedInvocationId ? { invocationId: linkedInvocationId, invocationProvider: linkedInvocationProvider } : {}), ...(eventProviders ? { providers: eventProviders } : {}), ...(prompt ? { prompt } : {}), ...(invocation ? { invocation } : {}), ...(cycle ? { cycle } : {}), ...(organization ? { organization } : {}), ...(communication ? { communication } : {}), ingestedAt: input.ingestedAt && Number.isFinite(Date.parse(input.ingestedAt)) ? new Date(input.ingestedAt).toISOString() : now.toISOString() };
 };
 
 export const appendAgentEvent = (input, options = {}) => { const eventPath = options.eventPath ?? defaultEventPath(options.root); const event = validateAgentEvent(input, options.now ?? new Date()); mkdirSync(path.dirname(eventPath), { recursive: true }); appendFileSync(eventPath, JSON.stringify(event) + "\n", "utf8"); return event; };
@@ -194,8 +228,8 @@ export const runCollector = (root, script, optional = false) => { const absolute
 const gitMetric = (root) => { const result = spawnSync("git", ["status", "--porcelain=v1"], { cwd: root, encoding: "utf8", timeout: 5_000 }); return result.error || result.status !== 0 ? { value: null, status: "unknown", error: (result.error?.message ?? result.stderr ?? "git status failed").trim() } : { value: result.stdout.split(/\r?\n/).filter(Boolean).length, status: "known" }; };
 const integration = (environment, variable, eventMapping, referenceField) => ({ mode: environment[variable] ? "configured" : "contract-ready", configurationDetected: Boolean(environment[variable]), remoteCallsEnabled: false, eventMapping, referenceField });
 
-const createKanban = (project, events, root, nowMs, ttlMs) => {
-  const taskEvents = latestBy(events.filter((event) => (event.eventType === "task" || event.eventType === "lifecycle") && Date.parse(event.timestamp) <= nowMs), "taskId"); const cards = new Map();
+const createKanban = (project, events, root, nowMs, ttlMs, projectId = null) => {
+  const taskEvents = latestBy(events.filter((event) => (event.eventType === "task" || event.eventType === "lifecycle") && Date.parse(event.timestamp) <= nowMs && (projectId === null || event.projectId === projectId)), "taskId"); const cards = new Map();
   const durableCards = project.tasks.length ? project.tasks : project.milestones.map((milestone) => ({ taskId: milestone.id, title: milestone.title, owner: "report", state: "complete", updatedAt: milestone.source.observedAt, source: milestone.source, durable: true })); durableCards.forEach((card) => cards.set(card.taskId, card));
   project.next.forEach((task) => cards.set(task.taskId, task));
   taskEvents.forEach((event) => { const existing = cards.get(event.taskId); if (existing?.durable && existing.state === "complete" && event.state !== "complete") return; const state = event.state === "active" && Math.max(0, nowMs - Date.parse(event.timestamp)) > ttlMs ? "stale" : event.state; cards.set(event.taskId, { ...existing, taskId: event.taskId, title: event.message || existing?.title || event.taskId, owner: event.agentId, state, updatedAt: event.timestamp, source: { path: source(root, defaultEventPath(root)).path, observedAt: event.ingestedAt }, eventId: event.id }); });
@@ -213,12 +247,13 @@ const tokenSummary = (records) => {
   return { input, output, total: { value: totalValue, status: !totals.length ? "unknown" : totalValue === null ? "overflow" : totals.length !== records.length ? "partial" : totals.some((item) => item.derived) ? "derived" : "exact", observedEventCount: totals.length, derivedEventCount: totals.filter((item) => item.derived).length } };
 };
 const tokenUsage = (events, root, eventPath) => {
-  const observed = events.filter(hasTokenMetrics), accepted = [], seen = new Map(), integrityErrors = []; let duplicateReplayCount = 0;
-  observed.forEach((event) => { const fingerprint = JSON.stringify({ agentId: event.agentId, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, usageSource: event.usageSource, usageScope: event.usageScope, metricMode: event.metricMode, metrics: Object.fromEntries(tokenMetricKeys.filter((key) => Object.hasOwn(event.metrics, key)).map((key) => [key, event.metrics[key]])) }); const previous = seen.get(event.usageId); if (previous) { if (previous.fingerprint === fingerprint) { duplicateReplayCount += 1; return; } integrityErrors.push({ usageId: event.usageId, eventId: event.id, message: "Conflicting usageId payload was excluded." }); return; } seen.set(event.usageId, { fingerprint, event }); if (event.usageScope === "exclusive" && event.metricMode === "delta") accepted.push(event); });
+  const observed = events.filter(hasTokenMetrics), accepted = [], seen = new Map(), integrityErrors = [], duplicateReplayCountByProject = new Map(); let duplicateReplayCount = 0;
+  observed.forEach((event) => { const fingerprint = JSON.stringify({ agentId: event.agentId, projectId: event.projectId ?? null, cycleId: event.cycleId ?? null, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, usageSource: event.usageSource, usageScope: event.usageScope, metricMode: event.metricMode, metrics: Object.fromEntries(tokenMetricKeys.filter((key) => Object.hasOwn(event.metrics, key)).map((key) => [key, event.metrics[key]])) }); const previous = seen.get(event.usageId); if (previous) { if (previous.fingerprint === fingerprint) { const key=event.projectId??UNASSIGNED_PROJECT_KEY;duplicateReplayCount += 1;duplicateReplayCountByProject.set(key,(duplicateReplayCountByProject.get(key)||0)+1);return; } integrityErrors.push({ usageId: event.usageId, eventId: event.id, projectId: event.projectId ?? null, message: "Conflicting usageId payload was excluded." }); return; } seen.set(event.usageId, { fingerprint, event }); if (event.usageScope === "exclusive" && event.metricMode === "delta") accepted.push(event); });
   const dimensions = (selector) => Object.fromEntries([...new Set(accepted.map(selector))].sort().map((key) => [key, tokenSummary(accepted.filter((event) => selector(event) === key))]));
   const summary = tokenSummary(accepted);
   const invocationDimension = (event) => event.invocationId ? event.invocationProvider + ":" + event.invocationId : "unassigned";
-  return { status: integrityErrors.length ? "conflicted" : accepted.length ? "known" : "unknown", ...summary, source: source(root, eventPath), providers: [...new Set(accepted.map((event) => event.usageSource))].sort(), coverage: { observedUsageEvents: observed.length, acceptedUniqueUsageDeltas: accepted.length, duplicateReplayCount, conflictingUsageIdCount: integrityErrors.length, untokenizedMetricEventCount: events.filter((event) => event.metrics && !hasTokenMetrics(event)).length }, byAgent: dimensions((event) => event.agentId), byTask: dimensions((event) => event.taskId ?? "unassigned"), byInvocation: dimensions(invocationDimension), byProvider: dimensions((event) => event.usageSource), deltas: accepted.map((event) => ({ eventId: event.id, usageId: event.usageId, usageSource: event.usageSource, agentId: event.agentId, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, invocationKey: event.invocationId ? invocationDimension(event) : null, timestamp: event.timestamp, inputTokens: event.metrics["tokens.input"] ?? null, outputTokens: event.metrics["tokens.output"] ?? null, totalTokens: event.metrics["tokens.total"] ?? (Number.isSafeInteger(event.metrics["tokens.input"]) && Number.isSafeInteger(event.metrics["tokens.output"]) ? event.metrics["tokens.input"] + event.metrics["tokens.output"] : null), totalStatus: Number.isSafeInteger(event.metrics["tokens.total"]) ? "exact" : Number.isSafeInteger(event.metrics["tokens.input"]) && Number.isSafeInteger(event.metrics["tokens.output"]) ? "derived" : "unknown" })) , integrityErrors };
+  const projectKeys=[...new Set(events.filter((event)=>event.metrics).map((event)=>event.projectId??UNASSIGNED_PROJECT_KEY))].sort(),byProject=Object.fromEntries(projectKeys.map((projectId)=>{const matches=(event)=>(event.projectId??UNASSIGNED_PROJECT_KEY)===projectId,projectObserved=observed.filter(matches),projectAccepted=accepted.filter(matches),projectErrors=integrityErrors.filter((error)=>(error.projectId??UNASSIGNED_PROJECT_KEY)===projectId),projectSummary=tokenSummary(projectAccepted);return[projectId,{status:projectErrors.length?"conflicted":projectAccepted.length?"known":"unknown",...projectSummary,providers:[...new Set(projectAccepted.map((event)=>event.usageSource))].sort(),coverage:{observedUsageEvents:projectObserved.length,acceptedUniqueUsageDeltas:projectAccepted.length,duplicateReplayCount:duplicateReplayCountByProject.get(projectId)||0,conflictingUsageIdCount:projectErrors.length,untokenizedMetricEventCount:events.filter((event)=>matches(event)&&event.metrics&&!hasTokenMetrics(event)).length}}]}));
+  return { status: integrityErrors.length ? "conflicted" : accepted.length ? "known" : "unknown", ...summary, source: source(root, eventPath), providers: [...new Set(accepted.map((event) => event.usageSource))].sort(), coverage: { observedUsageEvents: observed.length, acceptedUniqueUsageDeltas: accepted.length, duplicateReplayCount, conflictingUsageIdCount: integrityErrors.length, untokenizedMetricEventCount: events.filter((event) => event.metrics && !hasTokenMetrics(event)).length }, byAgent: dimensions((event) => event.agentId), byProject, byTask: dimensions((event) => event.taskId ?? "unassigned"), byInvocation: dimensions(invocationDimension), byProvider: dimensions((event) => event.usageSource), deltas: accepted.map((event) => ({ eventId: event.id, usageId: event.usageId, usageSource: event.usageSource, agentId: event.agentId, projectId: event.projectId ?? null, cycleId: event.cycleId ?? null, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, invocationKey: event.invocationId ? invocationDimension(event) : null, timestamp: event.timestamp, inputTokens: event.metrics["tokens.input"] ?? null, outputTokens: event.metrics["tokens.output"] ?? null, totalTokens: event.metrics["tokens.total"] ?? (Number.isSafeInteger(event.metrics["tokens.input"]) && Number.isSafeInteger(event.metrics["tokens.output"]) ? event.metrics["tokens.input"] + event.metrics["tokens.output"] : null), totalStatus: Number.isSafeInteger(event.metrics["tokens.total"]) ? "exact" : Number.isSafeInteger(event.metrics["tokens.input"]) && Number.isSafeInteger(event.metrics["tokens.output"]) ? "derived" : "unknown" })) , integrityErrors };
 };
 
 const planProgress = (plan) => {
@@ -256,23 +291,181 @@ export const deriveRoadmap = (root, project) => {
   return { phases, currentPhaseNumber: currentPhaseNumber || null, activeSprint, sprintStatus: activeSprint ? "active" : "none", nextDecision: decision, observedAt: project.observedAt, source: project.source };
 };
 
+const unknownProgress = (metricSource = null) => ({ status: "unknown", done: null, total: null, percentage: null, source: metricSource });
+const progressFromTasks = (tasks, metricSource) => {
+  if (!tasks.length) return unknownProgress(metricSource);
+  const done = tasks.filter((task) => task.state === "complete").length;
+  return { status: "known", done, total: tasks.length, percentage: Math.round(done / tasks.length * 100), source: metricSource };
+};
+const portfolioTaskState = (value) => /complete|done|closed/i.test(String(value)) ? "complete" : /active|progress|working/i.test(String(value)) ? "active" : /block|fail|research/i.test(String(value)) ? "blocked" : "decision";
+const taskFromPlan = (task, taskSource, plan = {}) => ({
+  taskId: String(task.id ?? "unknown"),
+  title: String(task.subject ?? task.title ?? task.id ?? "Untitled task"),
+  owner: String(task.assignee ?? task.owner ?? "unknown"),
+  state: portfolioTaskState(task.status),
+  description: String(task.description ?? ""),
+  dependencies: task.depends ?? task.dependsOn ?? [],
+  acceptance: (Array.isArray(task.acceptance) ? task.acceptance : task.acceptance ? [task.acceptance] : []).map((id) => typeof id === "string" ? { id, text: plan.acceptanceMap?.[id] ?? id } : id),
+  files: task.files ?? [],
+  updatedAt: taskSource?.observedAt ?? null,
+  source: taskSource,
+  durable: true,
+});
+const currentTask = (tasks, fallback = []) => tasks.find((task) => task.state === "active") ?? tasks.find((task) => task.state === "decision") ?? tasks.find((task) => task.state === "blocked") ?? fallback[0] ?? null;
+const unknownQuality = (metricSource) => {
+  const metric = { value: null, status: "unknown", source: metricSource };
+  return { unit: metric, e2e: metric, build: metric, loc: metric, gates: [], source: metricSource };
+};
+const portfolioProject = (value, root, events, nowMs, ttlMs) => {
+  const scopedEvent = [...events].reverse().find((event) => event.projectId === value.projectId && (event.eventType === "task" || event.eventType === "lifecycle") && Date.parse(event.timestamp) <= nowMs && nowMs - Date.parse(event.timestamp) <= ttlMs);
+  const observedWork = scopedEvent ? { taskId: scopedEvent.taskId ?? "runtime", title: scopedEvent.message ?? scopedEvent.taskId ?? "Observed project work", owner: scopedEvent.agentId, state: portfolioTaskState(scopedEvent.state), updatedAt: scopedEvent.timestamp, source: source(root, defaultEventPath(root), scopedEvent.ingestedAt) } : null;
+  const current = observedWork ?? currentTask(value.tasks, value.next);
+  const currentWork = current ? { taskId: current.taskId, title: current.title, owner: current.owner, state: current.state, updatedAt: current.updatedAt, source: current.source } : null;
+  return { ...value, currentWork, kanban: createKanban(value, events, root, nowMs, ttlMs, value.projectId) };
+};
+
+const fpsPortfolioProject = (root, project, roadmap) => {
+  const activePhase = [...roadmap.phases].reverse().find((phase) => phase.state === "active") ?? roadmap.phases.find((phase) => phase.phaseNumber === roadmap.currentPhaseNumber) ?? null;
+  const activePlanPath = activePhase?.source?.path ? join(root, activePhase.source.path) : null;
+  const activePlan = activePlanPath ? json(activePlanPath) : null;
+  const activeSource = activePlanPath ? source(root, activePlanPath) : project.sources.tasks;
+  const tasks = (activePlan?.tasks ?? project.tasks).map((task) => task.taskId ? task : taskFromPlan(task, activeSource, activePlan ?? {}));
+  const taskProgress = progressFromTasks(tasks, activeSource), derivedState = taskProgress.status === "known" && taskProgress.done === taskProgress.total ? "complete" : tasks.some((task) => task.state === "active") ? "active" : tasks.some((task) => task.state === "blocked") ? "blocked" : activePhase?.state ?? project.phase.state;
+  const phase = activePhase ? { title: "Phase " + activePhase.phaseNumber + " - " + activePhase.title.replace(/^Phase\s+\d+\s*-?\s*/i, ""), state: derivedState, source: activePhase.source } : project.phase;
+  const declared = roadmap.phases.filter((item) => item.state !== "decision" && item.progress.total > 0);
+  const total = declared.reduce((sum, item) => sum + item.progress.total, 0), done = declared.reduce((sum, item) => sum + item.progress.done, 0);
+  const completeness = total ? { status: "known", done, total, percentage: Math.round(done / total * 100), source: roadmap.source } : unknownProgress(roadmap.source);
+  return {
+    ...project,
+    projectId: "2D-FPS-game",
+    displayName: "2D-FPS Game",
+    path: "work/2D-FPS-game",
+    baselineRole: "active-executable",
+    phase,
+    status: derivedState === "complete" ? "complete" : derivedState === "blocked" ? "blocked" : "in-progress",
+    progress: taskProgress.status === "known" ? taskProgress : activePhase?.progress?.total ? { status: "known", ...activePhase.progress, source: activePhase.source } : project.progress,
+    completeness,
+    milestones: roadmap.phases.map((item) => ({ id: item.id, title: item.title, state: item.state, source: item.source })),
+    tasks,
+    updatedAt: activeSource?.observedAt ?? project.observedAt,
+    sources: { ...project.sources, activeTasks: activeSource },
+    capabilities: { detail: true, kanban: true, quality: true, readiness: false },
+  };
+};
+
+const arsPortfolioProject = (root, directory) => {
+  const taskPath = join(directory, "tasks", "mvp-readiness.json"), decisionPath = join(directory, "tasks", "ars-001-decision-log.json"), packagePath = join(directory, "package.json");
+  const taskSource = source(root, taskPath), decisionSource = source(root, decisionPath), packageSource = source(root, packagePath);
+  const plan = json(taskPath) ?? {}, decision = json(decisionPath) ?? {}, packageValue = json(packagePath) ?? {};
+  const tasks = (plan.tasks ?? []).map((task) => taskFromPlan(task, taskSource, plan));
+  const milestoneIds = (plan.milestones ?? []).map((milestone) => String(milestone.id));
+  const firstOpenMilestone = milestoneIds.find((id) => tasks.some((task, index) => String(plan.tasks?.[index]?.milestone) === id && task.state !== "complete")) ?? milestoneIds[0] ?? null;
+  const milestoneTasks = firstOpenMilestone === null ? [] : tasks.filter((_task, index) => String(plan.tasks?.[index]?.milestone) === firstOpenMilestone);
+  const milestones = (plan.milestones ?? []).map((milestone) => {
+    const related = tasks.filter((_task, index) => String(plan.tasks?.[index]?.milestone) === String(milestone.id));
+    const state = related.length && related.every((task) => task.state === "complete") ? "complete" : String(milestone.id) === firstOpenMilestone ? "active" : related.some((task) => task.state === "blocked") ? "blocked" : "planned";
+    return { id: String(milestone.id), title: String(milestone.name ?? milestone.id), state, source: taskSource };
+  });
+  const progress = progressFromTasks(milestoneTasks, taskSource), completeness = progressFromTasks(tasks, taskSource);
+  const activeMilestone = milestones.find((milestone) => milestone.id === firstOpenMilestone) ?? null;
+  const verificationState = String(decision.v1Interview?.status ?? decision.task?.status ?? "unknown");
+  return {
+    projectId: "animation_real_studio",
+    displayName: String(packageValue.name ?? "Animation Real Studio"),
+    path: "work/animation_real_studio",
+    baselineRole: "portfolio-member",
+    phase: { title: activeMilestone ? activeMilestone.id + " - " + activeMilestone.title : "MVP readiness", state: activeMilestone?.state ?? "unknown", source: taskSource },
+    verification: { state: verificationState, source: decisionSource },
+    progress,
+    completeness,
+    summary: "Local animation and photorealistic studio readiness backlog.",
+    status: String(plan.status ?? "discovered"),
+    reportDate: null,
+    milestones,
+    tasks,
+    next: tasks.filter((task) => task.state === "decision").slice(0, 3),
+    quality: unknownQuality(packageSource),
+    risks: [],
+    blockedCount: tasks.filter((task) => task.state === "blocked").length,
+    observedAt: taskSource.observedAt,
+    updatedAt: taskSource.observedAt,
+    source: taskSource,
+    sources: { report: taskSource, tasks: taskSource, execution: packageSource, decision: decisionSource },
+    capabilities: { detail: true, kanban: true, quality: false, readiness: true },
+  };
+};
+
+const genericPortfolioProject = (root, directory, name) => {
+  const packagePath = join(directory, "package.json"), readmePath = join(directory, "README.md"), packageValue = json(packagePath) ?? {};
+  const projectSource = existsSync(packagePath) ? source(root, packagePath) : existsSync(readmePath) ? source(root, readmePath) : source(root, directory);
+  return {
+    projectId: deriveDashboardProjectId(name),
+    displayName: String(packageValue.name ?? name),
+    path: path.relative(root, directory).split(path.sep).join("/"),
+    baselineRole: "portfolio-member",
+    phase: { title: "No project adapter", state: "unknown", source: projectSource },
+    verification: { state: "unknown", source: projectSource },
+    progress: unknownProgress(projectSource),
+    completeness: unknownProgress(projectSource),
+    summary: "Project discovered under work; detailed status metadata is not configured.",
+    status: "discovered",
+    reportDate: null,
+    milestones: [],
+    tasks: [],
+    next: [],
+    quality: unknownQuality(projectSource),
+    risks: [],
+    blockedCount: null,
+    observedAt: projectSource.observedAt,
+    updatedAt: stamp(directory),
+    source: projectSource,
+    sources: { report: null, tasks: null, execution: packageSourceOrNull(root, packagePath) },
+    capabilities: { detail: true, kanban: false, quality: false, readiness: false },
+  };
+};
+const packageSourceOrNull = (root, packagePath) => existsSync(packagePath) ? source(root, packagePath) : null;
+
+export const derivePortfolio = (root, primaryProject, roadmap, events = [], nowMs = Date.now(), ttlMs = DEFAULT_HEARTBEAT_TTL_MS) => {
+  const workDirectory = join(root, "work");
+  const entries = existsSync(workDirectory) ? readdirSync(workDirectory, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()).sort((left, right) => left.name === right.name ? 0 : left.name < right.name ? -1 : 1) : [];
+  const projects = entries.map((entry) => {
+    const directory = join(workDirectory, entry.name);
+    const value = entry.name === "2D-FPS-game" ? fpsPortfolioProject(root, primaryProject, roadmap) : entry.name === "animation_real_studio" ? arsPortfolioProject(root, directory) : genericPortfolioProject(root, directory, entry.name);
+    return portfolioProject(value, root, events, nowMs, ttlMs);
+  });
+  const completed = projects.filter((project) => project.completeness.status === "known" && project.completeness.percentage === 100 && /pass|complete/i.test(project.verification.state + " " + project.status)).length;
+  return {
+    projects,
+    summary: {
+      total: projects.length,
+      active: projects.filter((project) => project.currentWork?.state === "active" || project.phase.state === "active").length,
+      completed,
+      blocked: projects.filter((project) => project.currentWork?.state === "blocked" || (project.blockedCount ?? 0) > 0).length,
+      unknownProgress: projects.filter((project) => project.progress.status === "unknown").length,
+    },
+    baselineProjectId: projects.some((project) => project.projectId === "2D-FPS-game") ? "2D-FPS-game" : projects[0]?.projectId ?? null,
+    observedAt: stamp(workDirectory),
+    source: source(root, workDirectory),
+  };
+};
+
 const qualifiedAgentId = (provider, value) => provider === "runtime" ? value : provider + ":" + value;
 const invocationKey = (invocation) => invocation.provenance.provider + ":" + invocation.invocationId;
-const invocationFingerprint = (invocation) => JSON.stringify(invocation);
+const invocationFingerprint = (invocation, event = {}) => JSON.stringify({ invocation, projectId: event.projectId ?? null, cycleId: event.cycleId ?? null });
 
 export const reduceInvocations = (events) => {
   const states = new Map(), accepted = [], errors = [], duplicates = [];
   events.filter((event) => event.invocation).sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp) || left.invocation.sequence - right.invocation.sequence || left.id.localeCompare(right.id)).forEach((event) => {
-    const value = event.invocation, key = invocationKey(value), current = states.get(key);
+    const value = event.invocation, key = invocationKey(value), current = states.get(key), projectId = event.projectId ?? null, cycleId = event.cycleId ?? null;
     if (current?.sequences.has(value.sequence)) {
-      if (current.sequences.get(value.sequence) === invocationFingerprint(value)) duplicates.push(event.id);
+      if (current.sequences.get(value.sequence) === invocationFingerprint(value, event)) duplicates.push(event.id);
       else errors.push({ eventId: event.id, invocationId: value.invocationId, message: "Conflicting invocation sequence was excluded." });
       return;
     }
     const expectedStage = !current ? "initial" : current.stage === "created" ? "called" : current.stage === "called" ? "terminal" : "closed";
     const stageValid = expectedStage === "initial" ? ["created", "called"].includes(value.stage) : expectedStage === value.stage || (expectedStage === "terminal" && invocationTerminalStages.has(value.stage));
     const sequenceValid = value.sequence === (current?.sequence ?? 0) + 1;
-    const identityValid = !current || ["parentInvocationId", "rootInvocationId", "parentAgentId", "childAgentId"].every((field) => current[field] === value[field]);
+    const identityValid = !current || (["parentInvocationId", "rootInvocationId", "parentAgentId", "childAgentId"].every((field) => current[field] === value[field]) && current.projectId === projectId && current.cycleId === cycleId);
     const rootValid = value.parentInvocationId === null ? value.rootInvocationId === value.invocationId : (() => {
       const parent = states.get(value.provenance.provider + ":" + value.parentInvocationId);
       return parent && !invocationTerminalStages.has(parent.stage) && parent.childAgentId === value.parentAgentId && parent.rootInvocationId === value.rootInvocationId;
@@ -281,19 +474,86 @@ export const reduceInvocations = (events) => {
       errors.push({ eventId: event.id, invocationId: value.invocationId, message: !sequenceValid ? "Out-of-order invocation sequence was excluded." : !stageValid ? "Invalid invocation lifecycle transition was excluded." : !identityValid ? "Invocation identity changed during its lifecycle." : "Invocation parent or root evidence is invalid." });
       return;
     }
-    const next = { ...value, key, sequence: value.sequence, stage: value.stage, latestAt: event.timestamp, createdAt: current?.createdAt ?? event.timestamp, sourceEventIds: [...(current?.sourceEventIds ?? []), event.id], events: [...(current?.events ?? []), event], sequences: new Map(current?.sequences ?? []) };
-    next.sequences.set(value.sequence, invocationFingerprint(value));
+    const next = { ...value, key, projectId, cycleId, sequence: value.sequence, stage: value.stage, latestAt: event.timestamp, createdAt: current?.createdAt ?? event.timestamp, sourceEventIds: [...(current?.sourceEventIds ?? []), event.id], events: [...(current?.events ?? []), event], sequences: new Map(current?.sequences ?? []) };
+    next.sequences.set(value.sequence, invocationFingerprint(value, event));
     states.set(key, next);
-    accepted.push({ ...value, key, timestamp: event.timestamp, eventId: event.id, taskId: event.taskId ?? null, source: event.source });
+    accepted.push({ ...value, key, projectId, cycleId, timestamp: event.timestamp, eventId: event.id, taskId: event.taskId ?? null, source: event.source });
   });
   const invocations = [...states.values()].map(({ sequences, events: invocationEvents, ...value }) => ({ ...value, eventCount: invocationEvents.length }));
   return { invocations, activities: accepted, errors, duplicateEventIds: duplicates };
 };
 
+const cycleKey = (projectId, cycleId) => projectId + ":" + cycleId;
+const cycleFingerprint = (event) => JSON.stringify({ projectId: event.projectId, agentId: event.agentId, cycle: event.cycle });
+
+export const reduceCycles = (events, nowMs = Date.now(), liveTtlMs = communicationLiveTtlMs) => {
+  const states = new Map(), projectByCycle = new Map(), errors = [], duplicates = [], activities = [];
+  events.filter((event) => event.cycle).sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp) || left.cycle.sequence - right.cycle.sequence || left.id.localeCompare(right.id)).forEach((event) => {
+    const value = event.cycle, knownProject = projectByCycle.get(value.cycleId);
+    if (knownProject && knownProject !== event.projectId) {
+      errors.push({ eventId: event.id, cycleId: value.cycleId, message: "Cycle project identity changed." });
+      return;
+    }
+    projectByCycle.set(value.cycleId, event.projectId);
+    const key = cycleKey(event.projectId, value.cycleId);
+    const current = states.get(key) ?? { key, projectId: event.projectId, cycleId: value.cycleId, sequence: 0, state: "queued", terminal: false, steps: new Map(), sequences: new Map(), sourceEventIds: [], createdAt: event.timestamp };
+    if (current.sequences.has(value.sequence)) {
+      if (current.sequences.get(value.sequence) === cycleFingerprint(event)) duplicates.push(event.id);
+      else errors.push({ eventId: event.id, cycleId: value.cycleId, message: "Conflicting cycle sequence was excluded." });
+      return;
+    }
+    if (current.terminal || value.sequence <= current.sequence) {
+      errors.push({ eventId: event.id, cycleId: value.cycleId, message: current.terminal ? "Cycle event after terminal state was excluded." : "Out-of-order cycle sequence was excluded." });
+      return;
+    }
+    const existing = current.steps.get(value.stepId);
+    const predecessorValid = existing ? existing.predecessorStepId === value.predecessorStepId : current.steps.size === 0 ? value.predecessorStepId === null : value.predecessorStepId !== null && value.predecessorStepId !== value.stepId && current.steps.has(value.predecessorStepId);
+    const identityValid = !existing || (existing.stage === value.stage && existing.agentId === event.agentId && existing.invocationId === (value.invocationId ?? null) && existing.invocationProvider === (value.invocationProvider ?? null));
+    if (!predecessorValid || !identityValid) {
+      errors.push({ eventId: event.id, cycleId: value.cycleId, message: !predecessorValid ? "Cycle predecessor is missing or changed." : "Cycle step identity changed." });
+      return;
+    }
+    const step = {
+      ...(existing ?? {}),
+      stepId: value.stepId,
+      predecessorStepId: value.predecessorStepId,
+      stage: value.stage,
+      state: value.state,
+      agentId: event.agentId,
+      invocationId: value.invocationId ?? null,
+      invocationProvider: value.invocationProvider ?? null,
+      summary: value.summary ?? existing?.summary ?? null,
+      sequence: value.sequence,
+      latestAt: event.timestamp,
+      createdAt: existing?.createdAt ?? event.timestamp,
+      eventCount: (existing?.eventCount ?? 0) + 1,
+      sourceEventIds: [...(existing?.sourceEventIds ?? []), event.id],
+    };
+    current.steps.set(value.stepId, step);
+    current.sequences.set(value.sequence, cycleFingerprint(event));
+    current.sequence = value.sequence;
+    current.state = value.state;
+    current.latestAt = event.timestamp;
+    current.latestStepId = value.stepId;
+    current.terminal = cycleTerminalStates.has(value.state);
+    current.sourceEventIds.push(event.id);
+    states.set(key, current);
+    activities.push({ ...step, key, projectId: event.projectId, cycleId: value.cycleId, eventId: event.id, timestamp: event.timestamp });
+  });
+  const cycles = [...states.values()].map((current) => {
+    const steps = [...current.steps.values()].sort((left, right) => left.sequence - right.sequence);
+    const latest = current.steps.get(current.latestStepId);
+    const activeStepId = latest && !current.terminal && ["queued", "active", "waiting", "blocked"].includes(latest.state) && nowMs >= Date.parse(latest.latestAt) && nowMs - Date.parse(latest.latestAt) <= liveTtlMs ? latest.stepId : null;
+    const edges = steps.filter((step) => step.predecessorStepId).map((step) => ({ id: current.key + ":" + step.predecessorStepId + "->" + step.stepId, fromStepId: step.predecessorStepId, toStepId: step.stepId, state: step.stepId === activeStepId ? "live" : "historical" }));
+    return { key: current.key, projectId: current.projectId, cycleId: current.cycleId, state: current.state, terminal: current.terminal, sequence: current.sequence, createdAt: current.createdAt, latestAt: current.latestAt, latestStepId: current.latestStepId, activeStepId, steps, edges, sourceEventIds: [...new Set(current.sourceEventIds)] };
+  }).sort((left, right) => Date.parse(right.latestAt) - Date.parse(left.latestAt));
+  return { stages: CYCLE_STAGES, cycles, activities, errors, duplicateEventIds: duplicates };
+};
+
 const promptUsage = (events, root, eventPath) => {
-  const observed = events.filter((event) => event.prompt).map((event) => ({ ...event.prompt, agentId: event.agentId, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, invocationKey: event.invocationId ? event.invocationProvider + ":" + event.invocationId : null, timestamp: event.timestamp, eventId: event.id }));
+  const observed = events.filter((event) => event.prompt).map((event) => ({ ...event.prompt, agentId: event.agentId, projectId: event.projectId ?? null, cycleId: event.cycleId ?? null, taskId: event.taskId ?? null, invocationId: event.invocationId ?? null, invocationProvider: event.invocationProvider ?? null, invocationKey: event.invocationId ? event.invocationProvider + ":" + event.invocationId : null, timestamp: event.timestamp, eventId: event.id }));
   const linked = observed.filter((item) => item.invocationKey);
-  return { status: observed.length ? "known" : "unknown", count: observed.length, latest: observed.at(-1) ?? null, byAgent: Object.fromEntries([...new Set(observed.map((item) => item.agentId))].sort().map((agentId) => [agentId, observed.filter((item) => item.agentId === agentId).at(-1)])), byInvocation: Object.fromEntries([...new Set(linked.map((item) => item.invocationKey))].sort().map((key) => [key, linked.filter((item) => item.invocationKey === key).at(-1)])), source: source(root, eventPath) };
+  return { status: observed.length ? "known" : "unknown", count: observed.length, latest: observed.at(-1) ?? null, byAgent: Object.fromEntries([...new Set(observed.map((item) => item.agentId))].sort().map((agentId) => [agentId, observed.filter((item) => item.agentId === agentId).at(-1)])), byProject: Object.fromEntries([...new Set(observed.map((item) => item.projectId ?? UNASSIGNED_PROJECT_KEY))].sort().map((projectId) => { const values = observed.filter((item) => (item.projectId ?? UNASSIGNED_PROJECT_KEY) === projectId); return [projectId, { status: values.length ? "known" : "unknown", count: values.length, latest: values.at(-1) ?? null }]; })), byInvocation: Object.fromEntries([...new Set(linked.map((item) => item.invocationKey))].sort().map((key) => [key, linked.filter((item) => item.invocationKey === key).at(-1)])), source: source(root, eventPath) };
 };
 export const collectDashboardSnapshot = (options = {}) => {
   const root = options.root ?? process.cwd();
@@ -303,6 +563,7 @@ export const collectDashboardSnapshot = (options = {}) => {
   const collectors = options.collectors ?? (options.runCollectors === false ? {} : { workspace: collectorRunner(root, "scripts/workspace-status.mjs"), project: collectorRunner(root, "scripts/project-status.mjs"), harness: collectorRunner(root, "scripts/harness-audit.mjs", true), hermes: collectorRunner(root, "plugins/hermes-ssot/scripts/harness-audit.mjs") });
   const projectReportPath = join(root, "work", "2D-FPS-game", "docs", "reports", "project-status.md");
   const project = deriveProject(root, text(projectReportPath), collectors.project), roadmap = deriveRoadmap(root, project);
+  const portfolio = derivePortfolio(root, project, roadmap, journal.events, nowMs, heartbeatTtlMs);
   const eventSource = source(root, eventPath), freshAt = (timestamp, ttlMs) => { const age = nowMs - Date.parse(timestamp); return age >= 0 && age <= ttlMs; };
   const agentsById = new Map(), latestAgentEvents = new Map(), organizations = new Map(), identityProviders = new Map();
   const registerIdentity = (provider, rawId) => {
@@ -342,21 +603,22 @@ export const collectDashboardSnapshot = (options = {}) => {
   });
   const communications = journal.events.filter((event) => event.communication).map((event) => {
     const provider = event.providers?.paperclip ? "paperclip" : "runtime";
-    return { ...event.communication, fromAgentId: qualifiedAgentId(provider, event.communication.fromAgentId), toAgentId: qualifiedAgentId(provider, event.communication.toAgentId), provider, timestamp: event.timestamp, taskId: event.taskId ?? null, eventId: event.id, source: { path: eventSource.path, observedAt: event.ingestedAt } };
+    return { ...event.communication, fromAgentId: qualifiedAgentId(provider, event.communication.fromAgentId), toAgentId: qualifiedAgentId(provider, event.communication.toAgentId), provider, projectId: event.projectId ?? null, cycleId: event.cycleId ?? null, timestamp: event.timestamp, taskId: event.taskId ?? null, eventId: event.id, source: { path: eventSource.path, observedAt: event.ingestedAt } };
   }).reverse();
   const edgeMap = new Map();
   communications.forEach((communication) => {
-    const key = "comm:" + communication.fromAgentId + "→" + communication.toAgentId;
-    const edge = edgeMap.get(key) ?? { id: key, edgeType: "communication", fromAgentId: communication.fromAgentId, toAgentId: communication.toAgentId, eventCount: 0, latestAt: communication.timestamp, latestKind: communication.kind, latestStage: communication.kind, direction: "message", provider: communication.provider, sourceEventIds: [], communications: [] };
+    const key = "comm:" + (communication.projectId ?? "unassigned") + ":" + (communication.cycleId ?? "unassigned") + ":" + communication.fromAgentId + "→" + communication.toAgentId;
+    const edge = edgeMap.get(key) ?? { id: key, edgeType: "communication", projectId: communication.projectId, cycleId: communication.cycleId, fromAgentId: communication.fromAgentId, toAgentId: communication.toAgentId, eventCount: 0, latestAt: communication.timestamp, latestKind: communication.kind, latestStage: communication.kind, direction: "message", provider: communication.provider, sourceEventIds: [], communications: [] };
     edge.eventCount += 1;
     if (edge.latestAt <= communication.timestamp) { edge.latestAt = communication.timestamp; edge.latestKind = communication.kind; edge.latestStage = communication.kind; }
     edge.sourceEventIds.push(communication.eventId); edge.communications.push(communication); edgeMap.set(key, edge);
   });
   const invocationProjection = reduceInvocations(journal.events);
+  const cycleProjection = reduceCycles(journal.events, nowMs);
   invocationProjection.activities.forEach((activity) => {
     const provider = activity.provenance.provider, fromRaw = activity.direction === "call" ? activity.parentAgentId : activity.childAgentId, toRaw = activity.direction === "call" ? activity.childAgentId : activity.parentAgentId;
     const fromAgentId = qualifiedAgentId(provider, fromRaw), toAgentId = qualifiedAgentId(provider, toRaw), key = "inv:" + activity.key + ":" + activity.direction;
-    const edge = edgeMap.get(key) ?? { id: key, edgeType: "invocation", invocationId: activity.invocationId, invocationKey: activity.key, fromAgentId, toAgentId, eventCount: 0, latestAt: activity.timestamp, latestKind: activity.direction, latestStage: activity.stage, direction: activity.direction, provider, sourceEventIds: [], communications: [] };
+    const edge = edgeMap.get(key) ?? { id: key, edgeType: "invocation", projectId: activity.projectId, cycleId: activity.cycleId, invocationId: activity.invocationId, invocationKey: activity.key, fromAgentId, toAgentId, eventCount: 0, latestAt: activity.timestamp, latestKind: activity.direction, latestStage: activity.stage, direction: activity.direction, provider, sourceEventIds: [], communications: [] };
     edge.eventCount += 1;
     if (edge.latestAt <= activity.timestamp) { edge.latestAt = activity.timestamp; edge.latestStage = activity.stage; }
     edge.sourceEventIds.push(activity.eventId); edge.communications.push(activity); edgeMap.set(key, edge);
@@ -380,22 +642,24 @@ export const collectDashboardSnapshot = (options = {}) => {
   const identityErrors = [...identityProviders.entries()].filter(([, providerSet]) => providerSet.size > 1).map(([agentId, providerSet]) => ({ agentId, providers: [...providerSet].sort(), message: "Provider-qualified identities were separated." }));
   const kanban = createKanban(project, journal.events, root, nowMs, heartbeatTtlMs), environment = options.environment ?? process.env;
   const fiveMinutes = journal.events.filter((event) => Date.parse(event.timestamp) >= nowMs - 300_000 && Date.parse(event.timestamp) <= nowMs);
+  const eventProjects = [...new Set(journal.events.map((event) => event.projectId ?? UNASSIGNED_PROJECT_KEY))].sort(), eventsByProject = Object.fromEntries(eventProjects.map((projectId) => { const all = journal.events.filter((event) => (event.projectId ?? UNASSIGNED_PROJECT_KEY) === projectId), recent = all.filter((event) => Date.parse(event.timestamp) >= nowMs - 300_000 && Date.parse(event.timestamp) <= nowMs); return [projectId, { total: all.length, lastFiveMinutes: recent.length, handoffsLastFiveMinutes: recent.filter((event) => event.communication?.kind === "handoff" || event.communication?.kind === "delegation").length, latestAt: all.at(-1)?.timestamp ?? null }]; }));
   const tokens = tokenUsage(journal.events, root, eventPath), prompts = promptUsage(journal.events, root, eventPath);
   const repository = options.repository ?? (options.runCollectors === false ? { value: null, status: "unknown", skipped: true } : repositoryMetric(root));
   const latestEventAt = journal.events.at(-1)?.timestamp ?? null, latestEventAgeMs = latestEventAt ? Math.max(0, nowMs - Date.parse(latestEventAt)) : null;
   const producer = { status: latestEventAgeMs === null ? "unavailable" : latestEventAgeMs <= heartbeatTtlMs ? "live" : "stale", latestAt: latestEventAt, ageMs: latestEventAgeMs };
   const edges = [...edgeMap.values()], paperclipObserved = organizations.size + invocationProjection.invocations.filter((item) => item.provenance.provider === "paperclip").length;
-  const paperclip = { ...integration(environment, "PAPERCLIP_URL", ["heartbeat", "task", "metric", "invocation", "organization"], "providers.paperclip"), observedValueCount: paperclipObserved, observedState: paperclipObserved ? "observed" : environment.PAPERCLIP_URL ? "configured-no-values" : "unobserved" };
+  const paperclip = { ...integration(environment, "PAPERCLIP_URL", ["heartbeat", "task", "metric", "invocation", "cycle", "organization"], "providers.paperclip"), observedValueCount: paperclipObserved, observedState: paperclipObserved ? "observed" : environment.PAPERCLIP_URL ? "configured-no-values" : "unobserved" };
   return {
     schemaVersion: SNAPSHOT_SCHEMA_VERSION, generatedAt: now.toISOString(), refreshAfterMs: 2_000, heartbeatTtlMs,
-    sources: { eventJournal: { ...eventSource, invalidLineCount: journal.errors.length }, projectReport: source(root, projectReportPath), repository: { path: ".", observedAt: stamp(root) } },
-    project, roadmap, kanban, agents,
+    sources: { eventJournal: { ...eventSource, invalidLineCount: journal.errors.length }, projectReport: source(root, projectReportPath), portfolio: portfolio.source, repository: { path: ".", observedAt: stamp(root) } },
+    project, portfolio, roadmap, kanban, agents,
     topology: { nodes: agents, edges, hierarchy, invocations: invocationProjection.invocations, liveEdgeCount: edges.filter((edge) => edge.state === "live").length, observedAt: now.toISOString(), source: eventSource, liveCriteria: { communicationTtlMs: communicationLiveTtlMs, heartbeatTtlMs: agentLiveTtlMs } },
     communications, invocationActivities: [...invocationProjection.activities].reverse().map((activity) => ({ ...activity, source: { path: eventSource.path, observedAt: activity.timestamp } })),
-    metrics: { project: { phase: project.phase.title, phaseState: project.phase.state, progress: project.progress, verification: project.verification.state, blocked: { value: project.blockedCount, status: project.blockedCount === null ? "unknown" : "known" } }, agents: { total: agents.length, ...agentCounts }, tasks: { total: Object.values(kanban.columns).flat().length, active: kanban.columns.active.length, blocked: kanban.columns.blocked.length, decision: kanban.columns.decision.length, stale: kanban.columns.stale.length, complete: kanban.columns.complete.length }, events: { total: journal.events.length, lastFiveMinutes: fiveMinutes.length, handoffsLastFiveMinutes: fiveMinutes.filter((event) => event.communication?.kind === "handoff" || event.communication?.kind === "delegation").length, latestAt: latestEventAt, producer }, tokens, prompts, repository },
+    orchestration: { stages: cycleProjection.stages, cycles: cycleProjection.cycles, activities: [...cycleProjection.activities].reverse(), liveCycleCount: cycleProjection.cycles.filter((cycle) => cycle.activeStepId).length, observedAt: now.toISOString(), source: eventSource },
+    metrics: { project: { phase: project.phase.title, phaseState: project.phase.state, progress: project.progress, verification: project.verification.state, blocked: { value: project.blockedCount, status: project.blockedCount === null ? "unknown" : "known" } }, projects: portfolio.summary, cycles: { total: cycleProjection.cycles.length, live: cycleProjection.cycles.filter((cycle) => cycle.activeStepId).length, failed: cycleProjection.cycles.filter((cycle) => cycle.state === "failed").length, stopped: cycleProjection.cycles.filter((cycle) => cycle.state === "stopped").length }, agents: { total: agents.length, ...agentCounts }, tasks: { total: Object.values(kanban.columns).flat().length, active: kanban.columns.active.length, blocked: kanban.columns.blocked.length, decision: kanban.columns.decision.length, stale: kanban.columns.stale.length, complete: kanban.columns.complete.length }, events: { total: journal.events.length, lastFiveMinutes: fiveMinutes.length, handoffsLastFiveMinutes: fiveMinutes.filter((event) => event.communication?.kind === "handoff" || event.communication?.kind === "delegation").length, latestAt: latestEventAt, producer, byProject: eventsByProject }, tokens, prompts, repository },
     collectors,
     integrations: { langgraph: integration(environment, "LANGGRAPH_URL", ["updates", "tasks", "custom"], "providers.langgraph"), langsmith: integration(environment, "LANGSMITH_API_KEY", ["trace", "run"], "providers.langsmith"), openviking: integration(environment, "OPENVIKING_URL", ["context", "retrieval"], "providers.openviking"), paperclip },
-    errors: { journal: journal.errors, tokenUsage: tokens.integrityErrors, invocations: invocationProjection.errors, identities: identityErrors },
+    errors: { journal: journal.errors, tokenUsage: tokens.integrityErrors, invocations: invocationProjection.errors, cycles: cycleProjection.errors, identities: identityErrors },
   };
 };
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.stdout.write(JSON.stringify(collectDashboardSnapshot(), null, 2) + "\n");

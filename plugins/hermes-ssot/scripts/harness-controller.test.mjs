@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { classifyPrompt, createRun, pendingGate, transition } from "../lib/harness-engine.mjs";
-import { CompositeStatusObserver, DashboardAgentActivityObserver, JsonlHarnessStore, NullAgentActivityObserver } from "../lib/harness-store.mjs";
-import { processHook } from "./harness-controller.mjs";
+import { CompositeStatusObserver, DashboardAgentActivityObserver, DashboardStatusObserver, JsonlHarnessStore, NullAgentActivityObserver } from "../lib/harness-store.mjs";
+import { dashboardProjectId, processHook } from "./harness-controller.mjs";
 import { validateAgentEvent } from "../../../scripts/dashboard-observability.mjs";
+import { deriveDashboardProjectId } from "../../../scripts/dashboard-project-id.mjs";
 
 const NOW = new Date("2026-08-06T12:00:00.000Z");
 
@@ -130,6 +131,35 @@ test("dashboard activity observer emits validated heartbeat and communication ev
   assert.equal(rows[4].invocation.direction, "call");
   assert.equal(rows[6].invocation.direction, "return");
   assert.doesNotMatch(JSON.stringify(rows), /password=hidden/);
+}));
+
+test("unsafe work folder identities match portfolio discovery and validated Hermes telemetry", () => withRuntime((root) => {
+  mkdirSync(path.join(root, "dashboard"), { recursive: true });
+  const names=["a b","a+b","unassigned","workspace","한글도구"],ids=names.map((name)=>{
+    const expected=deriveDashboardProjectId(name),actual=dashboardProjectId(root,path.join(root,"work",name),{});assert.equal(actual,expected);
+    new DashboardAgentActivityObserver({workspace:root,now:NOW,projectId:actual}).heartbeat("ultron","identity-test");return actual;
+  });
+  const rootProjectId=dashboardProjectId(root,root,{});assert.equal(new Set(ids).size,names.length);assert.equal(rootProjectId,"workspace");assert.equal(ids.includes(rootProjectId),false);
+  new DashboardAgentActivityObserver({workspace:root,now:NOW,projectId:rootProjectId}).heartbeat("ultron","root-identity-test");
+  const events=readFileSync(path.join(root,"dashboard","runtime","agent-events.jsonl"),"utf8").trim().split("\n").map(JSON.parse);
+  assert.deepEqual(events.map((event)=>event.projectId),[...ids,rootProjectId]);assert.notEqual(events.at(-1).projectId,events[names.indexOf("workspace")].projectId);events.forEach((event)=>assert.doesNotThrow(()=>validateAgentEvent(event,NOW)));
+}));
+
+test("dashboard status observer maps delivery gates into a project-scoped vertical cycle", () => withRuntime((root) => {
+  mkdirSync(path.join(root, "dashboard"), { recursive: true });
+  const activity = new DashboardAgentActivityObserver({ workspace: root, now: NOW, projectId: "2D-FPS-game" }), observer = new DashboardStatusObserver(activity);
+  [
+    { event: "run.started", sequence: 1, state: "designing", gate_id: "design", run_id: "run-cycle" },
+    { event: "design-approved", sequence: 2, state: "design-approved", gate_id: "implementation", run_id: "run-cycle" },
+    { event: "implementation-changed", sequence: 3, state: "implementing", previous_state: "design-approved", gate_id: "verification", run_id: "run-cycle" },
+    { event: "verification-recorded", sequence: 4, state: "verified", outcome: "pass", gate_id: "review", run_id: "run-cycle" },
+    { event: "review-recorded", sequence: 5, state: "reviewing", outcome: "pass", gate_id: "drift", run_id: "run-cycle" },
+  ].forEach((event) => observer.onStatus(event));
+  const rows = readFileSync(path.join(root, "dashboard", "runtime", "agent-events.jsonl"), "utf8").trim().split(/\r?\n/).map(JSON.parse), cycles = rows.filter((row) => row.eventType === "cycle");
+  rows.forEach((row) => assert.doesNotThrow(() => validateAgentEvent(row, NOW)));
+  assert.deepEqual(cycles.map((row) => row.cycle.stage), ["analysis", "design", "design_verification", "implementation", "implementation_verification", "feedback"]);
+  assert.equal(cycles.every((row) => row.projectId === "2D-FPS-game" && row.cycleId === "run-cycle"), true);
+  assert.deepEqual(cycles.map((row) => row.cycle.predecessorStepId), [null, "step-10", "step-11", "step-20", "step-30", "step-40"]);
 }));
 
 test("hook emits bounded prompt and only documented subagent call-stop evidence", () => withRuntime((root) => {
