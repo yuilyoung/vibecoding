@@ -8,10 +8,12 @@
     "dev:api": "node server/server.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test:api": "node --test --experimental-test-isolation=none server/motion-gif-renderer.test.mjs server/headless-image-provider.test.mjs server/studio-service.test.mjs server/server.test.mjs",
+    "test:api": "node --test --experimental-test-isolation=none server/motion-gif-renderer.test.mjs server/headless-image-provider.test.mjs server/image-direction-policy.test.mjs server/studio-service.test.mjs server/studio-photo-project-adapter.test.mjs server/image-batch-service.test.mjs server/image-batch-http.test.mjs server/server.test.mjs",
     "test:e2e": "playwright test",
     "check:ars-001": "node scripts/check-ars-001-readiness.mjs",
-    "test:ars-001": "node --test --experimental-test-isolation=none scripts/check-ars-001-readiness.test.mjs"
+    "test:ars-001": "node --test --experimental-test-isolation=none scripts/check-ars-001-readiness.test.mjs",
+    "test:image-view-model": "node --experimental-strip-types --test --experimental-test-isolation=none src/presentation/image-batch-view-model.test.ts",
+    "test:image-delivery": "node .codex/skills/image-studio-sprint-delivery/scripts/validate-delivery.mjs && node --experimental-strip-types --test --experimental-test-isolation=none src/presentation/image-batch-view-model.test.ts src/business/image-project.test.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

@@ -1,6 +1,8 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { HeadlessImageProbe } from "./HeadlessImageProbe";
-import { RealPhotoStudio } from "./RealPhotoStudio";
+import { ImageGenerationWorkspace } from "./presentation/ImageGenerationWorkspace";
+import { ImageProjectWorkspace } from "./presentation/ImageProjectWorkspace";
+import { applicationServices } from "./composition-root";
 import { approveStudioProject, createStudioProject, fetchStudioHealth, fetchStudioProject, type StudioProject, type LocalPreviewAsset } from "./studio-api";
 
 type Route = string;
@@ -18,7 +20,7 @@ const beats = [
 
 function routeFromLocation(): Route {
   const pathname = window.location.pathname;
-  return pathname === "/create" || pathname === "/real" || pathname === "/safety" || pathname.startsWith("/projects/")
+  return pathname === "/create" || pathname === "/real" || pathname === "/safety" || pathname.startsWith("/projects/") || pathname.startsWith("/image-projects/")
     ? pathname
     : "/";
 }
@@ -55,7 +57,8 @@ function App() {
       <main>
         {route === "/" && <Home navigate={navigate} />}
         {route === "/create" && <Create navigate={navigate} />}
-        {route === "/real" && <RealPhotoStudio />}
+        {route === "/real" && <ImageGenerationWorkspace repository={applicationServices.imageBatchRepository} navigate={navigate} />}
+        {route.startsWith("/image-projects/") && <ImageProjectWorkspace batchId={route.split("/").at(-1) ?? ""} batchRepository={applicationServices.imageBatchRepository} projectRepository={applicationServices.imageProjectRepository} navigate={navigate} />}
         {route.startsWith("/projects/") && <><Project navigate={navigate} projectId={route.split("/").at(-1)} /><div className="project-page"><HeadlessImageProbe /></div></>}
         {route === "/safety" && <Safety navigate={navigate} />}
       </main>

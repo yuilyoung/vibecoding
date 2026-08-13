@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { StudioService } from "./studio-service.mjs";
+import { createImageBatchService } from "./composition-root.mjs";
 
 const send = (response, status, body) => { response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }); response.end(JSON.stringify(body)); };
 async function readJson(request, maxBytes = 1024 * 1024) {
@@ -15,7 +16,7 @@ async function readJson(request, maxBytes = 1024 * 1024) {
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); }
   catch { return null; }
 }
-export function createStudioHttpServer(service = new StudioService()) {
+export function createStudioHttpServer(service = new StudioService(), imageBatchService = createImageBatchService(service)) {
   return createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (request.method === "GET" && url.pathname === "/api/health") return send(response, 200, service.health());
@@ -34,6 +35,25 @@ export function createStudioHttpServer(service = new StudioService()) {
       if (input === null) return send(response, 400, { error: "Invalid JSON body." });
       const result = service.createPhotorealisticProject(input);
       return send(response, result.status, result.ok ? { project: result.project } : { error: result.error, message: result.message, errors: result.errors, project: result.project });
+    }
+    if (request.method === "POST" && url.pathname === "/api/image-batches") {
+      const input = await readJson(request, 9 * 1024 * 1024);
+      if (input?.payloadTooLarge) return send(response, 413, { error: "batch_payload_too_large", message: "The image batch request is too large." });
+      if (input === null) return send(response, 400, { error: "invalid_json", message: "Invalid JSON body." });
+      const result = await imageBatchService.createBatch(input);
+      return send(response, result.status, result.ok ? { batch: result.batch } : { error: result.error, message: result.message, errors: result.errors, batch: result.batch });
+    }
+    const batchSelection = url.pathname.match(/^\/api\/image-batches\/([a-z0-9-]+)\/selection$/i);
+    if (batchSelection && request.method === "POST") {
+      const input = await readJson(request);
+      if (input === null) return send(response, 400, { error: "invalid_json", message: "Invalid JSON body." });
+      const result = await imageBatchService.selectVariant(batchSelection[1], input.variantId);
+      return send(response, result.status, result.ok ? { batch: result.batch } : { error: result.error, message: result.message });
+    }
+    const imageBatch = url.pathname.match(/^\/api\/image-batches\/([a-z0-9-]+)$/i);
+    if (imageBatch && request.method === "GET") {
+      const result = await imageBatchService.getBatch(imageBatch[1]);
+      return send(response, result.status, result.ok ? { batch: result.batch } : { error: result.error, message: result.message });
     }
     const photoProject = url.pathname.match(/^\/api\/photorealistic-projects\/([a-z0-9-]+)$/i);
     if (photoProject && request.method === "GET") {

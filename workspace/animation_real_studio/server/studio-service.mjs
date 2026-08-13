@@ -1,5 +1,6 @@
 import { HeadlessCodexImageProvider, HeadlessImageProviderError } from "./headless-image-provider.mjs";
 import { randomUUID } from "node:crypto";
+import { classifyImageDirection } from "./business/image-direction-policy.mjs";
 const ALLOWED_REFERENCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const TERMINAL_STATUSES = new Set(["completed", "failed", "review_required"]);
 const PROVIDER_DIAGNOSTIC_CODES = new Set(["process_permission_denied", "codex_command_not_found", "codex_not_authenticated", "sandbox_rejected", "quota_or_rate_limited", "provider_exit_nonzero", "provider_start_failed", "provider_timeout"]);
@@ -60,16 +61,15 @@ export const PHOTO_CONDITION_OPTIONS = Object.freeze({
 export const PHOTO_DEFAULT_CONDITIONS = Object.freeze({ subject: "fictional_adult", age: "adult_30s", era: "contemporary", setting: "city_night", presentation: "unspecified", framing: "upper_body", cameraAngle: "three_quarter", clothing: "casual", peopleCount: "one" });
 const PHOTO_MODES = new Set(["text_to_photo", "animation_2d_to_photo"]);
 const PHOTO_OUTPUT_KINDS = new Set(["still", "motion_gif"]);
+const PHOTO_ADULT_AGES = new Set(["adult_20s", "adult_30s", "adult_40s", "adult_50_plus"]);
+const PERSON_DIRECTION = /\b(fictional\s+adult|adults?|persons?|people|humans?|women|woman|men|man|characters?|flight\s+attendant|police\s+officer|office\s+worker|university\s+student|students?|professionals?|doctors?|nurses?|teachers?|engineers?|lawyers?|pilots?|firefighters?|workers?|officers?)\b|성인|인물|사람|여성|남성|인간|등장인물|승무원|경찰|회사원|학생|전문직|의사|간호사|교사|엔지니어|변호사|조종사|소방관/i;
+export const PHOTO_DETAIL_PROMPT_MAX_LENGTH = 700;
 const DEFAULT_GIF_FRAME_COUNT = 12;
 const GIF_FRAME_RATE = 10;
 const PHOTO_REFERENCE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_PHOTO_REFERENCE_BYTES = 6 * 1024 * 1024;
 const PHOTO_REFERENCE_FOCUS_KEYS = Object.freeze(["preserveSubjectVisuals", "preserveBackgroundLayout", "preserveCameraComposition"]);
 const DEFAULT_PHOTO_REFERENCE_FOCUS = Object.freeze({ preserveSubjectVisuals: true, preserveBackgroundLayout: true, preserveCameraComposition: true });
-const PHOTO_UNSAFE_RULES = [
-  { code: "unsafe_minor", pattern: /\b(minor|child|children|underage|teen(?:ager)?)\b/i },
-  { code: "unsafe_sexual", pattern: /\b(nude|nudity|explicit|sexual|nsfw)\b/i },
-];
 const PHOTO_PHASES = Object.freeze({ validated: { progress: 0, label: "validated" }, workspace_prepared: { progress: 0, label: "workspace_prepared" }, provider_started: { progress: 5, label: "provider_started" }, output_validated: { progress: 90, label: "output_validated" }, gif_encoding: { progress: 90, label: "gif_encoding" }, artifact_ready: { progress: 90, label: "artifact_ready" }, completed: { progress: 100, label: "completed" }, failed: { progress: null, label: "failed" } });
 const MIN_DURATION_SAMPLES = 3;
 const DEFAULT_BOOTSTRAP_PROVIDER_DEADLINE_SECONDS = 300;
@@ -79,6 +79,12 @@ const FORECAST_STEP_PERCENT = 1;
 const FORECAST_MAX_PROGRESS = 90;
 
 function photoIssue(field, message, code) { return issue(field, message, code); }
+function mentionsPersonSubject(value) {
+  const withoutNegativePersonPhrases = text(value)
+    .replace(/\b(?:no|without|excluding)\s+(?:(?:a|any)\s+)?(?:fictional\s+)?(?:adults?|persons?|people|humans?|women|woman|men|man|characters?)\b/gi, "")
+    .replace(/(?:성인|인물|사람|여성|남성|인간|등장인물)\s*(?:없이|없음|없는)/gi, "");
+  return PERSON_DIRECTION.test(withoutNegativePersonPhrases);
+}
 function hasPhotoSignature(bytes, mimeType) {
   if (!Buffer.isBuffer(bytes)) return false;
   if (mimeType === "image/png") return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
@@ -121,9 +127,10 @@ export function composePhotorealisticPrompt(detailPrompt, conditions, mode, refe
   return [
     modeLead,
     `Visual brief: ${named.subject}; ${named.age}; ${named.presentation} presentation; ${named.era}; ${named.setting}; ${named.framing}; ${named.cameraAngle}; ${named.clothing}; ${named.peopleCount}.`,
+    ...(conditions.subject === "no_person" ? ["Hard subject constraint: No people or human characters may appear anywhere in the image."] : []),
     `Story direction (authoritative for action, emotion, event, and intended scene change): ${detailPrompt.replace(/\s+/g, " ").trim()}`,
     ...(mode === "animation_2d_to_photo" ? [`Reference continuity requested by the user: preserve only these non-conflicting visual domains from the attached original 2D image: ${referenceFocusInstruction(referenceFocus ?? DEFAULT_PHOTO_REFERENCE_FOCUS)}.`] : []),
-    "Keep it cinematic, physically plausible, and non-identifying. Do not include logos, readable text, watermarks, copyrighted characters, or recognisable real people.",
+    "Keep it cinematic, physically plausible, and non-identifying. Any sensual styling must involve clearly fictional adults age 20+, be consensual and non-graphic, and contain no explicit sexual activity or pornography. Do not include minors, age-ambiguous people, logos, readable text, watermarks, copyrighted characters, or recognisable real people.",
   ].join("\n");
 }
 function validatePhotorealisticDraft(input = {}) {
@@ -132,12 +139,18 @@ function validatePhotorealisticDraft(input = {}) {
   const detailPrompt = text(input.detailPrompt);
   const conditions = input.conditions && typeof input.conditions === "object" ? input.conditions : {};
   if (!PHOTO_MODES.has(mode)) errors.push(photoIssue("mode", "Choose a supported image-generation mode.", "photo_mode"));
-  if (detailPrompt.length < 20 || detailPrompt.length > 700) errors.push(photoIssue("detailPrompt", "Describe the image in 20 to 700 characters.", "photo_prompt_length"));
+  if (detailPrompt.length < 20 || detailPrompt.length > PHOTO_DETAIL_PROMPT_MAX_LENGTH) errors.push(photoIssue("detailPrompt", `Describe the image in 20 to ${PHOTO_DETAIL_PROMPT_MAX_LENGTH} characters.`, "photo_prompt_length"));
   if (input.rightsAccepted !== true) errors.push(photoIssue("rightsAccepted", "Original-content and adult-only acknowledgement is required.", "photo_rights_acknowledgement"));
   for (const [key, options] of Object.entries(PHOTO_CONDITION_OPTIONS)) if (!Object.hasOwn(options, conditions[key])) errors.push(photoIssue(`conditions.${key}`, "Choose one supported visual condition.", "photo_condition"));
   if (conditions.subject === "no_person" && conditions.peopleCount !== "zero") errors.push(photoIssue("conditions.peopleCount", "A no-person scene must use no people.", "photo_people_mismatch"));
   if (conditions.subject === "fictional_adult" && conditions.peopleCount === "zero") errors.push(photoIssue("conditions.peopleCount", "A person scene needs at least one adult.", "photo_people_mismatch"));
-  const blockedRules = [...localPrecheck(detailPrompt), ...PHOTO_UNSAFE_RULES.filter((rule) => rule.pattern.test(detailPrompt)).map((rule) => rule.code)];
+  if (conditions.subject === "fictional_adult" && !PHOTO_ADULT_AGES.has(conditions.age)) errors.push(photoIssue("conditions.age", "A fictional-adult scene requires an adult age of 20s or older.", "photo_age_mismatch"));
+  if (conditions.subject === "no_person" && conditions.age !== "not_applicable") errors.push(photoIssue("conditions.age", "A no-person scene must use not-applicable age.", "photo_age_mismatch"));
+  if (conditions.subject === "no_person" && mentionsPersonSubject(detailPrompt)) errors.push(photoIssue("conditions.subject,detailPrompt", "A no-person scene cannot direct a person to appear.", "photo_subject_mismatch"));
+  const directionPolicy = classifyImageDirection(detailPrompt);
+  if (conditions.subject === "fictional_adult" && !directionPolicy.fictionalAttested && !directionPolicy.blockingCodes.includes("real_person_blocked")) directionPolicy.blockingCodes.push("real_person_blocked");
+  if (directionPolicy.adultNonGraphic && (conditions.subject !== "fictional_adult" || conditions.age === "not_applicable")) errors.push(photoIssue("conditions.subject,conditions.age,detailPrompt", "Sensual styling requires a clearly fictional adult subject age 20+.", "photo_adult_subject_required"));
+  const blockedRules = [...localPrecheck(detailPrompt), ...directionPolicy.blockingCodes];
   if (blockedRules.length) errors.push(photoIssue("detailPrompt", "This experimental generator accepts only original, non-identifying, adult-safe image directions.", blockedRules.join(",")));
   let reference = null;
   let referenceFocus = null;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Image Studio Sprint Delivery"
+  short_description: "Plan and deliver safe image-generation slices"
+  default_prompt: "Use $image-studio-sprint-delivery to plan, implement, and verify a bounded image-studio sprint."

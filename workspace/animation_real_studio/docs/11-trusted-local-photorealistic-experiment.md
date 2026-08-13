@@ -29,7 +29,7 @@ The numeric bar is an elapsed-time forecast, not a model-render percentage. Befo
 - An explicit button click starts one job; the signed-in Codex/ChatGPT image allowance can be consumed and completion can take minutes.
 - Keep the API bound to `127.0.0.1`; do not expose the in-memory capability or Codex authentication outside the local machine.
 - Stop the API process or remove the environment switch to disable the feature.
-- Do not use real people, celebrity likenesses, minors, sexual content, copyrighted characters, logos, watermarks, or unowned source artwork.
+- Do not use real people, celebrity likenesses, minors/teens/age-ambiguous people, explicit sexual activity, pornography, coercive sexual scenarios, copyrighted characters, logos, watermarks, or unowned source artwork. Consensual non-graphic sensual styling is limited to clearly fictional adults age 20+.
 
 ## Reproducible launch lesson
 
