@@ -239,7 +239,7 @@
                                             "hooks":  [
                                                           {
                                                               "type":  "command",
-                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[SSOT] adversarial-validator: independently generate counterexample questions and require file, command, or source evidence for every conclusion. Do not edit code or manuals; write findings only to work/*/.mailbox.\"}}\u0027",
+                                                              "command":  "echo \u0027{\"hookSpecificOutput\":{\"additionalContext\":\"[SSOT] adversarial-validator: independently generate counterexample questions and require file, command, or source evidence for every conclusion. Do not edit code or manuals; write findings only to workspace/*/.mailbox.\"}}\u0027",
                                                               "timeout":  5
                                                           }
                                                       ]
@@ -320,8 +320,8 @@
                                       "Bash(mkdir *)",
                                       "Bash(cp *)",
                                       "Bash(mv *)",
-                                      "Bash(rm -rf work/*)",
-                                      "Bash(rm work/*)",
+                                      "Bash(rm -rf workspace/*)",
+                                      "Bash(rm workspace/*)",
                                       "Bash(cat *)",
                                       "Bash(echo *)",
                                       "Bash(touch *)",
@@ -331,8 +331,8 @@
                                       "Glob",
                                       "Grep",
                                       "WebFetch",
-                                      "Write(work/**)",
-                                      "Edit(work/**)"
+                                      "Write(workspace/**)",
+                                      "Edit(workspace/**)"
                                   ]
                     },
     "mcpServers":  {

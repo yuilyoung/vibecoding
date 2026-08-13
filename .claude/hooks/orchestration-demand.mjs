@@ -82,6 +82,6 @@ writeFileSync(statePath, JSON.stringify(state, null, 2), "utf8");
 
 process.stdout.write(JSON.stringify({
   hookSpecificOutput: {
-    additionalContext: "[ORCHESTRATION] This user request requires domain subagent orchestration. Do not directly implement changes in work/2D-FPS-game from the main agent. First delegate to the relevant specialist subagents and coordinate their work."
+    additionalContext: "[ORCHESTRATION] This user request requires domain subagent orchestration. Do not directly implement changes in workspace/2D-FPS-game from the main agent. First delegate to the relevant specialist subagents and coordinate their work."
   }
 }));

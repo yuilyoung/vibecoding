@@ -8,9 +8,9 @@ Implement Phase 7 as a gameplay-depth pass, not as a feature-sprawl pass. The ta
 
 - `AGENTS.md`
 - `docs/handoffs/current-handoff.json`
-- `work/2D-FPS-game/docs/planning/phase7-wbs.md`
-- `work/2D-FPS-game/docs/planning/phase7-tasks.json`
-- `work/2D-FPS-game/docs/development/game-direction.md`
+- `workspace/2D-FPS-game/docs/planning/phase7-wbs.md`
+- `workspace/2D-FPS-game/docs/planning/phase7-tasks.json`
+- `workspace/2D-FPS-game/docs/development/game-direction.md`
 
 ## Ownership
 

@@ -23,7 +23,7 @@
       "name": "Verify the active Phaser game",
       "description": "Run the smallest reproducible verification sequence for the active game workspace.",
       "triggers": ["test", "lint", "build", "playwright", "verification"],
-      "watchPaths": ["work/2D-FPS-game/package.json", "work/2D-FPS-game/vitest.config.ts", "work/2D-FPS-game/playwright.config.ts"]
+      "watchPaths": ["workspace/2D-FPS-game/package.json", "workspace/2D-FPS-game/vitest.config.ts", "workspace/2D-FPS-game/playwright.config.ts"]
     },
     {
       "id": "reliability-gate",

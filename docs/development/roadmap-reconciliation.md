@@ -2,14 +2,14 @@
 
 ## Current Decision
 
-The active implementation baseline is the Phaser prototype in `work/2D-FPS-game`.
+The active implementation baseline is the Phaser prototype in `workspace/2D-FPS-game`.
 The older Unity roadmap remains useful for long-term product intent, but it is not the current execution baseline.
 Phaser remains the active production-candidate track until a migration gate explicitly says otherwise.
 
 ## Source Of Truth
 
-- Gameplay implementation decisions use `work/2D-FPS-game`.
-- Verification uses the prototype commands in `work/2D-FPS-game`.
+- Gameplay implementation decisions use `workspace/2D-FPS-game`.
+- Verification uses the prototype commands in `workspace/2D-FPS-game`.
 - Long-term design direction remains in root `docs/`.
 - If the two baselines conflict, the running Phaser prototype wins until a deliberate migration decision is made.
 

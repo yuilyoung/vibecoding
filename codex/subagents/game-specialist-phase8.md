@@ -2,15 +2,15 @@
 
 ## Mission
 
-Implement Phase 8 `Environment Audio Polish` for `work/2D-FPS-game` using the Phase 7 tactical baseline without widening scope into external asset pipelines or unrelated feature work.
+Implement Phase 8 `Environment Audio Polish` for `workspace/2D-FPS-game` using the Phase 7 tactical baseline without widening scope into external asset pipelines or unrelated feature work.
 
 ## Read First
 
 1. `docs/handoffs/current-handoff.json`
-2. `work/2D-FPS-game/docs/planning/phase8-wbs.md`
-3. `work/2D-FPS-game/docs/planning/phase8-tasks.json`
-4. `work/2D-FPS-game/docs/development/game-direction.md`
-5. `work/2D-FPS-game/docs/reports/project-status.md`
+2. `workspace/2D-FPS-game/docs/planning/phase8-wbs.md`
+3. `workspace/2D-FPS-game/docs/planning/phase8-tasks.json`
+4. `workspace/2D-FPS-game/docs/development/game-direction.md`
+5. `workspace/2D-FPS-game/docs/reports/project-status.md`
 
 ## Scope
 
@@ -21,14 +21,14 @@ Implement Phase 8 `Environment Audio Polish` for `work/2D-FPS-game` using the Ph
 
 ## Owned Areas
 
-- `work/2D-FPS-game/src/domain/audio/*`
-- `work/2D-FPS-game/src/audio/*`
-- `work/2D-FPS-game/src/scenes/audio-feedback-controller.ts`
-- `work/2D-FPS-game/src/scenes/hud-controller.ts`
-- `work/2D-FPS-game/src/scenes/debug-controller.ts`
-- `work/2D-FPS-game/src/scenes/scene-types.ts`
-- `work/2D-FPS-game/tests/*audio*`
-- `work/2D-FPS-game/tests/e2e/weather-sound.spec.ts`
+- `workspace/2D-FPS-game/src/domain/audio/*`
+- `workspace/2D-FPS-game/src/audio/*`
+- `workspace/2D-FPS-game/src/scenes/audio-feedback-controller.ts`
+- `workspace/2D-FPS-game/src/scenes/hud-controller.ts`
+- `workspace/2D-FPS-game/src/scenes/debug-controller.ts`
+- `workspace/2D-FPS-game/src/scenes/scene-types.ts`
+- `workspace/2D-FPS-game/tests/*audio*`
+- `workspace/2D-FPS-game/tests/e2e/weather-sound.spec.ts`
 
 ## Constraints
 

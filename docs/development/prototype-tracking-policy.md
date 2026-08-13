@@ -2,35 +2,35 @@
 
 ## Scope
 
-This policy applies to the active Phaser workspace at `work/2D-FPS-game`.
+This policy applies to the active Phaser workspace at `workspace/2D-FPS-game`.
 
 ## Track In Prototype Commits
 
 Keep these files and folders under version control when they belong to prototype work:
 
-- `work/2D-FPS-game/src/`
-- `work/2D-FPS-game/tests/`
-- `work/2D-FPS-game/assets/data/`
-- `work/2D-FPS-game/package.json`
-- `work/2D-FPS-game/package-lock.json`
-- `work/2D-FPS-game/index.html`
-- `work/2D-FPS-game/tsconfig.json`
-- `work/2D-FPS-game/vite.config.ts`
-- `work/2D-FPS-game/eslint.config.mjs`
-- `work/2D-FPS-game/.github/workflows/`
-- `work/2D-FPS-game/docs/`
+- `workspace/2D-FPS-game/src/`
+- `workspace/2D-FPS-game/tests/`
+- `workspace/2D-FPS-game/assets/data/`
+- `workspace/2D-FPS-game/package.json`
+- `workspace/2D-FPS-game/package-lock.json`
+- `workspace/2D-FPS-game/index.html`
+- `workspace/2D-FPS-game/tsconfig.json`
+- `workspace/2D-FPS-game/vite.config.ts`
+- `workspace/2D-FPS-game/eslint.config.mjs`
+- `workspace/2D-FPS-game/.github/workflows/`
+- `workspace/2D-FPS-game/docs/`
 - root documentation that explains the shared workspace contract, status, or handoff process
 
 ## Ignore Or Exclude
 
 Do not commit generated or runtime-only artifacts from the prototype workspace:
 
-- `work/2D-FPS-game/node_modules/`
-- `work/2D-FPS-game/dist/`
-- `work/2D-FPS-game/.vite-dev.stdout.log`
-- `work/2D-FPS-game/.vite-dev.stderr.log`
-- `work/2D-FPS-game/*.log`
-- `work/2D-FPS-game/.dev-cycle/`
+- `workspace/2D-FPS-game/node_modules/`
+- `workspace/2D-FPS-game/dist/`
+- `workspace/2D-FPS-game/.vite-dev.stdout.log`
+- `workspace/2D-FPS-game/.vite-dev.stderr.log`
+- `workspace/2D-FPS-game/*.log`
+- `workspace/2D-FPS-game/.dev-cycle/`
 - temporary caches and editor files already covered by `.gitignore`
 
 ## Claude And Agent Local Files

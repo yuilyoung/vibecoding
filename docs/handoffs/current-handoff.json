@@ -6,7 +6,7 @@
   "status": "complete",
   "scope": "Phase 9 delivers a typed CC0 visual identity and readability pass for operator portraits, Ground Shaker tanks and terrain, six weapon icons, three stage treatments, six map-object visuals plus legend, and five weather states without changing gameplay rules.",
   "constraints": [
-    "Execution baseline remains work/2D-FPS-game.",
+    "Execution baseline remains workspace/2D-FPS-game.",
     "Only vendored CC0 assets and recorded source packs are used.",
     "Combat, collision, progression, stage content, and vehicle mechanics remain unchanged.",
     "MainScene.ts must remain at or below 850 lines.",
@@ -35,10 +35,10 @@
     "remaining": []
   },
   "references": {
-    "architecture": "work/2D-FPS-game/docs/planning/phase9-visual-identity-architecture.md",
-    "wbs": "work/2D-FPS-game/docs/planning/phase9-wbs.md",
-    "tasks": "work/2D-FPS-game/docs/planning/phase9-tasks.json",
-    "projectStatus": "work/2D-FPS-game/docs/reports/project-status.md",
+    "architecture": "workspace/2D-FPS-game/docs/planning/phase9-visual-identity-architecture.md",
+    "wbs": "workspace/2D-FPS-game/docs/planning/phase9-wbs.md",
+    "tasks": "workspace/2D-FPS-game/docs/planning/phase9-tasks.json",
+    "projectStatus": "workspace/2D-FPS-game/docs/reports/project-status.md",
     "executionReport": "docs/handoffs/current-execution-report.md"
   }
 }

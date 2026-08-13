@@ -15,7 +15,7 @@ Testing is a deterministic verification gate and demand-loaded manual, not a per
 - Keep volatile domain knowledge in `codex/manuals/` and route to it through the `knowledge-router` skill.
 - Keep repeatable process in plugin skills.
 - Keep only reviewed, reproducible observations in `codex/state/lessons.md`.
-- Keep implementation authority in `work/2D-FPS-game` and long-term product guidance in root `docs/`.
+- Keep implementation authority in `workspace/2D-FPS-game` and long-term product guidance in root `docs/`.
 
 ## Sources
 

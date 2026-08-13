@@ -2,8 +2,8 @@
 
 ## Assumptions and constraints
 
-- The executable baseline remains work/2D-FPS-game; portfolio discovery does not promote another project to baseline authority.
-- Only direct, non-symlink directories under work are project candidates.
+- The executable baseline remains workspace/2D-FPS-game; portfolio discovery does not promote another project to baseline authority.
+- Only direct, non-symlink directories under `workspace` are project candidates.
 - Unknown progress, completeness, verification, invocation outcome, and pipeline stages stay unknown. They are never rendered as zero or inferred from a directory timestamp.
 - The journal remains append-only and stores only bounded, redacted prompt previews and safe summaries.
 - The first slice supports deterministic local files and SSE snapshots. Remote RAG retrieval, embeddings, and databases are deferred.

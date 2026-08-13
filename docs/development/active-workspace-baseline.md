@@ -7,12 +7,12 @@ This repository has two complementary baselines:
 1. Root `docs/`
    - Long-term product roadmap, architecture, handoff, and agent-operation references.
    - Some product documents still describe the older Unity-based 4v4 plan.
-2. `work/2D-FPS-game`
+2. `workspace/2D-FPS-game`
    - Active Phaser + TypeScript + Vite implementation and verification workspace.
 
 ## Operating Rule
 
-- Run active coding, tests, builds, and browser checks from `work/2D-FPS-game`.
+- Run active coding, tests, builds, and browser checks from `workspace/2D-FPS-game`.
 - Use root `docs/` for long-term direction and the current handoff, not as a replacement for executable evidence.
 - Keep shared agent contracts rooted at `AGENTS.md`, `docs/development/`, and the demand-loaded `codex/manuals/` catalog.
 - When roadmap text conflicts with the running Phaser prototype, the active game workspace wins for implementation decisions.

@@ -6,7 +6,7 @@ const filePath = String(payload.tool_input?.file_path ?? "");
 const agentType = String(payload.agent_type ?? "");
 
 const normalized = filePath.replace(/\\/g, "/");
-const isMailboxFile = /(^|\/)work\/[^/]+\/\.mailbox\/[^/]+\.md$/u.test(normalized);
+const isMailboxFile = /(^|\/)workspace\/[^/]+\/\.mailbox\/[^/]+\.md$/u.test(normalized);
 const isHermesStateFile = /(^|\/)\.claude\/state\/ssot-(metadata|evidence)\.json$/u.test(normalized);
 
 if (agentType === "hermes") {
@@ -37,12 +37,12 @@ if (agentType === "adversarial-validator") {
   process.exit(0);
 }
 
-if (normalized.includes("/work/") || normalized.startsWith("work/")) {
+if (normalized.includes("/workspace/") || normalized.startsWith("workspace/")) {
   if (/\/docs\/.*\.md$/u.test(normalized) && agentType.length > 0 && agentType !== "doc-writer") {
     process.stdout.write(
       JSON.stringify({
         decision: "block",
-        reason: "[GUARD] work/**/docs/*.md documents may be modified only by doc-writer."
+        reason: "[GUARD] workspace/**/docs/*.md documents may be modified only by doc-writer."
       })
     );
   }
@@ -54,7 +54,7 @@ if (/(^|\/)(\.claude\/|CLAUDE\.md$|\.mcp\.json$|\.gitignore$)/u.test(normalized)
   process.stdout.write(
     JSON.stringify({
       decision: "block",
-      reason: "[GUARD] Root configuration files may not be modified. Work only inside work/ projects."
+      reason: "[GUARD] Root configuration files may not be modified. Work only inside workspace/ projects."
     })
   );
 }

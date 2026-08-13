@@ -16,5 +16,5 @@
 ## 원칙
 
 - 공용 계약은 `AGENTS.md`와 `docs/development/*.md`를 따른다.
-- 실제 구현 기준은 `work/2D-FPS-game`을 우선한다.
+- 실제 구현 기준은 `workspace/2D-FPS-game`을 우선한다.
 - `울트론`은 이 계층을 사용해 구현과 검증을 표준화한다.

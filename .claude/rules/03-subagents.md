@@ -8,7 +8,7 @@
 ### 메일박스 경로
 
 ```
-work/{프로젝트명}/.mailbox/
+workspace/{프로젝트명}/.mailbox/
 ├── {발신자}-to-{수신자}.md    — 1:1 메시지
 ├── broadcast.md               — 전체 공지 (비전/PM → 전원)
 └── escalation.md              — 에스컬레이션 (PM → 비전)

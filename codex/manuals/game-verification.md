@@ -4,7 +4,7 @@
 
 ## Order
 
-1. Change into `work/2D-FPS-game`.
+1. Change into `workspace/2D-FPS-game`.
 2. Run the narrowest affected test first when a focused suite exists.
 3. Run `npm run type-check`, `npm run lint`, `npm test`, and `npm run build` for a normal code change.
 4. Run the relevant browser E2E test when user-facing runtime behavior changed.

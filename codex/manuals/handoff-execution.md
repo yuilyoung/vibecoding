@@ -6,7 +6,7 @@
 
 1. Read `docs/handoffs/current-handoff.json` and the active workspace baseline.
 2. Ask the `product_owner` agent for scope, acceptance criteria, and a verification plan when the change is non-trivial.
-3. Implement only the accepted slice in `work/2D-FPS-game`.
+3. Implement only the accepted slice in `workspace/2D-FPS-game`.
 4. Run the relevant verification commands and retain their exact results.
 5. Ask the `reviewer` agent to evaluate the diff and evidence before declaring completion.
 6. Resolve reviewer findings, run manual drift and postflight, then synchronize the handoff, project status, and task records before the scoped commit and push.

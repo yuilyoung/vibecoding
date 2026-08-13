@@ -33,7 +33,7 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 
 ## 보고서 형식 (강제 — 2종 동시 생성)
 
-### 1. HTML 보고서 (`work/{프로젝트명}/reports/project-status.html`)
+### 1. HTML 보고서 (`workspace/{프로젝트명}/reports/project-status.html`)
 사용자·관리자용 시각적 보고서.
 
 ```
@@ -46,7 +46,7 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 7. 다음 작업           — 다음 단계 우선순위 목록
 ```
 
-### 2. MD 보고서 (`work/{프로젝트명}/docs/reports/project-status.md`)
+### 2. MD 보고서 (`workspace/{프로젝트명}/docs/reports/project-status.md`)
 비전(오케스트레이터)용 텍스트 보고서.
 
 ```
@@ -76,7 +76,7 @@ description: 프로젝트 매니저(PM). 비전(오케스트레이터)으로부�
 - 진행 중인 작업 — 현재 작업 및 담당 에이전트
 - 다음 개발 — 우선순위 기반 예정 작업 목록
 
-## 산출물 (work/{프로젝트명}/ 기준)
+## 산출물 (workspace/{프로젝트명}/ 기준)
 
 - `reports/project-status.html` — 최신 프로젝트 현황 HTML 보고서
 - `docs/reports/project-status.md` — 최신 프로젝트 현황 MD 보고서

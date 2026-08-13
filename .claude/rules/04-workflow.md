@@ -68,7 +68,7 @@
 
 모든 개발 사이클 종료 시 **PM 에이전트는 반드시 두 가지 형식의 보고서를 생성**해야 한다.
 
-### 1. HTML 보고서 (`work/{프로젝트명}/reports/project-status.html`)
+### 1. HTML 보고서 (`workspace/{프로젝트명}/reports/project-status.html`)
 
 사용자·관리자용 시각적 대시보드. 아래 섹션을 모두 포함해야 한다.
 
@@ -82,7 +82,7 @@
 | 블로킹 이슈 | 해결 필요 항목 (우선순위) |
 | 다음 작업 | 다음 단계 우선순위 목록 |
 
-### 2. MD 보고서 (`work/{프로젝트명}/docs/reports/project-status.md`)
+### 2. MD 보고서 (`workspace/{프로젝트명}/docs/reports/project-status.md`)
 
 비전(오케스트레이터)용 텍스트 보고서. 아래 섹션을 포함한다.
 

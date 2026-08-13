@@ -21,7 +21,7 @@ npm run next-tasks
 
 - `project-status`
   - 현재 프로젝트 하네스 상태
-  - `work/2D-FPS-game` 기준 readiness
+  - `workspace/2D-FPS-game` 기준 readiness
 
 - `next-tasks`
   - 루트 PM 보고서에서 즉시 착수 태스크를 추출
@@ -30,6 +30,6 @@ npm run next-tasks
 
 - `AGENTS.md`를 먼저 읽습니다.
 - 루트 `docs/development/` 문서를 공용 계약으로 봅니다.
-- 실제 실행과 검증은 `work/2D-FPS-game` 기준입니다.
+- 실제 실행과 검증은 `workspace/2D-FPS-game` 기준입니다.
 - `.claude/`는 비전 확장 계층이며 공용 계층 위에 추가됩니다.
 - `codex/`는 울트론 실행 계층입니다.

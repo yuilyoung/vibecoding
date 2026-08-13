@@ -1,7 +1,7 @@
 # 하네스 문서 디렉토리
 
 이 폴더는 **Claude/Codex 공용 작업환경(하네스)** 전용 문서만 보관한다.
-프로젝트 고유 문서는 각 프로젝트의 `work/{프로젝트명}/docs/` 아래에서 관리한다.
+프로젝트 고유 문서는 각 프로젝트의 `workspace/{프로젝트명}/docs/` 아래에서 관리한다.
 
 ## 폴더 구조
 
@@ -28,4 +28,5 @@ docs/
 
 | 프로젝트 | 경로 |
 |----------|------|
-| 2D-FPS-game | `../work/2D-FPS-game/docs/` |
+| 2D-FPS-game | `../workspace/2D-FPS-game/docs/` |
+| Smart 가격비교 | `../workspace/smart-price-comparison/docs/` |

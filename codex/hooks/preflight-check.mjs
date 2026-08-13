@@ -17,8 +17,8 @@ const result = {
 
 if (existsSync(baselinePath)) {
   const baselineText = readFileSync(baselinePath, "utf8");
-  result.runtimeBaseline = baselineText.includes("work/2D-FPS-game")
-    ? "work/2D-FPS-game"
+  result.runtimeBaseline = baselineText.includes("workspace/2D-FPS-game")
+    ? "workspace/2D-FPS-game"
     : "unknown";
 }
 

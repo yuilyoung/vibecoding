@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the normative operating manual for durable Claude harness knowledge. It complements `AGENTS.md` and never overrides the active implementation baseline at `work/2D-FPS-game`.
+This is the normative operating manual for durable Claude harness knowledge. It complements `AGENTS.md` and never overrides the active implementation baseline at `workspace/2D-FPS-game`.
 
 ## Canonical Sources
 

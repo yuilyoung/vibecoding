@@ -3,13 +3,13 @@ name: Game PR validation
 on:
   pull_request:
     paths:
-      - "work/2D-FPS-game/**"
+      - "workspace/2D-FPS-game/**"
       - ".github/workflows/game-pr-validation.yml"
   push:
     branches:
       - master
     paths:
-      - "work/2D-FPS-game/**"
+      - "workspace/2D-FPS-game/**"
       - ".github/workflows/game-pr-validation.yml"
 
 permissions:
@@ -26,14 +26,14 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: work/2D-FPS-game
+        working-directory: workspace/2D-FPS-game
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: work/2D-FPS-game/package-lock.json
+          cache-dependency-path: workspace/2D-FPS-game/package-lock.json
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
@@ -47,14 +47,14 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: work/2D-FPS-game
+        working-directory: workspace/2D-FPS-game
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: work/2D-FPS-game/package-lock.json
+          cache-dependency-path: workspace/2D-FPS-game/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ github.run_attempt }}
-          path: work/2D-FPS-game/playwright-report/
+          path: workspace/2D-FPS-game/playwright-report/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload failed-test artifacts
@@ -72,7 +72,7 @@ jobs:
         with:
           name: playwright-failures-${{ github.run_attempt }}
           path: |
-            work/2D-FPS-game/test-results/
-            work/2D-FPS-game/*.log
+            workspace/2D-FPS-game/test-results/
+            workspace/2D-FPS-game/*.log
           if-no-files-found: ignore
           retention-days: 14

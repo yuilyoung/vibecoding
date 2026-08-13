@@ -9,12 +9,12 @@
 - `docs/handoffs/current-handoff.json`
 - `AGENTS.md`
 - `docs/development/active-workspace-baseline.md`
-- `work/2D-FPS-game/docs/development/harness-checklist.md`
+- `workspace/2D-FPS-game/docs/development/harness-checklist.md`
 
 ## 절차
 
 1. handoff의 `scope`, `constraints`, `acceptance`, `files`를 읽는다.
-2. 활성 실행 베이스라인이 `work/2D-FPS-game`인지 확인한다.
+2. 활성 실행 베이스라인이 `workspace/2D-FPS-game`인지 확인한다.
 3. 구현 전 `npm run workspace-status`와 `npm run project-status`를 확인한다.
 4. 필요한 코드 수정 후 `type-check`, `lint`, `test`, `build`를 수행한다.
 5. 결과를 `docs/handoffs/current-execution-report.md`에 기록한다.

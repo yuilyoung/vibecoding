@@ -15,12 +15,12 @@ test("v5 switches project detail and renders live invocation and orchestration g
   const now = new Date();
   const staleAt = new Date(now.getTime() - 130_000);
   mkdirSync(path.join(root, "dashboard"), { recursive: true });
-  mkdirSync(path.join(root, "work", "2D-FPS-game", "docs", "reports"), { recursive: true });
-  mkdirSync(path.join(root, "work", "2D-FPS-game", "docs", "planning"), { recursive: true });
-  mkdirSync(path.join(root, "work", "animation_real_studio", "tasks"), { recursive: true });
+  mkdirSync(path.join(root, "workspace", "2D-FPS-game", "docs", "reports"), { recursive: true });
+  mkdirSync(path.join(root, "workspace", "2D-FPS-game", "docs", "planning"), { recursive: true });
+  mkdirSync(path.join(root, "workspace", "animation_real_studio", "tasks"), { recursive: true });
   mkdirSync(path.join(root, "docs", "handoffs"), { recursive: true });
   copyFileSync(dashboardPath, path.join(root, "dashboard", "index.html"));
-  writeFileSync(path.join(root, "work", "2D-FPS-game", "docs", "reports", "project-status.md"), [
+  writeFileSync(path.join(root, "workspace", "2D-FPS-game", "docs", "reports", "project-status.md"), [
     "# 2D-FPS-game Project Status Report",
     "",
     "- **Phase:** Phase 9 - Dashboard Operations (active)",
@@ -57,7 +57,7 @@ test("v5 switches project detail and renders live invocation and orchestration g
     "| --- | --- | --- | --- | --- |",
     "| 1 | decision-slice | Pick the next visible product slice. | vision | decision |",
   ].join("\n"));
-  writeFileSync(path.join(root, "work", "2D-FPS-game", "docs", "planning", "phase9-tasks.json"), JSON.stringify({
+  writeFileSync(path.join(root, "workspace", "2D-FPS-game", "docs", "planning", "phase9-tasks.json"), JSON.stringify({
     created: "2026-08-06",
     acceptanceMap: { A1: "The command surface is planned.", A2: "The command surface is verified." },
     tasks: [
@@ -65,8 +65,8 @@ test("v5 switches project detail and renders live invocation and orchestration g
       { id: "T1", subject: "Verify command surface", assignee: "reviewer", status: "active", depends: ["T0"], acceptance: ["A2"], files: ["scripts/dashboard-ui.spec.mjs"] },
     ],
   }));
-  writeFileSync(path.join(root, "work", "animation_real_studio", "package.json"), JSON.stringify({ name: "Animation Real Studio" }));
-  writeFileSync(path.join(root, "work", "animation_real_studio", "tasks", "mvp-readiness.json"), JSON.stringify({
+  writeFileSync(path.join(root, "workspace", "animation_real_studio", "package.json"), JSON.stringify({ name: "Animation Real Studio" }));
+  writeFileSync(path.join(root, "workspace", "animation_real_studio", "tasks", "mvp-readiness.json"), JSON.stringify({
     status: "planned", milestones: [{ id: "M0", name: "Readiness" }], tasks: [
       { id: "ARS-001", title: "Decide safety contract", status: "ready", milestone: "M0" },
       { id: "ARS-002", title: "Research provider", status: "blocked-by-research", milestone: "M0", depends: ["ARS-001"] },

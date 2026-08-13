@@ -6,7 +6,7 @@ workflows in the repository-root `.github/workflows` directory.
 
 ## Required checks
 
-For pull requests that change `work/2D-FPS-game` (or the workflow itself), the
+For pull requests that change `workspace/2D-FPS-game` (or the workflow itself), the
 `Game PR validation` workflow runs two required check candidates:
 
 1. `Quality gates`: deterministic install, TypeScript check, ESLint, Vitest,
@@ -38,7 +38,7 @@ green PRs.
 
 ## Local equivalent
 
-Run these commands from `work/2D-FPS-game` before opening a PR:
+Run these commands from `workspace/2D-FPS-game` before opening a PR:
 
 ```powershell
 npm ci

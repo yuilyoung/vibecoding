@@ -27,7 +27,7 @@ const commandValue = (input) => String(input.tool_input?.command ?? "");
 const safeHookId = (value) => String(value ?? "unknown").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 96) || "unknown";
 export const dashboardProjectId = (workspace, cwd, environment) => {
   if (environment.DASHBOARD_PROJECT_ID) return deriveDashboardProjectId(environment.DASHBOARD_PROJECT_ID);
-  const relative = path.relative(path.join(workspace, "work"), path.resolve(cwd ?? workspace));
+  const relative = path.relative(path.join(workspace, "workspace"), path.resolve(cwd ?? workspace));
   const projectId = relative.split(path.sep)[0];
   return relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? deriveDashboardProjectId(projectId) : "workspace";
 };

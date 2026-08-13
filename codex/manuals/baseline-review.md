@@ -13,7 +13,7 @@
 
 ## Method
 
-- Use `work/2D-FPS-game` as the executable authority for implementation and verification.
+- Use `workspace/2D-FPS-game` as the executable authority for implementation and verification.
 - Identify scope expansion, documentation conflicts, behavior regressions, and untested changed paths.
 - Treat generated status commands as evidence for the current phase, while keeping volatile counts in their source report rather than this manual.
 - Keep findings actionable: cite the affected file, behavior, and missing proof.

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const reportPath = path.join(process.cwd(), "work", "2D-FPS-game", "docs", "reports", "project-status.md");
+const reportPath = path.join(process.cwd(), "workspace", "2D-FPS-game", "docs", "reports", "project-status.md");
 const text = readFileSync(reportPath, "utf8");
 const lines = text.split(/\r?\n/);
 const startIndex = lines.findIndex((line) => line.includes("Immediate Next Tasks") || line.includes("다음 단계"));
@@ -55,4 +55,4 @@ if (tasks.length === 0) {
     });
 }
 
-process.stdout.write(`${JSON.stringify({ ctx: "work/2D-FPS-game/docs/reports/project-status.md", nextTasks: tasks }, null, 2)}\n`);
+process.stdout.write(`${JSON.stringify({ ctx: "workspace/2D-FPS-game/docs/reports/project-status.md", nextTasks: tasks }, null, 2)}\n`);

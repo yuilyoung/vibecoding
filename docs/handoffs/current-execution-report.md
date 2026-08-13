@@ -43,7 +43,7 @@ Phase 9 Visual Identity & Readability is implemented and deterministically verif
 - No network-downloaded asset or new license obligation was introduced.
 - No combat, collision, balance, progression, or vehicle mechanic changed.
 - Runtime asset copies map back to vendored CC0 source families.
-- Unrelated `.claude`, `docs/reports`, and `work/animation_real_studio` changes remain outside this handoff.
+- Unrelated `.claude`, `docs/reports`, and `workspace/animation_real_studio` changes remain outside this handoff.
 
 ## Next Direction
 

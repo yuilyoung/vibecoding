@@ -133,10 +133,10 @@ test("dashboard activity observer emits validated heartbeat and communication ev
   assert.doesNotMatch(JSON.stringify(rows), /password=hidden/);
 }));
 
-test("unsafe work folder identities match portfolio discovery and validated Hermes telemetry", () => withRuntime((root) => {
+test("unsafe workspace folder identities match portfolio discovery and validated Hermes telemetry", () => withRuntime((root) => {
   mkdirSync(path.join(root, "dashboard"), { recursive: true });
   const names=["a b","a+b","unassigned","workspace","한글도구"],ids=names.map((name)=>{
-    const expected=deriveDashboardProjectId(name),actual=dashboardProjectId(root,path.join(root,"work",name),{});assert.equal(actual,expected);
+    const expected=deriveDashboardProjectId(name),actual=dashboardProjectId(root,path.join(root,"workspace",name),{});assert.equal(actual,expected);
     new DashboardAgentActivityObserver({workspace:root,now:NOW,projectId:actual}).heartbeat("ultron","identity-test");return actual;
   });
   const rootProjectId=dashboardProjectId(root,root,{});assert.equal(new Set(ids).size,names.length);assert.equal(rootProjectId,"workspace");assert.equal(ids.includes(rootProjectId),false);

@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-const harnessPath = path.join(repoRoot, "work", "2D-FPS-game", "docs", "development", "harness-checklist.md");
-const reportPath = path.join(repoRoot, "work", "2D-FPS-game", "docs", "reports", "project-status.md");
+const harnessPath = path.join(repoRoot, "workspace", "2D-FPS-game", "docs", "development", "harness-checklist.md");
+const reportPath = path.join(repoRoot, "workspace", "2D-FPS-game", "docs", "reports", "project-status.md");
 
 const readText = (filePath) => {
   if (!existsSync(filePath)) {
@@ -63,7 +63,7 @@ const summaryText = extractSectionText(reportText, "요약");
 const inProgressText = extractSectionText(reportText, "진행 중");
 
 const payload = {
-  ctx: "work/2D-FPS-game",
+  ctx: "workspace/2D-FPS-game",
   status: extractTableValue(reportText, "Verification") || (summaryText.includes("검증") ? summaryText : "unknown"),
   stage: extractTableValue(reportText, "Active milestone") || extractBulletValue(reportText, "Phase") || "unknown",
   readiness: extractTableValue(reportText, "Development status") || inProgressText || "unknown",

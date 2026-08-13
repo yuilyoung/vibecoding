@@ -1,18 +1,18 @@
 # AI Project Control Plane v5
 
-`npm run dashboard` starts the repository-local operations dashboard at `127.0.0.1:4173`. It discovers direct projects under `work/*`, links the selected project to its detailed delivery board, and combines invocation observability with a project-scoped orchestration cycle map.
+`npm run dashboard` starts the repository-local operations dashboard at `127.0.0.1:4173`. It discovers direct projects under `workspace/*`, links the selected project to its detailed delivery board, and combines invocation observability with a project-scoped orchestration cycle map.
 
 ## Information architecture
 
 The UI is ordered from portfolio to evidence:
 
-1. Portfolio cards show every direct `work/*` project, current milestone progress, total completeness, current work, blocked state, and source path.
+1. Portfolio cards show every direct `workspace/*` project, current milestone progress, total completeness, current work, blocked state, and source path.
 2. Selecting a card updates the detailed roadmap, Kanban, quality gates, attention queue, prompt/token metrics, and graphs without losing the selection during SSE refresh.
 3. The invocation forest lays parent/child agent calls and returns out horizontally with provider-qualified IDs.
 4. The cycle map lays agents out horizontally and the fixed `analysis → design → design_verification → implementation → implementation_verification → feedback → revision` pipeline vertically. The freshest non-terminal step and inbound edge are highlighted and move on the next SSE snapshot.
 5. Missing evidence remains `unknown`; `ready`, `research`, `blocked`, and outcome-unknown `stopped` are never counted as completed.
 
-`2D-FPS-game` and `animation_real_studio` use explicit adapters. Other direct directories receive a conservative generic adapter with unknown progress/completeness until they expose supported project evidence. Symbolic links and files directly under `work` are not treated as projects. Durable completed WBS tasks cannot be demoted by stale runtime events.
+`2D-FPS-game` and `animation_real_studio` use explicit adapters. Other direct directories receive a conservative generic adapter with unknown progress/completeness until they expose supported project evidence. Symbolic links and files directly under `workspace` are not treated as projects. Durable completed WBS tasks cannot be demoted by stale runtime events.
 
 The agent view distinguishes configured from observed agents. Live edges require a fresh event within 15 seconds and fresh 30-second endpoint heartbeats. Historical and Paperclip organization edges stay visible without live animation. `prefers-reduced-motion: reduce` removes packet and edge motion while keeping arrows and stage text. Nodes and edge controls are keyboard selectable.
 

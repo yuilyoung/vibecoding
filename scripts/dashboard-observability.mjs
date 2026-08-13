@@ -202,12 +202,12 @@ const reportTasks = (report, reportSource) => {
   return lines.slice(start + 2).filter((line) => line.trim().startsWith("|")).map((line) => line.split("|").map((value) => value.trim()).filter(Boolean)).filter((cells) => cells.length >= 5).map((cells) => ({ taskId: cells[1], title: cells[2], owner: cells[3] || "unknown", state: "decision", updatedAt: reportSource.observedAt, source: reportSource }));
 };
 export const deriveProject = (root, report, projectCollector) => {
-  const reportPath = join(root, "work", "2D-FPS-game", "docs", "reports", "project-status.md"); const reportSource = source(root, reportPath); const collectorValue = projectCollector?.value ?? {};
+  const reportPath = join(root, "workspace", "2D-FPS-game", "docs", "reports", "project-status.md"); const reportSource = source(root, reportPath); const collectorValue = projectCollector?.value ?? {};
   const phase = tableValue(report, "Active milestone") || report.match(/\*\*Phase:\*\*\s*([^\r\n]+)/)?.[1]?.trim() || "unknown";
   const verification = tableValue(report, "Verification") || collectorValue.status || "unknown";
   const statusLine = tableValue(report, "Development status") || collectorValue.readiness || "";
   const range = statusLine.match(/T(\d+)\s*-\s*T(\d+)\s+(?:are|is) complete/i);
-  const phaseNumber = phase.match(/Phase\s+(\d+)/i)?.[1]; const taskPath = phaseNumber ? join(root, "work", "2D-FPS-game", "docs", "planning", "phase" + phaseNumber + "-tasks.json") : ""; const taskSource = taskPath ? source(root, taskPath) : null; const taskPlan = taskPath ? json(taskPath) : null;
+  const phaseNumber = phase.match(/Phase\s+(\d+)/i)?.[1]; const taskPath = phaseNumber ? join(root, "workspace", "2D-FPS-game", "docs", "planning", "phase" + phaseNumber + "-tasks.json") : ""; const taskSource = taskPath ? source(root, taskPath) : null; const taskPlan = taskPath ? json(taskPath) : null;
   const tasks = (taskPlan?.tasks ?? []).map((task) => ({ taskId: task.id, title: task.subject, owner: task.assignee || "unknown", state: /complete/i.test(task.status) ? "complete" : /active|progress/i.test(task.status) ? "active" : /block|fail/i.test(task.status) ? "blocked" : "decision", description: task.description || "", dependencies: task.depends ?? [], acceptance: (task.acceptance ?? []).map((id) => ({ id, text: taskPlan.acceptanceMap?.[id] ?? id })), files: task.files ?? [], updatedAt: taskPlan.created ? new Date(taskPlan.created + "T00:00:00Z").toISOString() : taskSource?.observedAt, source: taskSource, durable: true }));
   const completeTaskCount = tasks.filter((task) => task.state === "complete").length; const progress = tasks.length ? { status: "known", done: completeTaskCount, total: tasks.length, percentage: Math.round(completeTaskCount / tasks.length * 100), source: taskSource } : range ? { status: "known", done: Number(range[2]) - Number(range[1]) + 1, total: Number(range[2]) - Number(range[1]) + 1, percentage: 100, source: reportSource } : { status: "unknown", done: null, total: null, percentage: null, source: reportSource };
   const completePhases = [...section(report, "Completed Work").matchAll(/^###\s+(Phase\s+\d+[^\r\n]*)/gim)].map((match) => match[1].trim());
@@ -263,7 +263,7 @@ const planProgress = (plan) => {
 };
 
 export const deriveRoadmap = (root, project) => {
-  const directory = join(root, "work", "2D-FPS-game", "docs", "planning");
+  const directory = join(root, "workspace", "2D-FPS-game", "docs", "planning");
   const entries = existsSync(directory) ? readdirSync(directory).flatMap((name) => {
     const match = name.match(/^phase(\d+)(?:-sprint(\d+))?-tasks\.json$/i);
     if (!match) return [];
@@ -339,7 +339,7 @@ const fpsPortfolioProject = (root, project, roadmap) => {
     ...project,
     projectId: "2D-FPS-game",
     displayName: "2D-FPS Game",
-    path: "work/2D-FPS-game",
+    path: "workspace/2D-FPS-game",
     baselineRole: "active-executable",
     phase,
     status: derivedState === "complete" ? "complete" : derivedState === "blocked" ? "blocked" : "in-progress",
@@ -372,7 +372,7 @@ const arsPortfolioProject = (root, directory) => {
   return {
     projectId: "animation_real_studio",
     displayName: String(packageValue.name ?? "Animation Real Studio"),
-    path: "work/animation_real_studio",
+    path: "workspace/animation_real_studio",
     baselineRole: "portfolio-member",
     phase: { title: activeMilestone ? activeMilestone.id + " - " + activeMilestone.title : "MVP readiness", state: activeMilestone?.state ?? "unknown", source: taskSource },
     verification: { state: verificationState, source: decisionSource },
@@ -407,7 +407,7 @@ const genericPortfolioProject = (root, directory, name) => {
     verification: { state: "unknown", source: projectSource },
     progress: unknownProgress(projectSource),
     completeness: unknownProgress(projectSource),
-    summary: "Project discovered under work; detailed status metadata is not configured.",
+    summary: "Project discovered under workspace; detailed status metadata is not configured.",
     status: "discovered",
     reportDate: null,
     milestones: [],
@@ -426,10 +426,10 @@ const genericPortfolioProject = (root, directory, name) => {
 const packageSourceOrNull = (root, packagePath) => existsSync(packagePath) ? source(root, packagePath) : null;
 
 export const derivePortfolio = (root, primaryProject, roadmap, events = [], nowMs = Date.now(), ttlMs = DEFAULT_HEARTBEAT_TTL_MS) => {
-  const workDirectory = join(root, "work");
-  const entries = existsSync(workDirectory) ? readdirSync(workDirectory, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()).sort((left, right) => left.name === right.name ? 0 : left.name < right.name ? -1 : 1) : [];
+  const workspaceDirectory = join(root, "workspace");
+  const entries = existsSync(workspaceDirectory) ? readdirSync(workspaceDirectory, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()).sort((left, right) => left.name === right.name ? 0 : left.name < right.name ? -1 : 1) : [];
   const projects = entries.map((entry) => {
-    const directory = join(workDirectory, entry.name);
+    const directory = join(workspaceDirectory, entry.name);
     const value = entry.name === "2D-FPS-game" ? fpsPortfolioProject(root, primaryProject, roadmap) : entry.name === "animation_real_studio" ? arsPortfolioProject(root, directory) : genericPortfolioProject(root, directory, entry.name);
     return portfolioProject(value, root, events, nowMs, ttlMs);
   });
@@ -444,8 +444,8 @@ export const derivePortfolio = (root, primaryProject, roadmap, events = [], nowM
       unknownProgress: projects.filter((project) => project.progress.status === "unknown").length,
     },
     baselineProjectId: projects.some((project) => project.projectId === "2D-FPS-game") ? "2D-FPS-game" : projects[0]?.projectId ?? null,
-    observedAt: stamp(workDirectory),
-    source: source(root, workDirectory),
+    observedAt: stamp(workspaceDirectory),
+    source: source(root, workspaceDirectory),
   };
 };
 
@@ -561,7 +561,7 @@ export const collectDashboardSnapshot = (options = {}) => {
   const heartbeatTtlMs = options.heartbeatTtlMs ?? DEFAULT_HEARTBEAT_TTL_MS, eventPath = options.eventPath ?? defaultEventPath(root);
   const journal = readAgentEvents(eventPath, now), collectorRunner = options.collectorRunner ?? runCollector, repositoryMetric = options.repositoryMetric ?? gitMetric;
   const collectors = options.collectors ?? (options.runCollectors === false ? {} : { workspace: collectorRunner(root, "scripts/workspace-status.mjs"), project: collectorRunner(root, "scripts/project-status.mjs"), harness: collectorRunner(root, "scripts/harness-audit.mjs", true), hermes: collectorRunner(root, "plugins/hermes-ssot/scripts/harness-audit.mjs") });
-  const projectReportPath = join(root, "work", "2D-FPS-game", "docs", "reports", "project-status.md");
+  const projectReportPath = join(root, "workspace", "2D-FPS-game", "docs", "reports", "project-status.md");
   const project = deriveProject(root, text(projectReportPath), collectors.project), roadmap = deriveRoadmap(root, project);
   const portfolio = derivePortfolio(root, project, roadmap, journal.events, nowMs, heartbeatTtlMs);
   const eventSource = source(root, eventPath), freshAt = (timestamp, ttlMs) => { const age = nowMs - Date.parse(timestamp); return age >= 0 && age <= ttlMs; };

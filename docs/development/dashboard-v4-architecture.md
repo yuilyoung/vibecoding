@@ -7,7 +7,7 @@ Dashboard v4 combines two evidence-backed views without weakening either one:
 - product delivery: roadmap, current phase or sprint, WBS progress, Kanban, and verification quality;
 - agent execution: parent/child invocation hierarchy, directed call and return traffic, prompt preview metadata, and exact token usage.
 
-The active product baseline remains `work/2D-FPS-game`. The dashboard does not change game code, install Paperclip, call remote providers, or infer unobserved organization data. Existing v3 journal rows remain valid.
+The active product baseline remains `workspace/2D-FPS-game`. The dashboard does not change game code, install Paperclip, call remote providers, or infer unobserved organization data. Existing v3 journal rows remain valid.
 
 ## Three-layer structure
 
