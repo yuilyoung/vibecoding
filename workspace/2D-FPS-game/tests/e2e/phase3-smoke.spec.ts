@@ -45,6 +45,7 @@ interface Phase3Scene {
   debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugForceMatchOver(winner: "PLAYER" | "DUMMY"): void;
   debugRegisterPlayerRoundWin(): void;
+  stageGeometry: { resetPickupState(): void };
   update(time: number, delta: number): void;
 }
 
@@ -176,7 +177,13 @@ test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", as
   // ---------- 2) Pickup acquisition (ammo + health) ----------
   // Stage 1 (foundry) seeds health pickup near (870, 430) and ammo pickup near (160, 430).
   // Move the player onto the ammo pickup; lastEvent should reflect the pickup.
-  await withScene(page, (scene: Phase3Scene) => scene.debugSelectWeaponSlot(1));
+  await withScene(page, (scene: Phase3Scene) => {
+    // BLUE can spawn close enough to collect ammo before this assertion when the
+    // full suite is under load. Reset it while the player is safely off-pickup.
+    scene.debugMovePlayerTo(200, 300);
+    scene.stageGeometry.resetPickupState();
+    scene.debugSelectWeaponSlot(1);
+  });
   const beforeAmmo = await readHud(page);
   await withScene(page, (scene: Phase3Scene) => {
     scene.debugForceCombatLive();

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { closeSync, lstatSync, openSync, readFileSync, readlinkSync, readSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,24 +50,163 @@ const commandId = (command) => {
   return "deterministic-check";
 };
 
-export const workspaceFingerprint = (workspace) => {
-  const root = path.resolve(workspace);
-  const status = spawnSync("git", ["status", "--porcelain=v1", "-uall"], { cwd: root, encoding: "utf8", timeout: 5_000 });
-  const diff = spawnSync("git", ["diff", "--no-ext-diff", "--binary", "HEAD", "--", "."], { cwd: root, encoding: "utf8", timeout: 10_000, maxBuffer: 8 * 1024 * 1024 });
-  const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard", "-z"], { cwd: root, encoding: "utf8", timeout: 5_000, maxBuffer: 4 * 1024 * 1024 });
-  if (status.error || diff.error || untracked.error || status.status !== 0 || diff.status !== 0 || untracked.status !== 0) throw new Error("Workspace fingerprint is unavailable; evidence gates fail closed.");
-  const hash = createHash("sha256").update(status.stdout).update("\0").update(diff.stdout).update("\0");
-  for (const relative of untracked.stdout.split("\0").filter(Boolean).sort()) {
-    const target = path.resolve(root, relative);
-    const safeRelative = path.relative(root, target);
-    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) continue;
-    try {
-      const metadata = lstatSync(target);
-      hash.update(relative).update("\0").update(String(metadata.size)).update("\0").update(String(metadata.mtimeMs)).update("\0");
-      if (metadata.isSymbolicLink()) hash.update(readlinkSync(target));
-      else if (metadata.isFile() && metadata.size <= 2 * 1024 * 1024) hash.update(readFileSync(target));
-    } catch { throw new Error("An untracked workspace entry cannot be fingerprinted; evidence gates fail closed."); }
+const FINGERPRINT_FORMAT = "hermes-workspace-fingerprint-v2";
+const GIT_TIMEOUT_MS = 15_000;
+const GIT_MAX_BUFFER = 16 * 1024 * 1024;
+const UNTRACKED_CONTENT_LIMIT = 2 * 1024 * 1024;
+const FILE_HASH_BUFFER_SIZE = 64 * 1024;
+const DEFAULT_FILE_SYSTEM = { closeSync, lstatSync, openSync, readlinkSync, readSync };
+const compareText = (left, right) => left < right ? -1 : left > right ? 1 : 0;
+
+const runFingerprintGit = (root, args) => {
+  const result = spawnSync("git", args, { cwd: root, timeout: GIT_TIMEOUT_MS, maxBuffer: GIT_MAX_BUFFER });
+  if (result.error || result.status !== 0 || !Buffer.isBuffer(result.stdout)) {
+    throw new Error("Workspace fingerprint Git snapshot is unavailable; evidence gates fail closed.");
   }
+  return result.stdout;
+};
+
+const parsePorcelainStatus = (statusOutput) => {
+  const records = statusOutput.toString("utf8").split("\0");
+  const entries = [];
+
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    if (record === "") continue;
+    if (record.length < 4 || record[2] !== " ") {
+      throw new Error("Workspace fingerprint received malformed Git status; evidence gates fail closed.");
+    }
+
+    const code = record.slice(0, 2);
+    const relative = record.slice(3);
+    if (relative === "") {
+      throw new Error("Workspace fingerprint received an empty Git path; evidence gates fail closed.");
+    }
+
+    let original = null;
+    if (/[RC]/.test(code)) {
+      original = records[index + 1];
+      if (!original) {
+        throw new Error("Workspace fingerprint received a malformed rename; evidence gates fail closed.");
+      }
+      index += 1;
+    }
+
+    entries.push(Object.freeze({ code, relative, original, untracked: code === "??" }));
+  }
+
+  return entries.sort((left, right) => compareText(
+    `${left.relative}\0${left.code}\0${left.original ?? ""}`,
+    `${right.relative}\0${right.code}\0${right.original ?? ""}`
+  ));
+};
+
+export const resolveWorkspaceEntryPath = (workspace, relative) => {
+  const root = path.resolve(workspace);
+  const target = path.resolve(root, relative);
+  const safeRelative = path.relative(root, target);
+  if (safeRelative === "" || safeRelative === ".." || safeRelative.startsWith(`..${path.sep}`) || path.isAbsolute(safeRelative)) {
+    throw new Error("Workspace fingerprint path escapes the repository; evidence gates fail closed.");
+  }
+  return target;
+};
+
+const metadataSnapshot = (metadata) => ({
+  mode: String(metadata.mode),
+  size: String(metadata.size),
+  mtimeNs: String(metadata.mtimeNs),
+});
+
+const metadataMatches = (left, right) => (
+  left.mode === right.mode && left.size === right.size && left.mtimeNs === right.mtimeNs
+);
+
+const readMetadata = (fileSystem, target, expectedMissing) => {
+  try {
+    return fileSystem.lstatSync(target, { bigint: true });
+  } catch (error) {
+    if (error?.code === "ENOENT" && expectedMissing) return null;
+    throw new Error("A workspace entry cannot be inspected; evidence gates fail closed.");
+  }
+};
+
+const hashRegularFile = (hash, fileSystem, target, before) => {
+  const descriptor = fileSystem.openSync(target, "r");
+  const buffer = Buffer.allocUnsafe(FILE_HASH_BUFFER_SIZE);
+  try {
+    for (;;) {
+      const bytesRead = fileSystem.readSync(descriptor, buffer, 0, buffer.length, null);
+      if (bytesRead === 0) break;
+      hash.update(buffer.subarray(0, bytesRead));
+    }
+  } catch {
+    throw new Error("A workspace file cannot be read; evidence gates fail closed.");
+  } finally {
+    fileSystem.closeSync(descriptor);
+  }
+
+  const after = readMetadata(fileSystem, target, false);
+  if (!metadataMatches(metadataSnapshot(before), metadataSnapshot(after))) {
+    throw new Error("A workspace file changed while fingerprinting; evidence gates fail closed.");
+  }
+};
+
+const hashWorkspaceEntry = (hash, root, entry, fileSystem) => {
+  const target = resolveWorkspaceEntryPath(root, entry.relative);
+  const expectedMissing = entry.code.includes("D");
+  const metadata = readMetadata(fileSystem, target, expectedMissing);
+
+  hash.update(entry.code).update("\0").update(entry.relative).update("\0");
+  if (entry.original !== null) hash.update(entry.original).update("\0");
+  if (metadata === null) {
+    hash.update("missing\0");
+    return;
+  }
+
+  const snapshot = metadataSnapshot(metadata);
+  hash.update(snapshot.mode).update("\0").update(snapshot.size).update("\0");
+  if (entry.untracked) hash.update(snapshot.mtimeNs).update("\0");
+
+  if (metadata.isSymbolicLink()) {
+    let linkTarget;
+    try {
+      linkTarget = fileSystem.readlinkSync(target);
+    } catch {
+      throw new Error("A workspace symlink cannot be read; evidence gates fail closed.");
+    }
+    const after = readMetadata(fileSystem, target, false);
+    if (!metadataMatches(snapshot, metadataSnapshot(after))) {
+      throw new Error("A workspace symlink changed while fingerprinting; evidence gates fail closed.");
+    }
+    hash.update("symlink\0").update(linkTarget).update("\0");
+    return;
+  }
+
+  if (!metadata.isFile()) {
+    throw new Error("Workspace fingerprint encountered an unsupported file type; evidence gates fail closed.");
+  }
+
+  hash.update("file\0");
+  if (entry.untracked && metadata.size > BigInt(UNTRACKED_CONTENT_LIMIT)) {
+    const after = readMetadata(fileSystem, target, false);
+    if (!metadataMatches(snapshot, metadataSnapshot(after))) {
+      throw new Error("A workspace file changed while fingerprinting; evidence gates fail closed.");
+    }
+    hash.update("bounded-untracked\0");
+    return;
+  }
+  hashRegularFile(hash, fileSystem, target, metadata);
+};
+
+export const workspaceFingerprint = (workspace, options = {}) => {
+  const root = path.resolve(workspace);
+  const git = options.git ?? runFingerprintGit;
+  const fileSystem = options.fileSystem ?? DEFAULT_FILE_SYSTEM;
+  const head = git(root, ["rev-parse", "--verify", "HEAD"]);
+  const status = git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none"]);
+  const entries = parsePorcelainStatus(status);
+  const hash = createHash("sha256").update(FINGERPRINT_FORMAT).update("\0").update(head).update("\0").update(status).update("\0");
+  for (const entry of entries) hashWorkspaceEntry(hash, root, entry, fileSystem);
   return hash.digest("hex");
 };
 

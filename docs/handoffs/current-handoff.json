@@ -1,43 +1,67 @@
 {
-  "id": "phase-9-visual-identity-readability",
-  "timestamp": "2026-08-11",
-  "from": "ultron",
-  "to": "vision / product",
-  "status": "complete",
-  "scope": "Phase 9 delivers a typed CC0 visual identity and readability pass for operator portraits, Ground Shaker tanks and terrain, six weapon icons, three stage treatments, six map-object visuals plus legend, and five weather states without changing gameplay rules.",
+  "id": "phase-11-quaternius-animated-character-poc",
+  "timestamp": "2026-08-14",
+  "from": "vision / product_owner",
+  "to": "ultron",
+  "status": "implementation-in-progress",
+  "scope": "Implement the approved Phase 11 opt-in Quaternius CC0 animated character POC through a pinned deterministic Blender-to-atlas pipeline, without changing the completed Phaser gameplay baseline.",
   "constraints": [
-    "Execution baseline remains workspace/2D-FPS-game.",
-    "Only vendored CC0 assets and recorded source packs are used.",
-    "Combat, collision, progression, stage content, and vehicle mechanics remain unchanged.",
-    "MainScene.ts must remain at or below 850 lines.",
-    "Unrelated dirty workspace files are excluded from the Phase 9 commit."
+    "Execution baseline remains workspace/2D-FPS-game; Phase 10 stays complete.",
+    "Phase 11 remains a character-only opt-in delivery inside the Phase 11-13 Visual Productization roadmap; authored object skins and default promotion belong to Phase 12 and Phase 13.",
+    "A documentation-only contract is planning progress, not a user-visible improvement, and Phase 11 may not be described as runtime-complete before T1-T5 pass.",
+    "Re-verify the two official Quaternius free-core CC0 sources at acquisition and record local license evidence, URLs, dates, and SHA-256 hashes.",
+    "Use Blender 4.5.12 exactly and reject version mismatch; generation is offline, clean, staged, atomic, and byte-reproducible.",
+    "Lock one BLUE and one RED variant, one external carbine, five states, eight directions, 176 frames per team, 128px cells, and one 2048px WebP atlas per team.",
+    "Combined opt-in transfer is at most 8 MiB and raw RGBA GPU texture memory is at most 32 MiB with mipmaps disabled.",
+    "Fixed 960x540 storm-scene p95 is at most 16.7 ms and at most 1.0 ms slower than legacy on the same environment.",
+    "Ground Shaker remains the default and total fallback; no partial animated activation is allowed.",
+    "Extract actor presentation composition before integration and keep MainScene.ts at or below 850 lines.",
+    "Collision, combat, balance, weather, progression, persistence, and input semantics remain unchanged.",
+    "Paid assets, live 3D, normal maps, Light2D, all-six-weapons art, cosmetics, and making infantry default are excluded."
+  ],
+  "acceptance": [
+    "T1 records acquisition-time official CC0 verification and exact source/license/hash provenance.",
+    "T2 produces byte-identical clean outputs through npm run assets:actor-atlas with exactly two valid atlases and 176 stable frame keys per team.",
+    "T3 extracts composition, integrates the opt-in animated catalog/controller, preserves total fallback, and keeps MainScene within budget.",
+    "T4 proves animation, five-weather readability, console cleanliness, transfer/GPU budgets, and both p95 performance limits.",
+    "T5 passes focused and full static/unit/build/browser checks, current-fingerprint review, drift, postflight, and synchronized status."
+  ],
+  "files": [
+    "workspace/2D-FPS-game/public/assets/source/quaternius-*",
+    "workspace/2D-FPS-game/public/assets/source/ASSET_MANIFEST.md",
+    "workspace/2D-FPS-game/tools/actor-atlas",
+    "workspace/2D-FPS-game/public/assets/runtime/actors",
+    "workspace/2D-FPS-game/src/domain/visual/ActorSkinCatalog.ts",
+    "workspace/2D-FPS-game/src/scenes",
+    "workspace/2D-FPS-game/tests",
+    "workspace/2D-FPS-game/docs/planning/phase11-*"
   ],
   "currentState": {
-    "implemented": [
-      "Typed VisualAssetCatalog with provenance and deterministic fallbacks.",
-      "Kenney HUD portraits, Ground Shaker world tanks and stage terrain, and six PIXWEP weapon icons.",
-      "Three stage themes, six object composites plus legend, and five transition-safe weather identities.",
-      "Deterministic hardening for the stale health-pickup TODO and timing-sensitive browser regressions."
+    "completed": [
+      "T0 product, architecture, budgets, fallback, provenance, build, and verification contract approved.",
+      "The Phase 11-13 Visual Productization goal and ordered character, object, animation, and default-promotion roadmap were approved.",
+      "T1 source acquisition completed with the exact Quaternius Universal Base Characters and Universal Animation Library free Standard archives, acquisition-time CC0 evidence, source URLs/date, byte sizes, archive and per-entry SHA-256 provenance, and Git LFS rules.",
+      "T2 deterministic atlas generation completed with pinned Blender 4.5.12 Windows x64 and Sharp 0.35.3, exact rig/action locks, two byte/pixel-identical clean builds, and a complete BLUE/RED release inside the fixed budgets."
     ],
     "verification": [
-      "57 unit files / 338 tests passed.",
-      "Production build passed.",
-      "34 / 34 Playwright tests passed.",
-      "Three stage and five weather screenshots were captured.",
-      "MainScene.ts is 843 / 850 lines."
+      "Hermes harness audit passed before planning.",
+      "Product-owner contract gate approved with no routing ambiguity.",
+      "Product owner approved keeping Phase 11 character-only and sequencing object skins and default promotion through Phase 12 and Phase 13.",
+      "Official Quaternius pages displayed CC0 and commercial-use permission on 2026-08-13.",
+      "At T1 acquisition on 2026-08-17, the official pages still displayed CC0, free-tier, and commercial-use terms; the vendored archives hash to fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40 and cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724.",
+      "Sorted streamed inventories cover all 112 Base Characters archive entries and all 9 Animation Library archive entries without traversal or case-insensitive duplicate paths.",
+      "The T1 deterministic provenance verifier, independent reviewer, manual drift check, and Codex postflight passed without changing runtime behavior.",
+      "The T2 generator emitted exactly 176 stable frames/team in two 2048x2048 lossless WebPs plus Phaser JSON; combined transfer is 788828 bytes, GPU RGBA is 33554432 bytes, mipmaps are disabled, and fully transparent pixels have zero RGB.",
+      "Two isolated T2 clean builds matched every release byte and decoded pixel hash before complete-directory promotion; focused 13-test contracts, type-check, lint, 58-file/344-test Vitest, production build, visual inspection, and independent review passed.",
+      "Current runtime baseline measured 31 assets / 196,353 bytes and MainScene.ts 848 / 850 lines."
     ],
-    "finalization": [
-      "Independent current-fingerprint reviewer verdict: pass.",
-      "Harness audit and manual drift: pass.",
-      "Postflight and dashboard status synchronization: pass.",
-      "Phase 9-only commit and push prepared with unrelated dirty files excluded."
-    ],
-    "remaining": []
+    "remaining": ["T3", "T4", "T5"]
   },
   "references": {
-    "architecture": "workspace/2D-FPS-game/docs/planning/phase9-visual-identity-architecture.md",
-    "wbs": "workspace/2D-FPS-game/docs/planning/phase9-wbs.md",
-    "tasks": "workspace/2D-FPS-game/docs/planning/phase9-tasks.json",
+    "programRoadmap": "workspace/2D-FPS-game/docs/planning/phase11-13-visual-productization-roadmap.md",
+    "architecture": "workspace/2D-FPS-game/docs/planning/phase11-animated-character-poc-architecture.md",
+    "wbs": "workspace/2D-FPS-game/docs/planning/phase11-wbs.md",
+    "tasks": "workspace/2D-FPS-game/docs/planning/phase11-tasks.json",
     "projectStatus": "workspace/2D-FPS-game/docs/reports/project-status.md",
     "executionReport": "docs/handoffs/current-execution-report.md"
   }

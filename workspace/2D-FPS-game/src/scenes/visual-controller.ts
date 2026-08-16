@@ -1,13 +1,19 @@
 import Phaser from "phaser";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
+import {
+  getActorTeamTexture,
+  resolveActorAnimationState,
+  resolveActorDirection,
+  type ActorAnimationState,
+  type ActorDirection,
+  type ActorSkinDefinition,
+  type ActorSkinId,
+  type ActorWeaponLayerPolicy
+} from "../domain/visual/ActorSkinCatalog";
 import { getDummyVisualState, getPlayerVisualState, type RespawnFxState } from "../ui/scene-visuals";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import {
-  ACTOR_BODY_SCALE,
-  ACTOR_ROTATION_OFFSET,
   DUMMY_WEAPON_SCALE,
-  GROUND_BODY_BLUE_KEY,
-  GROUND_BODY_RED_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY,
   GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY,
@@ -25,12 +31,37 @@ export interface VisualControllerDeps {
   readonly isCombatLive: (now: number) => boolean;
 }
 
+export interface ActorPresentationDebugState {
+  readonly skinId: ActorSkinId;
+  readonly weaponLayer: ActorWeaponLayerPolicy;
+  readonly playerState: ActorAnimationState;
+  readonly dummyState: ActorAnimationState;
+  readonly playerDirection: ActorDirection;
+  readonly dummyDirection: ActorDirection;
+  readonly playerTextureKey: string | null;
+  readonly dummyTextureKey: string | null;
+  readonly playerWeaponVisible: boolean;
+  readonly dummyWeaponVisible: boolean;
+  readonly destroyed: boolean;
+}
+
 export class VisualController {
+  private playerAnimationState: ActorAnimationState = "idle";
+  private dummyAnimationState: ActorAnimationState = "idle";
+  private destroyed = false;
+
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly state: SceneRuntimeState,
+    private readonly skinDefinition: ActorSkinDefinition,
     private readonly deps: VisualControllerDeps
   ) {}
+
+  public initializeActorPresentation(): void {
+    this.destroyed = false;
+    this.applyTeamVisuals(this.state.currentPlayerTeam, this.state.currentDummyTeam);
+    this.applyWeaponLayerVisibility();
+  }
 
   public updateDummyVisuals(now: number): void {
     const targetDummy = this.state.targetDummy;
@@ -45,9 +76,16 @@ export class VisualController {
       respawnFxScale: this.deps.getRespawnFxState(now).scale
     });
 
+    this.dummyAnimationState = resolveActorAnimationState({
+      isDead: this.state.dummyLogic.isDead(),
+      isHit: false,
+      isFiring: this.state.lastDummyShouldFire,
+      isMoving: this.state.dummyLogic.state.lastAppliedSpeed > 0
+    });
+
     targetDummy.setTint(visual.tint);
     targetDummy.setAlpha(visual.alpha);
-    targetDummy.setScale(ACTOR_BODY_SCALE * visual.scale);
+    targetDummy.setScale(this.skinDefinition.bodyScale * visual.scale);
   }
 
   public updateWeaponVisuals(): void {
@@ -61,6 +99,11 @@ export class VisualController {
       playerWeaponSprite === undefined ||
       dummyWeaponSprite === undefined
     ) {
+      return;
+    }
+
+    this.applyWeaponLayerVisibility();
+    if (this.skinDefinition.weaponLayer === "embedded") {
       return;
     }
 
@@ -110,9 +153,16 @@ export class VisualController {
       respawnFx: this.deps.getRespawnFxState(now)
     });
 
+    this.playerAnimationState = resolveActorAnimationState({
+      isDead: this.state.playerLogic.isDead(),
+      isHit: this.state.playerLogic.isStunned(now),
+      isFiring: now < this.state.muzzleFlashUntilMs,
+      isMoving: this.state.playerLogic.state.lastAppliedSpeed > 0
+    });
+
     playerSprite.setTint(visual.tint);
     playerSprite.setAlpha(visual.alpha);
-    playerSprite.setScale(ACTOR_BODY_SCALE * visual.scale);
+    playerSprite.setScale(this.skinDefinition.bodyScale * visual.scale);
   }
 
   public updateCrosshair(
@@ -140,12 +190,14 @@ export class VisualController {
     this.state.currentDummyTeam = dummyTeam;
 
     if (this.state.playerSprite !== undefined) {
-      this.state.playerSprite.setTexture(playerTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
+      this.state.playerSprite.setTexture(getActorTeamTexture(this.skinDefinition, playerTeam).textureKey);
     }
 
     if (this.state.targetDummy !== undefined) {
-      this.state.targetDummy.setTexture(dummyTeam === "BLUE" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY);
+      this.state.targetDummy.setTexture(getActorTeamTexture(this.skinDefinition, dummyTeam).textureKey);
     }
+
+    this.applyWeaponLayerVisibility();
   }
 
   public resetActorVisuals(): void {
@@ -154,10 +206,10 @@ export class VisualController {
 
     playerSprite?.setTint(0xffffff);
     playerSprite?.setAlpha(1);
-    playerSprite?.setScale(1);
+    playerSprite?.setScale(this.skinDefinition.bodyScale);
     targetDummy?.setTint(0xffffff);
     targetDummy?.setAlpha(1);
-    targetDummy?.setScale(1);
+    targetDummy?.setScale(this.skinDefinition.bodyScale);
   }
 
   public getWeaponTurretTexture(team: TeamId, weaponId: string): string {
@@ -169,6 +221,35 @@ export class VisualController {
   }
 
   public getActorRotation(angleRadians: number): number {
-    return angleRadians + ACTOR_ROTATION_OFFSET;
+    return angleRadians + this.skinDefinition.rotationOffsetRadians;
+  }
+
+  public getDebugState(): ActorPresentationDebugState {
+    return {
+      skinId: this.skinDefinition.id,
+      weaponLayer: this.skinDefinition.weaponLayer,
+      playerState: this.playerAnimationState,
+      dummyState: this.dummyAnimationState,
+      playerDirection: resolveActorDirection(this.state.playerBodyAngle),
+      dummyDirection: resolveActorDirection(this.state.dummyBodyAngle),
+      playerTextureKey: this.state.playerSprite?.texture.key ?? null,
+      dummyTextureKey: this.state.targetDummy?.texture.key ?? null,
+      playerWeaponVisible: this.state.playerWeaponSprite?.visible ?? false,
+      dummyWeaponVisible: this.state.dummyWeaponSprite?.visible ?? false,
+      destroyed: this.destroyed
+    };
+  }
+
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.state.playerWeaponSprite?.setVisible(false);
+    this.state.dummyWeaponSprite?.setVisible(false);
+  }
+
+  private applyWeaponLayerVisibility(): void {
+    const visible = !this.destroyed && this.skinDefinition.weaponLayer === "external";
+    this.state.playerWeaponSprite?.setVisible(visible);
+    this.state.dummyWeaponSprite?.setVisible(visible);
   }
 }

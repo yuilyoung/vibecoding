@@ -61,6 +61,7 @@ import { HudController } from "./hud-controller";
 import { MatchFlowController } from "./match-flow-controller";
 import { AudioFeedbackController } from "./audio-feedback-controller";
 import { VisualController } from "./visual-controller";
+import { getActorSkinDefinition, type ActorSkinDefinition } from "../domain/visual/ActorSkinCatalog";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
@@ -148,7 +149,8 @@ export class MainScene extends Phaser.Scene {
   private readonly hudController: HudController;
   private readonly matchFlowController: MatchFlowController;
   private readonly audioFeedbackController: AudioFeedbackController;
-  private readonly visualController: VisualController;
+  private visualController!: VisualController;
+  private readonly actorSkinDefinition: ActorSkinDefinition;
   private readonly debugController: DebugController;
   private weatherRenderer!: WeatherRenderer;
   private stageVisualController!: StageVisualController;
@@ -163,9 +165,10 @@ export class MainScene extends Phaser.Scene {
   private dummyHitFeedback: SpriteHitFeedbackState;
   private currentGlobalWeather: WeatherState;
   private currentEffectiveWeather: WeatherState;
-  public constructor(gameBalance: GameBalance) {
+  public constructor(gameBalance: GameBalance, actorSkinDefinition = getActorSkinDefinition(null)) {
     super("MainScene");
     this.gameBalance = gameBalance;
+    this.actorSkinDefinition = actorSkinDefinition;
     this.bossWaveRules = gameBalance.bossWave ?? DEFAULT_BOSS_WAVE_RULES;
     this.playerLogic = new PlayerLogic(gameBalance.maxHealth, {
       movementSpeed: gameBalance.movementSpeed,
@@ -277,11 +280,6 @@ export class MainScene extends Phaser.Scene {
     });
     this.mapObjectController = new MapObjectController(this, {
       gameBalanceMapObjects: this.gameBalance.mapObjects
-    });
-    this.visualController = new VisualController(this, this.runtimeState, {
-      getActiveWeaponId: () => this.combatController.getActiveWeaponSlot().id,
-      getRespawnFxState: (now) => this.matchFlowController.getRespawnFxState(now),
-      isCombatLive: (now) => this.isCombatLive(now)
     });
     this.combatController = new CombatController(this, this.runtimeState, this.vfxController, this.actorCollisionResolver, {
       weaponSlots: this.weaponSlots,
@@ -577,6 +575,12 @@ export class MainScene extends Phaser.Scene {
     this.runtimeState.targetDummy = this.targetDummy;
     this.runtimeState.playerWeaponSprite = this.playerWeaponSprite;
     this.runtimeState.dummyWeaponSprite = this.dummyWeaponSprite;
+    this.visualController = new VisualController(this, this.runtimeState, this.actorSkinDefinition, {
+      getActiveWeaponId: () => this.combatController.getActiveWeaponSlot().id,
+      getRespawnFxState: (now) => this.matchFlowController.getRespawnFxState(now),
+      isCombatLive: (now) => this.isCombatLive(now)
+    });
+    this.visualController.initializeActorPresentation();
     this.mapObjectController.wireSideEffects({
       actors: [
         { id: "player", logic: this.playerLogic, sprite: this.playerSprite },
@@ -605,6 +609,7 @@ export class MainScene extends Phaser.Scene {
 
   private onSceneShutdown(): void {
     unbindMainScenePointer(this, this.handlePointerDown, this);
+    this.visualController?.destroy();
     this.hudController.publishShutdownSnapshot();
     this.mapObjectController.destroy();
     this.stageVisualController?.destroy();

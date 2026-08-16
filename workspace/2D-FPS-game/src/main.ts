@@ -18,6 +18,7 @@ import {
   getWeaponHudAsset,
   getWeatherVisualTheme
 } from "./domain/visual/VisualAssetCatalog";
+import { resolveActorSkinFromSearch } from "./domain/visual/ActorSkinCatalog";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
   applySettingsPanelDraft,
@@ -46,6 +47,7 @@ declare global {
 
 const GAME_VIEWPORT_WIDTH = 960;
 const GAME_VIEWPORT_HEIGHT = 540;
+const actorSkinDefinition = resolveActorSkinFromSearch(window.location.search);
 
 const appRoot = document.querySelector<HTMLDivElement>("#app");
 
@@ -112,7 +114,7 @@ appRoot.innerHTML = `
               <div class="identity-copy">
                 <p class="hud-label">Enemy Operator</p>
                 <strong id="enemy-operator-text">Red hitman</strong>
-                <span>Ground Shaker vehicle</span>
+                <span>${actorSkinDefinition.label}</span>
               </div>
             </div>
             <div class="scoreline">
@@ -130,7 +132,7 @@ appRoot.innerHTML = `
           </section>
         </div>
 
-        <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear">
+        <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear" data-actor-skin="${actorSkinDefinition.id}">
           <div id="game-root" class="game-root"></div>
           <div id="blast-preview" class="blast-preview"></div>
           <div id="cover-vision" class="cover-vision"></div>
@@ -268,7 +270,10 @@ if (gameContainer === null) {
   throw new Error("Missing #game-root element.");
 }
 
-const mainScene = new MainScene(gameBalance as unknown as GameBalance);
+const mainScene = new MainScene(
+  gameBalance as unknown as GameBalance,
+  actorSkinDefinition
+);
 const hudElements = {
   playerPortrait: queryElement("#player-portrait"),
   playerOperatorText: queryText("#player-operator-text"),

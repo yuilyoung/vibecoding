@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { classifyPrompt, createRun, pendingGate, transition } from "../lib/harness-engine.mjs";
 import { CompositeStatusObserver, DashboardAgentActivityObserver, DashboardStatusObserver, JsonlHarnessStore, NullAgentActivityObserver } from "../lib/harness-store.mjs";
-import { dashboardProjectId, processHook } from "./harness-controller.mjs";
+import { dashboardProjectId, processHook, resolveWorkspaceEntryPath, workspaceFingerprint } from "./harness-controller.mjs";
 import { validateAgentEvent } from "../../../scripts/dashboard-observability.mjs";
 import { deriveDashboardProjectId } from "../../../scripts/dashboard-project-id.mjs";
 
@@ -17,6 +18,17 @@ const withRuntime = (run) => {
 };
 
 const loadStatus = (root, session = "session-1") => JSON.parse(readFileSync(path.join(root, session, "status.json"), "utf8"));
+
+const withGitRepository = (run) => withRuntime((root) => {
+  const git = (...args) => execFileSync("git", args, { cwd: root, stdio: "pipe", maxBuffer: 32 * 1024 * 1024 });
+  git("init", "--quiet");
+  git("config", "user.email", "harness@example.invalid");
+  git("config", "user.name", "Harness Test");
+  writeFileSync(path.join(root, "tracked.txt"), "baseline\n", "utf8");
+  git("add", "tracked.txt");
+  git("commit", "--quiet", "-m", "baseline");
+  return run({ root, git });
+});
 
 test("classifies Korean and English prompts without routing read-only review into delivery", () => {
   assert.equal(classifyPrompt("\uad6c\ud604\ud574\uc918"), "delivery");
@@ -229,4 +241,107 @@ test("fingerprint failures deny edits after approval and cannot become reusable 
   assert.equal(edit.hookSpecificOutput.permissionDecision, "deny");
   assert.match(edit.hookSpecificOutput.permissionDecisionReason, /git unavailable/);
   assert.equal(loadStatus(root).state, "design-approved");
+}));
+
+test("workspace fingerprint is stable and changes for tracked, untracked, and deleted content", () => withGitRepository(({ root }) => {
+  const baseline = workspaceFingerprint(root);
+  assert.equal(workspaceFingerprint(root), baseline);
+
+  writeFileSync(path.join(root, "tracked.txt"), "changed\n", "utf8");
+  const tracked = workspaceFingerprint(root);
+  assert.notEqual(tracked, baseline);
+  assert.equal(workspaceFingerprint(root), tracked);
+
+  writeFileSync(path.join(root, "untracked 한글.txt"), "untracked-a\n", "utf8");
+  const untracked = workspaceFingerprint(root);
+  assert.notEqual(untracked, tracked);
+  writeFileSync(path.join(root, "untracked 한글.txt"), "untracked-b\n", "utf8");
+  assert.notEqual(workspaceFingerprint(root), untracked);
+
+  rmSync(path.join(root, "tracked.txt"));
+  const deleted = workspaceFingerprint(root);
+  assert.notEqual(deleted, untracked);
+  assert.equal(workspaceFingerprint(root), deleted);
+}));
+
+test("workspace fingerprint streams changed tracked files beyond the former diff buffer", () => withGitRepository(({ root, git }) => {
+  const largePath = path.join(root, "large.txt");
+  writeFileSync(largePath, Buffer.alloc(9 * 1024 * 1024, 0x61));
+  git("add", "large.txt");
+  git("commit", "--quiet", "-m", "large baseline");
+  writeFileSync(largePath, Buffer.alloc(9 * 1024 * 1024, 0x62));
+  const legacyDiff = git("diff", "--no-ext-diff", "--binary", "HEAD", "--", ".");
+  assert.ok(legacyDiff.length > 8 * 1024 * 1024);
+  const fingerprint = workspaceFingerprint(root);
+  assert.match(fingerprint, /^[a-f0-9]{64}$/);
+  assert.equal(workspaceFingerprint(root), fingerprint);
+}));
+
+test("workspace fingerprint rejects escaping and malformed status paths", () => withRuntime((root) => {
+  assert.throws(() => resolveWorkspaceEntryPath(root, "../escape.txt"), /escapes the repository/);
+  const head = Buffer.from("0123456789012345678901234567890123456789\n");
+  const git = (_workspace, args) => args[0] === "rev-parse" ? head : Buffer.from("?? ../escape.txt\0");
+  assert.throws(() => workspaceFingerprint(root, { git }), /escapes the repository/);
+  const malformedGit = (_workspace, args) => args[0] === "rev-parse" ? head : Buffer.from("malformed\0");
+  assert.throws(() => workspaceFingerprint(root, { git: malformedGit }), /malformed Git status/);
+}));
+
+test("workspace fingerprint hashes symlink targets without following them", () => withRuntime((root) => {
+  const head = Buffer.from("0123456789012345678901234567890123456789\n");
+  const git = (_workspace, args) => args[0] === "rev-parse" ? head : Buffer.from("?? link\0");
+  const metadata = {
+    mode: 41471n,
+    size: 8n,
+    mtimeNs: 100n,
+    isSymbolicLink: () => true,
+    isFile: () => false,
+  };
+  const fileSystem = (target) => ({
+    lstatSync: () => metadata,
+    readlinkSync: () => target,
+  });
+  const first = workspaceFingerprint(root, { git, fileSystem: fileSystem("target-a") });
+  const second = workspaceFingerprint(root, { git, fileSystem: fileSystem("target-b") });
+  assert.notEqual(first, second);
+}));
+
+test("workspace fingerprint fails closed on missing, unsupported, and racing entries", () => withRuntime((root) => {
+  const head = Buffer.from("0123456789012345678901234567890123456789\n");
+  const gitFor = (status) => (_workspace, args) => args[0] === "rev-parse" ? head : Buffer.from(status);
+  const missing = Object.assign(new Error("missing"), { code: "ENOENT" });
+  assert.throws(() => workspaceFingerprint(root, {
+    git: gitFor(" M tracked.txt\0"),
+    fileSystem: { lstatSync: () => { throw missing; } },
+  }), /cannot be inspected/);
+  assert.match(workspaceFingerprint(root, {
+    git: gitFor(" D deleted.txt\0"),
+    fileSystem: { lstatSync: () => { throw missing; } },
+  }), /^[a-f0-9]{64}$/);
+
+  const unsupported = {
+    mode: 4096n,
+    size: 0n,
+    mtimeNs: 100n,
+    isSymbolicLink: () => false,
+    isFile: () => false,
+  };
+  assert.throws(() => workspaceFingerprint(root, {
+    git: gitFor("?? socket\0"),
+    fileSystem: { lstatSync: () => unsupported },
+  }), /unsupported file type/);
+
+  let statCount = 0;
+  const racingFileSystem = {
+    lstatSync: () => ({
+      mode: 33188n,
+      size: 3n * 1024n * 1024n,
+      mtimeNs: BigInt(++statCount),
+      isSymbolicLink: () => false,
+      isFile: () => true,
+    }),
+  };
+  assert.throws(() => workspaceFingerprint(root, {
+    git: gitFor("?? large.bin\0"),
+    fileSystem: racingFileSystem,
+  }), /changed while fingerprinting/);
 }));

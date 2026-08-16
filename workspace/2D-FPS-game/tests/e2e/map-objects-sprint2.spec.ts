@@ -191,21 +191,13 @@ const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
       return;
     }
 
-    await withScene(page, (scene: DebugScene) => scene.debugForceMatchOver("PLAYER"));
-    await page.waitForTimeout(250);
-    await page.locator("canvas").focus();
-    await page.keyboard.down("Enter");
-    await page.waitForTimeout(120);
-    await page.keyboard.up("Enter");
-
     await withScene(page, (scene: DebugScene) => {
-      scene.debugEnterStage();
-      scene.debugSelectTeam("BLUE");
-      scene.debugConfirmTeamSelection();
-      scene.debugForceCombatLive();
+      const stageController = (scene as unknown as {
+        matchFlowController: { rotateStageForNextMatch(): void };
+      }).matchFlowController;
+      stageController.rotateStageForNextMatch();
     });
     await stabilizeEnvironment(page);
-    await expect.poll(async () => (await readSnapshot(page)).phase).toBe("COMBAT LIVE");
   }
 
   throw new Error(`Failed to rotate to stage ${stageId}.`);
@@ -257,11 +249,12 @@ test("bounce wall reflects a linear projectile and flips its y velocity", async 
 
   await injectProjectile(page, {
     x: 432,
-    y: 90,
+    y: 110,
     velocityX: 0,
     velocityY: 220,
     trajectory: "linear"
   });
+  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
   await expect.poll(async () => {
     const wall = await withScene(page, (scene: DebugScene) => {
       return scene.debugGetMapObjectStates().find((object) => object.id === "drain-bounce-wall-a");

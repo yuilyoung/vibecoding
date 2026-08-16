@@ -1,0 +1,96 @@
+{
+  "phase": "phase-11",
+  "name": "Quaternius Animated Character POC",
+  "created": "2026-08-13",
+  "status": "implementation-in-progress",
+  "architecture": "./phase11-animated-character-poc-architecture.md",
+  "wbs": "./phase11-wbs.md",
+  "previousPhase": {
+    "id": "phase-10-character-skin-foundation-poc",
+    "tasks": "./phase10-tasks.json",
+    "status": "complete"
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Approve source, pipeline, animation matrix, budgets, fallback, exclusions, and verification contract",
+      "assignee": "vision/product + product_owner + ultron/codex",
+      "status": "completed",
+      "files": [
+        "docs/planning/phase11-animated-character-poc-architecture.md",
+        "docs/planning/phase11-wbs.md",
+        "docs/planning/phase11-tasks.json"
+      ],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "Re-verify and vendor Quaternius free-core CC0 sources and provenance",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "completed": "2026-08-17",
+      "depends": ["T0"],
+      "files": ["public/assets/source/quaternius-*", "public/assets/source/ASSET_MANIFEST.md"],
+      "acceptance": ["A2"],
+      "evidence": [
+        "Base Characters SHA-256 fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+        "Animation Library SHA-256 cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
+        "Sorted streamed inventories cover all 112 Base Characters entries and all 9 Animation Library entries",
+        "Acquisition-time official CC0 snapshots, byte-exact archive licenses, deterministic provenance verification, and independent review passed"
+      ]
+    },
+    {
+      "id": "T2",
+      "subject": "Implement the pinned reproducible Blender-to-atlas build adapter",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "completed": "2026-08-17",
+      "depends": ["T1"],
+      "files": ["tools/actor-atlas", "package.json", "package-lock.json", "public/assets/runtime/actors"],
+      "acceptance": ["A3", "A4"],
+      "evidence": [
+        "Pinned Blender 4.5.12 LTS Windows x64 archive SHA-256 103b9f7d0b41cbb5fd89ad1c5c4aafbbeb5bfd71297667910446d0141ce3b43a, executable SHA-256 7fbcc9f2b4a99ad19c1f9deb15c3e6786e62c7ccb624f66009b41b8203c0eba9, and build 84afd5f785f7 verified",
+        "Two isolated 352-frame clean generations matched byte-for-byte and decoded-pixel-for-decoded-pixel before complete-directory promotion",
+        "BLUE and RED each emit 176 stable keys, one 2048x2048 lossless WebP, valid Phaser JSON, mipmaps disabled, and zero dirty transparent pixels",
+        "Combined transfer is 788828 bytes and raw RGBA GPU memory is 33554432 bytes",
+        "Focused 13-test generator contract suite, type-check, lint, 58-file/344-test Vitest suite, production build, scoped diff check, visual inspection, and independent review passed"
+      ]
+    },
+    {
+      "id": "T3",
+      "subject": "Extract actor composition and integrate the opt-in animated skin",
+      "assignee": "ultron/codex",
+      "status": "pending",
+      "depends": ["T2"],
+      "files": ["src/domain/visual/ActorSkinCatalog.ts", "src/scenes", "src/main.ts"],
+      "acceptance": ["A5", "A6"]
+    },
+    {
+      "id": "T4",
+      "subject": "Verify animation, fallback, web budgets, performance, readability, and console state",
+      "assignee": "ultron/codex",
+      "status": "pending",
+      "depends": ["T3"],
+      "files": ["tests", "scripts", "docs/development/playtest-log.md"],
+      "acceptance": ["A7"]
+    },
+    {
+      "id": "T5",
+      "subject": "Run full gates and close Phase 11 delivery state",
+      "assignee": "ultron/codex + reviewer",
+      "status": "pending",
+      "depends": ["T4"],
+      "acceptance": ["A8"]
+    }
+  ],
+  "acceptanceMap": {
+    "A1": "The approved architecture locks Quaternius CC0 inputs, 176 frames per team, two 2048px atlases, explicit web budgets, fallback, exclusions, and deterministic verification before source or code changes.",
+    "A2": "Official CC0 facts are re-verified at acquisition and exact vendored inputs have local license, URL/date, and SHA-256 provenance.",
+    "A3": "One offline command pins Blender 4.5.12, rejects mismatches, confines partial output to staging, and atomically promotes only complete output.",
+    "A4": "Two clean generations are byte-identical and satisfy the fixed frame keys, atlas count/dimensions, manifest, transfer, GPU, and hash contracts.",
+    "A5": "Actor presentation composition is extracted before integration and MainScene stays within 850 lines with idempotent scene cleanup.",
+    "A6": "The animated POC is opt-in, Ground Shaker remains the total fallback, and no gameplay or persistence rule changes.",
+    "A7": "Animation/readability/console evidence passes in five weather states and measured transfer, GPU, p95 frame time, and regression stay within budget.",
+    "A8": "Focused/full verification, current-fingerprint review, drift, postflight, status, handoff, and next-task output all pass and agree."
+  }
+}

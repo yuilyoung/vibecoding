@@ -67,10 +67,51 @@ Notable files:
 - `body/body_plasma_01.png`
 - modular barrel, stock, and scope folders for future composition
 
+5. `quaternius-universal-base-characters`
+Official source: https://quaternius.com/packs/universalbasecharacters.html
+Official download page: https://quaternius.itch.io/universal-base-characters
+Direct file request: https://quaternius.itch.io/universal-base-characters/file/15861669?source=game_download
+Acquired: 2026-08-17 (Asia/Seoul)
+Downloaded file: `quaternius-universal-base-characters/Universal Base Characters[Standard].zip`
+Original filename: `Universal Base Characters[Standard].zip`
+Bytes: `128968391`
+SHA-256: `fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40`
+License: CC0 1.0 Universal / Public Domain Dedication
+Local license evidence: `quaternius-universal-base-characters/LICENSE.from-archive.txt`
+Provenance: `quaternius-universal-base-characters/PROVENANCE.md`
+Entry inventory: `quaternius-universal-base-characters/CONTENTS.sha256` (`38fd855a356379b2dd0bd32c389c997e8fc6a8d9e16ce1a89bcc80833ac192f9`)
+
+Verified contents:
+- Free Standard upload, itch.io upload ID `15861669`
+- 112 file entries: 26 FBX, 18 glTF, 18 BIN, 48 PNG, and 2 TXT
+- Sorted per-entry inventory records normalized path, uncompressed bytes, and SHA-256 for all 112 files
+- Official-page snapshot and canonical CC0 legal code are stored beside the archive with their hashes in `PROVENANCE.md`
+
+6. `quaternius-universal-animation-library`
+Official source: https://quaternius.com/packs/universalanimationlibrary.html
+Official download page: https://quaternius.itch.io/universal-animation-library
+Direct file request: https://quaternius.itch.io/universal-animation-library/file/17958403?source=game_download
+Acquired: 2026-08-17 (Asia/Seoul)
+Downloaded file: `quaternius-universal-animation-library/Universal Animation Library[Standard].zip`
+Original filename: `Universal Animation Library[Standard].zip`
+Bytes: `15904933`
+SHA-256: `cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724`
+License: CC0 1.0 Universal / Public Domain Dedication
+Local license evidence: `quaternius-universal-animation-library/LICENSE.from-archive.txt`
+Provenance: `quaternius-universal-animation-library/PROVENANCE.md`
+Entry inventory: `quaternius-universal-animation-library/CONTENTS.sha256` (`237b76b03ee017fce45b34fafca61f68466d6061a276c9f8b4cff91b5b9cb98a`)
+
+Verified contents:
+- Free Standard upload, itch.io upload ID `17958403`
+- 9 file entries: 2 FBX, 2 GLB, 3 PNG, and 2 TXT
+- Sorted per-entry inventory records normalized path, uncompressed bytes, and SHA-256 for all 9 files
+- Official-page snapshot and canonical CC0 legal code are stored beside the archive with their hashes in `PROVENANCE.md`
+
 ## Notes
 
 - Kenney UI and weapon icons are already used at runtime.
 - Ground Shaker body and turret sprites are now copied into `public/assets/runtime/sprites`.
 - PIXWEP HUD weapon icons are now copied into `public/assets/runtime/sprites`.
+- Quaternius Phase 11 inputs remain source-only; no Blender output or runtime actor atlas is included in this T1 acquisition.
 - Keep the original license files in place.
 - Prefer copying selected runtime-ready files into a dedicated game-facing path before integrating them in code.

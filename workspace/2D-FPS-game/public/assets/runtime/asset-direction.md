@@ -51,9 +51,11 @@ This note defines the intended runtime art mapping for the current top-down braw
   - Carbine and scatter should each keep one visual language across HUD icon, world turret, projectile tint, and impact feedback.
 
 - Actor identity
-  - Ground Shaker tank bodies and turrets remain the world actors.
+  - Ground Shaker tank bodies and turrets remain the default world actors and total fallback.
   - Kenney Top-down Shooter operator sprites are used as player/enemy HUD portraits.
   - This separation keeps collision and aim silhouettes stable while adding recognizable character identity.
+  - The opt-in `?actorSkin=kenney-infantry` contract POC uses `sprites/actor-infantry-blue.png` and `sprites/actor-infantry-red.png` with embedded weapons.
+  - The static infantry POC validates selection, team mapping, and presentation ownership only; it is not the deferred eight-direction 2.5D animation deliverable.
 
 - Source policy
   - Runtime paths resolve through `src/domain/visual/VisualAssetCatalog.ts`.

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { getActorSkinDefinition } from "../domain/visual/ActorSkinCatalog";
 import {
   GROUND_BODY_BLUE_KEY,
   GROUND_BODY_RED_KEY,
@@ -24,6 +25,8 @@ export function getBrowserStorageBackend(): Storage {
 }
 
 export function preloadMainSceneAssets(scene: Phaser.Scene): void {
+  const infantrySkin = getActorSkinDefinition("kenney-infantry");
+
   scene.load.image(WEAPON_MACHINE_KEY, "/assets/runtime/sprites/weapon-machine.png");
   scene.load.image(WEAPON_GUN_KEY, "/assets/runtime/sprites/weapon-gun.png");
   scene.load.image(GROUND_BODY_BLUE_KEY, "/assets/runtime/sprites/ground-body-blue.png");
@@ -45,7 +48,8 @@ export function preloadMainSceneAssets(scene: Phaser.Scene): void {
     frameWidth: TURRET_FRAME_WIDTH,
     frameHeight: TURRET_FRAME_HEIGHT
   });
-
+  scene.load.image(infantrySkin.teamTextures.BLUE.textureKey, infantrySkin.teamTextures.BLUE.runtimePath);
+  scene.load.image(infantrySkin.teamTextures.RED.textureKey, infantrySkin.teamTextures.RED.runtimePath);
 }
 
 export function createBootstrapVisualRefs(scene: Phaser.Scene): BootstrapVisualRefs {

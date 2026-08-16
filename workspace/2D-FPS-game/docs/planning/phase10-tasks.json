@@ -1,0 +1,68 @@
+{
+  "phase": "phase-10",
+  "name": "Character Skin Foundation POC",
+  "created": "2026-08-12",
+  "status": "complete",
+  "architecture": "./phase10-character-skin-architecture.md",
+  "research": "./phase10-2.5d-skin-research.md",
+  "wbs": "./phase10-wbs.md",
+  "previousPhase": {
+    "id": "phase-9-visual-identity-readability",
+    "tasks": "./phase9-tasks.json",
+    "status": "complete"
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Lock product scope, architecture, fallback, and verification contract",
+      "assignee": "ultron/codex + product_owner",
+      "status": "completed",
+      "files": ["docs/planning/phase10-character-skin-architecture.md", "docs/planning/phase10-wbs.md", "docs/planning/phase10-tasks.json"],
+      "acceptance": ["A1"]
+    },
+    {
+      "id": "T1",
+      "subject": "Add the actor skin contract and promote the vendored Kenney POC textures",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T0"],
+      "files": ["src/domain/visual/ActorSkinCatalog.ts", "public/assets/runtime/sprites/actor-infantry-blue.png", "public/assets/runtime/sprites/actor-infantry-red.png"],
+      "acceptance": ["A2", "A3"]
+    },
+    {
+      "id": "T2",
+      "subject": "Integrate URL selection and scene-lifetime actor presentation ownership",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T1"],
+      "files": ["src/main.ts", "src/scenes/MainScene.ts", "src/scenes/scene-bootstrap.ts", "src/scenes/visual-controller.ts"],
+      "acceptance": ["A4", "A5"]
+    },
+    {
+      "id": "T3",
+      "subject": "Add focused unit and browser automation for presentation and lifecycle",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "depends": ["T2"],
+      "files": ["tests/ActorSkinCatalog.test.ts", "tests/e2e/phase10-character-skin.spec.ts", "tests/e2e/phase3-smoke.spec.ts"],
+      "acceptance": ["A6"]
+    },
+    {
+      "id": "T4",
+      "subject": "Run full gates and close the delivery state",
+      "assignee": "ultron/codex + reviewer",
+      "status": "completed",
+      "depends": ["T3"],
+      "acceptance": ["A7"]
+    }
+  ],
+  "acceptanceMap": {
+    "A1": "Product-owner approval and an interface-first three-layer architecture are recorded before implementation.",
+    "A2": "The Phaser-independent contract represents two skins, two teams, five animation states, eight directions, source metadata, explicit fallback, and weapon-layer policy.",
+    "A3": "The two POC runtime textures exist, trace to vendored Kenney CC0 sources, and add no network or purchase dependency.",
+    "A4": "Missing, legacy, or invalid URL selection preserves Ground Shaker bodies and external weapons; kenney-infantry swaps deterministic team textures and hides external weapons.",
+    "A5": "One scene-lifetime controller owns body and weapon presentation, team swaps, effects, transforms, debug state, and idempotent shutdown while gameplay and collision stay unchanged.",
+    "A6": "Focused unit and browser tests cover fallback, teams, states, directions, asset existence, weather, scene shutdown plus page restart cleanup, screenshots, and console errors.",
+    "A7": "Static, full unit, build, full browser, MainScene LOC, status, reviewer, drift, and postflight gates pass for the current fingerprint."
+  }
+}

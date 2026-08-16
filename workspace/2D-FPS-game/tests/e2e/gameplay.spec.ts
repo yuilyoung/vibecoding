@@ -74,7 +74,16 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
   await page.waitForFunction(() => {
     const game = window.__FPS_GAME__;
     const scene = game?.scene.keys.MainScene as { getDebugSnapshot?: () => unknown } | undefined;
-    return typeof scene?.getDebugSnapshot === "function";
+    if (typeof scene?.getDebugSnapshot !== "function") {
+      return false;
+    }
+
+    try {
+      scene.getDebugSnapshot();
+      return true;
+    } catch {
+      return false;
+    }
   });
 };
 

@@ -15,6 +15,7 @@
 
 - Treat `scope`, `constraints`, `acceptance`, and `files` as the execution contract.
 - Prefer the active implementation baseline over older roadmap documents when they conflict.
+- When a handoff references a multi-phase product program, keep the current phase executable and keep later phases locked behind their stated entry gates; do not silently widen the active slice.
 - Make the smallest defensible change, then update the execution report only with observed results.
 - Keep final status fields consistent: implementation-ready, finalizing, and completed are different delivery states.
 
