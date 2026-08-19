@@ -14,9 +14,10 @@ const CHILD_ENVIRONMENT_KEYS = ["PATH", "PATHEXT", "SystemRoot", "SYSTEMROOT", "
 const TARGET_ASPECT_RATIO = 9 / 16;
 const TARGET_ASPECT_RATIO_TOLERANCE = 0.001;
 const USER_REFERENCE_EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
-const DEFAULT_TIMEOUT_MS = 300_000;
+const DEFAULT_TIMEOUT_MS = 600_000;
 const MIN_TIMEOUT_MS = 60_000;
 const MAX_TIMEOUT_MS = 600_000;
+const USER_IMAGE_MAX_ATTEMPTS = 2;
 const STDERR_DIAGNOSTIC_LIMIT = 8 * 1024;
 const PROBE_PROMPT = `
 Use $imagegen to create exactly one original, non-identifying photorealistic still for a local capability probe.
@@ -190,6 +191,13 @@ function sanitizedEnvironment(environment) {
 function cleanupWarning(workspace, osCode, code = "cleanup_warning") {
   return { code, workspace: basename(workspace), osCode };
 }
+function combineCleanupWarnings(first, second) {
+  if (!first) return second ?? null;
+  if (!second) return first;
+  const workspace = [first.workspace, second.workspace].filter((value) => typeof value === "string" && value.length).join(",") || "multiple_workspaces";
+  const osCode = [first.osCode, second.osCode].filter((value) => typeof value === "string" && value.length).join(",") || "multiple";
+  return { code: "cleanup_warning_multiple", workspace, osCode };
+}
 
 export async function cleanupProbeWorkspace({ workspace, temporaryDirectory, remove = rm, wait = delay, attempts = 3 }) {
   const safeTemporaryDirectory = resolve(temporaryDirectory);
@@ -309,7 +317,22 @@ export class HeadlessCodexImageProvider {
     }
     return warning ? { ...asset, cleanupWarning: warning } : asset;
   }
-  async generateUserImage({ prompt, reference = null, output = { kind: "still", frameCount: 1 }, onPhase = () => {} } = {}) {
+  async generateUserImage(options = {}) {
+    try {
+      return await this.generateUserImageAttempt(options);
+    } catch (error) {
+      if (error?.code !== "provider_output_missing" || USER_IMAGE_MAX_ATTEMPTS < 2) throw error;
+      try {
+        const retriedAsset = await this.generateUserImageAttempt(options);
+        const warning = combineCleanupWarnings(error.cleanupWarning, retriedAsset.cleanupWarning);
+        return warning ? { ...retriedAsset, cleanupWarning: warning } : retriedAsset;
+      } catch (retryError) {
+        if (retryError && typeof retryError === "object") retryError.cleanupWarning = combineCleanupWarnings(error.cleanupWarning, retryError.cleanupWarning);
+        throw retryError;
+      }
+    }
+  }
+  async generateUserImageAttempt({ prompt, reference = null, output = { kind: "still", frameCount: 1 }, onPhase = () => {} } = {}) {
     if (!this.status().enabled) throw new HeadlessImageProviderError("provider_not_configured", "Headless image generation is disabled on this Studio API process.");
     if (typeof prompt !== "string" || !prompt.trim()) throw new HeadlessImageProviderError("invalid_prompt", "A validated image prompt is required.");
     if (reference && (!Buffer.isBuffer(reference.bytes) || !USER_REFERENCE_EXTENSIONS[reference.mimeType])) throw new HeadlessImageProviderError("invalid_reference", "The 2D reference image is invalid.");

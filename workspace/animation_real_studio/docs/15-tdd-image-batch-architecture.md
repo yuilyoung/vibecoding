@@ -95,13 +95,13 @@ sequenceDiagram
 | `StudioPhotoProjectAdapter` | server composition root | application | non-owning reference to StudioService |
 | `ImageBatchService` | server composition root | application | in-memory batches expire with process; clear after provider shutdown |
 | Batch | ImageBatchService | API session | sanitized metadata only |
-| Variant operation | existing StudioService | task | exactly one provider workspace, cleanup in provider `finally` path |
+| Variant operation | existing StudioService | task | one fresh provider workspace per attempt; at most two attempts only for missing output; cleanup after every attempt |
 | `HttpImageBatchRepository` | browser composition root | page | stateless; abort in-flight requests on ViewModel disposal |
 | ViewModel polling timer | ViewModel | active batch | clear on terminal state or unmount |
 | 2D reference state | ViewModel | mounted `/real` page | clear on text-mode switch or unmount; bytes are never copied into batch snapshots |
 | `DEFAULT_IMAGE_BATCH_SETTINGS` | Business module | application/module | deeply frozen; copied into each ViewModel and never mutated by Presentation |
 
-The batch fan-out uses `Promise.all` over at most three create operations. No batch lock is held across provider work or callbacks. Selection is synchronous against one in-memory batch record. Retry remains owned by the existing provider operation; batch orchestration does not duplicate retries.
+The batch fan-out uses `Promise.all` over at most three create operations. No batch lock is held across provider work or callbacks. Selection is synchronous against one in-memory batch record. Retry remains owned by the existing provider operation; batch orchestration does not duplicate retries. Only `provider_output_missing` receives one transparent retry in a fresh workspace. Provider timeouts and all other failure codes remain terminal for that variant.
 
 ## Domain and data decisions
 

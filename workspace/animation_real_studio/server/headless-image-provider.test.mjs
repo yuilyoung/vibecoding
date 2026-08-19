@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
 import { cleanupProbeWorkspace, HeadlessCodexImageProvider, HeadlessImageProviderError, runCodexExec } from "./headless-image-provider.mjs";
@@ -173,7 +173,7 @@ test("headless provider preserves a timeout failure code and deletes its tempora
 
 test("headless provider uses a bounded configurable execution deadline", () => {
   const defaultProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1" } });
-  assert.equal(defaultProvider.timeoutMs, 300_000);
+  assert.equal(defaultProvider.timeoutMs, 600_000);
   const configuredProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "120000" } });
   assert.equal(configuredProvider.timeoutMs, 120_000);
   const clampedProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "1" } });
@@ -181,7 +181,7 @@ test("headless provider uses a bounded configurable execution deadline", () => {
   const upperBoundProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "900000" } });
   assert.equal(upperBoundProvider.timeoutMs, 600_000);
   const invalidProvider = new HeadlessCodexImageProvider({ environment: { STUDIO_HEADLESS_IMAGEGEN: "1", STUDIO_HEADLESS_IMAGEGEN_TIMEOUT_MS: "not-a-number" } });
-  assert.equal(invalidProvider.timeoutMs, 300_000);
+  assert.equal(invalidProvider.timeoutMs, 600_000);
 });
 
 function lockedCleanupError(code = "EBUSY") {
@@ -320,6 +320,87 @@ test("headless provider removes an attached 2D source when Codex fails", async (
     assert.deepEqual(phases, ["workspace_prepared"]);
     await assert.rejects(access(invocation.cwd));
   } finally { await rm(outputDirectory, { recursive: true, force: true }); }
+});
+test("headless provider retries a missing user image once in a fresh workspace", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  const workspaces = [];
+  const provider = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    userOutputDirectory: join(outputDirectory, "stills"),
+    newId: () => "missing-output-retry",
+    run: async (call) => {
+      workspaces.push(call.cwd);
+      call.onStarted();
+      if (workspaces.length === 2) await writeFile(call.outputPath, portraitPng(1080, 1920));
+      return { exitCode: 0 };
+    },
+  });
+  try {
+    const asset = await provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait." });
+    assert.equal(asset.kind, "user_photorealistic_still");
+    assert.equal(workspaces.length, 2);
+    assert.notEqual(workspaces[0], workspaces[1]);
+    await Promise.all(workspaces.map((workspace) => assert.rejects(access(workspace))));
+  } finally { await rm(outputDirectory, { recursive: true, force: true }); }
+});
+test("headless provider exhausts one missing-output retry and never retries non-retryable failures", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  const missingWorkspaces = [];
+  let failedCalls = 0;
+  const missing = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    run: async (call) => { missingWorkspaces.push(call.cwd); return { exitCode: 0 }; },
+  });
+  const failed = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    run: async () => { failedCalls += 1; return { exitCode: 1, providerDiagnostics: { diagnosticCode: "provider_exit_nonzero", exitCode: 1 } }; },
+  });
+  try {
+    await assert.rejects(missing.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait." }), (error) => error instanceof HeadlessImageProviderError && error.code === "provider_output_missing");
+    assert.equal(missingWorkspaces.length, 2);
+    assert.notEqual(missingWorkspaces[0], missingWorkspaces[1]);
+    await Promise.all(missingWorkspaces.map((workspace) => assert.rejects(access(workspace))));
+    await assert.rejects(failed.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait." }), (error) => error instanceof HeadlessImageProviderError && error.code === "provider_failed");
+    assert.equal(failedCalls, 1);
+  } finally { await rm(outputDirectory, { recursive: true, force: true }); }
+});
+test("headless provider preserves a first-attempt cleanup warning when a referenced-image retry also fails", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));
+  const workspaces = [];
+  const reference = portraitPng();
+  const provider = new HeadlessCodexImageProvider({
+    environment: { STUDIO_HEADLESS_IMAGEGEN: "1" },
+    outputDirectory,
+    cleanup: async (workspace, options) => {
+      if (workspace === workspaces[0]) throw lockedCleanupError("EPERM");
+      return rm(workspace, options);
+    },
+    wait: async () => {},
+    run: async (call) => {
+      workspaces.push(call.cwd);
+      const stagedReference = call.args[call.args.indexOf("--image") + 1];
+      assert.deepEqual(await readFile(stagedReference), reference);
+      return { exitCode: 0 };
+    },
+  });
+  try {
+    await assert.rejects(
+      provider.generateUserImage({ prompt: "Create an original adult-safe rain-lit portrait.", reference: { mimeType: "image/png", bytes: reference } }),
+      (error) => error instanceof HeadlessImageProviderError
+        && error.code === "provider_output_missing"
+        && error.cleanupWarning?.workspace === basename(workspaces[0])
+        && error.cleanupWarning?.osCode === "EPERM",
+    );
+    assert.equal(workspaces.length, 2);
+    assert.notEqual(workspaces[0], workspaces[1]);
+    await assert.rejects(access(workspaces[1]));
+  } finally {
+    await Promise.all(workspaces.map((workspace) => cleanupProbeWorkspace({ workspace, temporaryDirectory: tmpdir() })));
+    await rm(outputDirectory, { recursive: true, force: true });
+  }
 });
 test("headless provider assembles a requested motion GIF only after validating the generated PNG", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "ars-headless-provider-output-"));

@@ -62,6 +62,8 @@ An optional trusted-local `sourceInput` is forwarded to independent variant oper
 
 `GET /api/image-batches/:batchId` returns the sanitized batch. Each variant contains its own `status`, `progress`, `phase`, safe `error`, and terminal delivery if available.
 
+The trusted-local provider gives each attempt a bounded 600-second default deadline. A successful Codex exit without the required PNG is retried exactly once inside the same variant operation using a fresh disposable workspace. Other provider failures remain terminal for that variant, preserving partial batch results without duplicating sibling operations.
+
 ### Select
 
 `POST /api/image-batches/:batchId/selection` with `{ "variantId": "..." }`. `200` returns the batch. Selecting the same variant preserves the revision. Selecting another completed variant increments it. Unknown, foreign, or non-completed variants return `409`.
