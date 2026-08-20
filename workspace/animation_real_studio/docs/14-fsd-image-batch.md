@@ -16,7 +16,7 @@ Protocol version: `image-batch.v1`.
 | IMG-008 | Errors use stable codes; deterministic tests cover validation, concurrency, partial failure, mapping, and keyboard-visible selection. |
 | IMG-009 | Retouch endpoints are absent in v1; the UI labels retouch as a later gated sprint. |
 | IMG-010 | `DEFAULT_IMAGE_BATCH_SETTINGS` is the immutable source for brief, mode, reference focus, output defaults, variant count, and acknowledgement. Subject changes use one Business mapping and preserve unrelated scene/story/output values. |
-| IMG-011 | A server-confirmed completed selection opens `/image-projects/{batchId}`; save re-fetches the batch and rejects a changed variant or revision before storing metadata-only `image-project.v1`. |
+| IMG-011 | A server-confirmed completed selection opens `/image-projects/{batchId}`; every save re-fetches the batch and rejects a changed variant or revision before storing metadata-only `image-project.v2` with an actionable three-item workboard. |
 
 ## HTTP JSON protocol
 
@@ -105,5 +105,10 @@ IMG-011 acceptance is covered by Business tests for selection matching and metad
 1. 완료되고 delivery가 있는 후보의 selection 응답이 성공해야 `이 이미지로 프로젝트 시작`이 활성화된다.
 2. CTA는 `/image-projects/{batchId}`로 이동하며 해당 화면은 `ImageBatchRepository.get`으로 최신 selection을 다시 검증한다.
 3. 사용자는 2~60자 제목, allow-list 목적, 10~280자 창작 의도를 확정한다.
-4. 저장 계약 `image-project.v1`은 batch/variant/revision과 프로젝트 메타데이터만 sessionStorage에 보관하며 이미지 data URI를 복사하지 않는다.
+4. 저장 계약 `image-project.v2`는 batch/variant/revision, 프로젝트 메타데이터, 목적별 고정 작업 3개와 메모만 sessionStorage에 보관하며 이미지 data URI를 복사하지 않는다. 유효한 v1은 읽기 시 메모리에서 v2 기본 작업으로 전환하고 다음 성공 저장부터 v2로 기록한다.
 5. selection 없음, 완료되지 않은 후보, delivery 없음, 404는 프로젝트 정상 상태가 아니라 새 이미지 생성으로 돌아갈 수 있는 오류 상태다.
+6. 작업 상태는 `todo | in_progress | done`, 항목 메모는 240자, 공통 메모는 600자 경계다. 진행률과 다음 행동은 Business에서 파생한다.
+7. 목적 변경은 작업 상태와 항목 메모를 초기화하므로 명시적 확인이 필요하며 공통 프로젝트 메모는 보존한다.
+8. 작업 보드 저장도 최신 selection revision을 다시 확인하고, 성공·실패를 화면에 명시한다.
+9. 저장소는 v2 전체 필드를 런타임 검증한 뒤 allow-list 필드만 직렬화하고 독립 snapshot을 반환한다. 시각은 애플리케이션이 생성하는 canonical UTC ISO 형식이어야 한다.
+10. 저장 중에는 관련 입력과 상태 제어를 잠그고, 화면 이탈 시 저장 소유 AbortController가 최신 batch 조회와 저장을 취소한다.

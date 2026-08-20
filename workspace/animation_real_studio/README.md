@@ -80,4 +80,4 @@ Video APIs are deferred. An original request that passes the existing narrow loc
 - Product discovery task `ARS-001` remains `pending_external_evidence`; the batch implementation does not satisfy or bypass those external decisions/interviews.
 # 선택 이미지로 개인 프로젝트 이어가기
 
-생성 결과에서 완료 후보 하나를 선택하면 `이 이미지로 프로젝트 시작`이 활성화됩니다. 프로젝트 화면에서 이름, 사용 목적, 창작 의도를 정하면 선택 이미지와 원래 생성 설정을 기준으로 다음 제작 절차가 제시됩니다. 프로젝트 메타데이터는 현재 브라우저 세션에만 유지되며 로컬 API 재시작 후 생성 배치는 복구되지 않습니다.
+생성 결과에서 완료 후보 하나를 선택하면 `이 이미지로 프로젝트 시작`이 활성화됩니다. 프로젝트 화면에서 이름, 사용 목적, 창작 의도를 정한 뒤 목적별 작업 3개의 상태와 메모, 공통 메모를 관리할 수 있습니다. 진행률과 다음 행동은 작업 상태에서 자동 계산되며 `image-project.v2` 메타데이터는 현재 브라우저 세션에만 유지됩니다. 유효한 v1 프로젝트는 읽기 시 새 작업 보드로 전환되지만, 로컬 API 재시작 후 생성 배치는 복구되지 않습니다.

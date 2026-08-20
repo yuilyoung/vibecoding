@@ -28,7 +28,7 @@ Animation Real Studio should turn one safe creative brief into one to three visi
 | IMG-008 | Automated verification and progress truth | Domain, HTTP, ViewModel, browser, build, and traceability checks describe current evidence. |
 | IMG-009 | Retouch roadmap | AI and manual face/body retouch are designed behind consent, mask, revision, provenance, and safety gates, not shown as available. |
 | IMG-010 | Automated unified defaults | One immutable Business profile initializes the full `/real` form and supplies subject-specific automatic values without resetting unrelated scene settings. |
-| IMG-011 | Selected-image project continuation | A confirmed completed candidate continues into a personal project setup and workspace that preserve the full normalized generation brief and output plan. |
+| IMG-011 | Selected-image project continuation | A confirmed completed candidate continues into a personal project setup and actionable three-item workboard that preserve the normalized generation brief and output plan. |
 
 ## Safety and privacy boundaries
 
@@ -55,5 +55,5 @@ Sprint 1 includes IMG-001 through IMG-008, IMG-010, and IMG-011 as a trusted-loc
 
 - 완료 후보 하나를 서버에서 선택 확정한 뒤에만 다음 단계 CTA를 제공한다.
 - 다음 단계에서는 프로젝트 이름, 사용 목적, 창작 의도를 구체화한다.
-- 프로젝트 작업공간은 선택 이미지, 원래 장면·캐스팅·촬영·출력 설정, 목적별 다음 제작 절차를 보여준다.
+- 프로젝트 작업공간은 선택 이미지, 원래 장면·캐스팅·촬영·출력 설정과 목적별 3개 작업을 보여주며, 작업 상태·항목 메모·공통 메모·파생 진행률을 세션에 저장한다.
 - trusted-local 세션 범위이며 로그인, 공유, 서버 재시작 복구, My Studio 목록은 이번 범위에 포함하지 않는다.

@@ -221,12 +221,43 @@
 .image-project-purpose-grid button.selected { border:3px solid var(--verm); padding:15px; background:#fff1e9; }
 .image-project-purpose-grid b,.image-project-purpose-grid small { display:block; }
 .image-project-purpose-grid small { margin-top:8px; color:#5b6064; line-height:1.45; }
+.image-project-reset-confirm { display:flex; gap:12px; align-items:flex-start; margin-top:24px; padding:16px; border-left:4px solid var(--verm); background:#fff1e9; font-size:12px; line-height:1.55; }
+.image-project-reset-confirm input { width:18px; height:18px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--verm); }
 .image-project-validation { color:#a93728; font-size:12px; font-weight:800; }
 .image-project-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:30px; }
 .image-project-summary { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; padding:clamp(25px,4vw,46px); border:1px solid var(--line); background:linear-gradient(120deg,#202c42,#121a2a); }
 .image-project-summary h2 { margin:0 0 12px; color:var(--paper); font-size:clamp(2rem,4vw,3.8rem); letter-spacing:-.06em; }
 .image-project-summary p:last-child { max-width:760px; margin:0; color:#c4ccd9; line-height:1.6; }
 .image-project-summary>button { border:0; border-bottom:1px solid currentColor; background:transparent; color:var(--signal); font-size:12px; font-weight:800; white-space:nowrap; }
+.image-project-board { margin-top:30px; padding:clamp(25px,4vw,48px); background:var(--paper); color:var(--ink); }
+.image-project-board-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:end; padding-bottom:26px; border-bottom:1px solid #bcb7ae; }
+.image-project-board-head .eyebrow { color:var(--verm); margin-bottom:12px; }
+.image-project-board-head h2 { max-width:760px; margin:0 0 12px; font-size:clamp(2rem,4vw,4rem); line-height:.95; letter-spacing:-.06em; }
+.image-project-board-head p:last-child { max-width:720px; margin:0; color:#565d62; line-height:1.6; }
+.image-project-progress { display:grid; grid-template-columns:auto auto; gap:4px 14px; min-width:170px; align-items:end; }
+.image-project-progress strong { color:var(--verm); font-size:clamp(2rem,4vw,3.5rem); line-height:.8; letter-spacing:-.06em; }
+.image-project-progress span { color:#5b6266; font-size:11px; font-weight:800; }
+.image-project-progress progress { grid-column:1/-1; width:100%; height:8px; margin-top:9px; accent-color:var(--verm); }
+.image-project-next-action { display:flex; gap:16px; align-items:center; margin:22px 0; padding:15px 18px; border-left:4px solid var(--signal); background:#202c42; color:var(--paper); }
+.image-project-next-action span { color:var(--signal); font-size:9px; font-weight:900; letter-spacing:.12em; white-space:nowrap; }
+.image-project-next-action b { font-size:13px; line-height:1.45; }
+.image-project-work-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.image-project-work-card { min-width:0; padding:19px; border:1px solid #aaa69e; background:#fffefa; }
+.image-project-work-card[data-status="in_progress"] { border-top:5px solid var(--verm); padding-top:15px; }
+.image-project-work-card[data-status="done"] { border-top:5px solid #198a68; padding-top:15px; background:#f0f8f4; }
+.image-project-work-title { display:grid; grid-template-columns:32px minmax(0,1fr); gap:9px; min-height:54px; align-items:start; }
+.image-project-work-title span { color:var(--verm); font-size:10px; font-weight:900; letter-spacing:.09em; }
+.image-project-work-title h3 { margin:0; font-size:16px; line-height:1.35; letter-spacing:-.025em; }
+.image-project-status-controls { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:14px 0 18px; }
+.image-project-status-controls button { min-height:38px; border:1px solid #aaa69e; border-right:0; background:#fff; color:#50565a; font-size:10px; font-weight:800; }
+.image-project-status-controls button:last-child { border-right:1px solid #aaa69e; }
+.image-project-status-controls button.selected { background:var(--ink); color:var(--signal); }
+.image-project-work-card label,.image-project-note { font-size:11px; }
+.image-project-work-card textarea { min-height:120px; margin-top:8px; padding:12px; font-size:12px; }
+.image-project-work-card label>small,.image-project-note>small { display:block; margin:6px 0 0; text-align:right; }
+.image-project-note { margin-top:20px; padding-top:20px; border-top:1px solid #bcb7ae; }
+.image-project-note textarea { min-height:120px; }
+.image-project-save-notice { margin:20px 0 0; color:#126d52; font-size:12px; font-weight:850; }
 .image-project-columns { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(260px,.6fr); gap:30px; margin-top:30px; }
 .image-project-details,.image-project-next { padding:clamp(24px,4vw,40px); border:1px solid var(--line); color:var(--paper); }
 .image-project-details h2,.image-project-next h2 { margin:0 0 24px; font-size:clamp(1.5rem,2.8vw,2.7rem); letter-spacing:-.05em; }
@@ -239,6 +270,7 @@
 .image-project-setting b { display:block; margin-bottom:3px; color:#8592a4; font-size:9px; letter-spacing:.06em; }
 .image-project-next { background:var(--paper); color:var(--ink); }
 .image-project-next .eyebrow { color:var(--verm); }
+.image-project-next>p:not(.eyebrow) { color:#4f565b; line-height:1.65; }
 .image-project-next ol { margin:0; padding:0; list-style:none; }
 .image-project-next li { display:grid; grid-template-columns:34px 1fr; gap:12px; padding:15px 0; border-top:1px solid #c6c1b7; }
 .image-project-next li span { color:var(--verm); font-size:10px; font-weight:900; }
@@ -253,6 +285,9 @@ footer.image-project-meta { display:flex; justify-content:flex-start; gap:10px; 
   .image-project-source { width:min(100%,300px); }
   .image-project-purpose-grid { grid-template-columns:1fr; }
   .image-project-summary { flex-direction:column; }
+  .image-project-board-head,.image-project-work-grid { grid-template-columns:1fr; }
+  .image-project-progress { min-width:0; }
+  .image-project-next-action { align-items:flex-start; flex-direction:column; }
   .image-project-details dl>div { grid-template-columns:1fr; gap:7px; }
   .image-project-setting-list { grid-template-columns:1fr; }
   footer.image-project-meta { flex-direction:column; }
