@@ -5,7 +5,7 @@
 - Runtime: local UI `/real` plus loopback Studio API.
 - Existing baseline before this sprint: ARS readiness checker 2/2, API 42/42, TypeScript/Vite build pass.
 - Product discovery: `ARS-001` remains `pending_external_evidence` with four external decisions and 0/5 interviews recorded.
-- Sprint 1 implementation: IMG-001 through IMG-008 and IMG-010 implemented behind `image-batch.v1`; IMG-011 selected-image project continuation now uses `image-project.v2` with save-time revision validation, a purpose-specific three-item workboard, progress/next-action derivation, notes, and metadata-only session storage; IMG-009 retouch remains a planned, gated Sprint 2.
+- Sprint 1 implementation: IMG-001 through IMG-008 and IMG-010 implemented behind `image-batch.v1`; IMG-011 selected-image project continuation now uses `image-project.v2` with save-time revision validation, a purpose-specific three-item workboard, progress/next-action derivation, notes, and metadata-only session storage. IMG-009 U8 architecture is complete, while U9–U12 runtime retouch remains gated.
 
 ## Delivered units
 
@@ -17,6 +17,7 @@
 - View controls for subject, era/weather/environment, camera angle, lighting/mood, perspective, adult-20+ wardrobe/profession including lingerie, count, result cards, and planned-retouch disclosure.
 - 2026-08-20 project workboard: the third-stage personal project page now persists three fixed purpose-specific work items, todo/in-progress/done state, per-item notes, a shared project note, derived progress and the next action. Valid `image-project.v1` metadata opens as v2 in memory and is written as v2 only after the next successful save.
 - Every project-details and workboard save revalidates the latest selected variant and selection revision. Purpose changes require explicit confirmation before purpose-specific work state resets; the shared project note is preserved.
+- 2026-08-20 IMG-009 U8 design: `retouch-protocol.v1` now specifies selection/source binding, consent, raster/vector masks, immutable revisions, pre/post safety, append-only provenance, retention and disclosure-gated export across explicit Presentation/Business/Data ports. No route, UI, provider, storage adapter, artifact or export was added.
 - 2026-08-13 UI consolidation: `/real` now has one H1, one form, and one submit path. Text/2D reference, preservation focus, age/presentation/count/framing, all structured image settings, PNG/GIF, 1–3 candidates, partial results, and selection share one ViewModel and `image-batch.v1` request.
 - 2026-08-13 default automation: one deeply frozen Business profile supplies every form default and subject-dependent automatic value; each ViewModel receives fresh nested copies and preserves unrelated scene, story, and output settings across subject changes.
 - 2026-08-13 human casting expansion: the unified form adds independent ethnicity and country/cultural-context controls with Korean-first `east_asian`/`south_korea` defaults, plus fictional K-Pop idol, fashion-model, and announcer archetypes. It never infers identity, ethnicity, or nationality from uploaded media.
@@ -58,3 +59,9 @@ Live visual quality remains a manual check with a rights-held, non-identifying f
 - 데이터: 전체 스키마를 검증하는 `image-project.v2`; 유효한 v1은 읽기만으로 저장소를 바꾸지 않고 메모리 전환 후 다음 성공 저장부터 v2로 기록.
 - 안전 경계: 메타데이터·작업 저장 모두 최신 selection revision을 재확인하며 이미지 바이트, 리터치, 다운로드, 공유, 서버 영속화는 포함하지 않음.
 - 검증: Business/Data 및 기존 ViewModel 18/18, API 59/59, Playwright 28/28, TypeScript/Vite build.
+
+# 2026-08-20 · IMG-009 U8 설계 증거
+
+- 설계: [19-retouch-protocol-architecture.md](./19-retouch-protocol-architecture.md)에 versioned schema, logical persistence/transaction, port 계약, 상태·sequence UML, threat/failure, migration/rollback과 향후 테스트를 정의.
+- 정책 경계: ARS-001 D-001–D-004의 owner, deadline, rights/retention/provider 증거와 V1 인터뷰는 여전히 미완료다. 임의의 보존 기간이나 권리 승인을 만들지 않고 unavailable 정책을 fail-closed로 처리한다.
+- 구현 상태: U8 architecture only. U9 mask editor, U10 revision persistence, U11 safety/provenance, U12 export disclosure는 별도 Product Owner 승인 전 구현하지 않는다.

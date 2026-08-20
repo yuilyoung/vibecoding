@@ -1,6 +1,6 @@
 # PDD — Image generation enhancement
 
-Status: Sprint 1 approved vertical slice, 2026-08-12.
+Status: Sprint 1 approved vertical slice; IMG-009 U8 architecture complete and implementation gated, 2026-08-20.
 
 ## Product outcome
 
@@ -26,7 +26,7 @@ Animation Real Studio should turn one safe creative brief into one to three visi
 | IMG-006 | Result selection | Only a completed candidate from the same batch can be selected; same-selection is idempotent. |
 | IMG-007 | Three-layer MVVM architecture | Presentation, Business, and Data dependencies are replaceable and composed through DI. |
 | IMG-008 | Automated verification and progress truth | Domain, HTTP, ViewModel, browser, build, and traceability checks describe current evidence. |
-| IMG-009 | Retouch roadmap | AI and manual face/body retouch are designed behind consent, mask, revision, provenance, and safety gates, not shown as available. |
+| IMG-009 | Retouch roadmap | AI and manual face/body retouch use the schema-first U8 contract for consent, mask, revision, provenance, safety, retention, and export disclosure; U9–U12 remain unavailable behind external-evidence and implementation gates. |
 | IMG-010 | Automated unified defaults | One immutable Business profile initializes the full `/real` form and supplies subject-specific automatic values without resetting unrelated scene settings. |
 | IMG-011 | Selected-image project continuation | A confirmed completed candidate continues into a personal project setup and actionable three-item workboard that preserve the normalized generation brief and output plan. |
 
@@ -43,7 +43,7 @@ Animation Real Studio should turn one safe creative brief into one to three visi
 
 ## Scope
 
-Sprint 1 includes IMG-001 through IMG-008, IMG-010, and IMG-011 as a trusted-local vertical slice. IMG-009 is an architecture/backlog contract only. Authentication, database persistence, billing, public sharing, actual video generation, automatic identity/shape replication, and pixel-level editing are excluded.
+Sprint 1 includes IMG-001 through IMG-008, IMG-010, and IMG-011 as a trusted-local vertical slice. IMG-009 U8 is an architecture/backlog contract only; its detailed boundary is [19-retouch-protocol-architecture.md](./19-retouch-protocol-architecture.md). Authentication, database persistence, billing, public sharing, actual video generation, automatic identity/shape replication, and pixel-level editing are excluded.
 
 ## Success measures
 
@@ -51,6 +51,10 @@ Sprint 1 includes IMG-001 through IMG-008, IMG-010, and IMG-011 as a trusted-loc
 - One and three variant flows pass deterministic HTTP and browser checks.
 - Contract tests prove partial failure and selection invariants without invoking a live provider.
 - Live image quality remains a separate manual gate using rights-held, non-identifying fixtures.
+
+## IMG-009 activation rule
+
+U8 design completion does not activate retouch. U9–U12 require named owners, deadlines and evidence for the unresolved ARS-001 decisions, the V1 interview threshold, and separate Product Owner approval. No route, UI action, provider, artifact store, persistence adapter or export may be added before that gate.
 # IMG-011 · 선택 결과의 개인 프로젝트 전환
 
 - 완료 후보 하나를 서버에서 선택 확정한 뒤에만 다음 단계 CTA를 제공한다.

@@ -14,7 +14,7 @@ Protocol version: `image-batch.v1`.
 | IMG-006 | Selection accepts a completed variant ID from the same batch and returns a monotonically revisioned selection. |
 | IMG-007 | Presentation calls an `ImageBatchRepository`; Business owns validation/state; Data owns HTTP and Studio-provider mapping. |
 | IMG-008 | Errors use stable codes; deterministic tests cover validation, concurrency, partial failure, mapping, and keyboard-visible selection. |
-| IMG-009 | Retouch endpoints are absent in v1; the UI labels retouch as a later gated sprint. |
+| IMG-009 | Retouch endpoints remain absent in v1. U8 defines the future `retouch-protocol.v1` schema and ports, while the UI continues to label U9–U12 as unavailable. |
 | IMG-010 | `DEFAULT_IMAGE_BATCH_SETTINGS` is the immutable source for brief, mode, reference focus, output defaults, variant count, and acknowledgement. Subject changes use one Business mapping and preserve unrelated scene/story/output values. |
 | IMG-011 | A server-confirmed completed selection opens `/image-projects/{batchId}`; every save re-fetches the batch and rejects a changed variant or revision before storing metadata-only `image-project.v2` with an actionable three-item workboard. |
 
@@ -95,8 +95,12 @@ IMG-010 acceptance requires unit evidence for full-profile initialization, subje
 
 ## Acceptance cases
 
-IMG-001–IMG-003: casting/country allow-lists, human/nonhuman defaults, independent fictional archetypes, and every adult swimwear option are validated. English/Korean non-graphic adult sensual cases reach the gateway only for fictional adult humans age 20+; minor/teen/ambiguous, real-person, explicit/pornographic/coercive, non-human/no-person sensual, non-human wardrobe, erotic school-inspired, and subject/age-mismatch cases start no provider operation. IMG-004: three adapter calls overlap under an async test double. IMG-005: one failure plus two completions yields `partial`. IMG-006: selection is scoped and idempotent. IMG-007: a fake repository drives ViewModel submission, polling, policy conflict, partial failure, selection, and disposal; a gateway contract test drives the Studio adapter. IMG-008: the 400/401 ViewModel boundary and all three maximum-length domain-to-Studio mappings are tested, then API/build/E2E and delivery-validation pass. IMG-009: no callable retouch route or active UI action exists.
+IMG-001–IMG-003: casting/country allow-lists, human/nonhuman defaults, independent fictional archetypes, and every adult swimwear option are validated. English/Korean non-graphic adult sensual cases reach the gateway only for fictional adult humans age 20+; minor/teen/ambiguous, real-person, explicit/pornographic/coercive, non-human/no-person sensual, non-human wardrobe, erotic school-inspired, and subject/age-mismatch cases start no provider operation. IMG-004: three adapter calls overlap under an async test double. IMG-005: one failure plus two completions yields `partial`. IMG-006: selection is scoped and idempotent. IMG-007: a fake repository drives ViewModel submission, polling, policy conflict, partial failure, selection, and disposal; a gateway contract test drives the Studio adapter. IMG-008: the 400/401 ViewModel boundary and all three maximum-length domain-to-Studio mappings are tested, then API/build/E2E and delivery-validation pass. IMG-009: [the U8 architecture](./19-retouch-protocol-architecture.md) is traceable, but no callable retouch route, active UI action, provider, persistence adapter or export exists.
 IMG-011 acceptance is covered by Business tests for selection matching and metadata-only storage, plus browser tests for the happy path, save-time selection races, all normalized settings, direct-entry failure, and 390px layout.
+
+## Future IMG-009 protocol boundary
+
+`retouch-protocol.v1` is not part of the current HTTP surface. Its future DTOs bind consent, raster/vector masks, edit revisions, safety decisions, immutable provenance and export disclosure to the exact batch/variant/selection revision plus source digest and dimensions. Every mutation and export must revalidate that binding and fail closed when consent, safety, retention or disclosure policy is unavailable. The full schema, port errors, cancellation, timeout, idempotency, migration and rollback rules live in [19-retouch-protocol-architecture.md](./19-retouch-protocol-architecture.md).
 
 # IMG-011 · Image project continuation
 

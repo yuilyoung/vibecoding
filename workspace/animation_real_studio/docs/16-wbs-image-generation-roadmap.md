@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | R1 Structured creation | S1 Batch candidate vertical slice | Safe brief, automated unified defaults, 1–3 variants, partial success, selection | U1 domain contract; U2 gateway; U3 batch use case; U4 HTTP; U5 ViewModel; U6 View; U7 verification | IMG-001, IMG-002, IMG-003, IMG-004, IMG-005, IMG-006, IMG-007, IMG-008, IMG-010 | Implemented; deterministic gate defined below |
 | R1 Project continuation | S1 Selected-image personal project | Save-time revalidated selection, project setup, actionable workboard, full-setting reference | U7A project domain/repository/view; U7B race/full-setting verification; U7C v2 work state/migration | IMG-011 | Implemented; image-project.v2 trusted-local session scope |
-| R2 Reversible enhancement | S2 Retouch protocol and prototype | AI-assisted and manual bounded edits | U8 consent/schema; U9 mask editor; U10 revision history; U11 safety/provenance; U12 export disclosure | IMG-009 | Designed, implementation gated |
+| R2 Reversible enhancement | S2 Retouch protocol and prototype | AI-assisted and manual bounded edits | U8 consent/schema; U9 mask editor; U10 revision history; U11 safety/provenance; U12 export disclosure | IMG-009 | U8 architecture complete; U9–U12 implementation gated |
 | R3 Durable studio | S3 Production foundation | Identity, persistence, quota, cancellation, recovery | U13 database schema; U14 queue; U15 auth; U16 storage; U17 observability | IMG-004, IMG-005, IMG-006, IMG-007, IMG-008 | Deferred |
 
 ## Sprint 1 WBS
@@ -22,6 +22,16 @@
 | U7 | Verification | U1–U6 | skill validation, trace check, API/build/E2E evidence | gate commands |
 | U7C | Business/Data/Presentation | U7A | fixed three-item work plan, v1→v2 read migration, progress/next action, status and note persistence | Business/Data unit + focused workboard E2E |
 
+## Sprint 2 design WBS
+
+| Unit | Owner/layer | Dependency | Deliverable | Evidence |
+| --- | --- | --- | --- | --- |
+| U8 | Architecture across Presentation/Business/Data | IMG-006 selection binding; ARS-001 unresolved decisions remain referenced | versioned consent/mask/revision/safety/provenance/disclosure schemas, ports, logical persistence, UML, threats, activation/migration/rollback | architecture checklist, document trace, runtime-absence diff |
+| U9 | Presentation + Business | U8 plus separate PO approval and completed external-evidence gate | bounded raster/vector mask editor using fake/local deterministic implementation first | Not started; implementation gated |
+| U10 | Business + Data | U9 plus schema migration evidence | immutable revision graph, optimistic concurrency, artifact reconciliation | Not started; implementation gated |
+| U11 | Business policies + Data adapters | U10 plus approved consent/safety/provider policies | pre/post safety and append-only provenance | Not started; implementation gated |
+| U12 | Business + Presentation/Data | U11 plus approved retention/private-delivery policy | disclosure-gated export | Not started; implementation gated |
+
 ## Requirement trace matrix
 
 | ID | PDD outcome | FSD behavior | TDD boundary | WBS unit | Test |
@@ -34,13 +44,13 @@
 | IMG-006 | deliberate selection | select protocol | Business same-batch invariant | U3/U4/U6 | invalid/idempotent/reselect |
 | IMG-007 | replaceable layers | repository/gateway ports | Presentation/Business/Data + DI | U2/U5 | fake-repository ViewModel + Studio gateway adapter contracts |
 | IMG-008 | trustworthy progress | stable errors/status | safe snapshots/evidence gate | U4/U7 | full API/build/E2E/trace |
-| IMG-009 | safe retouch future | no v1 endpoint | future schema-first boundary | U8–U12 | absence and planned-label E2E |
+| IMG-009 | safe retouch future | no current endpoint; future `retouch-protocol.v1` | U8 schema-first ports, persistence, state/UML and failure boundary | U8 complete; U9–U12 gated | architecture checklist + document trace + runtime absence |
 | IMG-010 | one automated default profile | initial and subject-dependent default behavior | immutable Business profile copied into ViewModel lifetime | U1/U5/U6 | full-default/isolation unit test + initial payload E2E |
 | IMG-011 | concrete personal project | selected-image setup, actionable three-item workboard and full setting handoff | selection revision revalidated at every save; metadata-only v2 session repository with v1 read migration | U7A/U7B/U7C | Business selection/schema/storage tests + work save/reload/migration/race/direct/mobile E2E |
 
 ## Definition of done
 
-All IMG-001 through IMG-008, IMG-010, and IMG-011 rows require passing evidence after the latest edit; the app runs on loopback; progress documentation matches command output; reviewer and scoped drift evidence are recorded. IMG-009 remains explicitly designed and unavailable.
+All IMG-001 through IMG-008, IMG-010, and IMG-011 rows require passing evidence after the latest edit; the app runs on loopback; progress documentation matches command output; reviewer and scoped drift evidence are recorded. IMG-009 U8 requires its architecture checklist and runtime-absence evidence; U9–U12 remain unavailable until ARS-001 external evidence and a separate Product Owner approval.
 # IMG-011 · 개인 프로젝트 전환 WBS
 
 - [x] 선택 성공 후에만 프로젝트 CTA 노출
@@ -51,3 +61,13 @@ All IMG-001 through IMG-008, IMG-010, and IMG-011 rows require passing evidence 
 - [x] 목적별 고정 작업 3개, 작업 상태·메모·공통 메모, 진행률·다음 행동
 - [x] 모든 저장의 selection revision 재검증과 목적 변경 초기화 확인
 - [x] Business/Data 단위 테스트, E2E 작업 저장·복구·마이그레이션·경쟁 조건·직접 진입 실패·390px 검증
+
+# IMG-009 · U8 설계 WBS
+
+- [x] `retouch-protocol.v1` consent, raster/vector mask, revision, safety, provenance, disclosure schema
+- [x] batch/variant/selection revision과 source digest/dimensions 결합
+- [x] Presentation → Business interfaces ← Data implementations 계층과 DI 경계
+- [x] 논리 persistence key/FK/unique/transaction, artifact 보상, migration/rollback
+- [x] 상태·sequence UML, cancellation/timeout/idempotency와 위협·실패 분석
+- [x] consent 철회, retention 미결정과 disclosure 누락의 fail-closed 계약
+- [ ] U9–U12 runtime 구현 — ARS-001 외부 증거와 별도 Product Owner 승인 전 차단
