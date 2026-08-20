@@ -67,7 +67,7 @@ export function bindMainSceneLifecycle(
   context: unknown
 ): void {
   scene.input.on("pointerdown", pointerDownHandler, context);
-  scene.events.on("shutdown", shutdownHandler, context);
+  scene.events.once("shutdown", shutdownHandler, context);
 }
 
 export function unbindMainScenePointer(

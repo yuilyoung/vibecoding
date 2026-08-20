@@ -1,5 +1,49 @@
 # Playtest Log
 
+## 2026-08-21 Phase 12 T1 Product-Object Browser Pass
+
+Scope:
+
+- Used the user-approved v5 target frame to deliver the opt-in `product-v1` barrel, mine, crate, cover, bounce-wall, and teleporter presentation.
+- Inspected unobstructed 960x540 combat-state captures for Foundry, Relay Yard, and Storm Drain across clear, rain, fog, sandstorm, and storm.
+- Exercised idle/damaged, idle/armed, idle/active state changes, atomic fallback, scene restart, exact positions/collision parity, runtime errors, budgets, and browser-side CPU cost.
+
+Findings:
+
+- The authored orange barrels, navy/amber crates, armored covers, cyan bounce assembly, mines, and violet teleporters are visibly distinct from the old glyph-and-shape presentation and stay readable in all five weather states.
+- Domain object counts and overlay counts match in every capture; all six families are covered with no missing textures or console/page/request errors.
+- The first evidence attempt was technically valid but the team-select modal obscured the center. Recapturing in COMBAT LIVE produced reviewable, unobstructed evidence.
+- Product p95 is 0.1ms in all three final AB-BA-AB captures with -0.3ms to -0.5ms relative regression. Atlas transfer is 295024 bytes and raw RGBA is 4194304 bytes.
+- Existing continuous generated weather ambience remains disabled; this slice adds no audio.
+
+Follow-up:
+
+- Keep product world art opt-in while Phase 12 T2 skins arena obstacles, the service gate, hazard/vent surfaces, ammo pickup, and health pickup.
+- Preserve the same projection, outline, shadow, palette, atomic fallback, collider parity, and five-weather capture gates.
+- Do not describe the six-family vertical slice as complete 11-family productization or default promotion.
+
+## 2026-08-20 Product-Default Readability and Audio Blocker Pass
+
+Scope:
+
+- Responded to direct user feedback that the default still looked like the legacy game and the continuous generated background audio sounded like loud noise.
+- Promoted the validated Quaternius actor request to `/`, retained explicit legacy/Kenney paths and total fallback, and reviewed the default 1600x1200 production-shell capture plus all 30 fixed 960x540 five-weather/state/team captures.
+- Disabled default generated weather-loop activation through the production balance config while preserving one-shot combat SFX and settings.
+
+Findings:
+
+- The initial product capture exposed a clipped BLUE actor at `(0,0)` and mixed Kenney portrait identity. Moving the stage-entry preview to the BLUE spawn and switching the successful animated HUD to Vanguard team badges corrected both issues.
+- The final production capture shows BLUE and RED Quaternius actors inside the arena, Arena Strike branding, a single PLAY CTA, and no prototype/POC/license copy or first-frame tutorial obstruction.
+- All 30 canvas captures remain non-black and unique. BLUE/RED identity and idle/run/fire/hit/death silhouettes remain readable across clear, rain, fog, sandstorm, and storm; movement-versus-aim separation and the external carbine remain visible.
+- Browser evidence proves every weather state leaves the weather queue empty and `activeWeatherLoopCue` null. A new subjective speaker/headphone re-listen is still required from the user; automation cannot judge perceived loudness.
+- Hardware performance preserves the strict absolute failure at 16.9 ms versus 16.7 ms. The fixed schema 1.1 evaluator passes 7/7 route/order/pair-integrity contracts. All earlier pass/fail reports remain preserved. The product-owner-approved final one-shot collection passed the separate cadence exception with at least 1800 samples/capture, every p95 16.9 ms, max 18.2 ms, zero frames above 25 ms, and three 0.0 ms regression pairs.
+
+Follow-up:
+
+- Keep generated continuous weather ambience off until an authored ambient source and listening gate exist.
+- T4 closes only through the explicit cadence exception, never as an absolute pass. Continue to retain every prior failed report.
+- T5 regression, review, drift, and postflight passed. At that time Phase 12 was approval-only; v5 was later approved on 2026-08-21 and the T1 opt-in runtime slice is recorded above.
+
 ## 2026-04-11 Browser Balance Playtest
 
 Scope:

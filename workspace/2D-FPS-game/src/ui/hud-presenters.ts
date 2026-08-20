@@ -142,8 +142,8 @@ export function buildMatchOverlayState(input: HudPresenterInput): MatchOverlayPr
     return {
       overlay: {
         visible: true,
-        title: "ENTER STAGE",
-        subtitle: "Press ENTER to open team selection."
+        title: "ARENA READY",
+        subtitle: "Press Play or Enter to choose your team."
       },
       shouldEmitMatchConfirmReadyCue: false,
       shouldEnterMatchOver: false

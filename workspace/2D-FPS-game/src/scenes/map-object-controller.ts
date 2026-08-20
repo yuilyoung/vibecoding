@@ -22,6 +22,10 @@ import type { VfxController } from "./vfx-controller";
 import type { CombatController } from "./combat-controller";
 import { ACTOR_HALF_SIZE } from "./scene-constants";
 import { getMapObjectVisual } from "../domain/visual/VisualAssetCatalog";
+import type {
+  WorldObjectPresentationHandle,
+  WorldObjectPresentationPort
+} from "./world-object-presentation-composition";
 
 const BARREL_SIZE = 24;
 const CRATE_SIZE = 20;
@@ -90,12 +94,14 @@ interface MapObjectView {
   readonly statusLabel: Phaser.GameObjects.Text;
   readonly bounds: Rect;
   readonly blinkTween?: Phaser.Tweens.Tween;
+  readonly presentationHandle: WorldObjectPresentationHandle | null;
 }
 
 export class MapObjectController {
   private readonly viewsById = new Map<string, MapObjectView>();
   private readonly emittedDropIds = new Set<string>();
   private sideEffects: MapObjectSideEffectsBinding | undefined;
+  private presentation: WorldObjectPresentationPort | undefined;
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -104,6 +110,13 @@ export class MapObjectController {
 
   public wireSideEffects(binding: MapObjectSideEffectsBinding): void {
     this.sideEffects = binding;
+  }
+
+  public wirePresentation(presentation: WorldObjectPresentationPort): void {
+    if (this.presentation === presentation) return;
+    this.presentation?.clear();
+    this.presentation = presentation;
+    this.presentation.initialize();
   }
 
   public advanceTick(now: number, dt: number): MapObjectTickResult {
@@ -200,7 +213,7 @@ export class MapObjectController {
       this.sideEffects?.runtimeState.currentWeather
     );
 
-    this.applyRuntimeStates(result.objects, previousStates);
+    this.applyRuntimeStates(result.objects, previousStates, now);
 
     for (const triggeredId of result.triggered) {
       this.deps.onMineTriggered?.(triggeredId, this.viewsById.get(triggeredId)?.state);
@@ -352,6 +365,7 @@ export class MapObjectController {
   public clear(): void {
     for (const view of this.viewsById.values()) {
       view.blinkTween?.stop();
+      this.presentation?.detach(view.presentationHandle);
       for (const visual of view.visuals) {
         visual.destroy();
       }
@@ -367,7 +381,8 @@ export class MapObjectController {
 
   private applyRuntimeStates(
     states: readonly MapObjectState[],
-    previousStates: ReadonlyMap<string, MapObjectState>
+    previousStates: ReadonlyMap<string, MapObjectState>,
+    now: number
   ): void {
     for (const state of states) {
       const view = this.viewsById.get(state.id);
@@ -378,7 +393,7 @@ export class MapObjectController {
 
       const previous = previousStates.get(state.id);
       view.state = state;
-      this.syncVisual(view);
+      this.syncVisual(view, now);
 
       if (previous?.active === true && !state.active) {
         this.deps.onObjectDestroyed?.(state);
@@ -406,7 +421,8 @@ export class MapObjectController {
       visuals,
       statusLabel,
       bounds,
-      blinkTween
+      blinkTween,
+      presentationHandle: this.presentation?.attach(sprite, state.kind, state.id) ?? null
     };
     this.syncVisual(view);
     return view;
@@ -494,7 +510,21 @@ export class MapObjectController {
     return { sprite, visuals: [shadow, sprite, band, statusLabel], statusLabel };
   }
 
-  private syncVisual(view: MapObjectView): void {
+  private syncVisual(view: MapObjectView, now: number = this.scene.time.now): void {
+    if (this.presentation?.atlasActive === true && view.presentationHandle !== null) {
+      for (const visual of view.visuals) visual.setVisible(false);
+      this.presentation.sync(view.presentationHandle, {
+        active: view.state.active,
+        hp: view.state.hp,
+        maxHp: this.getHpForKind(view.state.kind),
+        now,
+        armedAt: view.state.armedAt,
+        reflectionsRemaining: view.state.reflectionsRemaining,
+        cooldownUntil: view.state.cooldownUntil
+      });
+      return;
+    }
+
     if (!view.state.active) {
       view.blinkTween?.pause();
       for (const visual of view.visuals) {
@@ -513,7 +543,7 @@ export class MapObjectController {
 
     const theme = getMapObjectVisual(view.state.kind);
     if (view.state.kind === "mine") {
-      const armed = this.scene.time.now >= (view.state.armedAt ?? 0);
+      const armed = now >= (view.state.armedAt ?? 0);
       view.statusLabel.setText(armed ? theme.glyph : "…").setColor(armed ? "#ffdf5d" : "#cbd5e1").setAlpha(1);
       if (armed && view.blinkTween?.isPaused()) {
         view.blinkTween.resume();

@@ -1,0 +1,2274 @@
+{
+  "schemaVersion": "1.0.0",
+  "capturedAt": "2026-08-20T16:06:31.001Z",
+  "route": "/?worldSkin=product-v1",
+  "targetFrame": "../phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
+  "browser": "147.0.7727.15",
+  "viewport": {
+    "width": 1600,
+    "height": 1200,
+    "deviceScaleFactor": 1
+  },
+  "canvas": {
+    "width": 960,
+    "height": 540
+  },
+  "coveredStages": [
+    "foundry",
+    "relay-yard",
+    "storm-drain"
+  ],
+  "coveredWeather": [
+    "clear",
+    "rain",
+    "fog",
+    "sandstorm",
+    "storm"
+  ],
+  "coveredFamilies": [
+    "barrel",
+    "crate",
+    "cover",
+    "mine",
+    "bounce-wall",
+    "teleporter"
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "file": "phase12-t1-foundry-clear.png",
+      "stage": "foundry",
+      "weather": "clear",
+      "bytes": 571666,
+      "sha256": "260fe3ebfa7d591be5dd614ef45a0ab750abf495c983f08e00a1d0e4796ae880",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 0.425,
+        "luminanceMax": 245.184,
+        "luminanceMean": 78.405,
+        "luminanceStdDev": 42.873
+      },
+      "domainObjectCount": 5,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 5,
+        "objects": [
+          {
+            "id": "foundry-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 430,
+            "y": 222,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 488,
+            "y": 224,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 612,
+            "y": 430,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 352,
+            "y": 118,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 592,
+            "y": 252,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-foundry-rain.png",
+      "stage": "foundry",
+      "weather": "rain",
+      "bytes": 559012,
+      "sha256": "1d30466ea2162ba160b9b43221de52fd7ba0ff4ad8342f5749289789d5244ccc",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 8.361,
+        "luminanceMax": 220.834,
+        "luminanceMean": 75.839,
+        "luminanceStdDev": 37.536
+      },
+      "domainObjectCount": 5,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 5,
+        "objects": [
+          {
+            "id": "foundry-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 430,
+            "y": 222,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 488,
+            "y": 224,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 612,
+            "y": 430,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 352,
+            "y": 118,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 592,
+            "y": 252,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-foundry-fog.png",
+      "stage": "foundry",
+      "weather": "fog",
+      "bytes": 563160,
+      "sha256": "ef4a0dd0695967a4f94162fe8151af7f6b5d0c65a9913a0c8eda8f41921dddbb",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 16.017,
+        "luminanceMax": 241.826,
+        "luminanceMean": 92.811,
+        "luminanceStdDev": 38.513
+      },
+      "domainObjectCount": 5,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 5,
+        "objects": [
+          {
+            "id": "foundry-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 430,
+            "y": 222,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 488,
+            "y": 224,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 612,
+            "y": 430,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 352,
+            "y": 118,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 592,
+            "y": 252,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-foundry-sandstorm.png",
+      "stage": "foundry",
+      "weather": "sandstorm",
+      "bytes": 548744,
+      "sha256": "7bdbd3d6ddeac5520733f445d2d1bdb9d0e53365ec353b0811fb116afe734e51",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 14.511,
+        "luminanceMax": 221.65,
+        "luminanceMean": 82.777,
+        "luminanceStdDev": 35.956
+      },
+      "domainObjectCount": 5,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 5,
+        "objects": [
+          {
+            "id": "foundry-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 430,
+            "y": 222,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 488,
+            "y": 224,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 612,
+            "y": 430,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 352,
+            "y": 118,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 592,
+            "y": 252,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-foundry-storm.png",
+      "stage": "foundry",
+      "weather": "storm",
+      "bytes": 543620,
+      "sha256": "90059718d990aea50159acd0e2ca1b5ed3507f40808576d02fc9624058481ae5",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 9.857,
+        "luminanceMax": 213.958,
+        "luminanceMean": 71.912,
+        "luminanceStdDev": 34.52
+      },
+      "domainObjectCount": 5,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 5,
+        "objects": [
+          {
+            "id": "foundry-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 430,
+            "y": 222,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 488,
+            "y": 224,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 612,
+            "y": 430,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 352,
+            "y": 118,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "foundry-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 592,
+            "y": 252,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-relay-yard-clear.png",
+      "stage": "relay-yard",
+      "weather": "clear",
+      "bytes": 410173,
+      "sha256": "7e84ccc06d2a0c67509bbf122acfbf3e23cadc2decd45468ff618d85292816c5",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 2.638,
+        "luminanceMax": 245.184,
+        "luminanceMean": 59.722,
+        "luminanceStdDev": 45.621
+      },
+      "domainObjectCount": 15,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 15,
+        "objects": [
+          {
+            "id": "relay-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 424,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 476,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 536,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 588,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-a",
+            "family": "mine",
+            "state": "idle",
+            "frameKey": "world/product-v1/mine/idle",
+            "x": 344,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-b",
+            "family": "mine",
+            "state": "idle",
+            "frameKey": "world/product-v1/mine/idle",
+            "x": 480,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-c",
+            "family": "mine",
+            "state": "idle",
+            "frameKey": "world/product-v1/mine/idle",
+            "x": 616,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 216,
+            "y": 178,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-b",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 746,
+            "y": 360,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 310,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 648,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-c",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 478,
+            "y": 336,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 480,
+            "y": 238,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-a",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 220,
+            "y": 356,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-b",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 744,
+            "y": 184,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-relay-yard-rain.png",
+      "stage": "relay-yard",
+      "weather": "rain",
+      "bytes": 406822,
+      "sha256": "5bf7a7525f02633dc9f9a4c3297a3656b0a6482c4932a6f176d9bdf3e89f1370",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 9.849,
+        "luminanceMax": 220.834,
+        "luminanceMean": 59.788,
+        "luminanceStdDev": 40.067
+      },
+      "domainObjectCount": 15,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 15,
+        "objects": [
+          {
+            "id": "relay-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 424,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 476,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 536,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 588,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 344,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 480,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-c",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 616,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 216,
+            "y": 178,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-b",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 746,
+            "y": 360,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 310,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 648,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-c",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 478,
+            "y": 336,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 480,
+            "y": 238,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-a",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 220,
+            "y": 356,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-b",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 744,
+            "y": 184,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-relay-yard-fog.png",
+      "stage": "relay-yard",
+      "weather": "fog",
+      "bytes": 402622,
+      "sha256": "612c425a623a88ba08a0b05b50d4837a85c25cf0642ab66319ddad33267b08cb",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 16.017,
+        "luminanceMax": 241.826,
+        "luminanceMean": 76.23,
+        "luminanceStdDev": 40.98
+      },
+      "domainObjectCount": 15,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 15,
+        "objects": [
+          {
+            "id": "relay-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 424,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 476,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 536,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 588,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 344,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 480,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-c",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 616,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 216,
+            "y": 178,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-b",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 746,
+            "y": 360,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 310,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 648,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-c",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 478,
+            "y": 336,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 480,
+            "y": 238,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-a",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 220,
+            "y": 356,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-b",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 744,
+            "y": 184,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-relay-yard-sandstorm.png",
+      "stage": "relay-yard",
+      "weather": "sandstorm",
+      "bytes": 392109,
+      "sha256": "be8db29e991d55e2b5cf262f0671445982fb30f859354117db6510c652172ace",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 14.511,
+        "luminanceMax": 221.65,
+        "luminanceMean": 67.248,
+        "luminanceStdDev": 38.311
+      },
+      "domainObjectCount": 15,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 15,
+        "objects": [
+          {
+            "id": "relay-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 424,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 476,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 536,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 588,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 344,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 480,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-c",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 616,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 216,
+            "y": 178,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-b",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 746,
+            "y": 360,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 310,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 648,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-c",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 478,
+            "y": 336,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 480,
+            "y": 238,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-a",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 220,
+            "y": 356,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-b",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 744,
+            "y": 184,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-relay-yard-storm.png",
+      "stage": "relay-yard",
+      "weather": "storm",
+      "bytes": 381921,
+      "sha256": "644465fec38e0daec97f11436a8cec0ca4341069769d2f1ca5e6c7276c66dab7",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 10.92,
+        "luminanceMax": 213.958,
+        "luminanceMean": 56.815,
+        "luminanceStdDev": 36.735
+      },
+      "domainObjectCount": 15,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 15,
+        "objects": [
+          {
+            "id": "relay-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 424,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 476,
+            "y": 196,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 536,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 588,
+            "y": 340,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 344,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 480,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-mine-c",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 616,
+            "y": 268,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 216,
+            "y": 178,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-crate-b",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 746,
+            "y": 360,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 310,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 648,
+            "y": 204,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-cover-c",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 478,
+            "y": 336,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 480,
+            "y": 238,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-a",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 220,
+            "y": 356,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "relay-teleporter-b",
+            "family": "teleporter",
+            "state": "active",
+            "frameKey": "world/product-v1/teleporter/active",
+            "x": 744,
+            "y": 184,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-storm-drain-clear.png",
+      "stage": "storm-drain",
+      "weather": "clear",
+      "bytes": 318954,
+      "sha256": "480205508f8de0bbaa03e327eaab6028531c375ea96114fead783fbdcd06381f",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 0,
+        "luminanceMax": 246.564,
+        "luminanceMean": 50.437,
+        "luminanceStdDev": 42.34
+      },
+      "domainObjectCount": 13,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 13,
+        "objects": [
+          {
+            "id": "drain-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 410,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 464,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 518,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 548,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-e",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 602,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-f",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 656,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-a",
+            "family": "mine",
+            "state": "idle",
+            "frameKey": "world/product-v1/mine/idle",
+            "x": 330,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-b",
+            "family": "mine",
+            "state": "idle",
+            "frameKey": "world/product-v1/mine/idle",
+            "x": 630,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 480,
+            "y": 444,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 320,
+            "y": 214,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 640,
+            "y": 326,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 432,
+            "y": 110,
+            "rotation": 0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-b",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 530,
+            "y": 430,
+            "rotation": -0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-storm-drain-rain.png",
+      "stage": "storm-drain",
+      "weather": "rain",
+      "bytes": 313419,
+      "sha256": "4cb531cdd61b9a8e14c0e1914b2a1947d8465f19af8cd6194a2ce8c4ba9e6c36",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 7.936,
+        "luminanceMax": 221.997,
+        "luminanceMean": 51.533,
+        "luminanceStdDev": 37.13
+      },
+      "domainObjectCount": 13,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 13,
+        "objects": [
+          {
+            "id": "drain-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 410,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 464,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 518,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 548,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-e",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 602,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-f",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 656,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 330,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 630,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 480,
+            "y": 444,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 320,
+            "y": 214,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 640,
+            "y": 326,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 432,
+            "y": 110,
+            "rotation": 0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-b",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 530,
+            "y": 430,
+            "rotation": -0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-storm-drain-fog.png",
+      "stage": "storm-drain",
+      "weather": "fog",
+      "bytes": 314595,
+      "sha256": "6ffc4d77ae06aa33580d6b6eaf36346c8b58144477531c1951c97844364f40c8",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 16.017,
+        "luminanceMax": 243.062,
+        "luminanceMean": 68.274,
+        "luminanceStdDev": 38.322
+      },
+      "domainObjectCount": 13,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 13,
+        "objects": [
+          {
+            "id": "drain-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 410,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 464,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 518,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 548,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-e",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 602,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-f",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 656,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 330,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 630,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 480,
+            "y": 444,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 320,
+            "y": 214,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 640,
+            "y": 326,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 432,
+            "y": 110,
+            "rotation": 0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-b",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 530,
+            "y": 430,
+            "rotation": -0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-storm-drain-sandstorm.png",
+      "stage": "storm-drain",
+      "weather": "sandstorm",
+      "bytes": 309280,
+      "sha256": "af9ecea741615b9dabf3cccf5f5c09b9fa7db90af1acd7e8cc9b7d18e19d5766",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 14.511,
+        "luminanceMax": 222.741,
+        "luminanceMean": 59.874,
+        "luminanceStdDev": 35.868
+      },
+      "domainObjectCount": 13,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 13,
+        "objects": [
+          {
+            "id": "drain-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 410,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 464,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 518,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 548,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-e",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 602,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-f",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 656,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 330,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 630,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 480,
+            "y": 444,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 320,
+            "y": 214,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 640,
+            "y": 326,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 432,
+            "y": 110,
+            "rotation": 0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-b",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 530,
+            "y": 430,
+            "rotation": -0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    },
+    {
+      "file": "phase12-t1-storm-drain-storm.png",
+      "stage": "storm-drain",
+      "weather": "storm",
+      "bytes": 303793,
+      "sha256": "b9b8e38fd47928139192cf297a9ed0a4d309bcd3184fde4253a44d24040340c4",
+      "pixels": {
+        "width": 960,
+        "height": 540,
+        "luminanceMin": 9.857,
+        "luminanceMax": 213.958,
+        "luminanceMean": 49.829,
+        "luminanceStdDev": 34.495
+      },
+      "domainObjectCount": 13,
+      "presentation": {
+        "requestedSkinId": "product-v1",
+        "skinId": "product-v1",
+        "fallbackReason": null,
+        "atlasActive": true,
+        "textureKey": "world-product-v1",
+        "overlayCount": 13,
+        "objects": [
+          {
+            "id": "drain-barrel-a",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 410,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-b",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 464,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-c",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 518,
+            "y": 226,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-d",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 548,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-e",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 602,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-barrel-f",
+            "family": "barrel",
+            "state": "idle",
+            "frameKey": "world/product-v1/barrel/idle",
+            "x": 656,
+            "y": 316,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-a",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 330,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-mine-b",
+            "family": "mine",
+            "state": "armed",
+            "frameKey": "world/product-v1/mine/armed",
+            "x": 630,
+            "y": 270,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-crate-a",
+            "family": "crate",
+            "state": "idle",
+            "frameKey": "world/product-v1/crate/idle",
+            "x": 480,
+            "y": 444,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-a",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 320,
+            "y": 214,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-cover-b",
+            "family": "cover",
+            "state": "idle",
+            "frameKey": "world/product-v1/cover/idle",
+            "x": 640,
+            "y": 326,
+            "rotation": 0,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-a",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 432,
+            "y": 110,
+            "rotation": 0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          },
+          {
+            "id": "drain-bounce-wall-b",
+            "family": "bounce-wall",
+            "state": "active",
+            "frameKey": "world/product-v1/bounce-wall/active",
+            "x": 530,
+            "y": 430,
+            "rotation": -0.3490658503988655,
+            "visible": true,
+            "alpha": 1
+          }
+        ],
+        "initialized": true,
+        "destroyed": false
+      }
+    }
+  ]
+}

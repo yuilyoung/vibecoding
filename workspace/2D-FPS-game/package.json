@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "assets:actor-atlas": "node tools/actor-atlas/index.mjs",
+    "assets:world-object-atlas": "node tools/world-object-atlas/index.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
@@ -13,7 +14,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:actor-atlas": "node tools/actor-atlas/actor-atlas.test.mjs"
+    "test:actor-atlas": "node tools/actor-atlas/actor-atlas.test.mjs",
+    "test:world-object-atlas": "node tools/world-object-atlas/world-object-atlas.test.mjs",
+    "perf:world-object-presentation": "node scripts/perf-world-object-presentation.mjs",
+    "test:performance-qualification": "node --test scripts/performance-qualification.test.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

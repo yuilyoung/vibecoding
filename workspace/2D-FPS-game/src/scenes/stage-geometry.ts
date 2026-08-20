@@ -152,6 +152,25 @@ export class StageGeometryManager {
     this.state.stageObstacleViews.length = 0;
   }
 
+  public releaseSceneObjects(): void {
+    this.clearStageGeometry();
+    for (const view of this.state.coverPointViews) {
+      view.sprite.destroy();
+      view.label.destroy();
+    }
+    this.state.coverPointViews.length = 0;
+    this.state.gate?.sprite.destroy();
+    this.state.hazardZone?.sprite.destroy();
+    this.state.ammoPickup?.sprite.destroy();
+    this.state.ammoPickup?.label.destroy();
+    this.state.healthPickup?.sprite.destroy();
+    this.state.healthPickup?.label.destroy();
+    this.state.gate = undefined;
+    this.state.hazardZone = undefined;
+    this.state.ammoPickup = undefined;
+    this.state.healthPickup = undefined;
+  }
+
   public handlePointerGateInteraction(now: number): void {
     if (!canPlayerUseCombatInteraction(this.deps.getCombatAvailability(now))) {
       return;

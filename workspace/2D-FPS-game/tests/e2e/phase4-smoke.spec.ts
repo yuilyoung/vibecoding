@@ -72,6 +72,8 @@ test("covers Phase 4 settings, tutorial replay, and boss overlay smoke", async (
   await waitForSceneReady(page);
 
   const tutorial = page.getByTestId("tutorial-overlay");
+  await expect(tutorial).toBeHidden();
+  await page.getByTestId("primary-play").click();
   await expect(tutorial).toBeVisible();
   await expect(page.locator("#tutorial-title")).toHaveText("Move");
 

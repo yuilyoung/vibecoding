@@ -48,7 +48,7 @@ const enterCombat = async (page: Page): Promise<void> => {
   });
 };
 
-test("weather sound queue dedups identical weather and resets on MATCH_RESET", async ({ page }) => {
+test("keeps generated weather ambience disabled across weather and match reset transitions", async ({ page }) => {
   await enterCombat(page);
 
   const result = await withScene(page, (scene) => {
@@ -59,55 +59,31 @@ test("weather sound queue dedups identical weather and resets on MATCH_RESET", a
     return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
   });
 
-  expect(result.queue).toEqual([
-    {
-      action: "play",
-      weatherType: "rain",
-      cue: "weather.rain.loop",
-      volume: 0.6,
-      fadeMs: 800,
-      priority: 18
-    },
-    {
-      action: "stop",
-      cue: "weather.rain.loop",
-      fadeMs: 800,
-      priority: 18,
-      reason: "MATCH_RESET"
-    },
-    {
-      action: "play",
-      weatherType: "storm",
-      cue: "weather.storm.loop",
-      volume: 0.65,
-      fadeMs: 800,
-      priority: 18
-    }
-  ]);
+  expect(result.queue).toEqual([]);
 
   expect(result.audio).toMatchObject({
-    activeWeatherLoopCue: "weather.storm.loop",
+    activeWeatherLoopCue: null,
     lastDroppedCue: null
   });
 });
 
-test("MATCH_RESET permits an immediate replay of the same weather loop", async ({ page }) => {
+test("keeps every configured weather transition free of generated loop playback", async ({ page }) => {
   await enterCombat(page);
 
   const result = await withScene(page, (scene) => {
+    scene.debugSetWeather("clear");
     scene.debugSetWeather("rain");
+    scene.debugSetWeather("fog");
+    scene.debugSetWeather("sandstorm");
+    scene.debugSetWeather("storm");
     (scene as unknown as DebugScene & { matchFlowController: { publishWeatherReset(): void } }).matchFlowController.publishWeatherReset();
-    scene.debugSetWeather("rain");
+    scene.debugSetWeather("clear");
     return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
   });
 
-  expect(result.queue).toEqual([
-    { action: "play", weatherType: "rain", cue: "weather.rain.loop", volume: 0.6, fadeMs: 800, priority: 18 },
-    { action: "stop", cue: "weather.rain.loop", fadeMs: 800, priority: 18, reason: "MATCH_RESET" },
-    { action: "play", weatherType: "rain", cue: "weather.rain.loop", volume: 0.6, fadeMs: 800, priority: 18 }
-  ]);
+  expect(result.queue).toEqual([]);
   expect(result.audio).toMatchObject({
-    activeWeatherLoopCue: "weather.rain.loop",
+    activeWeatherLoopCue: null,
     lastDroppedCue: null
   });
 });

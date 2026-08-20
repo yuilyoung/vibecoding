@@ -163,14 +163,19 @@ export class MatchFlowController {
     this.deps.roundLogic.registerDummyWin();
   }
 
-  public debugEnterStage(): void {
+  public requestStageEntry(): boolean {
     if (this.deps.matchFlow.state.phase !== "stage-entry") {
-      return;
+      return false;
     }
 
     this.deps.matchFlow.enterStage();
     this.deps.matchFlow.previewTeam("BLUE");
     this.deps.setLastCombatEvent("SELECT TEAM: 1 BLUE / 2 RED");
+    return true;
+  }
+
+  public debugEnterStage(): void {
+    this.requestStageEntry();
   }
 
   public debugSelectTeam(team: TeamId): void {

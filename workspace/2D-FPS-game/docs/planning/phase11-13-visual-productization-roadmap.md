@@ -2,9 +2,9 @@
 
 - Date: 2026-08-14
 - Owner: product + product_owner + ultron/codex
-- Status: product goal approved; Phase 11 implementation pending
+- Status: Phase 11 complete; Phase 12 T1 six-family runtime slice complete, T2 pending
 - Active workspace: `workspace/2D-FPS-game`
-- Current executable baseline: Phase 10, with `legacy-vehicle` still selected on `/`
+- Current executable baseline: Phase 11 product-default amendment, with Quaternius selected on `/` and Ground Shaker retained as explicit/total fallback
 
 ## Product Goal
 
@@ -16,27 +16,27 @@ This roadmap defines a product-quality target, not a claim that the game is comm
 
 | Surface | Current runtime | Product gap |
 | --- | --- | --- |
-| Characters | Ground Shaker vehicles are the default; Kenney infantry is a hidden static opt-in | No default animated character identity |
-| World objects | Six map-object kinds and several arena props are composed from circles, rectangles, colors, glyphs, and labels | Readable as a harness, not as authored game art |
-| Motion | Weapon, weather, and a few tween effects exist; character clips are static and object state art is absent | Combat states lack authored motion and feedback cohesion |
-| Delivery state | Phase 11 has an approved contract but no source, generator, atlas, or runtime integration | Planning evidence has not produced a user-visible improvement |
+| Characters | Quaternius BLUE/RED animated infantry is selected on `/`; Ground Shaker remains the explicit and total fallback | Phase 11 complete; absolute p95 failure retained and separate cadence exception passed |
+| World objects | `?worldSkin=product-v1` uses authored barrel, mine, crate, cover, bounce-wall, and teleporter art; `/` and five remaining families retain legacy presentation | Six-family T1 is proven; complete 11-family coverage and default promotion remain |
+| Motion | Player and dummy use five authored actor states in eight directions; object state art remains absent | Object and interaction feedback still lacks authored motion cohesion |
+| Delivery state | Phase 11 is complete; Phase 12 v5 is approved and its first deterministic runtime vertical slice is complete | Phase 12 T2 must cover arena props, gates, hazard/vent surfaces, and pickups |
 
 ## Target-Frame Gate
 
-Before locking the Phase 12 object source pack, produce one fixed 960x540 target frame that shows a BLUE actor, a RED actor, representative hard cover, barrel, crate, pickup, teleporter, gate, and one weather treatment. Product approval must lock:
+The user approved the fixed 960x540 v5 target frame on 2026-08-21. It locks:
 
 - top-down projection and sprite scale;
 - material, outline, shadow, and palette rules;
 - actor-to-object contrast and team accents;
 - the maximum acceptable amount of UI-like glyph or text in the world.
 
-Asset production may not mix unrelated packs merely because each individual asset is licensed or technically convenient. The target frame is the visual contract for later screenshots.
+Asset production may not mix unrelated packs merely because each individual asset is licensed or technically convenient. The approved target frame is the visual contract for later screenshots.
 
 ## Roadmap
 
 | Phase | Outcome | Entry gate | Exit gate | Default route |
 | --- | --- | --- | --- | --- |
-| Phase 11 - Animated Character Delivery | Quaternius BLUE/RED actors with five states, eight directions, and independent carbine aim | Current approved Phase 11 contract | Existing T1-T5 provenance, reproducibility, animation, readability, performance, and review gates pass | Remains legacy; animated actor is opt-in |
+| Phase 11 - Animated Character Delivery | Quaternius BLUE/RED actors with five states, eight directions, and independent carbine aim | Current approved Phase 11 contract | Existing T1-T5 provenance, reproducibility, animation, readability, performance, and review gates pass | Animated actor promoted early by user decision; legacy remains explicit/total fallback |
 | Phase 12 - Authored Object Skin Kit | Eleven visible object families use authored skins from one art direction | Phase 11 reviewer pass and approved target frame | Every inventory item is skinned in all three stages; production presentation no longer depends on debug shapes or glyphs | Product pack remains opt-in |
 | Phase 13 - State Animation and Default Promotion | Actor, object, interaction, and combat feedback form one responsive motion system | Phase 12 reviewer pass | Integrated visual, lifecycle, screenshot, performance, and fallback gates pass | Product pack becomes default; legacy remains explicit total fallback |
 
@@ -148,8 +148,8 @@ One scene-lifetime owner is responsible for each actor or object presentation. T
 
 1. Capture the current default screenshot, transfer/GPU estimate, frame-time sample, and collider/bounds baseline.
 2. Execute Phase 11 T1-T5 unchanged: provenance, deterministic generator, actor composition extraction, opt-in runtime, and verification.
-3. Approve the target frame, then create the Phase 12 architecture, WBS, source inventory, and `WorldObjectSkinCatalog` contract.
-4. Deliver Phase 12 as repeated vertical slices: catalog -> preload -> presentation -> focused test, then expand to all 11 families and three stages.
+3. Phase 11 passed and the user approved v5; the first six-family Phase 12 source/catalog/runtime slice completed on 2026-08-21.
+4. Deliver Phase 12 as repeated vertical slices: the first six-family catalog/preload/presentation slice passed on 2026-08-21; next expand the same contract to the remaining five families.
 5. Create and execute the Phase 13 event-to-animation contract, integrated screenshot/performance suite, and default-promotion migration.
 6. Synchronize task JSON, project status, handoff, active baseline, reviewer evidence, drift, and postflight after every runtime phase.
 
@@ -158,7 +158,7 @@ One scene-lifetime owner is responsible for each actor or object presentation. T
 - A documentation-only contract is planning progress, not a visual improvement.
 - A visual phase cannot be called complete without runtime evidence from its current workspace fingerprint.
 - A hidden query option is a QA milestone, not a product-delivery endpoint.
-- Default promotion occurs only once, in Phase 13, after the complete pack passes the integrated gate.
+- The complete actor/object visual-pack promotion still occurs in Phase 13. The actor-only default was promoted early on 2026-08-20 by direct user decision; this does not certify Phase 12/13 art.
 - User approval is required for the target frame and final default-promotion capture.
 
 ## Risks and Non-Scope

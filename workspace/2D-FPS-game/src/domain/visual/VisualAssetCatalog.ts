@@ -87,22 +87,22 @@ const OPERATOR_PORTRAITS: Readonly<Record<HudTeam, OperatorPortraitSet>> = Objec
   BLUE: Object.freeze({
     playerPath: "/assets/runtime/sprites/player-blue.png",
     enemyPath: "/assets/runtime/sprites/enemy-red.png",
-    playerLabel: "Blue operator",
-    enemyLabel: "Red hitman",
+    playerLabel: "Blue Vanguard operator",
+    enemyLabel: "Red Vanguard operator",
     sourceId: "kenney-top-down-shooter"
   }),
   RED: Object.freeze({
     playerPath: "/assets/runtime/sprites/player-red.png",
     enemyPath: "/assets/runtime/sprites/enemy-blue.png",
-    playerLabel: "Red operator",
-    enemyLabel: "Blue hitman",
+    playerLabel: "Red Vanguard operator",
+    enemyLabel: "Blue Vanguard operator",
     sourceId: "kenney-top-down-shooter"
   }),
   UNSET: Object.freeze({
     playerPath: "/assets/runtime/sprites/player-blue.png",
     enemyPath: "/assets/runtime/sprites/enemy-red.png",
-    playerLabel: "Blue operator preview",
-    enemyLabel: "Red hitman preview",
+    playerLabel: "Blue Vanguard operator",
+    enemyLabel: "Red Vanguard operator",
     sourceId: "kenney-top-down-shooter"
   })
 });

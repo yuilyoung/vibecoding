@@ -2,7 +2,7 @@
   "phase": "phase-11",
   "name": "Quaternius Animated Character POC",
   "created": "2026-08-13",
-  "status": "implementation-in-progress",
+  "status": "complete",
   "architecture": "./phase11-animated-character-poc-architecture.md",
   "wbs": "./phase11-wbs.md",
   "previousPhase": {
@@ -60,27 +60,51 @@
       "id": "T3",
       "subject": "Extract actor composition and integrate the opt-in animated skin",
       "assignee": "ultron/codex",
-      "status": "pending",
+      "status": "completed",
+      "completed": "2026-08-19",
       "depends": ["T2"],
       "files": ["src/domain/visual/ActorSkinCatalog.ts", "src/scenes", "src/main.ts"],
-      "acceptance": ["A5", "A6"]
+      "acceptance": ["A5", "A6"],
+      "evidence": [
+        "ActorSkinCatalog validates the exact 352-frame manifest, both 2048x2048 atlas textures, stable clip keys, transfer/GPU claims, and total fallback without importing Phaser",
+        "ActorPresentationComposition owns opt-in preload, actor and external-weapon construction, controller wiring, and idempotent shutdown; one-shot scene shutdown and stage-object release preserve restart safety; MainScene.ts remains at 850/850 lines",
+        "Quaternius animation uses five states, eight directions, movement-driven body direction, aim-driven fire direction, and zero additional body rotation while preserving the external carbine aim layer",
+        "Focused 20-test catalog/composition suite, 13-test generator contracts, type-check, lint, 59-file/358-test Vitest, production build, four-scenario Phase 11 animated browser contract, Phase 10 three-scenario browser regression, and full 41-scenario Playwright suite passed"
+      ]
     },
     {
       "id": "T4",
       "subject": "Verify animation, fallback, web budgets, performance, readability, and console state",
       "assignee": "ultron/codex",
-      "status": "pending",
+      "status": "completed",
+      "completed": "2026-08-20",
       "depends": ["T3"],
       "files": ["tests", "scripts", "docs/development/playtest-log.md"],
-      "acceptance": ["A7"]
+      "acceptance": ["A7"],
+      "evidence": [
+        "User-directed productization amendment promotes Quaternius on /, retains explicit legacy/Kenney routes and total fail-closed fallback, disables generated weather-loop playback in production config, and adds a branded idempotent PLAY/Enter entry path with deferred tutorial presentation.",
+        "Current default-route acceptance passed 15/15: all 80 Phaser clips, seven fallback cases, transfer/GPU/mipmap contracts, and 30 unique 960x540 five-weather/team/state captures with zero runtime errors.",
+        "Fresh type-check, lint, 60-file/361-test Vitest, production build, and 12 focused production-preview browser scenarios passed; MainScene.ts remains 850/850 lines.",
+        "The original hardware D3D11 AB/BA/AB evidence remains an absolute failure: legacy and animated p95 are 16.9 ms against the unchanged 16.7 ms limit, with all three animated-minus-legacy deltas at 0.0 ms.",
+        "Product-owner-approved schema 1.1.0 records absolutePassed=false separately from an explicit 60Hz cadence qualification; evaluator contracts now reject a missing or forged AB/BA/AB route, sequence, pair order, or pair value and pass 7/7 tests.",
+        "A preserved sibling AB/BA/AB report passes offline validation with 1800 samples per capture, p95 16.9 ms, zero frames above 25 ms, and three 0.0 ms regression pairs, but it is auxiliary evidence only.",
+        "The prior controlling production capture failed cadence acceptance with one 1789-sample capture, p95 values up to 17.0 ms, and frames above 25 ms; its route-independent distribution was recorded without claiming a proven host cause.",
+        "The product-owner-approved final one-shot AB/BA/AB collection used unchanged runtime/evaluator inputs and passed: 1800/1800/1800/1800/1800/1801 samples, every p95 16.9 ms, zero frames above 25 ms, zero runtime errors, and three 0.0 ms deltas. T4 closes only through qualification=display-cadence-exception while absolutePassed=false remains explicit."
+      ]
     },
     {
       "id": "T5",
       "subject": "Run full gates and close Phase 11 delivery state",
       "assignee": "ultron/codex + reviewer",
-      "status": "pending",
+      "status": "completed",
+      "completed": "2026-08-20",
       "depends": ["T4"],
-      "acceptance": ["A8"]
+      "acceptance": ["A8"],
+      "evidence": [
+        "Current gates pass MainScene LOC 850/850, type-check, lint, 60-file/361-test Vitest, the 1795-module production build, 7/7 cadence evaluator contracts, and 59/59 one-worker Playwright scenarios.",
+        "Current-fingerprint independent review found no blocking or non-blocking finding after the v5 concept correction; Phase 12 remains concept-only with no runtime references.",
+        "Manual drift and Codex postflight pass on the synchronized completion fingerprint."
+      ]
     }
   ],
   "acceptanceMap": {
@@ -89,8 +113,8 @@
     "A3": "One offline command pins Blender 4.5.12, rejects mismatches, confines partial output to staging, and atomically promotes only complete output.",
     "A4": "Two clean generations are byte-identical and satisfy the fixed frame keys, atlas count/dimensions, manifest, transfer, GPU, and hash contracts.",
     "A5": "Actor presentation composition is extracted before integration and MainScene stays within 850 lines with idempotent scene cleanup.",
-    "A6": "The animated POC is opt-in, Ground Shaker remains the total fallback, and no gameplay or persistence rule changes.",
-    "A7": "Animation/readability/console evidence passes in five weather states and measured transfer, GPU, p95 frame time, and regression stay within budget.",
+    "A6": "The animated actor is selected on the default browser route, explicit legacy/Kenney routes remain available, Ground Shaker remains the total fail-closed fallback, and no gameplay or persistence rule changes.",
+    "A7": "Animation/readability/console evidence passes in five weather states; transfer/GPU and relative regression stay within budget; the 16.7 ms absolute result remains explicit and a product-owner-approved 60Hz D3D11 cadence exception requires six 30-second captures, at least 1790 samples each, p95 at most 16.9 ms, zero frames above 25 ms, and zero runtime errors.",
     "A8": "Focused/full verification, current-fingerprint review, drift, postflight, status, handoff, and next-task output all pass and agree."
   }
 }

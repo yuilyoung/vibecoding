@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "targetFrame": {
+    "path": "docs/reports/phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
+    "bytes": 1063704,
+    "sha256": "1bf5e7ff6330854d8e9a7020c261c0c0778ad0baa782c446a1e88679bc01e8e6"
+  },
+  "generator": "OpenAI built-in image generation",
+  "generatedAt": "2026-08-21",
+  "sources": [
+    { "path": "public/assets/source/product-v1-map-objects/barrel-idle.png", "bytes": 730789, "sha256": "3e9a792e4df66a67801a2c9e0b885f3ee1f808c9879999a4fadb470d922220cf" },
+    { "path": "public/assets/source/product-v1-map-objects/barrel-damaged.png", "bytes": 768933, "sha256": "074e24bc9a5580bb055e0612a9fcb885b84b8cc69d847647dae7f759c38a44c5" },
+    { "path": "public/assets/source/product-v1-map-objects/mine-idle.png", "bytes": 1079469, "sha256": "c0575d9ec3e21039b397e89c32bd0a431df840391ec5594fc14fcbdf6253c62d" },
+    { "path": "public/assets/source/product-v1-map-objects/mine-armed.png", "bytes": 1110525, "sha256": "6d6891cbcca1988033a469f02625a01d94ff7c3bf9cdc94d58a085d754459336" },
+    { "path": "public/assets/source/product-v1-map-objects/crate-idle.png", "bytes": 1042676, "sha256": "ed4f01a88343b3ea95ef0a209e7af85185f17c2a81a486c6aee81a3b3a37604b" },
+    { "path": "public/assets/source/product-v1-map-objects/crate-damaged.png", "bytes": 1133034, "sha256": "57f98eb2d2bbfff2cce0ab69077b590108e3f78bd6b79eac21ec1566b44f78bc" },
+    { "path": "public/assets/source/product-v1-map-objects/cover-idle.png", "bytes": 959727, "sha256": "cd5e88e2d69a1ac8e7c07c1727d1e66261e004751b7a58caef9adba017e6a702" },
+    { "path": "public/assets/source/product-v1-map-objects/cover-damaged.png", "bytes": 953600, "sha256": "42f8c10f4e87a5126dc761bd65d57bae0b0b9160921b849b69da708ef217fedf" },
+    { "path": "public/assets/source/product-v1-map-objects/bounce-wall-idle.png", "bytes": 627278, "sha256": "dd79abe08f15a134d6fad2930bc1ebebb2aad2dd31fef4c9ea4aac7e7f799af3" },
+    { "path": "public/assets/source/product-v1-map-objects/bounce-wall-active.png", "bytes": 678582, "sha256": "e003b09e5e8b5cc7f9268f14a322bb837947453ddaab1b5247f9f99918ccf8cf" },
+    { "path": "public/assets/source/product-v1-map-objects/teleporter-idle.png", "bytes": 903908, "sha256": "5fbbd527fb433b33229a2e1818f7bf5a961ca9a095e01e925bd4b2bfa4aef662" },
+    { "path": "public/assets/source/product-v1-map-objects/teleporter-active.png", "bytes": 1039627, "sha256": "56fdfdaa1e77dbbaa733c3b03e732da6e78b8152bcb495c7f395aa8882d50d16" }
+  ]
+}

@@ -1,0 +1,2563 @@
+{
+  "payloads": [
+    {
+      "path": "/assets/runtime/actors/actor-blue.webp",
+      "bytes": 375746
+    },
+    {
+      "path": "/assets/runtime/actors/actor-blue.json",
+      "bytes": 63201
+    },
+    {
+      "path": "/assets/runtime/actors/actor-red.webp",
+      "bytes": 286858
+    },
+    {
+      "path": "/assets/runtime/actors/actor-red.json",
+      "bytes": 63023
+    },
+    {
+      "path": "/assets/runtime/actors/manifest.json",
+      "bytes": 54510
+    }
+  ],
+  "manifest": {
+    "schemaVersion": "1.0.0",
+    "source": [
+      {
+        "id": "quaternius-universal-base-characters",
+        "officialUrl": "https://quaternius.com/packs/universalbasecharacters.html",
+        "acquiredAt": "2026-08-17",
+        "license": "CC0-1.0",
+        "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40"
+      },
+      {
+        "id": "quaternius-universal-animation-library",
+        "officialUrl": "https://quaternius.com/packs/universalanimationlibrary.html",
+        "acquiredAt": "2026-08-17",
+        "license": "CC0-1.0",
+        "sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724"
+      }
+    ],
+    "generator": {
+      "blenderVersion": "4.5.12",
+      "blenderSha256": "7fbcc9f2b4a99ad19c1f9deb15c3e6786e62c7ccb624f66009b41b8203c0eba9",
+      "blenderArchiveSha256": "103b9f7d0b41cbb5fd89ad1c5c4aafbbeb5bfd71297667910446d0141ce3b43a",
+      "blenderBuildHash": "84afd5f785f7",
+      "sharpVersion": "0.35.3",
+      "sharpIntegrity": "sha512-ej0zVHuZGHCiABXcNxeYhpRnPNPAcvbG8RMdBAhDAxLKkCRVSpK3Iyu7qbqw3JMzoj0REeM6f3tJLtVwl0023Q==",
+      "scriptSha256": "1df7de9debad542941f93e26ec8748bd31c34ee33ccb850cba3cbbf3d620cce2"
+    },
+    "frames": [
+      {
+        "key": "actor/blue/idle/east/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "east",
+        "index": 0
+      },
+      {
+        "key": "actor/blue/idle/east/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "east",
+        "index": 1
+      },
+      {
+        "key": "actor/blue/idle/east/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "east",
+        "index": 2
+      },
+      {
+        "key": "actor/blue/idle/east/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "east",
+        "index": 3
+      },
+      {
+        "key": "actor/blue/idle/south-east/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 4
+      },
+      {
+        "key": "actor/blue/idle/south-east/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 5
+      },
+      {
+        "key": "actor/blue/idle/south-east/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 6
+      },
+      {
+        "key": "actor/blue/idle/south-east/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 7
+      },
+      {
+        "key": "actor/blue/idle/south/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south",
+        "index": 8
+      },
+      {
+        "key": "actor/blue/idle/south/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south",
+        "index": 9
+      },
+      {
+        "key": "actor/blue/idle/south/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south",
+        "index": 10
+      },
+      {
+        "key": "actor/blue/idle/south/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south",
+        "index": 11
+      },
+      {
+        "key": "actor/blue/idle/south-west/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 12
+      },
+      {
+        "key": "actor/blue/idle/south-west/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 13
+      },
+      {
+        "key": "actor/blue/idle/south-west/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 14
+      },
+      {
+        "key": "actor/blue/idle/south-west/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 15
+      },
+      {
+        "key": "actor/blue/idle/west/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "west",
+        "index": 16
+      },
+      {
+        "key": "actor/blue/idle/west/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "west",
+        "index": 17
+      },
+      {
+        "key": "actor/blue/idle/west/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "west",
+        "index": 18
+      },
+      {
+        "key": "actor/blue/idle/west/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "west",
+        "index": 19
+      },
+      {
+        "key": "actor/blue/idle/north-west/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 20
+      },
+      {
+        "key": "actor/blue/idle/north-west/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 21
+      },
+      {
+        "key": "actor/blue/idle/north-west/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 22
+      },
+      {
+        "key": "actor/blue/idle/north-west/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 23
+      },
+      {
+        "key": "actor/blue/idle/north/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north",
+        "index": 24
+      },
+      {
+        "key": "actor/blue/idle/north/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north",
+        "index": 25
+      },
+      {
+        "key": "actor/blue/idle/north/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north",
+        "index": 26
+      },
+      {
+        "key": "actor/blue/idle/north/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north",
+        "index": 27
+      },
+      {
+        "key": "actor/blue/idle/north-east/00",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 28
+      },
+      {
+        "key": "actor/blue/idle/north-east/01",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 29
+      },
+      {
+        "key": "actor/blue/idle/north-east/02",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 30
+      },
+      {
+        "key": "actor/blue/idle/north-east/03",
+        "team": "BLUE",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 31
+      },
+      {
+        "key": "actor/blue/run/east/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 32
+      },
+      {
+        "key": "actor/blue/run/east/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 33
+      },
+      {
+        "key": "actor/blue/run/east/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 34
+      },
+      {
+        "key": "actor/blue/run/east/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 35
+      },
+      {
+        "key": "actor/blue/run/east/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 36
+      },
+      {
+        "key": "actor/blue/run/east/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "east",
+        "index": 37
+      },
+      {
+        "key": "actor/blue/run/south-east/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 38
+      },
+      {
+        "key": "actor/blue/run/south-east/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 39
+      },
+      {
+        "key": "actor/blue/run/south-east/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 40
+      },
+      {
+        "key": "actor/blue/run/south-east/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 41
+      },
+      {
+        "key": "actor/blue/run/south-east/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 42
+      },
+      {
+        "key": "actor/blue/run/south-east/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-east",
+        "index": 43
+      },
+      {
+        "key": "actor/blue/run/south/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 44
+      },
+      {
+        "key": "actor/blue/run/south/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 45
+      },
+      {
+        "key": "actor/blue/run/south/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 46
+      },
+      {
+        "key": "actor/blue/run/south/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 47
+      },
+      {
+        "key": "actor/blue/run/south/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 48
+      },
+      {
+        "key": "actor/blue/run/south/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south",
+        "index": 49
+      },
+      {
+        "key": "actor/blue/run/south-west/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 50
+      },
+      {
+        "key": "actor/blue/run/south-west/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 51
+      },
+      {
+        "key": "actor/blue/run/south-west/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 52
+      },
+      {
+        "key": "actor/blue/run/south-west/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 53
+      },
+      {
+        "key": "actor/blue/run/south-west/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 54
+      },
+      {
+        "key": "actor/blue/run/south-west/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "south-west",
+        "index": 55
+      },
+      {
+        "key": "actor/blue/run/west/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 56
+      },
+      {
+        "key": "actor/blue/run/west/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 57
+      },
+      {
+        "key": "actor/blue/run/west/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 58
+      },
+      {
+        "key": "actor/blue/run/west/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 59
+      },
+      {
+        "key": "actor/blue/run/west/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 60
+      },
+      {
+        "key": "actor/blue/run/west/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "west",
+        "index": 61
+      },
+      {
+        "key": "actor/blue/run/north-west/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 62
+      },
+      {
+        "key": "actor/blue/run/north-west/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 63
+      },
+      {
+        "key": "actor/blue/run/north-west/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 64
+      },
+      {
+        "key": "actor/blue/run/north-west/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 65
+      },
+      {
+        "key": "actor/blue/run/north-west/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 66
+      },
+      {
+        "key": "actor/blue/run/north-west/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-west",
+        "index": 67
+      },
+      {
+        "key": "actor/blue/run/north/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 68
+      },
+      {
+        "key": "actor/blue/run/north/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 69
+      },
+      {
+        "key": "actor/blue/run/north/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 70
+      },
+      {
+        "key": "actor/blue/run/north/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 71
+      },
+      {
+        "key": "actor/blue/run/north/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 72
+      },
+      {
+        "key": "actor/blue/run/north/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north",
+        "index": 73
+      },
+      {
+        "key": "actor/blue/run/north-east/00",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 74
+      },
+      {
+        "key": "actor/blue/run/north-east/01",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 75
+      },
+      {
+        "key": "actor/blue/run/north-east/02",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 76
+      },
+      {
+        "key": "actor/blue/run/north-east/03",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 77
+      },
+      {
+        "key": "actor/blue/run/north-east/04",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 78
+      },
+      {
+        "key": "actor/blue/run/north-east/05",
+        "team": "BLUE",
+        "state": "run",
+        "direction": "north-east",
+        "index": 79
+      },
+      {
+        "key": "actor/blue/fire/east/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "east",
+        "index": 80
+      },
+      {
+        "key": "actor/blue/fire/east/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "east",
+        "index": 81
+      },
+      {
+        "key": "actor/blue/fire/east/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "east",
+        "index": 82
+      },
+      {
+        "key": "actor/blue/fire/east/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "east",
+        "index": 83
+      },
+      {
+        "key": "actor/blue/fire/south-east/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 84
+      },
+      {
+        "key": "actor/blue/fire/south-east/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 85
+      },
+      {
+        "key": "actor/blue/fire/south-east/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 86
+      },
+      {
+        "key": "actor/blue/fire/south-east/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 87
+      },
+      {
+        "key": "actor/blue/fire/south/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south",
+        "index": 88
+      },
+      {
+        "key": "actor/blue/fire/south/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south",
+        "index": 89
+      },
+      {
+        "key": "actor/blue/fire/south/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south",
+        "index": 90
+      },
+      {
+        "key": "actor/blue/fire/south/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south",
+        "index": 91
+      },
+      {
+        "key": "actor/blue/fire/south-west/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 92
+      },
+      {
+        "key": "actor/blue/fire/south-west/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 93
+      },
+      {
+        "key": "actor/blue/fire/south-west/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 94
+      },
+      {
+        "key": "actor/blue/fire/south-west/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 95
+      },
+      {
+        "key": "actor/blue/fire/west/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "west",
+        "index": 96
+      },
+      {
+        "key": "actor/blue/fire/west/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "west",
+        "index": 97
+      },
+      {
+        "key": "actor/blue/fire/west/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "west",
+        "index": 98
+      },
+      {
+        "key": "actor/blue/fire/west/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "west",
+        "index": 99
+      },
+      {
+        "key": "actor/blue/fire/north-west/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 100
+      },
+      {
+        "key": "actor/blue/fire/north-west/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 101
+      },
+      {
+        "key": "actor/blue/fire/north-west/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 102
+      },
+      {
+        "key": "actor/blue/fire/north-west/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 103
+      },
+      {
+        "key": "actor/blue/fire/north/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north",
+        "index": 104
+      },
+      {
+        "key": "actor/blue/fire/north/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north",
+        "index": 105
+      },
+      {
+        "key": "actor/blue/fire/north/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north",
+        "index": 106
+      },
+      {
+        "key": "actor/blue/fire/north/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north",
+        "index": 107
+      },
+      {
+        "key": "actor/blue/fire/north-east/00",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 108
+      },
+      {
+        "key": "actor/blue/fire/north-east/01",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 109
+      },
+      {
+        "key": "actor/blue/fire/north-east/02",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 110
+      },
+      {
+        "key": "actor/blue/fire/north-east/03",
+        "team": "BLUE",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 111
+      },
+      {
+        "key": "actor/blue/hit/east/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "east",
+        "index": 112
+      },
+      {
+        "key": "actor/blue/hit/east/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "east",
+        "index": 113
+      },
+      {
+        "key": "actor/blue/hit/south-east/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south-east",
+        "index": 114
+      },
+      {
+        "key": "actor/blue/hit/south-east/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south-east",
+        "index": 115
+      },
+      {
+        "key": "actor/blue/hit/south/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south",
+        "index": 116
+      },
+      {
+        "key": "actor/blue/hit/south/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south",
+        "index": 117
+      },
+      {
+        "key": "actor/blue/hit/south-west/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south-west",
+        "index": 118
+      },
+      {
+        "key": "actor/blue/hit/south-west/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "south-west",
+        "index": 119
+      },
+      {
+        "key": "actor/blue/hit/west/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "west",
+        "index": 120
+      },
+      {
+        "key": "actor/blue/hit/west/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "west",
+        "index": 121
+      },
+      {
+        "key": "actor/blue/hit/north-west/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north-west",
+        "index": 122
+      },
+      {
+        "key": "actor/blue/hit/north-west/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north-west",
+        "index": 123
+      },
+      {
+        "key": "actor/blue/hit/north/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north",
+        "index": 124
+      },
+      {
+        "key": "actor/blue/hit/north/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north",
+        "index": 125
+      },
+      {
+        "key": "actor/blue/hit/north-east/00",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north-east",
+        "index": 126
+      },
+      {
+        "key": "actor/blue/hit/north-east/01",
+        "team": "BLUE",
+        "state": "hit",
+        "direction": "north-east",
+        "index": 127
+      },
+      {
+        "key": "actor/blue/death/east/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 128
+      },
+      {
+        "key": "actor/blue/death/east/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 129
+      },
+      {
+        "key": "actor/blue/death/east/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 130
+      },
+      {
+        "key": "actor/blue/death/east/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 131
+      },
+      {
+        "key": "actor/blue/death/east/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 132
+      },
+      {
+        "key": "actor/blue/death/east/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "east",
+        "index": 133
+      },
+      {
+        "key": "actor/blue/death/south-east/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 134
+      },
+      {
+        "key": "actor/blue/death/south-east/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 135
+      },
+      {
+        "key": "actor/blue/death/south-east/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 136
+      },
+      {
+        "key": "actor/blue/death/south-east/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 137
+      },
+      {
+        "key": "actor/blue/death/south-east/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 138
+      },
+      {
+        "key": "actor/blue/death/south-east/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-east",
+        "index": 139
+      },
+      {
+        "key": "actor/blue/death/south/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 140
+      },
+      {
+        "key": "actor/blue/death/south/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 141
+      },
+      {
+        "key": "actor/blue/death/south/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 142
+      },
+      {
+        "key": "actor/blue/death/south/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 143
+      },
+      {
+        "key": "actor/blue/death/south/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 144
+      },
+      {
+        "key": "actor/blue/death/south/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south",
+        "index": 145
+      },
+      {
+        "key": "actor/blue/death/south-west/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 146
+      },
+      {
+        "key": "actor/blue/death/south-west/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 147
+      },
+      {
+        "key": "actor/blue/death/south-west/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 148
+      },
+      {
+        "key": "actor/blue/death/south-west/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 149
+      },
+      {
+        "key": "actor/blue/death/south-west/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 150
+      },
+      {
+        "key": "actor/blue/death/south-west/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "south-west",
+        "index": 151
+      },
+      {
+        "key": "actor/blue/death/west/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 152
+      },
+      {
+        "key": "actor/blue/death/west/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 153
+      },
+      {
+        "key": "actor/blue/death/west/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 154
+      },
+      {
+        "key": "actor/blue/death/west/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 155
+      },
+      {
+        "key": "actor/blue/death/west/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 156
+      },
+      {
+        "key": "actor/blue/death/west/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "west",
+        "index": 157
+      },
+      {
+        "key": "actor/blue/death/north-west/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 158
+      },
+      {
+        "key": "actor/blue/death/north-west/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 159
+      },
+      {
+        "key": "actor/blue/death/north-west/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 160
+      },
+      {
+        "key": "actor/blue/death/north-west/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 161
+      },
+      {
+        "key": "actor/blue/death/north-west/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 162
+      },
+      {
+        "key": "actor/blue/death/north-west/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-west",
+        "index": 163
+      },
+      {
+        "key": "actor/blue/death/north/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 164
+      },
+      {
+        "key": "actor/blue/death/north/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 165
+      },
+      {
+        "key": "actor/blue/death/north/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 166
+      },
+      {
+        "key": "actor/blue/death/north/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 167
+      },
+      {
+        "key": "actor/blue/death/north/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 168
+      },
+      {
+        "key": "actor/blue/death/north/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north",
+        "index": 169
+      },
+      {
+        "key": "actor/blue/death/north-east/00",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 170
+      },
+      {
+        "key": "actor/blue/death/north-east/01",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 171
+      },
+      {
+        "key": "actor/blue/death/north-east/02",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 172
+      },
+      {
+        "key": "actor/blue/death/north-east/03",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 173
+      },
+      {
+        "key": "actor/blue/death/north-east/04",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 174
+      },
+      {
+        "key": "actor/blue/death/north-east/05",
+        "team": "BLUE",
+        "state": "death",
+        "direction": "north-east",
+        "index": 175
+      },
+      {
+        "key": "actor/red/idle/east/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "east",
+        "index": 0
+      },
+      {
+        "key": "actor/red/idle/east/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "east",
+        "index": 1
+      },
+      {
+        "key": "actor/red/idle/east/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "east",
+        "index": 2
+      },
+      {
+        "key": "actor/red/idle/east/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "east",
+        "index": 3
+      },
+      {
+        "key": "actor/red/idle/south-east/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 4
+      },
+      {
+        "key": "actor/red/idle/south-east/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 5
+      },
+      {
+        "key": "actor/red/idle/south-east/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 6
+      },
+      {
+        "key": "actor/red/idle/south-east/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-east",
+        "index": 7
+      },
+      {
+        "key": "actor/red/idle/south/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south",
+        "index": 8
+      },
+      {
+        "key": "actor/red/idle/south/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south",
+        "index": 9
+      },
+      {
+        "key": "actor/red/idle/south/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south",
+        "index": 10
+      },
+      {
+        "key": "actor/red/idle/south/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south",
+        "index": 11
+      },
+      {
+        "key": "actor/red/idle/south-west/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 12
+      },
+      {
+        "key": "actor/red/idle/south-west/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 13
+      },
+      {
+        "key": "actor/red/idle/south-west/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 14
+      },
+      {
+        "key": "actor/red/idle/south-west/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "south-west",
+        "index": 15
+      },
+      {
+        "key": "actor/red/idle/west/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "west",
+        "index": 16
+      },
+      {
+        "key": "actor/red/idle/west/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "west",
+        "index": 17
+      },
+      {
+        "key": "actor/red/idle/west/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "west",
+        "index": 18
+      },
+      {
+        "key": "actor/red/idle/west/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "west",
+        "index": 19
+      },
+      {
+        "key": "actor/red/idle/north-west/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 20
+      },
+      {
+        "key": "actor/red/idle/north-west/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 21
+      },
+      {
+        "key": "actor/red/idle/north-west/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 22
+      },
+      {
+        "key": "actor/red/idle/north-west/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-west",
+        "index": 23
+      },
+      {
+        "key": "actor/red/idle/north/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north",
+        "index": 24
+      },
+      {
+        "key": "actor/red/idle/north/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north",
+        "index": 25
+      },
+      {
+        "key": "actor/red/idle/north/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north",
+        "index": 26
+      },
+      {
+        "key": "actor/red/idle/north/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north",
+        "index": 27
+      },
+      {
+        "key": "actor/red/idle/north-east/00",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 28
+      },
+      {
+        "key": "actor/red/idle/north-east/01",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 29
+      },
+      {
+        "key": "actor/red/idle/north-east/02",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 30
+      },
+      {
+        "key": "actor/red/idle/north-east/03",
+        "team": "RED",
+        "state": "idle",
+        "direction": "north-east",
+        "index": 31
+      },
+      {
+        "key": "actor/red/run/east/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 32
+      },
+      {
+        "key": "actor/red/run/east/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 33
+      },
+      {
+        "key": "actor/red/run/east/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 34
+      },
+      {
+        "key": "actor/red/run/east/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 35
+      },
+      {
+        "key": "actor/red/run/east/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 36
+      },
+      {
+        "key": "actor/red/run/east/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "east",
+        "index": 37
+      },
+      {
+        "key": "actor/red/run/south-east/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 38
+      },
+      {
+        "key": "actor/red/run/south-east/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 39
+      },
+      {
+        "key": "actor/red/run/south-east/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 40
+      },
+      {
+        "key": "actor/red/run/south-east/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 41
+      },
+      {
+        "key": "actor/red/run/south-east/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 42
+      },
+      {
+        "key": "actor/red/run/south-east/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-east",
+        "index": 43
+      },
+      {
+        "key": "actor/red/run/south/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 44
+      },
+      {
+        "key": "actor/red/run/south/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 45
+      },
+      {
+        "key": "actor/red/run/south/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 46
+      },
+      {
+        "key": "actor/red/run/south/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 47
+      },
+      {
+        "key": "actor/red/run/south/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 48
+      },
+      {
+        "key": "actor/red/run/south/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "south",
+        "index": 49
+      },
+      {
+        "key": "actor/red/run/south-west/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 50
+      },
+      {
+        "key": "actor/red/run/south-west/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 51
+      },
+      {
+        "key": "actor/red/run/south-west/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 52
+      },
+      {
+        "key": "actor/red/run/south-west/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 53
+      },
+      {
+        "key": "actor/red/run/south-west/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 54
+      },
+      {
+        "key": "actor/red/run/south-west/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "south-west",
+        "index": 55
+      },
+      {
+        "key": "actor/red/run/west/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 56
+      },
+      {
+        "key": "actor/red/run/west/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 57
+      },
+      {
+        "key": "actor/red/run/west/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 58
+      },
+      {
+        "key": "actor/red/run/west/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 59
+      },
+      {
+        "key": "actor/red/run/west/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 60
+      },
+      {
+        "key": "actor/red/run/west/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "west",
+        "index": 61
+      },
+      {
+        "key": "actor/red/run/north-west/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 62
+      },
+      {
+        "key": "actor/red/run/north-west/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 63
+      },
+      {
+        "key": "actor/red/run/north-west/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 64
+      },
+      {
+        "key": "actor/red/run/north-west/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 65
+      },
+      {
+        "key": "actor/red/run/north-west/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 66
+      },
+      {
+        "key": "actor/red/run/north-west/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-west",
+        "index": 67
+      },
+      {
+        "key": "actor/red/run/north/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 68
+      },
+      {
+        "key": "actor/red/run/north/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 69
+      },
+      {
+        "key": "actor/red/run/north/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 70
+      },
+      {
+        "key": "actor/red/run/north/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 71
+      },
+      {
+        "key": "actor/red/run/north/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 72
+      },
+      {
+        "key": "actor/red/run/north/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "north",
+        "index": 73
+      },
+      {
+        "key": "actor/red/run/north-east/00",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 74
+      },
+      {
+        "key": "actor/red/run/north-east/01",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 75
+      },
+      {
+        "key": "actor/red/run/north-east/02",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 76
+      },
+      {
+        "key": "actor/red/run/north-east/03",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 77
+      },
+      {
+        "key": "actor/red/run/north-east/04",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 78
+      },
+      {
+        "key": "actor/red/run/north-east/05",
+        "team": "RED",
+        "state": "run",
+        "direction": "north-east",
+        "index": 79
+      },
+      {
+        "key": "actor/red/fire/east/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "east",
+        "index": 80
+      },
+      {
+        "key": "actor/red/fire/east/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "east",
+        "index": 81
+      },
+      {
+        "key": "actor/red/fire/east/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "east",
+        "index": 82
+      },
+      {
+        "key": "actor/red/fire/east/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "east",
+        "index": 83
+      },
+      {
+        "key": "actor/red/fire/south-east/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 84
+      },
+      {
+        "key": "actor/red/fire/south-east/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 85
+      },
+      {
+        "key": "actor/red/fire/south-east/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 86
+      },
+      {
+        "key": "actor/red/fire/south-east/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-east",
+        "index": 87
+      },
+      {
+        "key": "actor/red/fire/south/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south",
+        "index": 88
+      },
+      {
+        "key": "actor/red/fire/south/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south",
+        "index": 89
+      },
+      {
+        "key": "actor/red/fire/south/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south",
+        "index": 90
+      },
+      {
+        "key": "actor/red/fire/south/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south",
+        "index": 91
+      },
+      {
+        "key": "actor/red/fire/south-west/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 92
+      },
+      {
+        "key": "actor/red/fire/south-west/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 93
+      },
+      {
+        "key": "actor/red/fire/south-west/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 94
+      },
+      {
+        "key": "actor/red/fire/south-west/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "south-west",
+        "index": 95
+      },
+      {
+        "key": "actor/red/fire/west/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "west",
+        "index": 96
+      },
+      {
+        "key": "actor/red/fire/west/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "west",
+        "index": 97
+      },
+      {
+        "key": "actor/red/fire/west/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "west",
+        "index": 98
+      },
+      {
+        "key": "actor/red/fire/west/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "west",
+        "index": 99
+      },
+      {
+        "key": "actor/red/fire/north-west/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 100
+      },
+      {
+        "key": "actor/red/fire/north-west/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 101
+      },
+      {
+        "key": "actor/red/fire/north-west/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 102
+      },
+      {
+        "key": "actor/red/fire/north-west/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-west",
+        "index": 103
+      },
+      {
+        "key": "actor/red/fire/north/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north",
+        "index": 104
+      },
+      {
+        "key": "actor/red/fire/north/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north",
+        "index": 105
+      },
+      {
+        "key": "actor/red/fire/north/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north",
+        "index": 106
+      },
+      {
+        "key": "actor/red/fire/north/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north",
+        "index": 107
+      },
+      {
+        "key": "actor/red/fire/north-east/00",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 108
+      },
+      {
+        "key": "actor/red/fire/north-east/01",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 109
+      },
+      {
+        "key": "actor/red/fire/north-east/02",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 110
+      },
+      {
+        "key": "actor/red/fire/north-east/03",
+        "team": "RED",
+        "state": "fire",
+        "direction": "north-east",
+        "index": 111
+      },
+      {
+        "key": "actor/red/hit/east/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "east",
+        "index": 112
+      },
+      {
+        "key": "actor/red/hit/east/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "east",
+        "index": 113
+      },
+      {
+        "key": "actor/red/hit/south-east/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south-east",
+        "index": 114
+      },
+      {
+        "key": "actor/red/hit/south-east/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south-east",
+        "index": 115
+      },
+      {
+        "key": "actor/red/hit/south/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south",
+        "index": 116
+      },
+      {
+        "key": "actor/red/hit/south/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south",
+        "index": 117
+      },
+      {
+        "key": "actor/red/hit/south-west/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south-west",
+        "index": 118
+      },
+      {
+        "key": "actor/red/hit/south-west/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "south-west",
+        "index": 119
+      },
+      {
+        "key": "actor/red/hit/west/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "west",
+        "index": 120
+      },
+      {
+        "key": "actor/red/hit/west/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "west",
+        "index": 121
+      },
+      {
+        "key": "actor/red/hit/north-west/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north-west",
+        "index": 122
+      },
+      {
+        "key": "actor/red/hit/north-west/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north-west",
+        "index": 123
+      },
+      {
+        "key": "actor/red/hit/north/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north",
+        "index": 124
+      },
+      {
+        "key": "actor/red/hit/north/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north",
+        "index": 125
+      },
+      {
+        "key": "actor/red/hit/north-east/00",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north-east",
+        "index": 126
+      },
+      {
+        "key": "actor/red/hit/north-east/01",
+        "team": "RED",
+        "state": "hit",
+        "direction": "north-east",
+        "index": 127
+      },
+      {
+        "key": "actor/red/death/east/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 128
+      },
+      {
+        "key": "actor/red/death/east/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 129
+      },
+      {
+        "key": "actor/red/death/east/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 130
+      },
+      {
+        "key": "actor/red/death/east/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 131
+      },
+      {
+        "key": "actor/red/death/east/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 132
+      },
+      {
+        "key": "actor/red/death/east/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "east",
+        "index": 133
+      },
+      {
+        "key": "actor/red/death/south-east/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 134
+      },
+      {
+        "key": "actor/red/death/south-east/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 135
+      },
+      {
+        "key": "actor/red/death/south-east/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 136
+      },
+      {
+        "key": "actor/red/death/south-east/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 137
+      },
+      {
+        "key": "actor/red/death/south-east/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 138
+      },
+      {
+        "key": "actor/red/death/south-east/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-east",
+        "index": 139
+      },
+      {
+        "key": "actor/red/death/south/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 140
+      },
+      {
+        "key": "actor/red/death/south/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 141
+      },
+      {
+        "key": "actor/red/death/south/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 142
+      },
+      {
+        "key": "actor/red/death/south/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 143
+      },
+      {
+        "key": "actor/red/death/south/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 144
+      },
+      {
+        "key": "actor/red/death/south/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "south",
+        "index": 145
+      },
+      {
+        "key": "actor/red/death/south-west/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 146
+      },
+      {
+        "key": "actor/red/death/south-west/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 147
+      },
+      {
+        "key": "actor/red/death/south-west/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 148
+      },
+      {
+        "key": "actor/red/death/south-west/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 149
+      },
+      {
+        "key": "actor/red/death/south-west/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 150
+      },
+      {
+        "key": "actor/red/death/south-west/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "south-west",
+        "index": 151
+      },
+      {
+        "key": "actor/red/death/west/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 152
+      },
+      {
+        "key": "actor/red/death/west/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 153
+      },
+      {
+        "key": "actor/red/death/west/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 154
+      },
+      {
+        "key": "actor/red/death/west/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 155
+      },
+      {
+        "key": "actor/red/death/west/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 156
+      },
+      {
+        "key": "actor/red/death/west/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "west",
+        "index": 157
+      },
+      {
+        "key": "actor/red/death/north-west/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 158
+      },
+      {
+        "key": "actor/red/death/north-west/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 159
+      },
+      {
+        "key": "actor/red/death/north-west/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 160
+      },
+      {
+        "key": "actor/red/death/north-west/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 161
+      },
+      {
+        "key": "actor/red/death/north-west/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 162
+      },
+      {
+        "key": "actor/red/death/north-west/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-west",
+        "index": 163
+      },
+      {
+        "key": "actor/red/death/north/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 164
+      },
+      {
+        "key": "actor/red/death/north/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 165
+      },
+      {
+        "key": "actor/red/death/north/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 166
+      },
+      {
+        "key": "actor/red/death/north/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 167
+      },
+      {
+        "key": "actor/red/death/north/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 168
+      },
+      {
+        "key": "actor/red/death/north/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "north",
+        "index": 169
+      },
+      {
+        "key": "actor/red/death/north-east/00",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 170
+      },
+      {
+        "key": "actor/red/death/north-east/01",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 171
+      },
+      {
+        "key": "actor/red/death/north-east/02",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 172
+      },
+      {
+        "key": "actor/red/death/north-east/03",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 173
+      },
+      {
+        "key": "actor/red/death/north-east/04",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 174
+      },
+      {
+        "key": "actor/red/death/north-east/05",
+        "team": "RED",
+        "state": "death",
+        "direction": "north-east",
+        "index": 175
+      }
+    ],
+    "atlases": [
+      {
+        "team": "BLUE",
+        "imagePath": "actor-blue.webp",
+        "jsonPath": "actor-blue.json",
+        "imageSha256": "fa0f63ab9c32b30c7250bc73f7e178bfd158e7b471bc11ff440fb7785e7f0be9",
+        "pixelSha256": "106dedd6e5929f95bcb354340904d4463bcc3e004d6784fc3c99d5ec65820ff8",
+        "jsonSha256": "4e76926875e40593edbf2da2359af6abcb9f40033202976aa1e81cf6ecc3afef",
+        "transferBytes": 375746
+      },
+      {
+        "team": "RED",
+        "imagePath": "actor-red.webp",
+        "jsonPath": "actor-red.json",
+        "imageSha256": "7cda584fdadf2ef96285907486e65e0a37e81131950788287025866f7b26670f",
+        "pixelSha256": "23a0c50adca29df9aa150c55d883124ff6edb96a747c0e85ae826fbc79007abe",
+        "jsonSha256": "ea3ad0d862404097a21eae4e87a22f3c59bebc6fb49ebe6af95d6fe734fb9334",
+        "transferBytes": 286858
+      }
+    ],
+    "budgets": {
+      "transferBytes": 788828,
+      "transferLimitBytes": 8388608,
+      "gpuRgbaBytes": 33554432,
+      "gpuRgbaLimitBytes": 33554432,
+      "mipmaps": false
+    }
+  },
+  "atlases": [
+    {
+      "team": "BLUE",
+      "textureKey": "actor-animated-blue",
+      "width": 2048,
+      "height": 2048,
+      "mipmaps": false
+    },
+    {
+      "team": "RED",
+      "textureKey": "actor-animated-red",
+      "width": 2048,
+      "height": 2048,
+      "mipmaps": false
+    }
+  ],
+  "atlasPayloadBytes": 788828,
+  "strictPayloadBytes": 843338
+}

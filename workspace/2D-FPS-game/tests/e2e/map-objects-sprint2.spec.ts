@@ -249,12 +249,12 @@ test("bounce wall reflects a linear projectile and flips its y velocity", async 
 
   await injectProjectile(page, {
     x: 432,
-    y: 110,
+    y: 96,
     velocityX: 0,
     velocityY: 220,
     trajectory: "linear"
   });
-  await withScene(page, (scene: DebugScene) => scene.debugResolveProjectiles());
+  await advanceFrames(page, 1, 50);
   await expect.poll(async () => {
     const wall = await withScene(page, (scene: DebugScene) => {
       return scene.debugGetMapObjectStates().find((object) => object.id === "drain-bounce-wall-a");

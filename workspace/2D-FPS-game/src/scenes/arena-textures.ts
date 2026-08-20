@@ -3,11 +3,11 @@ import type { TerrainCrop } from "./scene-types";
 import {
   OBSTACLE_CORE_KEY, OBSTACLE_TOWER_KEY, OBSTACLE_BARRIER_KEY,
   GATE_PANEL_KEY, VENT_PANEL_KEY, PICKUP_AMMO_KEY, PICKUP_HEALTH_KEY,
-  GROUND_BODY_BLUE_KEY, GROUND_BODY_RED_KEY, GROUND_TERRAIN_KEY,
+  GROUND_TERRAIN_KEY,
   GROUND_TURRET_CARBINE_BLUE_KEY, GROUND_TURRET_CARBINE_RED_KEY,
   GROUND_TURRET_SCATTER_BLUE_KEY, GROUND_TURRET_SCATTER_RED_KEY,
   CARBINE_TURRET_FRAMES, SCATTER_TURRET_FRAMES,
-  ACTOR_BODY_SCALE, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y,
+  PLAYFIELD_MIN_X, PLAYFIELD_MAX_X, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y,
 } from "./scene-constants";
 
 export function createArenaPropTextures(scene: Phaser.Scene): void {
@@ -18,11 +18,6 @@ export function createArenaPropTextures(scene: Phaser.Scene): void {
   createVentTexture(scene);
   createPickupTexture(scene, PICKUP_AMMO_KEY, 0x6ce5ff, 0xd9f9ff, "A");
   createPickupTexture(scene, PICKUP_HEALTH_KEY, 0x7cff9e, 0xeafff0, "+");
-}
-
-export function createActorImage(scene: Phaser.Scene, actor: "player" | "dummy", x: number, y: number): Phaser.GameObjects.Image {
-  const textureKey = actor === "player" ? GROUND_BODY_BLUE_KEY : GROUND_BODY_RED_KEY;
-  return scene.add.image(x, y, textureKey).setDepth(5).setScale(ACTOR_BODY_SCALE);
 }
 
 export function createTurretAnimations(scene: Phaser.Scene): void {

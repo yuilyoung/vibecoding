@@ -4,6 +4,15 @@ import { defineConfig } from "vite";
 const phaserSourceEntry = path.resolve("node_modules/phaser/src/phaser.js");
 const phaser3spectorjsStubId = "virtual:phaser3spectorjs-stub";
 const phaser3spectorjsStubNamespace = "phaser3spectorjs-stub";
+export const phaser3spectorjsStubSource = `
+class Spector {
+  constructor() {
+    this.onCapture = { add() {} };
+  }
+}
+export { Spector };
+export default { Spector };
+`;
 
 interface EsbuildPluginBuild {
   onResolve(options: { readonly filter: RegExp }, callback: () => { readonly path: string; readonly namespace: string }): void;
@@ -34,7 +43,7 @@ function getPhaserChunkName(id: string): string | undefined {
   return "phaser-vendor";
 }
 
-function createPhaser3spectorjsStubPlugin() {
+export function createPhaser3spectorjsStubPlugin() {
   return {
     name: "phaser3spectorjs-stub",
     enforce: "pre" as const,
@@ -47,7 +56,7 @@ function createPhaser3spectorjsStubPlugin() {
     },
     load(id: string) {
       if (id === phaser3spectorjsStubId) {
-        return "export default {};";
+        return phaser3spectorjsStubSource;
       }
 
       return undefined;
@@ -55,7 +64,7 @@ function createPhaser3spectorjsStubPlugin() {
   };
 }
 
-function createPhaser3spectorjsEsbuildPlugin() {
+export function createPhaser3spectorjsEsbuildPlugin() {
   return {
     name: "phaser3spectorjs-stub",
     setup(build: EsbuildPluginBuild) {
@@ -64,7 +73,7 @@ function createPhaser3spectorjsEsbuildPlugin() {
         namespace: phaser3spectorjsStubNamespace
       }));
       build.onLoad({ filter: /.*/, namespace: phaser3spectorjsStubNamespace }, () => ({
-        contents: "export default {};",
+        contents: phaser3spectorjsStubSource,
         loader: "js"
       }));
     }

@@ -181,6 +181,38 @@ p {
   pointer-events: none;
 }
 
+.primary-play {
+  display: inline-grid;
+  gap: 2px;
+  min-width: 180px;
+  margin-top: 18px;
+  padding: 13px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  color: #08121c;
+  background: linear-gradient(135deg, #a8f2ff, #79e6bd);
+  box-shadow: 0 12px 30px rgba(83, 231, 205, 0.28);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.primary-play:hover,
+.primary-play:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(83, 231, 205, 0.36);
+}
+
+.primary-play strong {
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+}
+
+.primary-play span {
+  font-size: 0.68rem;
+  opacity: 0.72;
+}
+
 .cover-vision {
   position: absolute;
   inset: 0;
@@ -248,7 +280,8 @@ p {
   grid-template-columns: minmax(0, 1fr) 58px;
 }
 
-.identity-head--enemy .operator-portrait {
+.identity-head--enemy .operator-portrait,
+.identity-head--enemy .operator-badge {
   grid-column: 2;
   grid-row: 1;
 }
@@ -274,6 +307,36 @@ p {
 .identity-head--enemy .operator-portrait {
   border-color: rgba(255, 133, 133, 0.42);
   background: radial-gradient(circle, rgba(255, 133, 133, 0.14), rgba(7, 14, 22, 0.82));
+}
+
+.operator-badge {
+  display: none;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(143, 233, 255, 0.5);
+  border-radius: 18px;
+  color: #d9f8ff;
+  background: linear-gradient(145deg, rgba(42, 149, 220, 0.86), rgba(12, 49, 86, 0.94));
+  box-shadow: inset 0 0 18px rgba(143, 233, 255, 0.16), 0 8px 18px rgba(0, 0, 0, 0.24);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.operator-badge--red {
+  border-color: rgba(255, 133, 133, 0.5);
+  color: #ffe5e5;
+  background: linear-gradient(145deg, rgba(205, 72, 85, 0.9), rgba(77, 20, 35, 0.96));
+  box-shadow: inset 0 0 18px rgba(255, 133, 133, 0.16), 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.stage-panel:has(#stage-frame[data-actor-skin="quaternius-animated"]) .operator-portrait {
+  display: none;
+}
+
+.stage-panel:has(#stage-frame[data-actor-skin="quaternius-animated"]) .operator-badge {
+  display: grid;
 }
 
 .identity-copy {

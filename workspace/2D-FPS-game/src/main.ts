@@ -3,8 +3,9 @@ import gameBalance from "../assets/data/game-balance.json";
 import { type SettingsState } from "./domain/settings/SettingsStorage";
 import {
   advanceTutorial,
-  createTutorialOverlayState,
+  createDeferredTutorialOverlayState,
   dismissTutorial,
+  revealTutorial,
   resetTutorial,
   type TutorialSignal
 } from "./domain/tutorial/TutorialOverlayLogic";
@@ -19,6 +20,7 @@ import {
   getWeatherVisualTheme
 } from "./domain/visual/VisualAssetCatalog";
 import { resolveActorSkinFromSearch } from "./domain/visual/ActorSkinCatalog";
+import { resolveWorldObjectSkinFromSearch } from "./domain/visual/WorldObjectSkinCatalog";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
   applySettingsPanelDraft,
@@ -48,6 +50,7 @@ declare global {
 const GAME_VIEWPORT_WIDTH = 960;
 const GAME_VIEWPORT_HEIGHT = 540;
 const actorSkinDefinition = resolveActorSkinFromSearch(window.location.search);
+const worldObjectSkinDefinition = resolveWorldObjectSkinFromSearch(window.location.search);
 
 const appRoot = document.querySelector<HTMLDivElement>("#app");
 
@@ -59,10 +62,10 @@ appRoot.innerHTML = `
   <div class="app-shell">
     <header class="shell-header">
       <div>
-        <p class="eyebrow">TACTICAL PROTOTYPE</p>
+        <p class="eyebrow">FAST 1V1 ARENA COMBAT</p>
         <h1>Arena Strike</h1>
       </div>
-      <div class="header-chip">top-down combat slice</div>
+      <div class="header-chip">Choose a side. Own the arena.</div>
     </header>
     <main class="shell-main">
       <section class="stage-panel">
@@ -70,10 +73,11 @@ appRoot.innerHTML = `
           <section class="hud-card player-card">
             <div class="identity-head">
               <img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />
+              <span class="operator-badge operator-badge--blue" role="img" aria-label="Blue Vanguard">V</span>
               <div class="identity-copy">
                 <p class="hud-label">Player Operator</p>
-                <strong id="player-operator-text">Blue operator</strong>
-                <span>Kenney / CC0</span>
+                <strong id="player-operator-text">Blue Vanguard operator</strong>
+                <span>Vanguard assault unit</span>
               </div>
             </div>
             <div class="hud-statline">
@@ -111,10 +115,11 @@ appRoot.innerHTML = `
           <section class="hud-card enemy-card">
             <div class="identity-head identity-head--enemy">
               <img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />
+              <span class="operator-badge operator-badge--red" role="img" aria-label="Red Vanguard">V</span>
               <div class="identity-copy">
                 <p class="hud-label">Enemy Operator</p>
-                <strong id="enemy-operator-text">Red hitman</strong>
-                <span>${actorSkinDefinition.label}</span>
+                <strong id="enemy-operator-text">Red Vanguard operator</strong>
+                <span id="actor-skin-label">${actorSkinDefinition.label}</span>
               </div>
             </div>
             <div class="scoreline">
@@ -132,7 +137,7 @@ appRoot.innerHTML = `
           </section>
         </div>
 
-        <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear" data-actor-skin="${actorSkinDefinition.id}">
+        <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear" data-actor-skin="${actorSkinDefinition.id}" data-world-skin="${worldObjectSkinDefinition.id}">
           <div id="game-root" class="game-root"></div>
           <div id="blast-preview" class="blast-preview"></div>
           <div id="cover-vision" class="cover-vision"></div>
@@ -143,8 +148,12 @@ appRoot.innerHTML = `
           <div class="hud-overlay" aria-live="polite">
             <section id="banner-card" class="banner-card">
               <p id="banner-kicker" class="banner-kicker">MATCH FLOW</p>
-              <h2 id="banner-title">ENTER STAGE</h2>
-              <p id="banner-subtitle">Press ENTER to open team selection.</p>
+              <h2 id="banner-title">ARENA READY</h2>
+              <p id="banner-subtitle">Press Play or Enter to choose your team.</p>
+              <button id="primary-play" class="primary-play" type="button" data-testid="primary-play">
+                <strong>PLAY</strong>
+                <span>Choose your team</span>
+              </button>
             </section>
           </div>
           <section id="settings-panel-root" class="settings-panel is-hidden" data-testid="settings-panel" aria-hidden="true">
@@ -272,7 +281,15 @@ if (gameContainer === null) {
 
 const mainScene = new MainScene(
   gameBalance as unknown as GameBalance,
-  actorSkinDefinition
+  actorSkinDefinition,
+  worldObjectSkinDefinition,
+  (resolvedSkin) => {
+    queryText("#actor-skin-label").textContent = resolvedSkin.label;
+    queryElement("#stage-frame").dataset.actorSkin = resolvedSkin.id;
+  },
+  (resolvedSkin) => {
+    queryElement("#stage-frame").dataset.worldSkin = resolvedSkin.id;
+  }
 );
 const hudElements = {
   playerPortrait: queryElement("#player-portrait"),
@@ -293,6 +310,7 @@ const hudElements = {
   bannerKicker: queryText("#banner-kicker"),
   bannerTitle: queryText("#banner-title"),
   bannerSubtitle: queryText("#banner-subtitle"),
+  primaryPlay: queryButton("#primary-play"),
   scoreText: queryText("#score-text"),
   roundText: queryText("#round-text"),
   dummyHealthText: queryText("#dummy-health-text"),
@@ -366,7 +384,7 @@ window.__FPS_GAME__ = game;
 
 let currentSettings = mainScene.getSettingsState();
 let settingsPanelState = createSettingsPanelState(currentSettings);
-let tutorialState = createTutorialOverlayState(currentSettings.tutorialDismissed);
+let tutorialState = createDeferredTutorialOverlayState(currentSettings.tutorialDismissed);
 
 const settingsPanelCallbacks = {
   onSave(settings: SettingsState): void {
@@ -390,6 +408,7 @@ settingsPanelElements.replayTutorial.addEventListener("click", replayTutorial);
 settingsPanelElements.masterVolume.addEventListener("input", onSettingsSliderInput);
 settingsPanelElements.sfxVolume.addEventListener("input", onSettingsSliderInput);
 settingsPanelElements.mouseSensitivity.addEventListener("input", onSettingsSliderInput);
+hudElements.primaryPlay.addEventListener("click", beginProductExperience);
 tutorialOverlayElements.skip.addEventListener("click", skipTutorial);
 tutorialOverlayElements.hide.addEventListener("click", hideTutorialPermanently);
 
@@ -517,11 +536,28 @@ function onGlobalKeyDown(event: KeyboardEvent): void {
     return;
   }
 
+  if (event.key === "Enter" && beginProductExperience()) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
   const signal = tutorialSignalForKey(event.key);
 
   if (signal !== null) {
     advanceTutorialFromUi(signal);
   }
+}
+
+function beginProductExperience(): boolean {
+  const transitioned = mainScene.requestStageEntry();
+  if (!transitioned) {
+    return false;
+  }
+
+  tutorialState = revealTutorial(tutorialState);
+  renderTutorialOverlay();
+  return true;
 }
 
 function blockGameInputWhenSettingsOpen(event: Event): void {
@@ -606,6 +642,7 @@ function removeUiListeners(): void {
   settingsPanelElements.masterVolume.removeEventListener("input", onSettingsSliderInput);
   settingsPanelElements.sfxVolume.removeEventListener("input", onSettingsSliderInput);
   settingsPanelElements.mouseSensitivity.removeEventListener("input", onSettingsSliderInput);
+  hudElements.primaryPlay.removeEventListener("click", beginProductExperience);
   tutorialOverlayElements.skip.removeEventListener("click", skipTutorial);
   tutorialOverlayElements.hide.removeEventListener("click", hideTutorialPermanently);
   window.removeEventListener("keydown", onGlobalKeyDown, { capture: true });
@@ -644,6 +681,7 @@ function renderHud(snapshot: HudSnapshot): void {
   updateText(hudElements.bannerKicker, snapshot.overlay.visible ? "MATCH FLOW" : "COMBAT LIVE", "banner-kicker-text");
   updateText(hudElements.bannerTitle, snapshot.overlay.title || snapshot.phase, "banner-title-text");
   updateText(hudElements.bannerSubtitle, snapshot.overlay.subtitle || "Stay mobile and keep pressure on the lane.", "banner-subtitle-text");
+  updateClassState(hudElements.primaryPlay, "is-hidden", snapshot.phase !== "STAGE ENTRY", "primary-play-hidden");
   updateClassState(hudElements.bannerCard, "is-hidden", !snapshot.overlay.visible, "banner-hidden");
   updateText(hudElements.scoreText, `${snapshot.playerScore} : ${snapshot.dummyScore}`, "score-text");
   updateText(hudElements.roundText, `Round ${snapshot.roundNumber} / First to ${snapshot.scoreToWin}`, "round-text");

@@ -1,8 +1,10 @@
 import {
   advanceTutorial,
+  createDeferredTutorialOverlayState,
   createTutorialOverlayState,
   dismissTutorial,
   getCurrentTutorialStep,
+  revealTutorial,
   resetTutorial
 } from "../src/domain/tutorial/TutorialOverlayLogic";
 
@@ -15,6 +17,15 @@ describe("TutorialOverlayLogic", () => {
       completedStepIds: [],
       dismissed: true
     });
+  });
+
+  it("defers the first-run tutorial until product entry and never revives a dismissed tutorial", () => {
+    const deferred = createDeferredTutorialOverlayState(false);
+    expect(deferred).toMatchObject({ visible: false, dismissed: false });
+    expect(revealTutorial(deferred)).toMatchObject({ visible: true, dismissed: false });
+
+    const dismissed = createDeferredTutorialOverlayState(true);
+    expect(revealTutorial(dismissed)).toBe(dismissed);
   });
 
   it("advances only when the expected signal arrives", () => {

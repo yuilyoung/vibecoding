@@ -219,7 +219,10 @@ test("bazooka projectiles drift with wind while preserving arc travel", async ({
     velocityY: -220,
     windMultiplier: 0.35
   });
-  await withScene(page, (scene: DebugScene) => scene.clearBullets());
+  await withScene(page, (scene: DebugScene) => {
+    scene.clearBullets();
+    scene.update(0, 0);
+  });
 
   await setWind(page, 0, 2);
   const windy = await injectAndAdvanceProjectile(page, {
@@ -248,7 +251,10 @@ test("carbine projectiles ignore wind", async ({ page }) => {
     velocityY: 0,
     steps: 8
   });
-  await withScene(page, (scene: DebugScene) => scene.clearBullets());
+  await withScene(page, (scene: DebugScene) => {
+    scene.clearBullets();
+    scene.update(0, 0);
+  });
 
   await setWind(page, 0, 3);
   const windy = await injectAndAdvanceProjectile(page, {

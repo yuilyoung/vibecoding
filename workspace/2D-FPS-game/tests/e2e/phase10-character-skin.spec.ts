@@ -65,8 +65,8 @@ const enterCombat = async (page: Page, team: Team): Promise<void> => {
   })).toBe("COMBAT LIVE");
 };
 
-test("keeps the Ground Shaker vehicle and external weapon layer as the default", async ({ page }) => {
-  const errors = await openGame(page);
+test("keeps the Ground Shaker vehicle and external weapon layer as an explicit recovery route", async ({ page }) => {
+  const errors = await openGame(page, "/?actorSkin=legacy-vehicle");
   const presentation = await readPresentation(page);
 
   expect(presentation).toMatchObject({
@@ -84,7 +84,6 @@ test("keeps the Ground Shaker vehicle and external weapon layer as the default",
 
 test("switches the local infantry POC by team and keeps weather presentation active", async ({ page }) => {
   const errors = await openGame(page, "/?actorSkin=kenney-infantry");
-  await page.locator("#tutorial-skip").click();
   await enterCombat(page, "RED");
   await page.evaluate(() => {
     const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as DebugScene | undefined;
@@ -103,7 +102,7 @@ test("switches the local infantry POC by team and keeps weather presentation act
     destroyed: false
   });
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "kenney-infantry");
-  await expect(page.locator(".enemy-card .identity-copy span")).toHaveText("Kenney infantry contract POC");
+  await expect(page.locator(".enemy-card .identity-copy span")).toHaveText("Kenney infantry fallback");
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-weather", "storm");
   await page.locator("canvas").screenshot({ path: test.info().outputPath("phase10-infantry-red-storm.png") });
   expect(errors).toEqual([]);

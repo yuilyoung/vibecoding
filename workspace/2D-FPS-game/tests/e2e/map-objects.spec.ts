@@ -30,6 +30,7 @@ interface DebugScene {
   debugFireAt(targetX: number, targetY: number): void;
   debugMovePlayerTo(x: number, y: number): void;
   debugMoveDummyTo(x: number, y: number): void;
+  debugSetWeather(type: "clear"): void;
   update(time: number, delta: number): void;
 }
 
@@ -71,6 +72,7 @@ const enterCombat = async (page: Page): Promise<void> => {
     scene.debugSelectTeam("BLUE");
     scene.debugConfirmTeamSelection();
     scene.debugForceCombatLive();
+    scene.debugSetWeather("clear");
     scene.debugMoveDummyTo(820, 460);
   });
 
@@ -108,7 +110,8 @@ test("bazooka fire destroys a barrel map object", async ({ page }) => {
   const after = await readSnapshot(page);
   expect(after.weaponSlot).toBe(3);
   expect(after.activeWeapon).toBe("Bazooka");
-  expect(after.mapObjects.destroyed).toBeGreaterThan(before.mapObjects.destroyed);
+  await expect.poll(async () => (await readSnapshot(page)).mapObjects.destroyed)
+    .toBeGreaterThan(before.mapObjects.destroyed);
 });
 
 test("barrel chain destroys adjacent barrels", async ({ page }) => {
@@ -122,8 +125,8 @@ test("barrel chain destroys adjacent barrels", async ({ page }) => {
   await advanceFrames(page, 24, 80);
   await page.waitForTimeout(350);
 
-  const after = await readSnapshot(page);
-  expect(after.mapObjects.destroyed).toBeGreaterThanOrEqual(2);
+  await expect.poll(async () => (await readSnapshot(page)).mapObjects.destroyed)
+    .toBeGreaterThanOrEqual(2);
 });
 
 test("crate destruction emits a pickup drop event", async ({ page }) => {

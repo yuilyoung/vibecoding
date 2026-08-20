@@ -1,0 +1,312 @@
+[
+  {
+    "file": "phase11-t4-blue-rain-idle.png",
+    "team": "BLUE",
+    "weather": "rain",
+    "state": "idle",
+    "presentation": {
+      "requestedSkinId": "quaternius-animated",
+      "skinId": "quaternius-animated",
+      "fallbackReason": null,
+      "atlasActive": true,
+      "weaponLayer": "external",
+      "playerState": "idle",
+      "dummyState": "run",
+      "playerDirection": "west",
+      "dummyDirection": "west",
+      "playerAnimationKey": "quaternius-animated:blue:idle:west",
+      "dummyAnimationKey": "quaternius-animated:red:run:west",
+      "playerFrameName": "actor/blue/idle/west/02",
+      "dummyFrameName": "actor/red/run/west/02",
+      "playerTextureKey": "actor-animated-blue",
+      "dummyTextureKey": "actor-animated-red",
+      "playerWeaponVisible": true,
+      "dummyWeaponVisible": true,
+      "playerWeaponRotation": 1.6789636528751402,
+      "dummyWeaponRotation": -1.548638817628075,
+      "destroyed": false
+    },
+    "visibleActors": 2,
+    "width": 960,
+    "height": 540,
+    "bytes": 553009,
+    "sha256": "509f619238a2d7c0ce7ea91a9d9647aaf7e8173d2e7aba06bdfe07ab96aadfa1",
+    "pixels": {
+      "fullCanvas": {
+        "name": "full-canvas",
+        "pixels": 518400,
+        "nonBlackRatio": 0.999985,
+        "luminanceMin": 7.723,
+        "luminanceMax": 220.834,
+        "luminanceMean": 76.51,
+        "luminanceStdDev": 37.959
+      },
+      "playerRegion": {
+        "name": "player",
+        "pixels": 6400,
+        "nonBlackRatio": 1,
+        "luminanceMin": 13.289,
+        "luminanceMax": 142.081,
+        "luminanceMean": 85.495,
+        "luminanceStdDev": 20.043
+      },
+      "dummyRegion": {
+        "name": "dummy",
+        "pixels": 6400,
+        "nonBlackRatio": 0.99875,
+        "luminanceMin": 7.723,
+        "luminanceMax": 162.989,
+        "luminanceMean": 74.078,
+        "luminanceStdDev": 18.403
+      }
+    }
+  },
+  {
+    "file": "phase11-t4-blue-rain-run.png",
+    "team": "BLUE",
+    "weather": "rain",
+    "state": "run",
+    "presentation": {
+      "requestedSkinId": "quaternius-animated",
+      "skinId": "quaternius-animated",
+      "fallbackReason": null,
+      "atlasActive": true,
+      "weaponLayer": "external",
+      "playerState": "run",
+      "dummyState": "run",
+      "playerDirection": "west",
+      "dummyDirection": "north-west",
+      "playerAnimationKey": "quaternius-animated:blue:run:west",
+      "dummyAnimationKey": "quaternius-animated:red:run:north-west",
+      "playerFrameName": "actor/blue/run/west/02",
+      "dummyFrameName": "actor/red/run/north-west/02",
+      "playerTextureKey": "actor-animated-blue",
+      "dummyTextureKey": "actor-animated-red",
+      "playerWeaponVisible": true,
+      "dummyWeaponVisible": true,
+      "playerWeaponRotation": 1.6754912356029656,
+      "dummyWeaponRotation": -1.5310860170177296,
+      "destroyed": false
+    },
+    "visibleActors": 2,
+    "width": 960,
+    "height": 540,
+    "bytes": 552730,
+    "sha256": "bb1fc762872a8c200aa14cd9249d911fdf9c563ece13c40f36b10baec2c53cee",
+    "pixels": {
+      "fullCanvas": {
+        "name": "full-canvas",
+        "pixels": 518400,
+        "nonBlackRatio": 0.999996,
+        "luminanceMin": 10.089,
+        "luminanceMax": 220.834,
+        "luminanceMean": 76.508,
+        "luminanceStdDev": 37.99
+      },
+      "playerRegion": {
+        "name": "player",
+        "pixels": 6400,
+        "nonBlackRatio": 0.999687,
+        "luminanceMin": 10.089,
+        "luminanceMax": 145.894,
+        "luminanceMean": 85.175,
+        "luminanceStdDev": 20.864
+      },
+      "dummyRegion": {
+        "name": "dummy",
+        "pixels": 6400,
+        "nonBlackRatio": 1,
+        "luminanceMin": 12.085,
+        "luminanceMax": 162.989,
+        "luminanceMean": 74.22,
+        "luminanceStdDev": 18.408
+      }
+    }
+  },
+  {
+    "file": "phase11-t4-blue-rain-fire.png",
+    "team": "BLUE",
+    "weather": "rain",
+    "state": "fire",
+    "presentation": {
+      "requestedSkinId": "quaternius-animated",
+      "skinId": "quaternius-animated",
+      "fallbackReason": null,
+      "atlasActive": true,
+      "weaponLayer": "external",
+      "playerState": "fire",
+      "dummyState": "run",
+      "playerDirection": "east",
+      "dummyDirection": "north",
+      "playerAnimationKey": "quaternius-animated:blue:fire:east",
+      "dummyAnimationKey": "quaternius-animated:red:run:north",
+      "playerFrameName": "actor/blue/fire/east/02",
+      "dummyFrameName": "actor/red/run/north/00",
+      "playerTextureKey": "actor-animated-blue",
+      "dummyTextureKey": "actor-animated-red",
+      "playerWeaponVisible": true,
+      "dummyWeaponVisible": true,
+      "playerWeaponRotation": 1.6789636528751402,
+      "dummyWeaponRotation": -1.5391841514541547,
+      "destroyed": false
+    },
+    "visibleActors": 2,
+    "width": 960,
+    "height": 540,
+    "bytes": 551800,
+    "sha256": "756d6a8f95be43923af13a0bfdfd10293debc7678abecef3888613607c183a58",
+    "pixels": {
+      "fullCanvas": {
+        "name": "full-canvas",
+        "pixels": 518400,
+        "nonBlackRatio": 0.999985,
+        "luminanceMin": 7.511,
+        "luminanceMax": 220.834,
+        "luminanceMean": 76.478,
+        "luminanceStdDev": 37.972
+      },
+      "playerRegion": {
+        "name": "player",
+        "pixels": 6400,
+        "nonBlackRatio": 0.999219,
+        "luminanceMin": 8.085,
+        "luminanceMax": 144.966,
+        "luminanceMean": 85.473,
+        "luminanceStdDev": 20.372
+      },
+      "dummyRegion": {
+        "name": "dummy",
+        "pixels": 6400,
+        "nonBlackRatio": 0.999531,
+        "luminanceMin": 7.511,
+        "luminanceMax": 162.989,
+        "luminanceMean": 74.002,
+        "luminanceStdDev": 18.29
+      }
+    }
+  },
+  {
+    "file": "phase11-t4-blue-rain-hit.png",
+    "team": "BLUE",
+    "weather": "rain",
+    "state": "hit",
+    "presentation": {
+      "requestedSkinId": "quaternius-animated",
+      "skinId": "quaternius-animated",
+      "fallbackReason": null,
+      "atlasActive": true,
+      "weaponLayer": "external",
+      "playerState": "hit",
+      "dummyState": "hit",
+      "playerDirection": "west",
+      "dummyDirection": "north",
+      "playerAnimationKey": "quaternius-animated:blue:hit:west",
+      "dummyAnimationKey": "quaternius-animated:red:hit:north",
+      "playerFrameName": "actor/blue/hit/west/01",
+      "dummyFrameName": "actor/red/hit/north/01",
+      "playerTextureKey": "actor-animated-blue",
+      "dummyTextureKey": "actor-animated-red",
+      "playerWeaponVisible": true,
+      "dummyWeaponVisible": true,
+      "playerWeaponRotation": 1.6789636528751402,
+      "dummyWeaponRotation": -1.544158310522974,
+      "destroyed": false
+    },
+    "visibleActors": 2,
+    "width": 960,
+    "height": 540,
+    "bytes": 552047,
+    "sha256": "1a67a21abe3c3d3505a7d89088250474af765ff8e4aaf5c3adedc2fc5cff3a07",
+    "pixels": {
+      "fullCanvas": {
+        "name": "full-canvas",
+        "pixels": 518400,
+        "nonBlackRatio": 0.999975,
+        "luminanceMin": 7.511,
+        "luminanceMax": 220.834,
+        "luminanceMean": 76.429,
+        "luminanceStdDev": 37.956
+      },
+      "playerRegion": {
+        "name": "player",
+        "pixels": 6400,
+        "nonBlackRatio": 0.999219,
+        "luminanceMin": 8.085,
+        "luminanceMax": 129.507,
+        "luminanceMean": 84.192,
+        "luminanceStdDev": 20.191
+      },
+      "dummyRegion": {
+        "name": "dummy",
+        "pixels": 6400,
+        "nonBlackRatio": 0.99875,
+        "luminanceMin": 7.511,
+        "luminanceMax": 162.989,
+        "luminanceMean": 73.296,
+        "luminanceStdDev": 17.668
+      }
+    }
+  },
+  {
+    "file": "phase11-t4-blue-rain-death.png",
+    "team": "BLUE",
+    "weather": "rain",
+    "state": "death",
+    "presentation": {
+      "requestedSkinId": "quaternius-animated",
+      "skinId": "quaternius-animated",
+      "fallbackReason": null,
+      "atlasActive": true,
+      "weaponLayer": "external",
+      "playerState": "death",
+      "dummyState": "idle",
+      "playerDirection": "west",
+      "dummyDirection": "north",
+      "playerAnimationKey": "quaternius-animated:blue:death:west",
+      "dummyAnimationKey": "quaternius-animated:red:idle:north",
+      "playerFrameName": "actor/blue/death/west/02",
+      "dummyFrameName": "actor/red/idle/north/00",
+      "playerTextureKey": "actor-animated-blue",
+      "dummyTextureKey": "actor-animated-red",
+      "playerWeaponVisible": true,
+      "dummyWeaponVisible": true,
+      "playerWeaponRotation": 1.5707963267948966,
+      "dummyWeaponRotation": -1.544158310522974,
+      "destroyed": false
+    },
+    "visibleActors": 2,
+    "width": 960,
+    "height": 540,
+    "bytes": 552361,
+    "sha256": "a0f8883ff2387d5d7dea1da17875870313bb5bc185fd4033a4e2ca6e6513652b",
+    "pixels": {
+      "fullCanvas": {
+        "name": "full-canvas",
+        "pixels": 518400,
+        "nonBlackRatio": 0.99999,
+        "luminanceMin": 7.511,
+        "luminanceMax": 220.834,
+        "luminanceMean": 76.42,
+        "luminanceStdDev": 37.892
+      },
+      "playerRegion": {
+        "name": "player",
+        "pixels": 6400,
+        "nonBlackRatio": 1,
+        "luminanceMin": 13.289,
+        "luminanceMax": 129.507,
+        "luminanceMean": 84.659,
+        "luminanceStdDev": 19.808
+      },
+      "dummyRegion": {
+        "name": "dummy",
+        "pixels": 6400,
+        "nonBlackRatio": 0.999219,
+        "luminanceMin": 7.511,
+        "luminanceMax": 162.989,
+        "luminanceMean": 74.084,
+        "luminanceStdDev": 18.035
+      }
+    }
+  }
+]

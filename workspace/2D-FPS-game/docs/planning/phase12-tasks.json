@@ -1,0 +1,61 @@
+{
+  "phase": "phase-12",
+  "name": "Product V1 Authored Object Skin Kit",
+  "created": "2026-08-21",
+  "status": "in-progress",
+  "architecture": "./phase12-map-object-vertical-slice-architecture.md",
+  "wbs": "./phase12-wbs.md",
+  "previousPhase": { "id": "phase-11", "tasks": "./phase11-tasks.json", "status": "complete" },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Approve Foundry target frame v5 and the six-family runtime architecture",
+      "assignee": "product + product_owner + ultron/codex",
+      "status": "completed",
+      "completed": "2026-08-21",
+      "evidence": ["User explicitly approved v5", "Product owner returned Decision: approved"]
+    },
+    {
+      "id": "T1",
+      "subject": "Generate, pack, integrate, and verify six authored map-object families",
+      "assignee": "ultron/codex",
+      "status": "completed",
+      "completed": "2026-08-21",
+      "depends": ["T0"],
+      "files": [
+        "public/assets/source/product-v1-map-objects",
+        "public/assets/runtime/world/product-v1",
+        "tools/world-object-atlas",
+        "src/domain/visual/WorldObjectSkinCatalog.ts",
+        "src/scenes/world-object-presentation-composition.ts",
+        "tests/WorldObjectSkinCatalog.test.ts",
+        "tests/WorldObjectPresentationComposition.test.ts",
+        "tests/e2e/phase12-world-object-presentation.spec.ts",
+        "docs/reports/phase12-t1-evidence"
+      ],
+      "evidence": [
+        "Twelve stable frames in one 1024x1024 lossless WebP; 295024 total transfer bytes, 4194304 raw RGBA bytes, mipmaps false",
+        "World-object atlas contracts passed 6/6 including two byte-identical builds and rollback",
+        "Focused world-object unit contracts passed 24/24 including exact provenance mutations; full Vitest passed 62 files/385 tests",
+        "Fifteen 960x540 three-stage/five-weather captures passed with all six families and zero runtime errors",
+        "Product p95 was 0.1ms in all three captures; final AB-BA-AB regression was -0.3ms to -0.5ms",
+        "Final full Playwright run passed 64 scenarios with one intentionally gated evidence refresh skipped",
+        "Current-fingerprint reviewer pass, manual drift, and Codex postflight closed the T1 reliability gate"
+      ]
+    },
+    {
+      "id": "T2",
+      "subject": "Extend authored presentation to arena obstacles, service gate, vent/hazard, ammo pickup, and health pickup",
+      "assignee": "product_owner + ultron/codex",
+      "status": "pending",
+      "depends": ["T1"]
+    },
+    {
+      "id": "T3",
+      "subject": "Close Phase 12 full-inventory cohesion, performance, review, drift, and postflight gates",
+      "assignee": "ultron/codex + reviewer",
+      "status": "pending",
+      "depends": ["T2"]
+    }
+  ]
+}

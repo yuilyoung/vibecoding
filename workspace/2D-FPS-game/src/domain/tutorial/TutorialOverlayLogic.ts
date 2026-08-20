@@ -45,6 +45,24 @@ export function createTutorialOverlayState(tutorialDismissed: boolean): Tutorial
   };
 }
 
+export function createDeferredTutorialOverlayState(tutorialDismissed: boolean): TutorialOverlayState {
+  return {
+    ...createTutorialOverlayState(tutorialDismissed),
+    visible: false
+  };
+}
+
+export function revealTutorial(state: TutorialOverlayState): TutorialOverlayState {
+  if (state.dismissed) {
+    return state;
+  }
+
+  return {
+    ...state,
+    visible: true
+  };
+}
+
 export function getCurrentTutorialStep(
   state: TutorialOverlayState,
   steps: readonly TutorialStep[] = DEFAULT_TUTORIAL_STEPS
