@@ -10,6 +10,8 @@ These are not AI-generated or photorealistic images, photographs, video, uploads
 
 Video APIs are deferred. No video provider is selected or integrated.
 
+The corrected 2026-08-24 ARS-006A/006B review keeps runtime selection deferred while separating distribution paths. MiniMax H3 open weights require a formal MiniMax license for deployment in South Korea, but MiniMax documents its safeguarded H3 hosted API as globally available through the `MiniMax-H3` `/v2` contract. An offline-only provider contract and fake-transport adapter tests now exist; no credentials, user-media transfer, provider call, MP4 route, or UI are active. Apache-2.0 Wan2.2 TI2V-5B remains only an unverified 24GB-VRAM benchmark candidate. See [the capability decision card](20-open-video-provider-capability-2026-08-24.md) and [video-provider.v1 architecture](21-video-provider-v1-architecture.md).
+
 ## Why this replaces the prior Sora candidate
 
 OpenAI discontinued the Sora web and app experiences on April 26, 2026, and has announced removal of the Videos API and Sora 2 models on September 24, 2026. The official API deprecation notice lists no replacement. Sora is therefore not a viable provider candidate for a new production path.
