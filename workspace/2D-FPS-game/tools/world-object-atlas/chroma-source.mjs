@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
+import { createWorldObjectFrameRecords } from './spec.mjs';
+
 const TRANSPARENT_THRESHOLD = 12;
 const OPAQUE_THRESHOLD = 220;
 const KEY_DOMINANCE_THRESHOLD = 16;
@@ -121,7 +123,8 @@ export async function removeGreenChroma(inputPath, outputPath) {
 
 export async function processDirectory(inputDir, outputDir) {
   const files = (await readdir(inputDir)).filter((name) => name.endsWith('.png')).sort();
-  if (files.length !== 12) throw new Error(`Expected 12 chroma sources, found ${files.length}`);
+  const expectedCount = createWorldObjectFrameRecords().length;
+  if (files.length !== expectedCount) throw new Error(`Expected ${expectedCount} chroma sources, found ${files.length}`);
   const results = [];
   for (const file of files) {
     results.push({ file, ...(await removeGreenChroma(path.join(inputDir, file), path.join(outputDir, file))) });

@@ -114,3 +114,106 @@ The first deliverable is a 960×540 Foundry concept frame containing BLUE and RE
 - `/`, explicit `legacy`, and unknown values keep legacy world art. Only `?worldSkin=product-v1` requests and activates the new atlas. Any manifest, frame, texture, dimension, hash, or budget mismatch falls all six families back together.
 - Verification produced fifteen 960x540 combat-state captures across three stages and five weather states with all six families covered, exact overlay/domain counts, non-black/contrast checks, and zero browser errors. The final AB-BA-AB production measurements report product p95 0.1ms and -0.4ms to -0.7ms regression versus legacy against the 0.5ms limit.
 - This completes only the six-family T1 vertical slice. Arena obstacles, service gates, hazard/vent surfaces, ammo pickup, and health pickup remain Phase 12 follow-up work; product world art remains opt-in until the complete promotion gate.
+
+## T2 architecture extension - 2026-08-24
+
+### Assumptions and constraints
+
+- T2 extends the same opt-in `product-v1` request and total-fallback decision to the five remaining product families: arena obstacle, service gate, vent/hazard surface, ammo pickup, and health pickup.
+- The exact T2 frame matrix is arena obstacle `core/tower/barrier`, service gate `closed/open`, vent/hazard `active`, ammo pickup `available`, and health pickup `available`. Pickup collection/respawn clips, vent activation animation, and other one-shot motion remain Phase 13.
+- Existing stage positions, display/collision bounds, gate interaction, hazard damage/timing, pickup amount/respawn, stage definitions, actors, audio, AI, and input are immutable inputs.
+- The expanded single atlas is at most `2048x1024`, 4 MiB transfer, and 8 MiB raw RGBA with mipmaps disabled. The combined product pack remains at most 12 MiB transfer and 64 MiB raw GPU.
+- Default, explicit legacy, and unknown routes stay legacy. Any T1 or T2 manifest, source, frame, texture, dimension, hash, transfer, GPU, or mipmap failure falls all eleven product families back together.
+
+### Layer and component map
+
+| Layer | T2 responsibility | Module |
+| --- | --- | --- |
+| Presentation | Keep Phaser anchors as transform/collision truth, attach authored overlays for both controller ownership trees, synchronize gate/pickup state, suppress legacy glyphs only while the atomic product skin is active, and detach before anchors are released | `WorldObjectPresentationComposition`, `MapObjectController`, `StageGeometryManager` |
+| Business | Own the eleven-family product inventory, exact twenty-frame order, family/state mapping, layout policy, route selection, expanded manifest validation, and one atomic effective-skin result without Phaser imports | `WorldObjectSkinCatalog` |
+| Data/build | Pin twenty immutable source PNGs and generate one byte-reproducible WebP/JSON/manifest release through validated staging and atomic promotion/rollback | `public/assets/source/product-v1-map-objects`, `tools/world-object-atlas`, `public/assets/runtime/world/product-v1` |
+
+Allowed dependency direction remains Presentation -> Business contracts <- immutable Data/build output. `StageGeometryManager` and `MapObjectController` depend only on the presentation port; the composition never imports either controller.
+
+```mermaid
+flowchart LR
+  URL[worldSkin query] --> CAT[WorldObjectSkinCatalog]
+  MANIFEST[20-frame manifest] --> CAT
+  CAT --> COMP[WorldObjectPresentationComposition]
+  MAP[MapObjectController anchors] --> PORT[WorldObjectPresentationPort]
+  STAGE[StageGeometryManager anchors] --> PORT
+  PORT --> COMP
+  COMP --> ATLAS[Atomic product-v1 atlas]
+  MAP --> COLLISION[Existing map-object collision/gameplay]
+  STAGE --> CONTENT[Existing stage bounds/interactions]
+```
+
+### Interface and state contract
+
+```ts
+type ProductWorldObjectFamily =
+  | "barrel" | "mine" | "crate" | "cover" | "bounce-wall" | "teleporter"
+  | "arena-obstacle" | "service-gate" | "vent-hazard" | "ammo-pickup" | "health-pickup";
+
+type ProductWorldObjectState =
+  | "idle" | "damaged" | "armed" | "active"
+  | "core" | "tower" | "barrier" | "closed" | "open" | "available";
+
+interface WorldObjectPresentationAnchor {
+  readonly x: number;
+  readonly y: number;
+  readonly rotation: number;
+  readonly displayWidth: number;
+  readonly displayHeight: number;
+  readonly visible: boolean;
+}
+
+interface WorldObjectPresentationPort {
+  readonly atlasActive: boolean;
+  initialize(): void;
+  attach(anchor: WorldObjectPresentationAnchor, family: ProductWorldObjectFamily, id: string): WorldObjectPresentationHandle | null;
+  sync(handle: WorldObjectPresentationHandle, input: WorldObjectPresentationSyncInput): void;
+  detach(handle: WorldObjectPresentationHandle | null): void;
+  clear(): void;
+  destroy(): void;
+}
+```
+
+- `attach`, `detach`, `clear`, `initialize`, and `destroy` remain synchronous and idempotent. There is no worker thread, cancellation, retry, persistence schema, or network acquisition in this slice.
+- Fixed-scale layouts continue to serve the six T1 families and two pickups. Anchor-size layouts mirror existing obstacle, gate, and hazard display bounds without becoming collision owners.
+- The catalog maps obstacle shape to `core/tower/barrier`, gate boolean to `closed/open`, the hazard surface to `active`, and an available pickup to `available`. Unavailable pickups hide their overlays until the existing respawn transition makes the anchor available again.
+- The production presentation hides labels, glyphs, and procedural decoration only after the complete twenty-frame runtime decision succeeds. Legacy and fallback behavior keep the existing objects unchanged.
+
+### Ownership and lifecycle
+
+```mermaid
+sequenceDiagram
+  participant Scene as MainScene composition root
+  participant Product as WorldObjectPresentationComposition
+  participant Stage as StageGeometryManager
+  participant Map as MapObjectController
+  Scene->>Product: construct + initialize atomic resolution
+  Scene->>Stage: wirePresentation(port)
+  Scene->>Map: wirePresentation(port)
+  Stage->>Product: attach obstacle/gate/hazard/pickup anchors
+  Map->>Product: attach six-family anchors
+  loop existing runtime updates
+    Stage->>Product: sync variant/open/available/transform
+    Map->>Product: sync hp/armed/active/cooldown
+  end
+  Scene->>Product: destroy overlays/listeners first
+  Scene->>Stage: release anchors and legacy visuals
+  Scene->>Map: destroy anchors and legacy visuals
+```
+
+- `MainScene` creates one scene-lifetime composition, wires both controller owners, and destroys the composition before either controller releases anchors.
+- `StageGeometryManager` owns stage anchors, legacy decorative objects, and presentation handles for its branch. Stage rotation detaches obstacle handles before destroying/recreating obstacle anchors; scene release is idempotent.
+- `MapObjectController` retains its existing ownership. Neither controller owns atlas resources or the effective-skin decision.
+
+### Risks, alternatives, and verification slices
+
+- Rejected: a second independently activated T2 atlas, because it permits partial six-family/five-family activation. One expanded manifest and resolution keep fallback atomic.
+- Rejected: replacing Phaser anchors with authored sprites, because anchors are the verified position, interaction, and collision truth.
+- Risk: an expanded atlas changes pinned T1 release hashes. Mitigation: retain all twelve T1 source hashes, validate all twenty ordered records, and require two byte-identical isolated builds before promotion.
+- Risk: hiding procedural stage visuals can leave labels or listeners behind. Mitigation: track every legacy visual and presentation handle per owner, exercise stage rotation and scene restart, and assert zero orphan overlays.
+- Ordered implementation: (1) extend generator/source lock and regenerate the atomic release; (2) extend the pure catalog and manifest contracts; (3) generalize the presentation anchor/layout port; (4) wire `StageGeometryManager` state and lifecycle; (5) run focused/static/full/browser gates. T3 cohesion/performance closeout remains pending.

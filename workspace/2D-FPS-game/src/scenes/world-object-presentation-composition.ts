@@ -6,6 +6,7 @@ import {
   getWorldObjectFrameKey,
   resolveWorldObjectSkinForRuntime,
   resolveWorldObjectVisualState,
+  type ArenaObstacleVariant,
   type ProductWorldObjectState,
   type WorldObjectAtlasAvailability,
   type WorldObjectFamily,
@@ -21,6 +22,20 @@ export interface WorldObjectPresentationSyncInput {
   readonly armedAt?: number;
   readonly reflectionsRemaining?: number;
   readonly cooldownUntil?: number;
+  readonly variant?: ArenaObstacleVariant;
+  readonly open?: boolean;
+  readonly available?: boolean;
+  readonly visible?: boolean;
+}
+
+export interface WorldObjectPresentationAnchor {
+  x: number;
+  y: number;
+  rotation: number;
+  readonly displayWidth: number;
+  readonly displayHeight: number;
+  once(event: string, listener: () => void): unknown;
+  off(event: string, listener: () => void): unknown;
 }
 
 export interface WorldObjectPresentationHandle {
@@ -54,7 +69,7 @@ export interface WorldObjectPresentationDebugState {
 export interface WorldObjectPresentationPort {
   readonly atlasActive: boolean;
   initialize(): void;
-  attach(anchor: Phaser.GameObjects.Shape, family: WorldObjectFamily, id: string): WorldObjectPresentationHandle | null;
+  attach(anchor: WorldObjectPresentationAnchor, family: WorldObjectFamily, id: string): WorldObjectPresentationHandle | null;
   sync(handle: WorldObjectPresentationHandle, input: WorldObjectPresentationSyncInput): void;
   detach(handle: WorldObjectPresentationHandle | null): void;
   clear(): void;
@@ -65,7 +80,7 @@ export interface WorldObjectPresentationPort {
 interface InternalHandle extends WorldObjectPresentationHandle {
   readonly id: string;
   readonly family: WorldObjectFamily;
-  readonly anchor: Phaser.GameObjects.Shape;
+  readonly anchor: WorldObjectPresentationAnchor;
   readonly sprite: Phaser.GameObjects.Sprite;
   readonly onAnchorDestroyed: () => void;
   state: ProductWorldObjectState;
@@ -113,7 +128,7 @@ export class WorldObjectPresentationComposition implements WorldObjectPresentati
   }
 
   public attach(
-    anchor: Phaser.GameObjects.Shape,
+    anchor: WorldObjectPresentationAnchor,
     family: WorldObjectFamily,
     id: string
   ): WorldObjectPresentationHandle | null {
@@ -124,9 +139,9 @@ export class WorldObjectPresentationComposition implements WorldObjectPresentati
     const frameKey = getWorldObjectFrameKey(family, "idle");
     const sprite = scene.add.sprite(anchor.x + layout.offsetX, anchor.y + layout.offsetY, atlas.textureKey, frameKey)
       .setOrigin(layout.originX, layout.originY)
-      .setScale(layout.displayScale)
       .setDepth(layout.depth)
       .setRotation(layout.rotationPolicy === "anchor" ? anchor.rotation : 0);
+    applyDisplayPolicy(sprite, anchor, layout);
     const token = Symbol(id);
     const handle = {
       token,
@@ -155,8 +170,9 @@ export class WorldObjectPresentationComposition implements WorldObjectPresentati
     target.sprite
       .setPosition(target.anchor.x + layout.offsetX, target.anchor.y + layout.offsetY)
       .setRotation(layout.rotationPolicy === "anchor" ? target.anchor.rotation : 0)
-      .setVisible(true)
+      .setVisible(input.visible ?? true)
       .setAlpha(input.active ? 1 : 0.26);
+    applyDisplayPolicy(target.sprite, target.anchor, layout);
   }
 
   public detach(handle: WorldObjectPresentationHandle | null): void {
@@ -203,6 +219,18 @@ export class WorldObjectPresentationComposition implements WorldObjectPresentati
       destroyed: this.destroyed
     };
   }
+}
+
+function applyDisplayPolicy(
+  sprite: Phaser.GameObjects.Sprite,
+  anchor: WorldObjectPresentationAnchor,
+  layout: WorldObjectSkinDefinition["layouts"][WorldObjectFamily]
+): void {
+  if (layout.displayPolicy === "anchor-size") {
+    sprite.setScale(1).setDisplaySize(anchor.displayWidth, anchor.displayHeight);
+    return;
+  }
+  sprite.setScale(layout.displayScale);
 }
 
 function collectAtlasAvailability(

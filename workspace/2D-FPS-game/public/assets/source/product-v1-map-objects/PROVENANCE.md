@@ -1,9 +1,9 @@
 # Product V1 Map-Object Source Provenance
 
-- Generated: 2026-08-21
+- Generated: 2026-08-21 (T1), 2026-08-24 (T2)
 - Mode: OpenAI built-in image generation
 - Style reference: `docs/reports/phase12-t0-evidence/phase12-foundry-target-frame-v5.png`
-- Output contract: twelve independent opaque low-poly props on a flat `#00ff00` background, then local border-key soft-matte/despill conversion to immutable alpha PNG sources.
+- Output contract: twenty immutable low-poly alpha PNG sources. T1 and seven T2 sources used a flat `#00ff00` background followed by local border-key soft-matte/despill conversion; the green health affordance used built-in background extraction to preserve its color while producing actual alpha.
 - Rejected output: the first damaged-crate variant used a dark studio background and was not promoted.
 - Source byte lengths and SHA-256 hashes are pinned by `tools/world-object-atlas/source-lock.json`.
 
@@ -29,3 +29,20 @@
 | `teleporter-active.png` | Same platform with contained cyan-violet seams and an opaque faceted violet-blue center disk. |
 
 The damaged/active variants used their idle source as an identity and framing reference. No CLI fallback, API key, or native-transparency model was used.
+
+## T2 prompt extension
+
+The T2 sources reused the shared T1 prompt, approved v5 frame, and representative T1 source images as style-only references. Subjects were limited to the approved exact frame matrix:
+
+| Source | Requested subject/state |
+| --- | --- |
+| `arena-obstacle-core.png` | Squat square armored machinery plinth with a recessed plain top. |
+| `arena-obstacle-tower.png` | Tall narrow armored relay/machinery column. |
+| `arena-obstacle-barrier.png` | Wide low three-section armored barricade. |
+| `service-gate-closed.png` | Wide mechanical gate with two posts and a complete blocking panel. |
+| `service-gate-open.png` | Same two posts with the blocking panel fully retracted and the opening transparent. |
+| `vent-hazard-active.png` | Wide reinforced vent/grate with contained violet-orange active heat. |
+| `ammo-pickup-available.png` | Cyan three-cartridge supply cell, readable without a letter or icon. |
+| `health-pickup-available.png` | Emerald restorative crystal cell, readable without a cross, plus, heart, or icon. |
+
+Every generated T2 source was visually inspected before promotion. `service-gate-open` used the closed source as an identity/framing edit target. `health-pickup-available` used a second built-in background-extraction pass because green chroma despill damaged the intended emerald affordance. No CLI fallback or API key was used.

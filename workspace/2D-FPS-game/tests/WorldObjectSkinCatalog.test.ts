@@ -32,18 +32,38 @@ describe("WorldObjectSkinCatalog", () => {
     expect(resolveWorldObjectSkinFromSearch("?worldSkin=product-v1").id).toBe("product-v1");
   });
 
-  it("defines exactly twelve stable namespaced frames and family-owned layout policy", () => {
+  it("defines exactly twenty stable namespaced frames for all eleven product families", () => {
     const frames = createExpectedWorldObjectFrames();
-    expect(frames).toHaveLength(12);
-    expect(new Set(frames.map((frame) => frame.key)).size).toBe(12);
+    expect(frames).toHaveLength(20);
+    expect(new Set(frames.map((frame) => frame.key)).size).toBe(20);
     expect(frames[0]).toEqual({ key: "world/product-v1/barrel/idle", family: "barrel", state: "idle", index: 0 });
     expect(frames[11]).toEqual({ key: "world/product-v1/teleporter/active", family: "teleporter", state: "active", index: 11 });
-    expect(WORLD_OBJECT_FAMILIES).toEqual(["barrel", "mine", "crate", "cover", "bounce-wall", "teleporter"]);
+    expect(frames[12]).toEqual({ key: "world/product-v1/arena-obstacle/core", family: "arena-obstacle", state: "core", index: 12 });
+    expect(frames[19]).toEqual({ key: "world/product-v1/health-pickup/available", family: "health-pickup", state: "available", index: 19 });
+    expect(WORLD_OBJECT_FAMILIES).toEqual([
+      "barrel", "mine", "crate", "cover", "bounce-wall", "teleporter",
+      "arena-obstacle", "service-gate", "vent-hazard", "ammo-pickup", "health-pickup"
+    ]);
     expect(getWorldObjectFrameKey("barrel", "armed")).toBe("world/product-v1/barrel/idle");
     expect(WORLD_OBJECT_SKIN_DEFINITIONS["product-v1"].layouts["bounce-wall"]).toMatchObject({
       displayScale: 0.25,
+      displayPolicy: "fixed-scale",
       rotationPolicy: "anchor"
     });
+    expect(WORLD_OBJECT_SKIN_DEFINITIONS["product-v1"].layouts["service-gate"]).toMatchObject({
+      displayPolicy: "anchor-size"
+    });
+  });
+
+  it("maps obstacle variants, gate state, active hazard, and available pickups", () => {
+    const common = { active: true, hp: 1, now: 1_000 };
+    expect(resolveWorldObjectVisualState({ family: "arena-obstacle", ...common, variant: "tower" })).toBe("tower");
+    expect(resolveWorldObjectVisualState({ family: "arena-obstacle", ...common })).toBe("core");
+    expect(resolveWorldObjectVisualState({ family: "service-gate", ...common, open: false })).toBe("closed");
+    expect(resolveWorldObjectVisualState({ family: "service-gate", ...common, open: true })).toBe("open");
+    expect(resolveWorldObjectVisualState({ family: "vent-hazard", ...common })).toBe("active");
+    expect(resolveWorldObjectVisualState({ family: "ammo-pickup", ...common, available: false })).toBe("available");
+    expect(resolveWorldObjectVisualState({ family: "health-pickup", ...common, available: true })).toBe("available");
   });
 
   it("maps damage, arming, reflection durability, and teleporter cooldown boundaries", () => {
@@ -91,7 +111,7 @@ describe("WorldObjectSkinCatalog", () => {
       const sources = manifest.sources as Record<string, unknown>[];
       [sources[0], sources[1]] = [sources[1], sources[0]];
     }]
-  ])("falls all six families back for an invalid %s manifest", (_label, mutate) => {
+  ])("falls all eleven families back for an invalid %s manifest", (_label, mutate) => {
     const manifest = readManifest();
     mutate(manifest);
     const resolution = resolveWorldObjectSkinForRuntime(

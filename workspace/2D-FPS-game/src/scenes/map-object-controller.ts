@@ -114,7 +114,9 @@ export class MapObjectController {
 
   public wirePresentation(presentation: WorldObjectPresentationPort): void {
     if (this.presentation === presentation) return;
-    this.presentation?.clear();
+    if (this.presentation !== undefined) {
+      for (const view of this.viewsById.values()) this.presentation.detach(view.presentationHandle);
+    }
     this.presentation = presentation;
     this.presentation.initialize();
   }

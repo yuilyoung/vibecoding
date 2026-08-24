@@ -12,6 +12,12 @@ import type { CoverEffectId, GameBalance, GateView, HazardZoneView, ImpactProfil
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { ActorCollisionResolver } from "./actor-collision";
 import { addTerrainSurface } from "./arena-textures";
+import type { ArenaObstacleVariant, WorldObjectFamily } from "../domain/visual/WorldObjectSkinCatalog";
+import type {
+  WorldObjectPresentationHandle,
+  WorldObjectPresentationPort,
+  WorldObjectPresentationSyncInput
+} from "./world-object-presentation-composition";
 import {
   GATE_PANEL_KEY,
   OBSTACLE_BARRIER_KEY,
@@ -52,7 +58,18 @@ export interface StageGeometryStaticObjects {
   healthPickup: PickupView;
 }
 
+type StageLegacyVisual = Phaser.GameObjects.GameObject;
+
+interface StagePresentationBinding {
+  readonly handle: WorldObjectPresentationHandle;
+  readonly legacyVisuals: readonly StageLegacyVisual[];
+}
+
 export class StageGeometryManager {
+  private presentation: WorldObjectPresentationPort | undefined;
+  private readonly presentationBindings = new Map<string, StagePresentationBinding>();
+  private readonly obstaclePresentationIds = new Map<ObstacleView, string>();
+
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly state: SceneRuntimeState,
@@ -60,6 +77,13 @@ export class StageGeometryManager {
     private readonly gameBalance: GameBalance,
     private readonly deps: StageGeometryDeps
   ) {}
+
+  public wirePresentation(presentation: WorldObjectPresentationPort): void {
+    if (this.presentation === presentation) return;
+    this.releaseAllPresentationBindings(true);
+    this.presentation = presentation;
+    this.presentation.initialize();
+  }
 
   public createStaticRuntimeObjects(): StageGeometryStaticObjects {
     const gate = this.state.gate ?? this.addGate(482, 430, 96, 24, 0xffc15d, { x: 448, y: 0, width: 96, height: 256 });
@@ -86,6 +110,7 @@ export class StageGeometryManager {
 
     for (const obstacle of stage.obstacles) {
       const view = this.addObstacle(
+        obstacle.id,
         obstacle.x,
         obstacle.y,
         obstacle.width,
@@ -135,10 +160,15 @@ export class StageGeometryManager {
 
     this.applyPickupContent(this.state.ammoPickup, this.findStagePickup(plan, "ammo"), "AMMO");
     this.applyPickupContent(this.state.healthPickup, this.findStagePickup(plan, "health"), "MED");
+    this.syncGatePresentation();
+    this.syncHazardPresentation();
   }
 
   public clearStageGeometry(): void {
     for (const obstacle of this.state.stageObstacleViews) {
+      const presentationId = this.obstaclePresentationIds.get(obstacle);
+      if (presentationId !== undefined) this.releasePresentationBinding(presentationId, false);
+      this.obstaclePresentationIds.delete(obstacle);
       for (const visual of obstacle.visuals ?? []) {
         visual.destroy();
       }
@@ -159,16 +189,23 @@ export class StageGeometryManager {
       view.label.destroy();
     }
     this.state.coverPointViews.length = 0;
-    this.state.gate?.sprite.destroy();
-    this.state.hazardZone?.sprite.destroy();
-    this.state.ammoPickup?.sprite.destroy();
-    this.state.ammoPickup?.label.destroy();
-    this.state.healthPickup?.sprite.destroy();
-    this.state.healthPickup?.label.destroy();
+    this.releasePresentationBinding("stage:service-gate", false);
+    this.releasePresentationBinding("stage:vent-hazard", false);
+    this.releasePresentationBinding("stage:ammo-pickup", false);
+    this.releasePresentationBinding("stage:health-pickup", false);
+    this.destroyUniqueVisuals([...(this.state.gate?.visuals ?? []), this.state.gate?.sprite]);
+    this.destroyUniqueVisuals([...(this.state.hazardZone?.visuals ?? []), this.state.hazardZone?.sprite]);
+    this.destroyUniqueVisuals([this.state.ammoPickup?.sprite, this.state.ammoPickup?.label]);
+    this.destroyUniqueVisuals([this.state.healthPickup?.sprite, this.state.healthPickup?.label]);
+    if (this.state.gate !== undefined) {
+      const gateIndex = this.state.obstacles.indexOf(this.state.gate);
+      if (gateIndex >= 0) this.state.obstacles.splice(gateIndex, 1);
+    }
     this.state.gate = undefined;
     this.state.hazardZone = undefined;
     this.state.ammoPickup = undefined;
     this.state.healthPickup = undefined;
+    this.presentation = undefined;
   }
 
   public handlePointerGateInteraction(now: number): void {
@@ -266,6 +303,7 @@ export class StageGeometryManager {
     pickup.respawnAtMs = now + pickup.respawnMs;
     pickup.sprite.setVisible(false);
     pickup.label.setVisible(false);
+    this.syncPickupPresentation(pickup, "stage:ammo-pickup");
     this.deps.spawnPickupFx(playerSprite.x, playerSprite.y, "pickup-ammo");
     this.deps.spawnPickupFx(pickup.sprite.x, pickup.sprite.y, "pickup-ammo");
     this.state.lastCombatEvent = "AMMO OVERDRIVE";
@@ -295,6 +333,7 @@ export class StageGeometryManager {
     pickup.respawnAtMs = now + pickup.respawnMs;
     pickup.sprite.setVisible(false);
     pickup.label.setVisible(false);
+    this.syncPickupPresentation(pickup, "stage:health-pickup");
     this.deps.spawnPickupFx(playerSprite.x, playerSprite.y, "pickup-health");
     this.state.lastCombatEvent = `HEAL +${restoredHealth}`;
     this.deps.emitSoundCue({ kind: "pickup", pickupId: "health" });
@@ -322,6 +361,8 @@ export class StageGeometryManager {
     healthPickup.sprite.setScale(healthPickup.available ? 1.08 + Math.cos(now / 130) * 0.04 : 1);
     ammoPickup.label.setAlpha(ammoPickup.available ? 0.88 : 0.2);
     healthPickup.label.setAlpha(healthPickup.available ? 0.88 : 0.2);
+    this.syncPickupPresentation(ammoPickup, "stage:ammo-pickup");
+    this.syncPickupPresentation(healthPickup, "stage:health-pickup");
   }
 
   public updateCoverPointVisuals(now: number): void {
@@ -385,6 +426,14 @@ export class StageGeometryManager {
     return this.state.gate?.open ?? false;
   }
 
+  public applyGateDeployment(open: boolean): void {
+    const gate = this.requireGate();
+    gate.open = open;
+    gate.sprite.setAlpha(1);
+    gate.sprite.setFillStyle(0xf4a261, 1);
+    this.syncGatePresentation();
+  }
+
   public getActiveObstacles(): ObstacleView[] {
     return this.collisionResolver.getActiveObstacles();
   }
@@ -406,6 +455,10 @@ export class StageGeometryManager {
     pickup.label
       .setText(definition.kind === "ammo" ? "AMMO" : definition.kind === "health" ? "MED" : fallbackLabel)
       .setPosition(definition.x, definition.y - 26);
+    this.syncPickupPresentation(
+      pickup,
+      definition.kind === "health" ? "stage:health-pickup" : "stage:ammo-pickup"
+    );
   }
 
   private getStageObstacleColor(obstacleId: string): number {
@@ -436,8 +489,9 @@ export class StageGeometryManager {
     return { x: 792, y: 64, width: 64, height: 64 };
   }
 
-  private addObstacle(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): ObstacleView {
+  private addObstacle(id: string, x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): ObstacleView {
     const visualKey = width > 140 ? OBSTACLE_BARRIER_KEY : height > width ? OBSTACLE_TOWER_KEY : OBSTACLE_CORE_KEY;
+    const variant: ArenaObstacleVariant = width > 140 ? "barrier" : height > width ? "tower" : "core";
     const visuals: Phaser.GameObjects.GameObject[] = [];
     visuals.push(this.scene.add.rectangle(x + 6, y + 8, width, height, 0x0c1420, 0.26).setDepth(2));
     if (crop !== undefined) {
@@ -454,50 +508,76 @@ export class StageGeometryManager {
       visuals
     };
     this.state.obstacles.push(obstacle);
+    const presentationId = `stage:obstacle:${id}`;
+    this.obstaclePresentationIds.set(obstacle, presentationId);
+    this.registerPresentationBinding(presentationId, sprite, "arena-obstacle", [sprite, ...visuals], {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now,
+      variant
+    });
     return obstacle;
   }
 
   private addGate(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): GateView {
-    this.scene.add.rectangle(x + 5, y + 6, width, height, 0x0c1420, 0.22).setDepth(2);
+    const visuals: StageLegacyVisual[] = [];
+    visuals.push(this.scene.add.rectangle(x + 5, y + 6, width, height, 0x0c1420, 0.22).setDepth(2));
     if (crop !== undefined) {
-      addTerrainSurface(this.scene, x, y, width, height, crop, 0.9, 2);
+      visuals.push(addTerrainSurface(this.scene, x, y, width, height, crop, 0.9, 2));
     }
-    this.scene.add.image(x, y, GATE_PANEL_KEY).setDisplaySize(width, height).setDepth(3).setAlpha(0.95);
+    visuals.push(this.scene.add.image(x, y, GATE_PANEL_KEY).setDisplaySize(width, height).setDepth(3).setAlpha(0.95));
     const sprite = this.scene.add
       .rectangle(x, y, width, height, color, crop === undefined ? 0.12 : 0.08)
       .setStrokeStyle(3, 0xffffff, crop === undefined ? 0.24 : 0.16)
       .setDepth(4);
+    visuals.push(sprite);
     const gate = {
       id: "service-gate",
       sprite,
       bounds: createCenteredRect(x, y, width, height),
-      open: false
+      open: false,
+      visuals
     };
     this.state.obstacles.push(gate);
+    this.registerPresentationBinding("stage:service-gate", sprite, "service-gate", visuals, {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now,
+      open: false
+    });
     return gate;
   }
 
   private addHazardZone(x: number, y: number, width: number, height: number): HazardZoneView {
-    this.scene.add.image(x, y, VENT_PANEL_KEY).setDisplaySize(width, height).setDepth(2).setAlpha(0.92);
+    const visuals: StageLegacyVisual[] = [];
+    visuals.push(this.scene.add.image(x, y, VENT_PANEL_KEY).setDisplaySize(width, height).setDepth(2).setAlpha(0.92));
     const sprite = this.scene.add
       .rectangle(x, y, width, height, 0xc34cff, 0.26)
       .setStrokeStyle(3, 0xffffff, 0.42)
       .setDepth(3);
+    visuals.push(sprite);
 
-    this.scene.add
+    visuals.push(this.scene.add
       .text(x, y, "VENT", {
         color: "#f5d0fe",
         fontFamily: "monospace",
         fontSize: "12px"
       })
       .setOrigin(0.5)
-      .setAlpha(0.82);
+      .setAlpha(0.82));
 
-    return {
+    const hazard = {
       sprite,
       bounds: createCenteredRect(x, y, width, height),
-      logic: new HazardZoneLogic(this.gameBalance.hazardDamage, this.gameBalance.hazardTickMs)
+      logic: new HazardZoneLogic(this.gameBalance.hazardDamage, this.gameBalance.hazardTickMs),
+      visuals
     };
+    this.registerPresentationBinding("stage:vent-hazard", sprite, "vent-hazard", visuals, {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now
+    });
+    return hazard;
   }
 
   private addCoverPointMarkers(): void {
@@ -531,7 +611,7 @@ export class StageGeometryManager {
     amount: number,
     respawnMs: number
   ): PickupView {
-    return {
+    const pickup = {
       sprite: this.scene.add.image(x, y, textureKey).setScale(0.44).setDepth(4),
       label: this.scene.add.text(x, y - 26, labelText, {
         color: labelColor,
@@ -545,6 +625,16 @@ export class StageGeometryManager {
       amount,
       respawnMs
     };
+    const family = textureKey === PICKUP_AMMO_KEY ? "ammo-pickup" : "health-pickup";
+    const id = family === "ammo-pickup" ? "stage:ammo-pickup" : "stage:health-pickup";
+    this.registerPresentationBinding(id, pickup.sprite, family, [pickup.sprite, pickup.label], {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now,
+      available: true,
+      visible: true
+    });
+    return pickup;
   }
 
   private applyGateToggle(): void {
@@ -553,6 +643,7 @@ export class StageGeometryManager {
     gate.sprite.setAlpha(gate.open ? 0.22 : 1);
     gate.sprite.setFillStyle(gate.open ? 0x6a7f91 : 0xf4a261, gate.open ? 0.22 : 1);
     this.state.lastCombatEvent = gate.open ? "GATE OPENED" : "GATE CLOSED";
+    this.syncGatePresentation();
   }
 
   public debugToggleGate(): void {
@@ -616,6 +707,7 @@ export class StageGeometryManager {
     pickup.respawnAtMs = null;
     pickup.sprite.setVisible(true);
     pickup.label.setVisible(true);
+    this.syncKnownPickupPresentation(pickup);
   }
 
   private resetPickup(pickup: PickupView): void {
@@ -623,6 +715,104 @@ export class StageGeometryManager {
     pickup.respawnAtMs = null;
     pickup.sprite.setVisible(true);
     pickup.label.setVisible(true);
+    this.syncKnownPickupPresentation(pickup);
+  }
+
+  private registerPresentationBinding(
+    id: string,
+    anchor: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image,
+    family: WorldObjectFamily,
+    legacyVisuals: readonly StageLegacyVisual[],
+    input: WorldObjectPresentationSyncInput
+  ): void {
+    this.releasePresentationBinding(id, true);
+    const handle = this.presentation?.attach(anchor, family, id) ?? null;
+    if (handle === null) return;
+    this.presentationBindings.set(id, { handle, legacyVisuals });
+    this.syncPresentationBinding(id, input);
+  }
+
+  private syncPresentationBinding(id: string, input: WorldObjectPresentationSyncInput): void {
+    const binding = this.presentationBindings.get(id);
+    if (binding === undefined) return;
+    this.setLegacyVisualsVisible(binding.legacyVisuals, false);
+    this.presentation?.sync(binding.handle, input);
+  }
+
+  private releasePresentationBinding(id: string, restoreLegacy: boolean): void {
+    const binding = this.presentationBindings.get(id);
+    if (binding === undefined) return;
+    this.presentationBindings.delete(id);
+    this.presentation?.detach(binding.handle);
+    if (restoreLegacy) {
+      this.setLegacyVisualsVisible(binding.legacyVisuals, true);
+    }
+  }
+
+  private releaseAllPresentationBindings(restoreLegacy: boolean): void {
+    for (const id of [...this.presentationBindings.keys()]) {
+      this.releasePresentationBinding(id, restoreLegacy);
+    }
+  }
+
+  private syncGatePresentation(): void {
+    const gate = this.state.gate;
+    if (gate === undefined) return;
+    this.syncPresentationBinding("stage:service-gate", {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now,
+      open: gate.open
+    });
+  }
+
+  private syncHazardPresentation(): void {
+    if (this.state.hazardZone === undefined) return;
+    this.syncPresentationBinding("stage:vent-hazard", {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now
+    });
+  }
+
+  private syncPickupPresentation(
+    pickup: PickupView,
+    id: "stage:ammo-pickup" | "stage:health-pickup"
+  ): void {
+    this.syncPresentationBinding(id, {
+      active: true,
+      hp: 1,
+      now: this.scene.time.now,
+      available: pickup.available,
+      visible: pickup.available
+    });
+    if (this.presentationBindings.has(id)) {
+      pickup.sprite.setVisible(false);
+      pickup.label.setVisible(false);
+    }
+  }
+
+  private syncKnownPickupPresentation(pickup: PickupView): void {
+    if (pickup === this.state.ammoPickup) {
+      this.syncPickupPresentation(pickup, "stage:ammo-pickup");
+    } else if (pickup === this.state.healthPickup) {
+      this.syncPickupPresentation(pickup, "stage:health-pickup");
+    }
+  }
+
+  private destroyUniqueVisuals(visuals: readonly (StageLegacyVisual | undefined)[]): void {
+    const destroyed = new Set<StageLegacyVisual>();
+    for (const visual of visuals) {
+      if (visual === undefined || destroyed.has(visual)) continue;
+      destroyed.add(visual);
+      visual.destroy();
+    }
+  }
+
+  private setLegacyVisualsVisible(visuals: readonly StageLegacyVisual[], visible: boolean): void {
+    for (const visual of visuals) {
+      (visual as StageLegacyVisual & { setVisible(value: boolean): unknown }).setVisible(visible);
+    }
   }
 
   private requireGate(): GateView {

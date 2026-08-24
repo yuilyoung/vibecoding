@@ -47,8 +47,30 @@
       "id": "T2",
       "subject": "Extend authored presentation to arena obstacles, service gate, vent/hazard, ammo pickup, and health pickup",
       "assignee": "product_owner + ultron/codex",
-      "status": "pending",
-      "depends": ["T1"]
+      "status": "completed",
+      "completed": "2026-08-24",
+      "depends": ["T1"],
+      "files": [
+        "public/assets/source/product-v1-map-objects",
+        "public/assets/runtime/world/product-v1",
+        "tools/world-object-atlas",
+        "src/domain/visual/WorldObjectSkinCatalog.ts",
+        "src/scenes/world-object-presentation-composition.ts",
+        "src/scenes/stage-geometry.ts",
+        "src/scenes/map-object-controller.ts",
+        "tests/StageGeometryPresentation.test.ts",
+        "tests/e2e/phase12-world-object-presentation.spec.ts",
+        "docs/reports/phase12-t2-evidence"
+      ],
+      "evidence": [
+        "Twenty stable frames for all eleven families in one 2048x1024 lossless WebP; 508220 total transfer bytes, 8388608 raw RGBA bytes, mipmaps false",
+        "World-object atlas contracts passed 6/6 including two byte-identical builds and rollback",
+        "Focused catalog/composition/stage-geometry contracts passed 27/27; full Vitest passed 63 files/388 tests",
+        "Type-check, lint, MainScene.ts 837/850, and 1797-module production build passed",
+        "Focused product browser contracts passed 5/5 including gate redeploy closure; the current full regression passed all 64 runnable scenarios with one intentional evidence skip",
+        "Fifteen 960x540 three-stage/five-weather captures passed with all eleven families and zero runtime errors",
+        "Current-fingerprint independent re-review passed with no blocking/material finding; harness 17/17, manual drift, diff check, and Codex postflight passed"
+      ]
     },
     {
       "id": "T3",

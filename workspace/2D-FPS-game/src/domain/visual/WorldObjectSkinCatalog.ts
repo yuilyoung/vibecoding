@@ -4,31 +4,40 @@ export const WORLD_OBJECT_FAMILIES = Object.freeze([
   "crate",
   "cover",
   "bounce-wall",
-  "teleporter"
+  "teleporter",
+  "arena-obstacle",
+  "service-gate",
+  "vent-hazard",
+  "ammo-pickup",
+  "health-pickup"
 ] as const);
 
 export type WorldObjectFamily = (typeof WORLD_OBJECT_FAMILIES)[number];
-export type ProductWorldObjectState = "idle" | "damaged" | "armed" | "active";
+export type ArenaObstacleVariant = "core" | "tower" | "barrier";
+export type ProductWorldObjectState =
+  | "idle" | "damaged" | "armed" | "active"
+  | ArenaObstacleVariant | "closed" | "open" | "available";
 export type WorldObjectSkinId = "legacy" | "product-v1";
 export type WorldObjectRotationPolicy = "none" | "anchor";
+export type WorldObjectDisplayPolicy = "fixed-scale" | "anchor-size";
 
 export const WORLD_OBJECT_ATLAS_MANIFEST_CACHE_KEY = "world-product-v1-manifest";
 export const WORLD_OBJECT_ATLAS_MANIFEST_RUNTIME_PATH = "/assets/runtime/world/product-v1/manifest.json";
 export const WORLD_OBJECT_ATLAS_TEXTURE_KEY = "world-product-v1";
 export const WORLD_OBJECT_ATLAS_IMAGE_RUNTIME_PATH = "/assets/runtime/world/product-v1/map-objects.webp";
 export const WORLD_OBJECT_ATLAS_JSON_RUNTIME_PATH = "/assets/runtime/world/product-v1/map-objects.json";
-export const WORLD_OBJECT_ATLAS_WIDTH = 1024;
+export const WORLD_OBJECT_ATLAS_WIDTH = 2048;
 export const WORLD_OBJECT_ATLAS_HEIGHT = 1024;
-export const WORLD_OBJECT_ATLAS_TRANSFER_LIMIT_BYTES = 2 * 1024 * 1024;
-export const WORLD_OBJECT_ATLAS_GPU_LIMIT_BYTES = 4 * 1024 * 1024;
+export const WORLD_OBJECT_ATLAS_TRANSFER_LIMIT_BYTES = 4 * 1024 * 1024;
+export const WORLD_OBJECT_ATLAS_GPU_LIMIT_BYTES = 8 * 1024 * 1024;
 
 const PINNED_RELEASE = Object.freeze({
-  imageSha256: "c5598986a42ee5f6dffb992707f26dad8a3196d34b479c3055a754b2abbe86f6",
-  jsonSha256: "713f8b621815cd48970748729b4f61dccd95788ce713a66d911722709b2dc18b",
-  pixelSha256: "7f429bebc766694a3a4cfdb361f7b31f3bc0bd6ca22698f00872ac6f8a9cc492",
-  imageBytes: 285_362,
-  jsonBytes: 4_565,
-  totalTransferBytes: 295_024,
+  imageSha256: "c17a5e23a55ee7144a099bbbf4a616ff996422d14973b59ffb82cab9f4da6e41",
+  jsonSha256: "287710916d67ccede1a6ba1311c45e0e7329b570d6732cf80800efd1879ae9d5",
+  pixelSha256: "cb81d05e72e6e4d16deaf8c787bdd5bb60824a1ba81b36acbd75911af10193b9",
+  imageBytes: 492_830,
+  jsonBytes: 7_508,
+  totalTransferBytes: 508_220,
   targetFrameBytes: 1_063_704,
   targetFrameSha256: "1bf5e7ff6330854d8e9a7020c261c0c0778ad0baa782c446a1e88679bc01e8e6"
 });
@@ -37,9 +46,9 @@ const PINNED_PROVENANCE = Object.freeze({
   targetFramePath: "docs/reports/phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
   generator: Object.freeze({
     id: "OpenAI built-in image generation",
-    generatedAt: "2026-08-21",
+    generatedAt: "2026-08-24",
     sharpVersion: "0.35.3",
-    scriptSha256: "bf5f5e18908180c08eb2fba48c1af7cf9ec6f0c1e1b38a8f53a74bdca2497eb3"
+    scriptSha256: "48f983d571cf71f582c4065bd23116f8029a00ba68949485cfa5583161f192d1"
   }),
   sources: Object.freeze([
     Object.freeze({ path: "public/assets/source/product-v1-map-objects/barrel-idle.png", bytes: 730_789, sha256: "3e9a792e4df66a67801a2c9e0b885f3ee1f808c9879999a4fadb470d922220cf" }),
@@ -53,7 +62,15 @@ const PINNED_PROVENANCE = Object.freeze({
     Object.freeze({ path: "public/assets/source/product-v1-map-objects/bounce-wall-idle.png", bytes: 627_278, sha256: "dd79abe08f15a134d6fad2930bc1ebebb2aad2dd31fef4c9ea4aac7e7f799af3" }),
     Object.freeze({ path: "public/assets/source/product-v1-map-objects/bounce-wall-active.png", bytes: 678_582, sha256: "e003b09e5e8b5cc7f9268f14a322bb837947453ddaab1b5247f9f99918ccf8cf" }),
     Object.freeze({ path: "public/assets/source/product-v1-map-objects/teleporter-idle.png", bytes: 903_908, sha256: "5fbbd527fb433b33229a2e1818f7bf5a961ca9a095e01e925bd4b2bfa4aef662" }),
-    Object.freeze({ path: "public/assets/source/product-v1-map-objects/teleporter-active.png", bytes: 1_039_627, sha256: "56fdfdaa1e77dbbaa733c3b03e732da6e78b8152bcb495c7f395aa8882d50d16" })
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/teleporter-active.png", bytes: 1_039_627, sha256: "56fdfdaa1e77dbbaa733c3b03e732da6e78b8152bcb495c7f395aa8882d50d16" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/arena-obstacle-core.png", bytes: 991_931, sha256: "d9be6d1c878b1a079a3d3dee296d82e10117b0410536fb396b8b6f85988567c0" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/arena-obstacle-tower.png", bytes: 955_098, sha256: "f174d94f8ce9687924d2205253c7673a64dcbc26bf2d6a8af2f65de0b1417240" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/arena-obstacle-barrier.png", bytes: 912_500, sha256: "835f81c3b1ff2bbf8fe89f8985ff69497b873d75a254effcef9e677889c0a253" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/service-gate-closed.png", bytes: 1_287_201, sha256: "101d127f7d4cf377bdd9adf8583adab1faf5d5909705662f33aa2979eb37d025" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/service-gate-open.png", bytes: 607_573, sha256: "70d82a34772e5661a21f1adbafcbb3d7fa458ea4533dfb0799158264ee7399da" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/vent-hazard-active.png", bytes: 1_387_912, sha256: "273f6b1bc7d7b331c52e5a8262898fcc7542b83063eee0f8b703255b992ae9f6" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/ammo-pickup-available.png", bytes: 1_178_160, sha256: "dd937aacc29bc3610115b818dd36923ed3ed8a3bee3c4f3c9b13d76d37b7293c" }),
+    Object.freeze({ path: "public/assets/source/product-v1-map-objects/health-pickup-available.png", bytes: 1_053_987, sha256: "b3080f83bd2efa16d38fd6d41a8f63f1928dcdedcefbb139e18806bfd1a133c2" })
   ])
 });
 
@@ -63,7 +80,12 @@ const STATES_BY_FAMILY: Readonly<Record<WorldObjectFamily, readonly ProductWorld
   crate: Object.freeze(["idle", "damaged"] as const),
   cover: Object.freeze(["idle", "damaged"] as const),
   "bounce-wall": Object.freeze(["idle", "active"] as const),
-  teleporter: Object.freeze(["idle", "active"] as const)
+  teleporter: Object.freeze(["idle", "active"] as const),
+  "arena-obstacle": Object.freeze(["core", "tower", "barrier"] as const),
+  "service-gate": Object.freeze(["closed", "open"] as const),
+  "vent-hazard": Object.freeze(["active"] as const),
+  "ammo-pickup": Object.freeze(["available"] as const),
+  "health-pickup": Object.freeze(["available"] as const)
 });
 
 export interface WorldObjectPresentationLayout {
@@ -72,6 +94,7 @@ export interface WorldObjectPresentationLayout {
   readonly offsetX: number;
   readonly offsetY: number;
   readonly displayScale: number;
+  readonly displayPolicy: WorldObjectDisplayPolicy;
   readonly depth: number;
   readonly rotationPolicy: WorldObjectRotationPolicy;
 }
@@ -92,12 +115,17 @@ export interface WorldObjectSkinDefinition {
 }
 
 const LAYOUTS: Readonly<Record<WorldObjectFamily, WorldObjectPresentationLayout>> = Object.freeze({
-  barrel: Object.freeze({ originX: 0.5, originY: 0.56, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "none" }),
-  mine: Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "none" }),
-  crate: Object.freeze({ originX: 0.5, originY: 0.54, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "none" }),
-  cover: Object.freeze({ originX: 0.5, originY: 0.55, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "none" }),
-  "bounce-wall": Object.freeze({ originX: 0.5, originY: 0.55, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "anchor" }),
-  teleporter: Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 0.25, depth: 4, rotationPolicy: "none" })
+  barrel: Object.freeze({ originX: 0.5, originY: 0.56, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  mine: Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  crate: Object.freeze({ originX: 0.5, originY: 0.54, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  cover: Object.freeze({ originX: 0.5, originY: 0.55, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  "bounce-wall": Object.freeze({ originX: 0.5, originY: 0.55, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "anchor" }),
+  teleporter: Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 0.25, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  "arena-obstacle": Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 1, displayPolicy: "anchor-size", depth: 4, rotationPolicy: "none" }),
+  "service-gate": Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 1, displayPolicy: "anchor-size", depth: 4, rotationPolicy: "none" }),
+  "vent-hazard": Object.freeze({ originX: 0.5, originY: 0.5, offsetX: 0, offsetY: 0, displayScale: 1, displayPolicy: "anchor-size", depth: 3, rotationPolicy: "none" }),
+  "ammo-pickup": Object.freeze({ originX: 0.5, originY: 0.54, offsetX: 0, offsetY: 0, displayScale: 0.22, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" }),
+  "health-pickup": Object.freeze({ originX: 0.5, originY: 0.54, offsetX: 0, offsetY: 0, displayScale: 0.22, displayPolicy: "fixed-scale", depth: 4, rotationPolicy: "none" })
 });
 
 export const WORLD_OBJECT_SKIN_DEFINITIONS: Readonly<Record<WorldObjectSkinId, WorldObjectSkinDefinition>> = Object.freeze({
@@ -127,6 +155,9 @@ export interface WorldObjectVisualStateInput {
   readonly armedAt?: number;
   readonly reflectionsRemaining?: number;
   readonly cooldownUntil?: number;
+  readonly variant?: ArenaObstacleVariant;
+  readonly open?: boolean;
+  readonly available?: boolean;
 }
 
 export interface WorldObjectAtlasFrameRecord {
@@ -137,7 +168,7 @@ export interface WorldObjectAtlasFrameRecord {
 }
 
 export interface WorldObjectAtlasManifest {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "1.1.0";
   readonly skinId: "product-v1";
   readonly targetFrame: { readonly path: string; readonly bytes: number; readonly sha256: string };
   readonly generator: {
@@ -199,7 +230,7 @@ export function getWorldObjectFrameKey(
   family: WorldObjectFamily,
   state: ProductWorldObjectState
 ): string {
-  if (!STATES_BY_FAMILY[family].includes(state)) return `world/product-v1/${family}/idle`;
+  if (!STATES_BY_FAMILY[family].includes(state)) return `world/product-v1/${family}/${STATES_BY_FAMILY[family][0]}`;
   return `world/product-v1/${family}/${state}`;
 }
 
@@ -214,6 +245,10 @@ export function createExpectedWorldObjectFrames(): readonly WorldObjectAtlasFram
 }
 
 export function resolveWorldObjectVisualState(input: WorldObjectVisualStateInput): ProductWorldObjectState {
+  if (input.family === "arena-obstacle") return input.variant ?? "core";
+  if (input.family === "service-gate") return input.open ? "open" : "closed";
+  if (input.family === "vent-hazard") return "active";
+  if (input.family === "ammo-pickup" || input.family === "health-pickup") return "available";
   if (input.family === "mine") {
     return input.active && input.now >= (input.armedAt ?? Number.POSITIVE_INFINITY) ? "armed" : "idle";
   }
@@ -256,7 +291,7 @@ export function resolveWorldObjectSkinForRuntime(
 
 function validateManifest(input: unknown): string | null {
   if (!isRecord(input)) return "manifest is not an object";
-  if (input.schemaVersion !== "1.0.0" || input.skinId !== "product-v1") return "manifest identity mismatch";
+  if (input.schemaVersion !== "1.1.0" || input.skinId !== "product-v1") return "manifest identity mismatch";
   if (!Array.isArray(input.frames)) return "manifest frames are missing";
   const expected = createExpectedWorldObjectFrames();
   if (input.frames.length !== expected.length) return "manifest frame count mismatch";

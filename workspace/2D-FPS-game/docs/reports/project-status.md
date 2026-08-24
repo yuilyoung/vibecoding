@@ -1,17 +1,17 @@
 # 2D-FPS-game Project Status Report
 
-- Date: 2026-08-21
+- Date: 2026-08-24
 - Author: ultron
-- **Phase:** Phase 12 T2 - Remaining Authored Object Families
+- **Phase:** Phase 12 T3 - Full-Inventory Cohesion and Performance Closeout
 - Previous Phase: Phase 11 - Quaternius Animated Character POC (complete, 2026-08-20)
-- Status: Phase 11 complete; Phase 12 T0-T1 complete, T2 pending
+- Status: Phase 11 complete; Phase 12 T0-T2 complete, T3 pending
 
 | Key | Value |
 | --- | --- |
-| Active milestone | Phase 12 T2 - Arena props, gate, hazard/vent, and pickups |
+| Active milestone | Phase 12 T3 - Complete eleven-family cohesion/performance closeout |
 | Product program | Phase 11-13 Visual Productization Vertical Slice |
 | Development status | T0-T5 complete; T4 retains the absolute failure and passes the approved final one-shot display-cadence exception. |
-| Verification | T1 deterministic/static/unit/build/browser/performance, independent review, manual drift, and Codex postflight gates passed |
+| Verification | T2 deterministic/runtime/browser/reviewer/drift/postflight gates passed |
 
 ## Summary
 
@@ -26,7 +26,7 @@ The product objective is now explicit: the default `/` route must become a coher
 | Phase | User-visible outcome | Current state |
 | --- | --- | --- |
 | Phase 11 | Default BLUE/RED animated characters with five states and eight directions | complete 2026-08-20; absolute fail retained, cadence exception passed |
-| Phase 12 | Authored skins for six map objects, three arena-prop families, and two pickups | v5 approved; six-family T1 runtime slice complete; remaining five families pending |
+| Phase 12 | Authored skins for six map objects, three arena-prop families, gate, hazard, and two pickups | v5 approved; all eleven families integrated and T2 complete at opt-in `product-v1`; T3 pending |
 | Phase 13 | Object/interactions animation, integrated visual polish, and default-route promotion | locked behind Phase 12 runtime/reviewer pass |
 
 The detailed product goal, object inventory, architecture boundaries, budgets, and promotion gate are in `../planning/phase11-13-visual-productization-roadmap.md`.
@@ -100,6 +100,16 @@ The detailed product goal, object inventory, architecture boundaries, budgets, a
 - Current-fingerprint independent review found no blocking or material issue; Codex preflight, Hermes audit, harness contracts 17/17, diff check, manual drift, and Codex postflight passed.
 - Phase 12 is not complete: arena obstacles, service gate, hazard/vent surfaces, ammo pickup, and health pickup remain T2, and world-art default promotion remains locked.
 
+## Phase 12 T2 Eleven-Family Runtime Slice - 2026-08-24
+
+- Added the five remaining families through eight authored source images: arena-obstacle core/tower/barrier, service-gate closed/open, active vent hazard, available ammo pickup, and available health pickup.
+- Expanded the deterministic release to 11 families / 20 frames in one 2048x1024 atlas. World-object transfer is 508,220 bytes, raw RGBA is 8,388,608 bytes, and mipmaps are disabled. Combined actors plus world art use 1,297,048 transfer bytes and 41,943,040 raw RGBA bytes, within the approved 12 MiB / 64 MiB T2 limits.
+- Reused one shared scene-lifetime presentation port across `MapObjectController` and `StageGeometryManager`; existing gameplay, collision, positions, gate/pickup behavior, respawn, AI, audio, and input remain in their original owners.
+- Product obstacle variants, gate state, hazard placement, and pickup availability/visibility now synchronize through the atlas. `/`, explicit legacy, unknown, corrupt, and incomplete inputs still retain total legacy fallback, and `product-v1` remains opt-in.
+- Atlas contracts pass 6/6, focused tests pass 27/27, full Vitest passes 63 files / 388 tests, type-check/lint/build pass, and `MainScene.ts` is 837/850.
+- Focused browser contracts pass 5/5 including gate redeploy closure. The current post-review-fix full run passed all 64 runnable scenarios with the explicit evidence refresh skipped. Two earlier pre-fix runs each had one different pre-existing transient, and each exact case passed alone. The explicit evidence refresh passed 1/1 and produced fifteen 960x540 captures with all 11 families and zero runtime errors.
+- Current evidence is in `phase12-t2-evidence/`. Independent re-review found no blocking/material issue; harness 17/17, manual drift, diff check, and Codex postflight passed. T2 is complete; T3 retains complete inventory cohesion/performance closeout.
+
 ## Historical Phase 11 Contract Verification - 2026-08-13
 
 These results belong to the original Phase 11 contract fingerprint. They are retained as planning-baseline evidence and do not certify the 2026-08-14 Visual Productization roadmap edit, which requires its own current-fingerprint review, drift, and postflight sequence.
@@ -124,21 +134,20 @@ The previous executable evidence remains 58 Vitest files / 344 tests, production
 - T2 added only the offline build adapter/tool lock/tests, exact Sharp dependency, and generated actor atlas release.
 - T3 added only the catalog/manifest policy, scene-lifetime actor presentation composition, opt-in atlas playback, focused tests, and resolved-skin UI metadata.
 - The 2026-08-20 product amendment changes browser default selection, product-shell copy/entry presentation, initial preview position, and production weather-audio activation only. It does not change collision, combat, balance, weather mechanics, progression, persistence, input semantics, stage content, generated assets, or atlas bytes.
-- Phase 12 T1 authorizes only the six map-object families recorded above. Paid assets, live 3D, normal maps, `Light2D`, all-six-weapons art, cosmetics, persistence, the five T2 families, and complete visual-pack promotion remain unauthorized here.
+- Phase 12 T2 authorizes only the eleven object families recorded above. Paid assets, live 3D, normal maps, `Light2D`, expanded weapon art, cosmetics, persistence, Phase 13 animation, and complete visual-pack promotion remain unauthorized here.
 - Preserved unrelated dirty workspace changes.
 
 ## Blocking Issues
 
-No Phase 11 blocker remains. The absolute 16.7 ms result and prior failed cadence collections remain recorded rather than hidden or reclassified. No Phase 12 T1 blocker remains; Phase 12 overall remains open for the five families outside the approved six-family slice.
+No Phase 11 or Phase 12 T2 blocker remains. The Phase 11 absolute 16.7 ms result and prior failed cadence collections remain recorded rather than hidden or reclassified. Phase 12 overall remains open for T3 cohesion/performance closeout.
 
 ## Immediate Next Tasks
 
 | Priority | ID | Task | Owner | Estimate |
 | --- | --- | --- | --- | --- |
-| 1 | Phase 12 T2 | Extend the approved v5 language and atomic pack contract to arena obstacles, service gate, vent/hazard surfaces, ammo pickup, and health pickup. | product_owner + ultron | implementation gate |
-| 2 | Phase 12 T3 | Run complete 11-family cohesion, fallback, lifecycle, budget, browser, performance, reviewer, drift, and postflight gates. | ultron + reviewer | phase closeout |
+| 1 | Phase 12 T3 | Run complete 11-family cohesion, fallback, lifecycle, budget, browser, and performance closeout. | product_owner + ultron + reviewer | phase closeout |
 
-Phase 11 is complete. Phase 12 T1 is a verified opt-in vertical slice, not Phase 12 completion or default promotion. T2 is the next product task.
+Phase 11 and Phase 12 T2 are complete. The eleven-family world pack remains opt-in, so this is not Phase 12 completion or default promotion. T3 is the next product slice.
 
 ## Risks
 

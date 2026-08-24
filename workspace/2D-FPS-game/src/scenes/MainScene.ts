@@ -427,11 +427,7 @@ export class MainScene extends Phaser.Scene {
         this.targetDummy.setRotation(rotation);
       },
       resetActorVisuals: () => { this.visualController.resetActorVisuals(); },
-      applyGateDeployment: (open) => {
-        this.gate.open = open;
-        this.gate.sprite.setAlpha(1);
-        this.gate.sprite.setFillStyle(0xf4a261, 1);
-      },
+      applyGateDeployment: (open) => this.stageGeometry.applyGateDeployment(open),
       clearBullets: () => this.combatController.clearBullets(),
       resetPickupState: () => this.stageGeometry.resetPickupState(),
       resetHazardState: () => this.stageGeometry.resetHazardState(),
@@ -543,6 +539,8 @@ export class MainScene extends Phaser.Scene {
 
     createArenaPropTextures(this);
     createTurretAnimations(this);
+    this.worldObjectPresentationComposition = new WorldObjectPresentationComposition(this, this.worldObjectSkinDefinition);
+    this.worldObjectPresentationComposition.initialize(); this.stageGeometry.wirePresentation(this.worldObjectPresentationComposition); this.mapObjectController.wirePresentation(this.worldObjectPresentationComposition); this.onWorldObjectSkinResolved(this.worldObjectPresentationComposition.activeSkin);
     this.stageVisualController = new StageVisualController(addArenaBackdrop(this));
     this.stageVisualController.applyStage(this.currentStage.id);
     this.stageGeometry.applyStageGeometry(this.currentStage);
@@ -552,8 +550,6 @@ export class MainScene extends Phaser.Scene {
     this.ammoPickup = staticStageObjects.ammoPickup;
     this.healthPickup = staticStageObjects.healthPickup;
     this.stageGeometry.applyStageContent(this.activeStageContentPlan);
-    this.worldObjectPresentationComposition = new WorldObjectPresentationComposition(this, this.worldObjectSkinDefinition);
-    this.worldObjectPresentationComposition.initialize(); this.mapObjectController.wirePresentation(this.worldObjectPresentationComposition); this.onWorldObjectSkinResolved(this.worldObjectPresentationComposition.activeSkin);
     this.mapObjectController.applyMapObjects(this.activeStageContentPlan.mapObjects);
 
     this.actorPresentationComposition = new ActorPresentationComposition({
@@ -599,10 +595,10 @@ export class MainScene extends Phaser.Scene {
   private onSceneShutdown(): void {
     unbindMainScenePointer(this, this.handlePointerDown, this);
     this.actorPresentationComposition?.destroy();
+    this.worldObjectPresentationComposition?.destroy();
     this.stageGeometry.releaseSceneObjects();
     this.hudController.publishShutdownSnapshot();
     this.mapObjectController.destroy();
-    this.worldObjectPresentationComposition?.destroy();
     this.stageVisualController?.destroy();
     this.damageNumberRenderer?.destroy();
     this.weatherRenderer?.destroy();

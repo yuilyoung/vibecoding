@@ -3,12 +3,12 @@
 - **Handoff ID:** phase-12-product-v1-authored-object-kit
 - **From:** vision / product_owner
 - **To:** ultron
-- **Date:** 2026-08-21
-- **Status:** in progress; T0-T1 complete, T2 pending
+- **Date:** 2026-08-24
+- **Status:** in progress; T0-T2 complete, T3 pending
 
 ## Summary
 
-Phase 11 remains complete. The user approved Phase 12 target frame v5 on 2026-08-21, and the first six-family runtime slice is implemented and deterministically verified at `?worldSkin=product-v1`. Default world art remains legacy; arena obstacles, service gate, hazard/vent surfaces, and two pickups remain T2. Phase 12 overall and default promotion are not complete.
+Phase 11 remains complete. The user-approved Phase 12 target-frame language now covers all eleven object families at `?worldSkin=product-v1`. T2 implementation, deterministic verification, independent re-review, drift, and postflight are complete. Default world art remains legacy, and Phase 12 T3 cohesion/performance closeout plus Phase 13/default promotion are not complete.
 
 ## Phase 12 T1 deliverables and verification - 2026-08-21
 
@@ -22,6 +22,18 @@ Phase 11 remains complete. The user approved Phase 12 target frame v5 on 2026-08
 - Final hardware Chrome production AB-BA-AB samples pass: product p95 is 0.1ms in all three captures and relative regression is -0.3ms to -0.5ms against the 0.5ms limit.
 - Earlier full runs exposed test scheduling gaps, not runtime regressions. The product state case passed 5/5 after freezing its future-time sample, wind passed 15/15 after flushing pending clear before injection, the barrel file passed 9/9 after fixed-weather polling, and the final entire suite passed.
 - Current-fingerprint independent review found no blocking or material issue. Codex preflight, Hermes audit, harness contracts 17/17, diff check, manual drift, and Codex postflight pass for the T1 slice.
+
+## Phase 12 T2 eleven-family runtime slice - 2026-08-24
+
+- Product-owner review approved the exact eight-source / five-family extension, shared presentation boundary, budgets, exclusions, and deterministic acceptance before implementation.
+- Generated and pinned arena-obstacle core/tower/barrier, service-gate closed/open, active vent hazard, available ammo pickup, and available health pickup sources using the approved v5 projection and material language.
+- Expanded the deterministic atomic release to eleven families and twenty frames in one 2048x1024 lossless WebP. Strict world transfer is 508220 bytes, raw RGBA is 8388608 bytes, and mipmaps are disabled; combined actors plus world art use 1297048 transfer bytes and 41943040 raw RGBA bytes.
+- Wired `StageGeometryManager` to the same scene-lifetime presentation port as map objects while keeping domain state, anchors, collision ownership, positions, gate/pickup logic, respawn, AI, audio, and input unchanged.
+- Product-v1 synchronizes three obstacle variants, gate open/closed state, active hazard placement, and pickup availability/visibility. Default, explicit legacy, unknown, corrupt, and incomplete routes keep total legacy fallback.
+- Atlas contracts pass 6/6, focused tests pass 27/27, full Vitest passes 63 files/388 tests, type-check/lint/LOC 837/850/build pass, and focused browser contracts pass 5/5 including gate redeploy closure.
+- The current post-review-fix Playwright run passed all 64 runnable scenarios with one intentional evidence skip. Two earlier pre-fix runs each had one different pre-existing transient that passed alone. The explicit evidence refresh passed 1/1 and records fifteen 960x540 captures across all stages/weather with all eleven families and zero runtime errors.
+- Initial independent review correctly found that round redeployment closed the gate domain/collider without synchronizing the product overlay. Deployment now routes through `StageGeometryManager.applyGateDeployment()`; unit open-to-redeploy-close coverage and the real browser team-confirm/deployment path pass. The subsequent current-fingerprint re-review passed.
+- Evidence is stored under `workspace/2D-FPS-game/docs/reports/phase12-t2-evidence/`. Current-fingerprint re-review found no blocking/material issue; harness 17/17, manual drift, diff check, and Codex postflight passed, closing T2.
 
 ## Deliverables
 
@@ -140,7 +152,7 @@ No runtime test was rerun for this documentation-only decision because no game c
 - T2 added only the pinned offline build adapter/locks/tests, exact Sharp dependency, and generated actor atlas release.
 - T3 added only the runtime catalog/manifest policy, actor presentation composition, animated opt-in playback, focused tests, and resolved-skin UI metadata.
 - The product amendment changes only browser default selection, primary-shell presentation, initial actor preview positions, and weather-loop activation config. No collision, combat, balance, weather mechanics, progression, persistence, input semantics, stage content, generated atlas byte, or asset pipeline changed.
-- Phase 12 T1 authorizes only its six recorded object families. No paid asset, live 3D, normal map, `Light2D`, expanded weapon art, cosmetic system, persistence, five-family T2 implementation, or complete-pack default switch was authorized by this slice.
+- Phase 12 T2 authorizes only its eleven recorded object families and static state frames. No paid asset, live 3D, normal map, `Light2D`, expanded weapon art, cosmetic system, persistence, Phase 13 animation, T3 performance closeout, or complete-pack default switch was authorized by this slice.
 - Ground Shaker remains the explicit/total fallback and Phase 10 remains complete.
 - Unrelated dirty workspace files were preserved.
 
@@ -157,7 +169,7 @@ This addendum changes no game code, asset, Phase 11 T1-T5 dependency, or current
 
 ## Next Direction
 
-Begin Phase 12 T2 for arena obstacles, service gate, hazard/vent surfaces, ammo pickup, and health pickup. Reuse the approved v5 contract and keep product world art opt-in. Do not promote the complete world pack to `/` or begin Phase 13 state animation before Phase 12 full-inventory acceptance.
+Begin Phase 12 T3 full-inventory cohesion/performance closeout. Keep product world art opt-in; do not promote the complete world pack to `/` or begin Phase 13 state animation before Phase 12 acceptance.
 
 The repository harness no longer buffers a full binary diff for evidence freshness. It fingerprints HEAD, NUL-safe status, and current changed-file snapshots, allowing the existing large workspace migration to remain intact while retaining fail-closed review evidence.
 

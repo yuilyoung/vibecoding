@@ -1,12 +1,12 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "targetFrame": {
     "path": "docs/reports/phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
     "bytes": 1063704,
     "sha256": "1bf5e7ff6330854d8e9a7020c261c0c0778ad0baa782c446a1e88679bc01e8e6"
   },
   "generator": "OpenAI built-in image generation",
-  "generatedAt": "2026-08-21",
+  "generatedAt": "2026-08-24",
   "sources": [
     { "path": "public/assets/source/product-v1-map-objects/barrel-idle.png", "bytes": 730789, "sha256": "3e9a792e4df66a67801a2c9e0b885f3ee1f808c9879999a4fadb470d922220cf" },
     { "path": "public/assets/source/product-v1-map-objects/barrel-damaged.png", "bytes": 768933, "sha256": "074e24bc9a5580bb055e0612a9fcb885b84b8cc69d847647dae7f759c38a44c5" },
@@ -19,6 +19,14 @@
     { "path": "public/assets/source/product-v1-map-objects/bounce-wall-idle.png", "bytes": 627278, "sha256": "dd79abe08f15a134d6fad2930bc1ebebb2aad2dd31fef4c9ea4aac7e7f799af3" },
     { "path": "public/assets/source/product-v1-map-objects/bounce-wall-active.png", "bytes": 678582, "sha256": "e003b09e5e8b5cc7f9268f14a322bb837947453ddaab1b5247f9f99918ccf8cf" },
     { "path": "public/assets/source/product-v1-map-objects/teleporter-idle.png", "bytes": 903908, "sha256": "5fbbd527fb433b33229a2e1818f7bf5a961ca9a095e01e925bd4b2bfa4aef662" },
-    { "path": "public/assets/source/product-v1-map-objects/teleporter-active.png", "bytes": 1039627, "sha256": "56fdfdaa1e77dbbaa733c3b03e732da6e78b8152bcb495c7f395aa8882d50d16" }
+    { "path": "public/assets/source/product-v1-map-objects/teleporter-active.png", "bytes": 1039627, "sha256": "56fdfdaa1e77dbbaa733c3b03e732da6e78b8152bcb495c7f395aa8882d50d16" },
+    { "path": "public/assets/source/product-v1-map-objects/arena-obstacle-core.png", "bytes": 991931, "sha256": "d9be6d1c878b1a079a3d3dee296d82e10117b0410536fb396b8b6f85988567c0" },
+    { "path": "public/assets/source/product-v1-map-objects/arena-obstacle-tower.png", "bytes": 955098, "sha256": "f174d94f8ce9687924d2205253c7673a64dcbc26bf2d6a8af2f65de0b1417240" },
+    { "path": "public/assets/source/product-v1-map-objects/arena-obstacle-barrier.png", "bytes": 912500, "sha256": "835f81c3b1ff2bbf8fe89f8985ff69497b873d75a254effcef9e677889c0a253" },
+    { "path": "public/assets/source/product-v1-map-objects/service-gate-closed.png", "bytes": 1287201, "sha256": "101d127f7d4cf377bdd9adf8583adab1faf5d5909705662f33aa2979eb37d025" },
+    { "path": "public/assets/source/product-v1-map-objects/service-gate-open.png", "bytes": 607573, "sha256": "70d82a34772e5661a21f1adbafcbb3d7fa458ea4533dfb0799158264ee7399da" },
+    { "path": "public/assets/source/product-v1-map-objects/vent-hazard-active.png", "bytes": 1387912, "sha256": "273f6b1bc7d7b331c52e5a8262898fcc7542b83063eee0f8b703255b992ae9f6" },
+    { "path": "public/assets/source/product-v1-map-objects/ammo-pickup-available.png", "bytes": 1178160, "sha256": "dd937aacc29bc3610115b818dd36923ed3ed8a3bee3c4f3c9b13d76d37b7293c" },
+    { "path": "public/assets/source/product-v1-map-objects/health-pickup-available.png", "bytes": 1053987, "sha256": "b3080f83bd2efa16d38fd6d41a8f63f1928dcdedcefbb139e18806bfd1a133c2" }
   ]
 }

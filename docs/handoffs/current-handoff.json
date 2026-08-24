@@ -1,28 +1,28 @@
 {
   "id": "phase-12-product-v1-authored-object-kit",
-  "timestamp": "2026-08-21",
+  "timestamp": "2026-08-24",
   "from": "product / product_owner",
   "to": "ultron",
   "status": "in-progress",
-  "scope": "Deliver Phase 12 as opt-in authored object slices derived from the user-approved v5 target frame without changing the completed gameplay, actor, or audio baseline.",
+  "scope": "Preserve the completed Phase 12 T2 opt-in eleven-family authored object slice and hand off Phase 12 T3 cohesion/performance closeout without changing the gameplay, actor, or audio baseline.",
   "constraints": [
     "Execution baseline remains workspace/2D-FPS-game; Phase 11 stays complete with its absolute performance failure and cadence qualification preserved as separate facts.",
     "The user approved phase12-foundry-target-frame-v5.png on 2026-08-21; its projection, material, outline, shadow, palette, and glyph-free world language are the visual contract.",
-    "T1 covers exactly barrel, mine, crate, cover, bounce-wall, and teleporter with two states each. Arena obstacles, service gate, hazard/vent surfaces, ammo pickup, and health pickup remain T2.",
+    "T2 extends the six T1 families with arena-obstacle core/tower/barrier, service-gate closed/open, active vent hazard, available ammo pickup, and available health pickup for eleven families and twenty frames total.",
     "Only ?worldSkin=product-v1 may request product world art. Default, explicit legacy, and unknown routes remain legacy until the complete promotion gate.",
-    "Any invalid manifest, frame, texture, dimension, hash, transfer, GPU, or mipmap record falls the entire selected slice back to legacy.",
+    "Any invalid manifest, frame, texture, dimension, hash, transfer, GPU, or mipmap record falls all eleven families back to legacy.",
     "Existing anchors, positions, collision rectangles, state transitions, combat, AI, projectiles, balance, weather mechanics, audio policy, persistence, and input semantics remain unchanged.",
     "MainScene.ts remains at or below 850 lines; presentation owners are scene-lifetime, idempotent, and release overlays/listeners/references before shutdown completes.",
-    "T1 atlas is at most 2 MiB transfer and 4 MiB raw RGBA with mipmaps off; product presentation p95 and relative regression are each at most 0.5ms.",
-    "Phase 12 T1 is not complete 11-family productization and does not authorize default world-art promotion or Phase 13 animation work."
+    "T2 world-object atlas is at most 4 MiB transfer and 8 MiB raw RGBA; combined actors and world art are at most 12 MiB transfer and 64 MiB raw RGBA, with mipmaps off.",
+    "Phase 12 T2 does not authorize T3 performance closeout, default world-art promotion, or Phase 13 animation work."
   ],
   "acceptance": [
-    "T0 records explicit user approval and product-owner approval of the six-family architecture.",
-    "T1 emits twelve stable frames from pinned v5-derived sources through two byte-identical isolated builds and atomic promotion/rollback.",
-    "Catalog and runtime composition prove exact state mapping, total fallback, unchanged positions/colliders, scene restart, debug observability, and no partial activation.",
-    "Three stages by five weather captures cover all six families at 960x540 with zero runtime errors and quantitative pixel checks.",
-    "Focused and full static/unit/build/browser checks, performance, independent review, manual drift, and postflight pass before T1 completion is claimed.",
-    "T2 and T3 remain pending after T1 closeout."
+    "Product-owner approval freezes the exact T2 family/state matrix, boundaries, exclusions, budgets, and verification contract before implementation.",
+    "T2 emits twenty stable frames from pinned v5-derived sources through two byte-identical isolated builds and atomic promotion/rollback.",
+    "One shared presentation boundary proves exact state mapping, total fallback, unchanged positions/colliders/gameplay, gate and pickup synchronization, scene restart, debug observability, and no partial activation.",
+    "Three stages by five weather captures cover all eleven families at 960x540 with zero runtime errors and quantitative pixel checks.",
+    "Focused and full static/unit/build/browser checks, independent review, manual drift, and postflight pass before T2 completion is claimed.",
+    "T3 cohesion/performance closeout and Phase 13/default promotion remain pending."
   ],
   "files": [
     "workspace/2D-FPS-game/public/assets/source/product-v1-map-objects",
@@ -34,7 +34,7 @@
     "workspace/2D-FPS-game/tests/WorldObject*",
     "workspace/2D-FPS-game/tests/e2e/phase12-*",
     "workspace/2D-FPS-game/docs/planning/phase12-*",
-    "workspace/2D-FPS-game/docs/reports/phase12-t1-evidence"
+    "workspace/2D-FPS-game/docs/reports/phase12-t2-evidence"
   ],
   "currentState": {
     "completed": [
@@ -42,7 +42,10 @@
       "T0 completed: the user approved target frame v5 and the product owner approved the exact six-family architecture.",
       "T1 source/build completed with twelve pinned alpha PNGs and one deterministic 1024x1024 lossless WebP/JSON/manifest release.",
       "T1 runtime completed with a pure catalog, opt-in preload, scene-lifetime overlay composition, state synchronization, total fallback, resolved-skin DOM/debug state, and unchanged anchors/colliders.",
-      "T1 verification completed with 6/6 atlas contracts, 24/24 focused unit tests including exact provenance mutations, 62 files/385 full unit tests, type-check, lint, LOC 842/850, 1797-module build, fifteen visual captures, passing p95, and a final full browser run of 64 pass/1 intentional skip."
+      "T1 verification completed with 6/6 atlas contracts, 24/24 focused unit tests including exact provenance mutations, 62 files/385 full unit tests, type-check, lint, LOC 842/850, 1797-module build, fifteen visual captures, passing p95, and a final full browser run of 64 pass/1 intentional skip.",
+      "T2 source/build/runtime implementation completed with eight new authored sources, eleven families and twenty stable frames in one deterministic 2048x1024 release, and shared StageGeometry presentation wiring.",
+      "T2 deterministic verification completed with 6/6 atlas contracts, 27/27 focused tests, 63 files/388 full unit tests, type-check, lint, LOC 837/850, 1797-module build, focused browser 5/5, and fifteen all-family visual captures.",
+      "T2 reliability closeout completed with current-fingerprint re-review PASS, harness 17/17, manual drift, diff check, and Codex postflight."
     ],
     "verification": [
       "Atlas strict transfer is 295024 bytes against 2097152; raw RGBA is 4194304 bytes against 4194304; mipmaps are false.",
@@ -50,11 +53,13 @@
       "Three final product captures measured 0.1ms p95; three AB-BA-AB regressions were -0.3ms to -0.5ms against the 0.5ms limit.",
       "Focused route/state/fallback/restart/collider browser contracts pass; product state passed 5/5, wind passed 15/15, and the barrel file passed 9/9 after deterministic test-boundary corrections.",
       "The final complete Playwright run passed 64 scenarios with only the explicitly environment-gated visual-evidence refresh skipped.",
-      "Current-fingerprint independent review found no blocking or material issue; Codex preflight, Hermes audit, harness contracts 17/17, diff check, manual drift, and Codex postflight passed."
+      "T1 current-fingerprint independent review, Codex preflight, Hermes audit, harness contracts 17/17, diff check, manual drift, and Codex postflight passed.",
+      "T2 strict world transfer is 508220 bytes and raw RGBA is 8388608 bytes; combined actors plus world use 1297048 transfer bytes and 41943040 raw RGBA bytes.",
+      "The current post-review-fix browser run passed all 64 runnable scenarios with one intentional evidence skip. Two earlier pre-fix runs each had one different pre-existing transient that passed alone. The explicit T2 evidence refresh passed 1/1 with zero runtime errors.",
+      "Independent re-review found no blocking or material issue after the gate redeploy synchronization correction; manual drift and Codex postflight passed on the synchronized T2 record."
     ],
     "remaining": [
-      "Phase 12 T2: author and integrate arena obstacles, service gate, hazard/vent surfaces, ammo pickup, and health pickup.",
-      "Phase 12 T3: complete full-inventory cohesion and phase closeout; Phase 13/default promotion remains later."
+      "Phase 12 T3: complete full-inventory cohesion and performance closeout; Phase 13/default promotion remains later."
     ]
   },
   "references": {
@@ -63,7 +68,7 @@
     "wbs": "workspace/2D-FPS-game/docs/planning/phase12-wbs.md",
     "tasks": "workspace/2D-FPS-game/docs/planning/phase12-tasks.json",
     "projectStatus": "workspace/2D-FPS-game/docs/reports/project-status.md",
-    "evidence": "workspace/2D-FPS-game/docs/reports/phase12-t1-evidence/phase12-t1-runtime-report.md",
+    "evidence": "workspace/2D-FPS-game/docs/reports/phase12-t2-evidence/phase12-t2-runtime-report.md",
     "executionReport": "docs/handoffs/current-execution-report.md",
     "previousPhaseTasks": "workspace/2D-FPS-game/docs/planning/phase11-tasks.json"
   }

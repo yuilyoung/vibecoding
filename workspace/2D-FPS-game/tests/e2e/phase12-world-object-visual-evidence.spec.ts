@@ -25,7 +25,7 @@ interface EvidenceScene {
   getDebugSnapshot(): { stage: string; weather: { effective: { type: WeatherType } } };
 }
 
-const artifactDir = path.resolve("docs/reports/phase12-t1-evidence");
+const artifactDir = path.resolve("docs/reports/phase12-t2-evidence");
 const stages = ["foundry", "relay-yard", "storm-drain"] as const;
 const weatherTypes: readonly WeatherType[] = ["clear", "rain", "fog", "sandstorm", "storm"];
 
@@ -125,10 +125,10 @@ test("captures product-v1 across three stages and five weather states", async ({
       const presentation = await withScene(page, (scene: EvidenceScene) => scene.debugGetWorldObjectPresentation());
       const objects = await withScene(page, (scene: EvidenceScene) => scene.debugGetMapObjectStates());
       expect(presentation).toMatchObject({ skinId: "product-v1", atlasActive: true, fallbackReason: null });
-      expect(presentation.overlayCount).toBe(objects.length);
+      expect(presentation.overlayCount).toBe(objects.length + 7);
       expect(presentation.objects.every((object) => object.visible)).toBe(true);
       for (const object of presentation.objects) coveredFamilies.add(object.family);
-      const file = `phase12-t1-${stage}-${weather}.png`;
+      const file = `phase12-t2-${stage}-${weather}.png`;
       const bounds = await canvas.boundingBox();
       if (bounds === null) throw new Error("Missing Phase 12 canvas bounds.");
       const png = await page.screenshot({
@@ -156,10 +156,13 @@ test("captures product-v1 across three stages and five weather states", async ({
   }
 
   expect(captures).toHaveLength(15);
-  expect(coveredFamilies).toEqual(new Set(["barrel", "mine", "crate", "cover", "bounce-wall", "teleporter"]));
+  expect(coveredFamilies).toEqual(new Set([
+    "barrel", "mine", "crate", "cover", "bounce-wall", "teleporter",
+    "arena-obstacle", "service-gate", "vent-hazard", "ammo-pickup", "health-pickup"
+  ]));
   expect(errors).toEqual([]);
   const index = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     capturedAt: new Date().toISOString(),
     route: "/?worldSkin=product-v1",
     targetFrame: "../phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
@@ -172,5 +175,5 @@ test("captures product-v1 across three stages and five weather states", async ({
     errors,
     captures
   };
-  await writeFile(path.join(artifactDir, "phase12-t1-visual-index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  await writeFile(path.join(artifactDir, "phase12-t2-visual-index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
 });

@@ -17,7 +17,7 @@ import {
   validateRelease,
   verifySourceLock,
 } from './lib.mjs';
-import { WORLD_OBJECT_BUILD_SPEC, createWorldObjectFrameRecords } from './spec.mjs';
+import { WORLD_OBJECT_BUILD_SPEC, createWorldObjectFrameRecords, getWorldObjectFrameContent } from './spec.mjs';
 
 const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(TOOL_DIR, '..', '..');
@@ -52,10 +52,10 @@ function createPhaserAtlas(frames) {
   };
 }
 
-async function createFrameCell(sourcePath, family) {
+async function createFrameCell(sourcePath, content) {
   const trimmed = await sharp(sourcePath)
     .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 1 })
-    .resize({ width: family.content.width, height: family.content.height, fit: 'inside', withoutEnlargement: false })
+    .resize({ width: content.width, height: content.height, fit: 'inside', withoutEnlargement: false })
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -113,7 +113,7 @@ export async function runCleanBuild(label, runDir, context) {
     assertContract(family !== undefined, `missing family spec: ${frame.family}`);
     const source = context.sources[frame.index];
     cells.push({
-      input: await createFrameCell(source.absolutePath, family),
+      input: await createFrameCell(source.absolutePath, getWorldObjectFrameContent(family, frame.state)),
       left: frame.index % WORLD_OBJECT_BUILD_SPEC.atlas.columns * WORLD_OBJECT_BUILD_SPEC.cell.width,
       top: Math.floor(frame.index / WORLD_OBJECT_BUILD_SPEC.atlas.columns) * WORLD_OBJECT_BUILD_SPEC.cell.height,
     });
@@ -171,7 +171,7 @@ export async function generateWorldObjectAtlas() {
   const runDir = assertPathInside(WORK_ROOT, path.join(WORK_ROOT, `run-${token}`), 'run staging');
   const candidate = assertPathInside(OUTPUT_PARENT, path.join(OUTPUT_PARENT, `.world-object-next-${token}`), 'promotion candidate');
   const backup = assertPathInside(OUTPUT_PARENT, path.join(OUTPUT_PARENT, `.world-object-previous-${token}`), 'promotion backup');
-  const emit = (state, stage, detail = {}) => process.stdout.write(`${JSON.stringify({ schemaVersion: '1.0.0', component: 'world-object-atlas', state, stage, detail })}\n`);
+  const emit = (state, stage, detail = {}) => process.stdout.write(`${JSON.stringify({ schemaVersion: WORLD_OBJECT_BUILD_SPEC.schemaVersion, component: 'world-object-atlas', state, stage, detail })}\n`);
   emit('queued', 'contract');
   try {
     const lock = JSON.parse(await readFile(path.join(TOOL_DIR, 'source-lock.json'), 'utf8'));

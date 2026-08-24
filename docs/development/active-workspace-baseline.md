@@ -25,10 +25,10 @@ This repository has two complementary baselines:
 - Phase 9 uses a typed CC0 catalog for Kenney operator portraits, Ground Shaker world tanks/terrain, PIXWEP weapon icons, three stage treatments, six object visuals plus legend, and five transition-safe weather identities.
 - Phase 10 Character Skin Foundation POC is complete with deterministic verification, current-fingerprint review, manual-drift, and postflight evidence.
 - Phase 10 keeps Ground Shaker vehicles as the explicit/total fallback and retains opt-in `?actorSkin=kenney-infantry` using vendored CC0 static frames to prove typed five-state/eight-direction readiness, team mapping, weapon-layer policy, URL selection, and scene-lifetime cleanup.
-- The current deterministic runtime baseline is type-check, lint, 62 Vitest files / 385 tests, production build, 64 passing Playwright scenarios plus one intentionally gated evidence refresh, and the `MainScene.ts` 850-line budget.
+- The current deterministic runtime baseline is type-check, lint, 63 Vitest files / 388 tests, a 1,797-module production build, `MainScene.ts` at 837/850 lines, and a current full Playwright run with all 64 runnable scenarios passing plus one intentionally gated evidence refresh.
 - Phase 11 Quaternius Animated Character POC is complete. `/` consumes the pinned BLUE/RED T2 atlases through the extracted scene-lifetime composition, plays the five-state/eight-direction matrix, preserves an independently aimed external carbine, and falls back totally to Ground Shaker when validation fails. The original absolute result remains failed at p95 16.9 ms versus 16.7 ms. After retaining every prior report, the approved final one-shot D3D11 collection passed the separate cadence exception with at least 1800 samples/capture, every p95 16.9 ms, zero frames above 25 ms, and 0.0 ms regression. Current regression, review, drift, and postflight gates passed.
 - The Phase 11-13 Visual Productization roadmap is product-goal approved. It sequences animated characters, an authored 11-family object kit, integrated state animation, and final default promotion; it does not change the current executable baseline.
-- The user approved Phase 12 Foundry target frame v5 on 2026-08-21. Phase 12 T1 now exposes authored barrel, mine, crate, cover, bounce-wall, and teleporter art only at `?worldSkin=product-v1`, backed by a deterministic 12-frame atlas, total fallback, exact collider parity, 15 three-stage/five-weather captures, and a passing 0.5ms p95 gate. T1 current-fingerprint review, drift, and postflight pass; Phase 12 overall remains open for five additional families.
+- The user approved Phase 12 Foundry target frame v5 on 2026-08-21. Phase 12 T2 now exposes all eleven authored families only at `?worldSkin=product-v1`, backed by a deterministic 20-frame atlas, total fallback, exact collider parity, and 15 three-stage/five-weather captures. T2 implementation, deterministic verification, current-fingerprint re-review, drift, and postflight pass; Phase 12 overall remains open for T3 cohesion/performance closeout.
 
 ## Approved Next Direction
 
@@ -38,7 +38,7 @@ This repository has two complementary baselines:
 - Keep combined opt-in transfer at or below 8 MiB, raw RGBA GPU memory at or below 32 MiB, fixed-scene p95 at or below 16.7 ms, and p95 regression versus legacy at or below 1.0 ms.
 - Keep actor presentation composition extracted and enforce the `MainScene.ts` 850-line budget.
 - Keep Ground Shaker as explicit/total fallback and require full regression, review, drift, and postflight gates before Phase 11 completion.
-- Extend the completed six-family Phase 12 T1 slice to arena obstacles, service gate, hazard/vent surfaces, ammo pickup, and health pickup in T2, then run complete Phase 12 cohesion/closeout before Phase 13 animation and default promotion.
+- Run Phase 12 T3 complete-inventory cohesion/performance closeout before Phase 13 animation and default promotion.
 - Use `workspace/2D-FPS-game/docs/planning/phase11-13-visual-productization-roadmap.md` as the productization goal and phase-order contract.
 
 If Unity work resumes, explicitly reconcile the root roadmap with the Phaser prototype first.

@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 test.setTimeout(90_000);
 
 type WorldObjectKind = "barrel" | "mine" | "crate" | "cover" | "bounce-wall" | "teleporter";
+type ProductWorldObjectFamily = WorldObjectKind | "arena-obstacle" | "service-gate" | "vent-hazard" | "ammo-pickup" | "health-pickup";
 type WeatherType = "clear" | "rain" | "fog" | "sandstorm" | "storm";
 
 interface WorldObjectState {
@@ -24,8 +25,8 @@ interface WorldObjectPresentationDebug {
   overlayCount: number;
   objects: Array<{
     id: string;
-    family: WorldObjectKind;
-    state: "idle" | "damaged" | "armed" | "active";
+    family: ProductWorldObjectFamily;
+    state: "idle" | "damaged" | "armed" | "active" | "core" | "tower" | "barrier" | "closed" | "open" | "available";
     frameKey: string;
     x: number;
     y: number;
@@ -38,7 +39,10 @@ interface WorldObjectPresentationDebug {
 }
 
 interface WorldObjectScene {
+  update(time: number, delta: number): void;
   debugEnterStage(): void;
+  debugSelectTeam(team: "BLUE" | "RED"): void;
+  debugConfirmTeamSelection(): void;
   debugRotateStage(): void;
   debugSetWeather(type: WeatherType): void;
   debugMovePlayerTo(x: number, y: number): void;
@@ -48,6 +52,9 @@ interface WorldObjectScene {
   debugGetWorldObjectPresentation(): WorldObjectPresentationDebug;
   debugDamageMapObject(id: string, damage: number): void;
   debugAdvanceMapObjects(now: number): void;
+  debugToggleGate(): void;
+  debugForceCombatLive(): void;
+  stageGeometry: { resetPickupState(): void };
   getDebugSnapshot(): { stage: string; weather: { effective: { type: WeatherType } } };
 }
 
@@ -101,8 +108,8 @@ const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
 };
 
 const expectPresentationAligned = (world: Awaited<ReturnType<typeof readWorld>>): void => {
-  expect(world.presentation.overlayCount).toBe(world.objects.length);
-  expect(world.presentation.objects).toHaveLength(world.objects.length);
+  expect(world.presentation.overlayCount).toBe(world.objects.length + 7);
+  expect(world.presentation.objects).toHaveLength(world.objects.length + 7);
   for (const object of world.objects) {
     const overlay = world.presentation.objects.find((candidate) => candidate.id === object.id);
     expect(overlay, object.id).toMatchObject({
@@ -113,6 +120,9 @@ const expectPresentationAligned = (world: Awaited<ReturnType<typeof readWorld>>)
     });
     expect(overlay?.frameKey).toBe(`world/product-v1/${object.kind}/${overlay?.state}`);
   }
+  expect(new Set(world.presentation.objects.filter((object) => object.id.startsWith("stage:")).map((object) => object.family))).toEqual(
+    new Set(["arena-obstacle", "service-gate", "vent-hazard", "ammo-pickup", "health-pickup"])
+  );
 };
 
 test.beforeEach(async ({ page }) => {
@@ -144,7 +154,7 @@ test("keeps default, explicit legacy, and unknown routes on legacy world art", a
   }
 });
 
-test("renders all six families, state changes, and stage swaps through product-v1", async ({ page }) => {
+test("renders all eleven families, state changes, pickups, and stage swaps through product-v1", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -164,9 +174,42 @@ test("renders all six families, state changes, and stage swaps through product-v
     textureKey: "world-product-v1"
   });
   expectPresentationAligned(world);
-  expect(new Set(world.presentation.objects.map((object) => object.family))).toEqual(
+  expect(new Set(world.presentation.objects.filter((object) => !object.id.startsWith("stage:")).map((object) => object.family))).toEqual(
     new Set(["barrel", "crate", "cover"])
   );
+  expect(new Set(world.presentation.objects.filter((object) => object.family === "arena-obstacle").map((object) => object.state))).toEqual(
+    new Set(["core", "tower", "barrier"])
+  );
+
+  expect(world.presentation.objects.find((object) => object.id === "stage:service-gate")?.state).toBe("closed");
+  await withScene(page, (scene: WorldObjectScene) => scene.debugToggleGate());
+  world = await readWorld(page);
+  expect(world.presentation.objects.find((object) => object.id === "stage:service-gate")?.state).toBe("open");
+
+  await withScene(page, (scene: WorldObjectScene) => {
+    scene.debugMovePlayerTo(200, 300);
+    scene.stageGeometry.resetPickupState();
+    scene.debugSelectTeam("BLUE");
+    scene.debugConfirmTeamSelection();
+    scene.debugForceCombatLive();
+    scene.debugMoveDummyTo(820, 120);
+    scene.debugMovePlayerTo(160, 430);
+    scene.update(0, 100);
+  });
+  await page.waitForFunction(() => {
+    const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as WorldObjectScene | undefined;
+    return scene?.debugGetWorldObjectPresentation().objects.find((object) => object.id === "stage:ammo-pickup")?.visible === false;
+  });
+  world = await readWorld(page);
+  expect(world.presentation.objects.find((object) => object.id === "stage:service-gate")?.state).toBe("closed");
+  await withScene(page, (scene: WorldObjectScene) => {
+    scene.debugMovePlayerTo(100, 100);
+    scene.stageGeometry.resetPickupState();
+  });
+  await page.waitForFunction(() => {
+    const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as WorldObjectScene | undefined;
+    return scene?.debugGetWorldObjectPresentation().objects.find((object) => object.id === "stage:ammo-pickup")?.visible === true;
+  });
 
   await withScene(page, (scene: WorldObjectScene) => {
     scene.debugDamageMapObject("foundry-barrel-a", 1);
@@ -184,7 +227,7 @@ test("renders all six families, state changes, and stage swaps through product-v
   });
   world = await readWorld(page);
   expectPresentationAligned(world);
-  expect(new Set(world.presentation.objects.map((object) => object.family))).toEqual(
+  expect(new Set(world.presentation.objects.filter((object) => !object.id.startsWith("stage:")).map((object) => object.family))).toEqual(
     new Set(["barrel", "mine", "crate", "cover", "bounce-wall", "teleporter"])
   );
   const armedAt = Math.max(...world.objects.filter((object) => object.kind === "mine").map((object) => object.armedAt ?? 0));

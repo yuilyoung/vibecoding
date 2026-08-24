@@ -278,6 +278,7 @@ export interface HazardZoneView {
   sprite: Phaser.GameObjects.Rectangle;
   bounds: Rect;
   logic: HazardZoneLogic;
+  visuals?: readonly Phaser.GameObjects.GameObject[];
 }
 
 export interface CoverPointView {

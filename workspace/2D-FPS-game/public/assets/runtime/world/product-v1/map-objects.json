@@ -82,8 +82,8 @@
     },
     "world/product-v1/crate/idle": {
       "frame": {
-        "x": 0,
-        "y": 256,
+        "x": 1024,
+        "y": 0,
         "w": 256,
         "h": 256
       },
@@ -102,8 +102,8 @@
     },
     "world/product-v1/crate/damaged": {
       "frame": {
-        "x": 256,
-        "y": 256,
+        "x": 1280,
+        "y": 0,
         "w": 256,
         "h": 256
       },
@@ -122,8 +122,8 @@
     },
     "world/product-v1/cover/idle": {
       "frame": {
-        "x": 512,
-        "y": 256,
+        "x": 1536,
+        "y": 0,
         "w": 256,
         "h": 256
       },
@@ -142,8 +142,8 @@
     },
     "world/product-v1/cover/damaged": {
       "frame": {
-        "x": 768,
-        "y": 256,
+        "x": 1792,
+        "y": 0,
         "w": 256,
         "h": 256
       },
@@ -163,7 +163,7 @@
     "world/product-v1/bounce-wall/idle": {
       "frame": {
         "x": 0,
-        "y": 512,
+        "y": 256,
         "w": 256,
         "h": 256
       },
@@ -183,7 +183,7 @@
     "world/product-v1/bounce-wall/active": {
       "frame": {
         "x": 256,
-        "y": 512,
+        "y": 256,
         "w": 256,
         "h": 256
       },
@@ -203,7 +203,7 @@
     "world/product-v1/teleporter/idle": {
       "frame": {
         "x": 512,
-        "y": 512,
+        "y": 256,
         "w": 256,
         "h": 256
       },
@@ -221,6 +221,166 @@
       }
     },
     "world/product-v1/teleporter/active": {
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/arena-obstacle/core": {
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/arena-obstacle/tower": {
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/arena-obstacle/barrier": {
+      "frame": {
+        "x": 1536,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/service-gate/closed": {
+      "frame": {
+        "x": 1792,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/service-gate/open": {
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/vent-hazard/active": {
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/ammo-pickup/available": {
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      }
+    },
+    "world/product-v1/health-pickup/available": {
       "frame": {
         "x": 768,
         "y": 512,
@@ -243,11 +403,11 @@
   },
   "meta": {
     "app": "world-object-atlas",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "image": "map-objects.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1024,
+      "w": 2048,
       "h": 1024
     },
     "scale": "1",

@@ -30,19 +30,21 @@ async function tempDirectory(t, prefix = 'world-object-atlas-test-') {
   return directory;
 }
 
-test('emits the exact twelve-frame family/state matrix', () => {
+test('emits the exact twenty-frame family/state matrix', () => {
   const frames = createWorldObjectFrameRecords();
   validateFrameRecords(frames);
-  assert.equal(frames.length, 12);
+  assert.equal(frames.length, 20);
   assert.equal(frames[0].key, 'world/product-v1/barrel/idle');
   assert.equal(frames[11].key, 'world/product-v1/teleporter/active');
-  assert.equal(new Set(frames.map((frame) => frame.key)).size, 12);
+  assert.equal(frames[12].key, 'world/product-v1/arena-obstacle/core');
+  assert.equal(frames[19].key, 'world/product-v1/health-pickup/available');
+  assert.equal(new Set(frames.map((frame) => frame.key)).size, 20);
 });
 
 test('pinned alpha sources have transparent corners and plausible coverage', async () => {
   const lock = JSON.parse(await readFile(path.join(TOOL_DIR, 'source-lock.json'), 'utf8'));
   const sources = await verifySourceLock(PROJECT_ROOT, lock);
-  assert.equal(sources.length, 12);
+  assert.equal(sources.length, 20);
   for (const source of sources) {
     const decoded = await sharp(source.absolutePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     assert.equal(decoded.info.channels, 4);
@@ -59,8 +61,8 @@ test('pinned alpha sources have transparent corners and plausible coverage', asy
 test('current release validates exact hashes, dimensions, JSON frames, and budgets', async () => {
   const manifest = JSON.parse(await readFile(path.join(RELEASE_DIR, 'manifest.json'), 'utf8'));
   const result = await validateRelease(RELEASE_DIR, manifest, sharp);
-  assert.equal(result.gpuRgbaBytes, 4 * 1024 * 1024);
-  assert.ok(result.transferBytes <= 2 * 1024 * 1024);
+  assert.equal(result.gpuRgbaBytes, 8 * 1024 * 1024);
+  assert.ok(result.transferBytes <= 4 * 1024 * 1024);
 });
 
 test('invalid frame, hash, and budget records fail closed', async () => {

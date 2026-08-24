@@ -20,6 +20,8 @@ import {
 class FakeAnchor {
   public visible = true;
   public rotation = 0;
+  public displayWidth = 48;
+  public displayHeight = 24;
   private readonly listeners = new Map<string, Set<() => void>>();
 
   public constructor(public x: number, public y: number) {}
@@ -51,6 +53,8 @@ class FakeSprite {
   public alpha = 1;
   public destroyed = false;
   public destroyCalls = 0;
+  public displayWidth = 256;
+  public displayHeight = 256;
 
   public constructor(
     public x: number,
@@ -61,6 +65,7 @@ class FakeSprite {
 
   public setOrigin(x: number, y: number): this { this.originX = x; this.originY = y; return this; }
   public setScale(scale: number): this { this.scale = scale; return this; }
+  public setDisplaySize(width: number, height: number): this { this.displayWidth = width; this.displayHeight = height; return this; }
   public setDepth(depth: number): this { this.depth = depth; return this; }
   public setRotation(rotation: number): this { this.rotation = rotation; return this; }
   public setPosition(x: number, y: number): this { this.x = x; this.y = y; return this; }
@@ -90,7 +95,7 @@ const createScene = (options: { manifest?: unknown; textureLoaded?: boolean } = 
     textures: {
       exists: () => options.textureLoaded !== false,
       get: () => ({
-        getSourceImage: () => ({ width: 1024, height: 1024 }),
+        getSourceImage: () => ({ width: 2048, height: 1024 }),
         getFrameNames: () => ["__BASE", ...createExpectedWorldObjectFrames().map((frame) => frame.key)]
       })
     },
@@ -123,6 +128,30 @@ describe("WorldObjectPresentationComposition", () => {
     preloadWorldObjectPresentationAssets(legacy.scene as never, WORLD_OBJECT_SKIN_DEFINITIONS.legacy);
     expect(legacy.loadJson).not.toHaveBeenCalled();
     expect(legacy.loadAtlas).not.toHaveBeenCalled();
+  });
+
+  it("uses anchor-sized stage overlays and synchronizes gate and pickup visibility", () => {
+    const { scene, sprites } = createScene();
+    const composition = new WorldObjectPresentationComposition(scene as never, WORLD_OBJECT_SKIN_DEFINITIONS["product-v1"]);
+    composition.initialize();
+    const gate = new FakeAnchor(480, 430);
+    gate.displayWidth = 96;
+    gate.displayHeight = 24;
+    const pickup = new FakeAnchor(160, 430);
+    const gateHandle = composition.attach(gate, "service-gate", "service-gate");
+    const pickupHandle = composition.attach(pickup, "ammo-pickup", "ammo-pickup");
+    composition.sync(gateHandle!, { active: true, hp: 1, now: 1_000, open: true });
+    composition.sync(pickupHandle!, { active: true, hp: 1, now: 1_000, available: false, visible: false });
+    expect(sprites[0]).toMatchObject({
+      frame: { name: "world/product-v1/service-gate/open" },
+      displayWidth: 96,
+      displayHeight: 24
+    });
+    expect(sprites[1]).toMatchObject({
+      frame: { name: "world/product-v1/ammo-pickup/available" },
+      scale: 0.22,
+      visible: false
+    });
   });
 
   it("attaches non-interactive overlays and synchronizes state, position, rotation, and alpha", () => {
