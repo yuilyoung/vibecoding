@@ -1,0 +1,41 @@
+{
+  "phase": "phase-13",
+  "name": "Integrated Presentation and Default Promotion",
+  "created": "2026-08-31",
+  "status": "planned",
+  "architecture": "./phase13-integrated-presentation-architecture.md",
+  "previousPhase": { "id": "phase-12", "tasks": "./phase12-tasks.json", "status": "complete" },
+  "tasks": [
+    {
+      "id": "T0",
+      "subject": "Approve the event-to-animation contract, integrated evidence suite, and promotion migration",
+      "assignee": "product + product_owner + ultron/codex",
+      "status": "completed",
+      "completed": "2026-08-31",
+      "evidence": ["Product owner Decision: approved", "phase13-integrated-presentation-architecture.md"],
+      "constraints": ["No runtime implementation or default promotion is authorized", "Final default promotion requires separate explicit user approval"]
+    },
+    {
+      "id": "T1",
+      "subject": "Implement opt-in presentation-event integration and lifecycle ownership",
+      "assignee": "ultron/codex",
+      "status": "pending",
+      "depends": ["T0"]
+    },
+    {
+      "id": "T2",
+      "subject": "Prove integrated interaction, visual, performance, fallback, review, drift, and postflight gates",
+      "assignee": "ultron/codex + reviewer",
+      "status": "pending",
+      "depends": ["T1"]
+    },
+    {
+      "id": "T3",
+      "subject": "Request and apply separate user-approved default-route promotion",
+      "assignee": "user + ultron/codex",
+      "status": "blocked",
+      "depends": ["T2"],
+      "blocker": "Explicit user approval is required after the named default-promotion capture packet is available."
+    }
+  ]
+}

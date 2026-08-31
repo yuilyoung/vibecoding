@@ -50,6 +50,7 @@ import { ActorPresentationComposition, preloadActorPresentationAssets } from "./
 import { getActorSkinDefinition, type ActorSkinDefinition } from "../domain/visual/ActorSkinCatalog";
 import { getWorldObjectSkinDefinition, type WorldObjectSkinDefinition } from "../domain/visual/WorldObjectSkinCatalog";
 import { WorldObjectPresentationComposition, preloadWorldObjectPresentationAssets } from "./world-object-presentation-composition";
+import { IntegratedPresentationComposition } from "./integrated-presentation-composition";
 import { DebugController } from "./debug-controller";
 import { MapObjectController } from "./map-object-controller";
 import { WeatherRenderer } from "./weather-renderer";
@@ -131,6 +132,7 @@ export class MainScene extends Phaser.Scene {
   private visualController!: VisualController;
   private actorPresentationComposition!: ActorPresentationComposition;
   private worldObjectPresentationComposition!: WorldObjectPresentationComposition;
+  private integratedPresentationComposition: IntegratedPresentationComposition | null = null;
   private readonly actorSkinDefinition: ActorSkinDefinition;
   private readonly worldObjectSkinDefinition: WorldObjectSkinDefinition;
   private readonly onActorSkinResolved: (definition: ActorSkinDefinition) => void;
@@ -541,6 +543,8 @@ export class MainScene extends Phaser.Scene {
     createTurretAnimations(this);
     this.worldObjectPresentationComposition = new WorldObjectPresentationComposition(this, this.worldObjectSkinDefinition);
     this.worldObjectPresentationComposition.initialize(); this.stageGeometry.wirePresentation(this.worldObjectPresentationComposition); this.mapObjectController.wirePresentation(this.worldObjectPresentationComposition); this.onWorldObjectSkinResolved(this.worldObjectPresentationComposition.activeSkin);
+    this.integratedPresentationComposition = new IntegratedPresentationComposition(this, this.worldObjectPresentationComposition.atlasActive);
+    this.mapObjectController.wirePresentationEvents(this.integratedPresentationComposition);
     this.stageVisualController = new StageVisualController(addArenaBackdrop(this));
     this.stageVisualController.applyStage(this.currentStage.id);
     this.stageGeometry.applyStageGeometry(this.currentStage);
@@ -594,6 +598,8 @@ export class MainScene extends Phaser.Scene {
 
   private onSceneShutdown(): void {
     unbindMainScenePointer(this, this.handlePointerDown, this);
+    this.integratedPresentationComposition?.destroy();
+    this.integratedPresentationComposition = null;
     this.actorPresentationComposition?.destroy();
     this.worldObjectPresentationComposition?.destroy();
     this.stageGeometry.releaseSceneObjects();

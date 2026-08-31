@@ -22,5 +22,6 @@
 ## Cautions
 
 - Root roadmap documents can be older than the active implementation baseline.
+- A completed phase may advance the status report to its next approved design or implementation gate; confirm that default-route promotions still retain every separately stated user-approval gate.
 - A clean diff is not proof of correct runtime behavior.
 - Do not issue style-only findings unless they conceal a correctness or maintenance risk.

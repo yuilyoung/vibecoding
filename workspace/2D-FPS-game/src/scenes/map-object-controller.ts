@@ -26,6 +26,7 @@ import type {
   WorldObjectPresentationHandle,
   WorldObjectPresentationPort
 } from "./world-object-presentation-composition";
+import type { PresentationEventPort } from "../domain/visual/PresentationEvent";
 
 const BARREL_SIZE = 24;
 const CRATE_SIZE = 20;
@@ -102,6 +103,8 @@ export class MapObjectController {
   private readonly emittedDropIds = new Set<string>();
   private sideEffects: MapObjectSideEffectsBinding | undefined;
   private presentation: WorldObjectPresentationPort | undefined;
+  private presentationEvents: PresentationEventPort | undefined;
+  private readonly presentationSequences = new Map<string, number>();
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -119,6 +122,10 @@ export class MapObjectController {
     }
     this.presentation = presentation;
     this.presentation.initialize();
+  }
+
+  public wirePresentationEvents(events: PresentationEventPort | undefined): void {
+    this.presentationEvents = events;
   }
 
   public advanceTick(now: number, dt: number): MapObjectTickResult {
@@ -281,9 +288,11 @@ export class MapObjectController {
     };
 
     this.deps.onObjectDamaged?.(result);
-
     if (result.destroyed) {
+      this.publishBarrelEvent(after, "destroy");
       this.deps.onObjectDestroyed?.(after);
+    } else if (before.active && before.hp !== after.hp) {
+      this.publishBarrelEvent(after, "damage");
     }
 
     return result;
@@ -309,6 +318,7 @@ export class MapObjectController {
     };
 
     if (result.destroyed) {
+      this.publishBarrelEvent(after, "destroy");
       this.deps.onObjectDestroyed?.(after);
     }
 
@@ -327,6 +337,7 @@ export class MapObjectController {
     this.syncVisual(view);
 
     if (wasActive && !state.active) {
+      this.publishBarrelEvent(state, "destroy");
       this.deps.onObjectDestroyed?.(state);
     }
 
@@ -398,9 +409,17 @@ export class MapObjectController {
       this.syncVisual(view, now);
 
       if (previous?.active === true && !state.active) {
+        this.publishBarrelEvent(state, "destroy");
         this.deps.onObjectDestroyed?.(state);
       }
     }
+  }
+
+  private publishBarrelEvent(state: MapObjectState, kind: "damage" | "destroy"): void {
+    if (state.kind !== "barrel") return;
+    const sequence = (this.presentationSequences.get(state.id) ?? 0) + 1;
+    this.presentationSequences.set(state.id, sequence);
+    this.presentationEvents?.publish({ subjectId: state.id, family: "barrel", kind, sequence, x: state.x, y: state.y });
   }
 
   private createView(state: MapObjectState): MapObjectView {

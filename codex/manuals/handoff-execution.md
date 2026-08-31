@@ -23,5 +23,6 @@
 ## Cautions
 
 - Do not implement a completed or stale handoff without an explicit new request.
+- When a completed handoff names a future phase, treat that mention as context; obtain its new design and approval gate before starting runtime work.
 - Do not substitute a verbal claim for test, build, or runtime evidence.
 - Do not turn the PO or reviewer into implementation agents.
