@@ -1,6 +1,7 @@
 import type { StageVisualTheme } from "../domain/visual/VisualAssetCatalog";
 import { getStageVisualTheme } from "../domain/visual/VisualAssetCatalog";
 import type { ArenaBackdropVisuals } from "./arena-textures";
+import { getArcadeFloorTint } from "./arcade-arena-art";
 
 export interface StageVisualDebugState {
   readonly stageId: string;
@@ -17,6 +18,7 @@ export class StageVisualController {
 
   public applyStage(stageId: string): void {
     this.theme = getStageVisualTheme(stageId);
+    this.visuals.arcadeFloor.setTint(getArcadeFloorTint(stageId));
     const crop = this.theme.terrainCrop;
     this.visuals.terrain
       .setCrop(crop.x, crop.y, crop.width, crop.height)
@@ -40,5 +42,6 @@ export class StageVisualController {
     this.visuals.terrain.destroy();
     this.visuals.toneOverlay.destroy();
     this.visuals.border.destroy();
+    this.visuals.arcadeFloor.destroy();
   }
 }

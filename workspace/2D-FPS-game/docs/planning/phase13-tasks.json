@@ -19,7 +19,7 @@
       "id": "T1",
       "subject": "Implement opt-in presentation-event integration and lifecycle ownership",
       "assignee": "ultron/codex",
-      "status": "pending",
+      "status": "in-progress",
       "depends": ["T0"]
     },
     {

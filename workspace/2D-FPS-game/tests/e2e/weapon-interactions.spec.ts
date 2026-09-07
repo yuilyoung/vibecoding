@@ -145,10 +145,13 @@ test("air strike queues blasts and applies area damage", async ({ page }) => {
   const stats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
   expect(stats.activeAirStrikes).toBe(1);
 
-  await withScene(page, (scene: DebugScene) => scene.combatController.updateAirStrikes(1_000));
-
-  const after = await readSnapshot(page);
-  const afterStats = await withScene(page, (scene: DebugScene) => scene.debugGetRuntimeStats());
+  const { snapshot: after, stats: afterStats } = await withScene(page, (scene: DebugScene) => {
+    scene.combatController.updateAirStrikes(1_000);
+    return {
+      snapshot: scene.getDebugSnapshot(),
+      stats: scene.debugGetRuntimeStats()
+    };
+  });
   expect(after.weaponSlot).toBe(6);
   expect(after.activeWeapon).toBe("Air Strike");
   expect(after.dummyHealth).toBeLessThan(before.dummyHealth);

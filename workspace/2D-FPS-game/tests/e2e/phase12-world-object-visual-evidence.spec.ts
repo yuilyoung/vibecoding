@@ -3,6 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
+// @ts-expect-error The repository harness helper is an untyped ESM module.
+import { workspaceFingerprint } from "../../../../plugins/hermes-ssot/scripts/harness-controller.mjs";
 
 type WeatherType = "clear" | "rain" | "fog" | "sandstorm" | "storm";
 
@@ -25,7 +27,12 @@ interface EvidenceScene {
   getDebugSnapshot(): { stage: string; weather: { effective: { type: WeatherType } } };
 }
 
-const artifactDir = path.resolve("docs/reports/phase12-t2-evidence");
+const projectRoot = path.resolve(".");
+const workspaceRoot = path.resolve(projectRoot, "../..");
+const reportsRoot = path.resolve(projectRoot, "docs/reports");
+const t3ArtifactDir = path.resolve(reportsRoot, "phase12-t3-evidence");
+const artifactDir = path.resolve(projectRoot, process.env.PHASE12_ARTIFACT_DIR ?? "docs/reports/phase12-t2-evidence");
+const artifactPrefix = process.env.PHASE12_ARTIFACT_PREFIX ?? "phase12-t2";
 const stages = ["foundry", "relay-yard", "storm-drain"] as const;
 const weatherTypes: readonly WeatherType[] = ["clear", "rain", "fog", "sandstorm", "storm"];
 
@@ -76,6 +83,10 @@ const inspectPixels = async (png: Buffer) => {
 };
 
 test("captures product-v1 across three stages and five weather states", async ({ page, browser }) => {
+  expect(process.env.PHASE12_ARTIFACT_DIR, "Explicit evidence refreshes require a new artifact directory.").toBeTruthy();
+  expect(process.env.PHASE12_ARTIFACT_PREFIX, "Explicit evidence refreshes require a new artifact prefix.").toBeTruthy();
+  expect(artifactDir).toBe(t3ArtifactDir);
+  expect(artifactPrefix).toBe("phase12-t3");
   const errors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -128,7 +139,7 @@ test("captures product-v1 across three stages and five weather states", async ({
       expect(presentation.overlayCount).toBe(objects.length + 7);
       expect(presentation.objects.every((object) => object.visible)).toBe(true);
       for (const object of presentation.objects) coveredFamilies.add(object.family);
-      const file = `phase12-t2-${stage}-${weather}.png`;
+      const file = `${artifactPrefix}-${stage}-${weather}.png`;
       const bounds = await canvas.boundingBox();
       if (bounds === null) throw new Error("Missing Phase 12 canvas bounds.");
       const png = await page.screenshot({
@@ -164,6 +175,7 @@ test("captures product-v1 across three stages and five weather states", async ({
   const index = {
     schemaVersion: "1.1.0",
     capturedAt: new Date().toISOString(),
+    workspaceFingerprint: workspaceFingerprint(workspaceRoot),
     route: "/?worldSkin=product-v1",
     targetFrame: "../phase12-t0-evidence/phase12-foundry-target-frame-v5.png",
     browser: browser.version(),
@@ -175,5 +187,5 @@ test("captures product-v1 across three stages and five weather states", async ({
     errors,
     captures
   };
-  await writeFile(path.join(artifactDir, "phase12-t2-visual-index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  await writeFile(path.join(artifactDir, `${artifactPrefix}-visual-index.json`), `${JSON.stringify(index, null, 2)}\n`, "utf8");
 });

@@ -107,6 +107,10 @@ const enterCombat = async (page: Page): Promise<void> => {
     scene.debugSelectTeam("BLUE");
     scene.debugConfirmTeamSelection();
     scene.debugForceCombatLive();
+    // These tests own every simulation tick below. A live RAF loop can move a
+    // reflected projectile out of bounds or expire a teleporter cooldown
+    // between separate Playwright evaluations on a busy machine.
+    window.__FPS_GAME__!.loop.sleep();
   });
   await stabilizeEnvironment(page);
 
@@ -121,8 +125,10 @@ const advanceFrames = async (page: Page, frames: number, deltaMs: number): Promi
         throw new Error("Missing __FPS_GAME__ test handle.");
       }
 
-      const scene = game.scene.keys.MainScene as unknown as DebugScene;
-      scene.update(0, delta);
+      const scene = game.scene.keys.MainScene as unknown as DebugScene & { time: { now: number } };
+      // Advance the same clock used by hit-stop and cooldowns with our tick.
+      scene.time.now += delta;
+      scene.update(scene.time.now, delta);
     }, deltaMs);
   }
 };
@@ -188,6 +194,9 @@ const injectProjectile = async (page: Page, input: {
 const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
   for (let index = 0; index < 4; index += 1) {
     if ((await readSnapshot(page)).stage === stageId) {
+      // Stage transitions defer bullet clearing to the end of their first
+      // update. Settle that transition before injecting test projectiles.
+      await withScene(page, (scene: DebugScene) => scene.update(0, 0));
       return;
     }
 

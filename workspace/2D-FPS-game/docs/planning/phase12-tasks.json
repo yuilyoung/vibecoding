@@ -2,7 +2,7 @@
   "phase": "phase-12",
   "name": "Product V1 Authored Object Skin Kit",
   "created": "2026-08-21",
-  "status": "in-progress",
+  "status": "complete",
   "architecture": "./phase12-map-object-vertical-slice-architecture.md",
   "wbs": "./phase12-wbs.md",
   "previousPhase": { "id": "phase-11", "tasks": "./phase11-tasks.json", "status": "complete" },
@@ -76,8 +76,25 @@
       "id": "T3",
       "subject": "Close Phase 12 full-inventory cohesion, performance, review, drift, and postflight gates",
       "assignee": "ultron/codex + reviewer",
-      "status": "pending",
-      "depends": ["T2"]
+      "status": "completed",
+      "completed": "2026-08-25",
+      "depends": ["T2"],
+      "files": [
+        "scripts/perf-world-object-presentation.mjs",
+        "tests/e2e/phase12-world-object-presentation.spec.ts",
+        "tests/e2e/phase12-world-object-visual-evidence.spec.ts",
+        "tests/e2e/weapon-interactions.spec.ts",
+        "docs/reports/phase12-t3-evidence"
+      ],
+      "evidence": [
+        "T3-only output guards prevent historical T1/T2 evidence overwrites; invalid output targets fail before capture",
+        "Fifteen 960x540 captures cover all eleven families across three stages and five weather states with zero runtime errors",
+        "Independent cohesion scorecard passes all five categories at a conservative minimum of 4/5",
+        "Strict Chrome D3D11 AB-BA-AB performance rerun passes 18,000 samples with zero samples above 16.7ms, product p95 0.1ms, and -0.7ms to -0.9ms regression",
+        "The immediately preceding one-sample legacy failure is retained as separate evidence without changing the threshold",
+        "Focused world browser 5/5, full Vitest 63 files/388 tests, type-check, lint, 1797-module build, Air Strike repeat 5/5, and final full browser 64 runnable scenarios pass with one intentional visual-evidence skip",
+        "Independent reviewer pass, manual drift, diff check, and Codex postflight close Phase 12"
+      ]
     }
   ]
 }

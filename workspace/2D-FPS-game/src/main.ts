@@ -33,7 +33,9 @@ import {
   type SettingsPanelField
 } from "./ui/SettingsPanel";
 import { buildTutorialOverlayRenderState } from "./ui/TutorialOverlay";
+import { ArcadeHud } from "./ui/ArcadeHud";
 import "./styles.css";
+import "./ui/arcade-hud.css";
 
 declare global {
   interface Window {
@@ -62,10 +64,10 @@ appRoot.innerHTML = `
   <div class="app-shell">
     <header class="shell-header">
       <div>
-        <p class="eyebrow">FAST 1V1 ARENA COMBAT</p>
-        <h1>Arena Strike</h1>
+        <p class="eyebrow">THE LITTLE ARENA. THE BIG SHOWDOWN.</p>
+        <h1>ARENA<span>STRIKE</span><i>★</i></h1>
       </div>
-      <div class="header-chip">Choose a side. Own the arena.</div>
+      <div class="header-actions"><span class="header-chip">1 vs 1 · ARCADE BATTLE</span><button id="open-settings" type="button" aria-label="Open settings" disabled>Settings <kbd>Esc</kbd></button></div>
     </header>
     <main class="shell-main">
       <section class="stage-panel">
@@ -75,58 +77,28 @@ appRoot.innerHTML = `
               <img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />
               <span class="operator-badge operator-badge--blue" role="img" aria-label="Blue Vanguard">V</span>
               <div class="identity-copy">
-                <p class="hud-label">Player Operator</p>
+                <p class="hud-label">YOU / CHALLENGER</p>
                 <strong id="player-operator-text">Blue Vanguard operator</strong>
-                <span>Vanguard assault unit</span>
+                <span id="team-chip" class="team-chip">UNSET</span>
               </div>
-            </div>
-            <div class="hud-statline">
-              <span id="team-chip" class="team-chip">UNSET</span>
-              <span id="phase-chip" class="phase-chip">STAGE ENTRY</span>
-            </div>
-            <div>
-              <div class="meter-copy">
-                <span>Health</span>
-                <span id="player-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
-              </div>
-              <div class="meter-track"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
-            </div>
-            <div class="weapon-strip">
-              <img id="weapon-icon" class="weapon-icon" src="/assets/runtime/sprites/weapon-hud-carbine.png" alt="" />
-              <div>
-                <p class="micro-label">Loadout</p>
-                <strong id="weapon-name">Carbine</strong>
-              </div>
-              <div>
-                <p class="micro-label">Ammo</p>
-                <strong id="ammo-count">${gameBalance.magazineSize}/${gameBalance.reserveAmmo}</strong>
-              </div>
-            </div>
-            <div id="weapon-slot-grid" class="weapon-slot-grid" aria-label="Weapon slots"></div>
-            <div class="reload-strip">
-              <div class="meter-copy">
-                <span>Reload</span>
-                <span id="reload-text">READY</span>
-              </div>
-              <div class="reload-track"><div id="reload-fill" class="reload-fill"></div></div>
             </div>
           </section>
-
+          <section class="match-scoreboard" aria-label="Match score">
+            <span id="phase-chip" class="phase-chip">STAGE ENTRY</span>
+            <div class="scoreline"><span class="score-side">YOU</span><span id="score-text">0 : 0</span><span class="score-side">RIVAL</span></div>
+            <span id="round-text">Round 1</span>
+          </section>
           <section class="hud-card enemy-card">
             <div class="identity-head identity-head--enemy">
               <img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />
               <span class="operator-badge operator-badge--red" role="img" aria-label="Red Vanguard">V</span>
               <div class="identity-copy">
-                <p class="hud-label">Enemy Operator</p>
+                <p class="hud-label">RIVAL / CHALLENGER</p>
                 <strong id="enemy-operator-text">Red Vanguard operator</strong>
                 <span id="actor-skin-label">${actorSkinDefinition.label}</span>
               </div>
             </div>
-            <div class="scoreline">
-              <span id="score-text">0 : 0</span>
-              <span id="round-text">Round 1</span>
-            </div>
-            <div>
+            <div class="rival-vitality">
               <div class="meter-copy">
                 <span>Enemy</span>
                 <span id="dummy-health-text">${gameBalance.maxHealth}/${gameBalance.maxHealth}</span>
@@ -137,22 +109,21 @@ appRoot.innerHTML = `
           </section>
         </div>
 
+        <div class="arena-context"><span>★ <strong id="stage-text">Foundry 1/3</strong></span><div id="weather-pill" data-weather="clear" data-testid="weather-pill"><span id="weather-text">CLR / Clear</span></div><span id="progression-text">Lv 1 | 0 XP</span></div>
         <div id="stage-frame" class="stage-frame" data-stage-id="foundry" data-weather="clear" data-actor-skin="${actorSkinDefinition.id}" data-world-skin="${worldObjectSkinDefinition.id}">
-          <div id="game-root" class="game-root"></div>
+          <div id="game-root" class="game-root" tabindex="0" role="group" aria-label="Battle arena"></div>
           <div id="blast-preview" class="blast-preview"></div>
           <div id="cover-vision" class="cover-vision"></div>
-          <aside id="map-object-legend" class="map-object-legend" aria-label="Arena object legend">
-            <p>OBJECT INTEL</p>
-            <div class="map-object-legend-grid">${renderMapObjectLegendMarkup()}</div>
-          </aside>
-          <div class="hud-overlay" aria-live="polite">
+          <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+          <div id="combat-feedback" class="combat-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hud-overlay">
             <section id="banner-card" class="banner-card">
               <p id="banner-kicker" class="banner-kicker">MATCH FLOW</p>
-              <h2 id="banner-title">ARENA READY</h2>
-              <p id="banner-subtitle">Press Play or Enter to choose your team.</p>
-              <button id="primary-play" class="primary-play" type="button" data-testid="primary-play">
+              <h2 id="banner-title">LOADING ARENA</h2>
+              <p id="banner-subtitle">Getting the arena ready…</p>
+              <button id="primary-play" class="primary-play" type="button" data-testid="primary-play" disabled>
                 <strong>PLAY</strong>
-                <span>Choose your team</span>
+                <span>Preparing arena…</span>
               </button>
             </section>
           </div>
@@ -198,12 +169,30 @@ appRoot.innerHTML = `
           </section>
         </div>
 
+        <section class="combat-dock" aria-label="Combat HUD">
+          <div id="energy-panel" class="energy-panel">
+            <div class="meter-copy"><span><b class="energy-heart">♥</b> ENERGY / HP</span><strong id="player-health-text">100/100</strong></div>
+            <div id="energy-meter" class="meter-track" role="meter" aria-label="Health energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="player-health-fill" class="meter-fill player-fill"></div></div>
+            <div class="vitality-caption"><span id="energy-status">BATTLE READY</span><span><kbd>Space</kbd> Sprint</span></div>
+          </div>
+          <div class="loadout-panel">
+            <div class="weapon-strip">
+              <img id="weapon-icon" class="weapon-icon" src="/assets/runtime/sprites/weapon-hud-carbine.png" alt="" />
+              <strong id="weapon-name">Carbine</strong>
+              <span class="ammo-label">AMMO <strong id="ammo-count">6/24</strong></span>
+              <span id="weapon-readiness" class="weapon-readiness">READY</span>
+              <span class="weapon-key-hint"><kbd>Q</kbd> Switch · <kbd>R</kbd> Reload</span>
+            </div>
+            <div id="weapon-slot-grid" class="weapon-slot-grid" role="group" aria-label="Weapon slots"></div>
+            <div class="reload-strip"><span id="reload-text">READY</span><div class="reload-track"><div id="reload-fill" class="reload-fill"></div></div></div>
+          </div>
+        </section>
         <section class="hud-card support-card">
           <div class="support-headline">
-            <p class="micro-label">Current Callout</p>
+            <p class="micro-label">ARENA RADIO</p>
             <strong id="event-text" class="support-callout">Press Enter to enter the arena.</strong>
           </div>
-          <div class="support-rail">
+          <details class="arena-details"><summary>Match details &amp; pickups</summary><div class="support-rail">
             <div class="support-pill">
               <p class="micro-label">Gate</p>
               <strong id="gate-text">Closed</strong>
@@ -220,35 +209,23 @@ appRoot.innerHTML = `
               <p class="micro-label">Health Pickup</p>
               <strong id="health-pickup-text">Ready</strong>
             </div>
-            <div class="support-pill support-pill--progression">
-              <p class="micro-label">Level</p>
-              <strong id="progression-text">Lv 1 | 0 XP</strong>
-            </div>
             <div class="support-pill support-pill--unlock">
               <p class="micro-label">Armory</p>
               <strong id="unlock-text">Next: Bazooka Lv 2</strong>
-            </div>
-            <div class="support-pill support-pill--stage">
-              <p class="micro-label">Area</p>
-              <strong id="stage-text">Foundry 1/3</strong>
-            </div>
-            <div id="weather-pill" class="support-pill support-pill--weather" data-weather="clear" data-testid="weather-pill">
-              <p class="micro-label">Weather</p>
-              <strong id="weather-text">CLR / Clear</strong>
             </div>
             <div class="support-pill support-pill--cooldown">
               <p class="micro-label">Weapon Ready</p>
               <strong id="cooldown-text">Ready</strong>
             </div>
-          </div>
+          </div></details>
         </section>
       </section>
 
-      <section class="ops-panel">
+      <details class="arena-guide"><summary><span><kbd>W A S D</kbd> Move &nbsp; <kbd>Mouse</kbd> Aim &amp; fire &nbsp; <kbd>1–6</kbd> Equip</span><span>Arena guide ＋</span></summary><section class="ops-panel">
         <article class="ops-card">
           <p class="panel-kicker">Controls</p>
           <h2>How To Play</h2>
-          <p class="ops-copy">Move with WASD, let the hull settle into your travel direction, aim the turret with the mouse, fire with click or F, reload with R, and use E near the gate.</p>
+          <p class="ops-copy">Move with WASD, sprint with Space, aim with the mouse, fire with click or F, reload with R, and use E near the gate. Equip a weapon with 1–6 or its slot button; Q cycles available weapons.</p>
         </article>
         <article class="ops-card">
           <p class="panel-kicker">Arena Guide</p>
@@ -268,7 +245,8 @@ appRoot.innerHTML = `
             </div>
           </dl>
         </article>
-      </section>
+      <aside id="map-object-legend" class="map-object-legend" aria-label="Arena object legend"><p>KNOW YOUR ARENA</p><div class="map-object-legend-grid">${renderMapObjectLegendMarkup()}</div></aside>
+      </section></details>
     </main>
   </div>
 `;
@@ -353,6 +331,7 @@ const tutorialOverlayElements = {
   body: queryText("#tutorial-body")
 };
 const hudRenderCache = new Map<string, string>();
+const arcadeHud = new ArcadeHud();
 
 const onHudSnapshot = ((event: Event) => {
   const detail = (event as CustomEvent<HudSnapshot>).detail;
@@ -362,6 +341,12 @@ const onHudSnapshot = ((event: Event) => {
   }
 
   const snapshot = normalizeHudSnapshot(detail);
+  if (window.__FPS_GAME__ === undefined && mainScene.sys.isActive()) {
+    window.__FPS_GAME__ = game;
+    hudElements.primaryPlay.disabled = false;
+    hudElements.primaryPlay.querySelector("span")!.textContent = "Choose your team";
+    queryButton("#open-settings").disabled = false;
+  }
   renderHud(snapshot);
 }) as EventListener;
 
@@ -379,8 +364,6 @@ const game = new Phaser.Game({
   backgroundColor: "#09111f",
   scene: [mainScene]
 });
-
-window.__FPS_GAME__ = game;
 
 let currentSettings = mainScene.getSettingsState();
 let settingsPanelState = createSettingsPanelState(currentSettings);
@@ -402,6 +385,8 @@ renderSettingsPanel();
 renderTutorialOverlay();
 
 settingsPanelElements.close.addEventListener("click", closeSettings);
+queryButton("#open-settings").addEventListener("click", openSettings);
+hudElements.weaponSlotGrid.addEventListener("click", onWeaponSlotClick);
 settingsPanelElements.apply.addEventListener("click", applySettingsDraft);
 settingsPanelElements.save.addEventListener("click", saveSettingsDraft);
 settingsPanelElements.replayTutorial.addEventListener("click", replayTutorial);
@@ -437,6 +422,7 @@ window.addEventListener("beforeunload", () => {
 });
 
 function openSettings(): void {
+  if (!mainScene.sys.isActive()) return;
   currentSettings = mainScene.getSettingsState();
   settingsPanelState = openSettingsPanel(settingsPanelState, currentSettings);
   mainScene.setInputOverlayActive(true);
@@ -518,6 +504,14 @@ function onSettingsSliderInput(event: Event): void {
 }
 
 function onGlobalKeyDown(event: KeyboardEvent): void {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  const control = target?.closest<HTMLButtonElement | HTMLElement>("button, summary");
+  if (control && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat) control.click();
+    return;
+  }
   if (event.key === "Escape") {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -550,6 +544,7 @@ function onGlobalKeyDown(event: KeyboardEvent): void {
 }
 
 function beginProductExperience(): boolean {
+  if (!mainScene.sys.isActive()) return false;
   const transitioned = mainScene.requestStageEntry();
   if (!transitioned) {
     return false;
@@ -575,7 +570,7 @@ function onGlobalPointerDown(event: PointerEvent): void {
     return;
   }
 
-  if (event.button === 0) {
+  if (event.button === 0 && event.target instanceof HTMLCanvasElement && gameContainer?.contains(event.target)) {
     advanceTutorialFromUi("fired");
   }
 }
@@ -635,6 +630,8 @@ function isSettingsPanelField(value: string | undefined): value is SettingsPanel
 }
 
 function removeUiListeners(): void {
+  queryButton("#open-settings").removeEventListener("click", openSettings);
+  hudElements.weaponSlotGrid.removeEventListener("click", onWeaponSlotClick);
   settingsPanelElements.close.removeEventListener("click", closeSettings);
   settingsPanelElements.apply.removeEventListener("click", applySettingsDraft);
   settingsPanelElements.save.removeEventListener("click", saveSettingsDraft);
@@ -651,6 +648,7 @@ function removeUiListeners(): void {
 }
 
 function renderHud(snapshot: HudSnapshot): void {
+  arcadeHud.render(snapshot);
   const coverVision = toCoverVisionState(snapshot);
   const portraits = getOperatorPortraits(snapshot.team);
   const activeWeaponId = snapshot.weaponSlots.find((slot) => slot.isActive)?.id ?? "unknown";
@@ -921,16 +919,22 @@ function normalizeWeaponSlots(snapshot: HudSnapshot | null | undefined): HudSnap
 }
 
 function renderWeaponSlots(snapshot: HudSnapshot): void {
-  const serialized = JSON.stringify(snapshot.weaponSlots);
+  const serialized = JSON.stringify([snapshot.weaponSlots, snapshot.weaponUnlock?.unlockedWeaponIds, snapshot.phase, snapshot.playerHealth === 0]);
 
   if (hudRenderCache.get("weapon-slot-grid") === serialized) {
     return;
   }
 
-  hudElements.weaponSlotGrid.replaceChildren(
-    ...snapshot.weaponSlots.map((slot) => {
-      const element = document.createElement("div");
+  const focusedSlot = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(".weapon-slot-tile")?.dataset.slot;
+  const buttons = snapshot.weaponSlots.map((slot) => {
+      const locked = snapshot.weaponUnlock !== undefined && !snapshot.weaponUnlock.unlockedWeaponIds.includes(slot.id);
+      const element = document.createElement("button");
+      element.type = "button";
+      element.disabled = locked || snapshot.phase !== "COMBAT LIVE" || snapshot.playerHealth <= 0;
       element.className = `weapon-slot-tile${slot.isActive ? " is-active" : ""}${slot.isReloading ? " is-reloading" : ""}`;
+      element.classList.toggle("is-locked", locked);
+      element.setAttribute("aria-label", `${slot.slot}: ${slot.label}${locked ? ", locked" : ""}`);
+      element.setAttribute("aria-pressed", String(slot.isActive));
       element.dataset.slot = String(slot.slot);
       element.dataset.weaponId = slot.id;
       element.setAttribute("aria-current", slot.isActive ? "true" : "false");
@@ -949,13 +953,22 @@ function renderWeaponSlots(snapshot: HudSnapshot): void {
 
       const ammo = document.createElement("span");
       ammo.className = "weapon-slot-ammo";
-      ammo.textContent = slot.isReloading ? "Reloading" : `${slot.ammoInMagazine}/${slot.reserveAmmo}`;
+      ammo.textContent = locked ? "LOCKED" : slot.isReloading ? "Reloading" : `${slot.ammoInMagazine}/${slot.reserveAmmo}`;
 
       element.append(slotLabel, icon, name, ammo);
       return element;
-    })
-  );
+    });
+  hudElements.weaponSlotGrid.replaceChildren(...buttons);
+  if (focusedSlot !== undefined) buttons.find((button) => button.dataset.slot === focusedSlot)?.focus({ preventScroll: true });
   hudRenderCache.set("weapon-slot-grid", serialized);
+}
+
+function onWeaponSlotClick(event: MouseEvent): void {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-slot]");
+  if (button === null || button.disabled || settingsPanelState.isOpen) return;
+  mainScene.requestWeaponSlot(Number(button.dataset.slot));
+  advanceTutorialFromUi("swapped-weapon");
+  if (event.detail > 0) gameContainer?.focus({ preventScroll: true });
 }
 
 function renderBlastPreview(snapshot: HudSnapshot): void {

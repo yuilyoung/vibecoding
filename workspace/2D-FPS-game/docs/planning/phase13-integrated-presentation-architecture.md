@@ -24,6 +24,11 @@ Dependencies flow Presentation -> Business contracts <- Data/build. Gameplay own
 
 ## Interface contract
 
+The initial T1 contract is deliberately additive. It names the complete
+cross-family vocabulary now, while only the barrel response is wired until the
+following vertical slices migrate their existing authoritative owners. `kind`
+is used instead of `event` to avoid a collision with browser event terminology.
+
 ```ts
 type PresentationFamily =
   | "actor" | "barrel" | "mine" | "crate" | "cover" | "bounce-wall"
@@ -36,22 +41,31 @@ type PresentationEventKind =
 interface PresentationEvent {
   readonly subjectId: string;
   readonly family: PresentationFamily;
-  readonly event: PresentationEventKind;
+  readonly kind: PresentationEventKind;
+  readonly sequence: number;
+  readonly x: number;
+  readonly y: number;
   readonly occurredAt: number;
   readonly state: string;
-  readonly sequence: number;
   readonly movementDirection: number | null;
   readonly aimDirection: number | null;
 }
 
 interface PresentationEventPort {
   publish(event: PresentationEvent): void;
-  syncSnapshot(subjectId: string, state: string, sequence: number): void;
+  syncSnapshot(snapshot: PresentationSnapshot): boolean;
+  releaseSubject(subjectId: string): void;
   destroy(): void;
+}
+
+interface PresentationSnapshot {
+  readonly subjectId: string;
+  readonly state: string;
+  readonly sequence: number;
 }
 ```
 
-`PresentationEventKind` includes `trigger` for a mine detonation response. `sequence` is strictly monotonic per `subjectId`; duplicate or stale events are ignored, while a newer snapshot defines the base frame. Actor policy reads `aimDirection` only for `fire` and `movementDirection` for `idle`, `run`, `hit`, and `death`; object consumers ignore both. One-shot feedback can be coalesced but never restarts from duplicate delivery and never changes domain timers. Calls are synchronous on the Phaser scene thread: there is no worker, network, persistence, retry, cancellation, or schema migration in this phase. `destroy()` is idempotent.
+`PresentationEventKind` includes `trigger` for a mine detonation response. `sequence` is strictly monotonic per `subjectId`; duplicate or stale events are ignored, while a newer snapshot defines the base frame. `releaseSubject` clears a disposed scene object's sequence before its ID can be reused on a stage restart. Actor policy reads `aimDirection` only for `fire` and `movementDirection` for `idle`, `run`, `hit`, and `death`; object consumers ignore both. One-shot feedback can be coalesced but never restarts from duplicate delivery and never changes domain timers. Calls are synchronous on the Phaser scene thread: there is no worker, network, persistence, retry, cancellation, or schema migration in this phase. `destroy()` is idempotent.
 
 ## Components and lifetime
 

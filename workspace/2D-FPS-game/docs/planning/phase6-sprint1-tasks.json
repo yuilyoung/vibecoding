@@ -1,6 +1,6 @@
 {
   "phase": "phase-6-sprint1",
-  "name": "Wind System ???�경 ?�스??1/2",
+  "name": "Wind System ???�경 ?�스??1/2",
   "handoff": "../../../../docs/handoffs/current-handoff.json",
   "wbs": "./phase6-sprint1-wbs.md",
   "created": "2026-04-22",
@@ -14,10 +14,10 @@
   "tasks": [
     {
       "id": "T0",
-      "subject": "game-balance.json wind ?�션 + GameBalanceWind ?�??+ StageDefinition.wind optional ?�드",
+      "subject": "game-balance.json wind ?�션 + GameBalanceWind ?�??+ StageDefinition.wind optional ?�드",
       "assignee": "ultron",
       "status": "complete",
-      "description": "assets/data/game-balance.json??wind ?�션 추�?: { enabled: true, strengthRange: [0, 3], angleStepDegrees: 15, rotationMode: 'perRound', defaultMultiplier: 1.0, forceScale: 240 }. scene-types.ts??GameBalanceWind ?�???�언. src/domain/map/StageDefinition.ts??optional wind?: { angleDegrees: number; strength: number } ?�드 추�?, isValidStageDefinition 검증에 wind.strength ??[0, 3] 조건 ?�함. 기존 3�??�테?��???wind 미설???��?(로테?�션 존중). tests/StageDefinition.test.ts ?�장 ??wind ?�효/무효 경계�?케?�스.",
+      "description": "assets/data/game-balance.json??wind ?�션 추�?: { enabled: true, strengthRange: [0, 3], angleStepDegrees: 15, rotationMode: 'perRound', defaultMultiplier: 1.0, forceScale: 240 }. scene-types.ts??GameBalanceWind ?�???�언. src/domain/map/StageDefinition.ts??optional wind?: { angleDegrees: number; strength: number } ?�드 추�?, isValidStageDefinition 검증에 wind.strength ??[0, 3] 조건 ?�함. 기존 3�??�테?��???wind 미설???��?(로테?�션 존중). tests/StageDefinition.test.ts ?�장 ??wind ?�효/무효 경계�?케?�스.",
       "files": [
         "assets/data/game-balance.json",
         "src/scenes/scene-types.ts",
@@ -28,11 +28,11 @@
     },
     {
       "id": "T1",
-      "subject": "WindLogic ?�수 ?�메??+ TDD",
+      "subject": "WindLogic ?�수 ?�메??+ TDD",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T0"],
-      "description": "src/domain/environment/WindLogic.ts ?�규. 3?�수: createWindState({ angleDegrees, strength }) ??WindState, rotateWind(previous: WindState | null, rng: () => number, config: WindConfig) ??WindState, computeForce(state, forceScale) ??{ x, y }. rotateWind?� angleStepDegrees ?�위 ?�자?? strength??[0, strengthRange[1]] 범위 ?�수(Sprint 1 ?�한 2). computeForce??angleDegrees�??�디??변????forceScale * strength�?x/y ?�분?�로 분해(Phaser 좌표�? 0°=+x, 90°=+y). tests/WindLogic.test.ts ?�행 ??stub rng�?결정??rotateWind, computeForce 각도/강도 ?�확?? previous=null �??�운??케?�스 커버.",
+      "description": "src/domain/environment/WindLogic.ts ?�규. 3?�수: createWindState({ angleDegrees, strength }) ??WindState, rotateWind(previous: WindState | null, rng: () => number, config: WindConfig) ??WindState, computeForce(state, forceScale) ??{ x, y }. rotateWind?� angleStepDegrees ?�위 ?�자?? strength??[0, strengthRange[1]] 범위 ?�수(Sprint 1 ?�한 2). computeForce??angleDegrees�??�디??변????forceScale * strength�?x/y ?�분?�로 분해(Phaser 좌표�? 0°=+x, 90°=+y). tests/WindLogic.test.ts ?�행 ??stub rng�?결정??rotateWind, computeForce 각도/강도 ?�확?? previous=null �??�운??케?�스 커버.",
       "files": [
         "src/domain/environment/WindLogic.ts",
         "tests/WindLogic.test.ts"
@@ -41,11 +41,11 @@
     },
     {
       "id": "T2",
-      "subject": "ProjectileRuntime windY ?�장 + arc/bounce ?�축 ?�용",
+      "subject": "ProjectileRuntime windY ?�장 + arc/bounce ?�축 ?�용",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T1"],
-      "description": "src/domain/combat/ProjectileRuntime.ts ??ProjectileStepInput??windY?: number ?�드 추�?(기존 windX?� ?��?. internal applyWind ?�수?�서 velocityX += windX * (config.windMultiplier ?? 0) * dt???�?�하??velocityY �?처리 추�?. linear/beam/homing/aoe-call?� windMultiplier가 undefined?��?�?0 곱셈?�로 ?�향 ?�음 보장. tests/ProjectileRuntime.test.ts ?�장 ??arc/bounce?�서 windY ?�용 vs 미적??비교, linear가 windX/windY 받아??궤적 ?�일, 기존 bazooka/grenade ?�스???��? 0�?",
+      "description": "src/domain/combat/ProjectileRuntime.ts ??ProjectileStepInput??windY?: number ?�드 추�?(기존 windX?� ?��?. internal applyWind ?�수?�서 velocityX += windX * (config.windMultiplier ?? 0) * dt???�?�하??velocityY �?처리 추�?. linear/beam/homing/aoe-call?� windMultiplier가 undefined?��?�?0 곱셈?�로 ?�향 ?�음 보장. tests/ProjectileRuntime.test.ts ?�장 ??arc/bounce?�서 windY ?�용 vs 미적??비교, linear가 windX/windY 받아??궤적 ?�일, 기존 bazooka/grenade ?�스???��? 0�?",
       "files": [
         "src/domain/combat/ProjectileRuntime.ts",
         "tests/ProjectileRuntime.test.ts"
@@ -54,11 +54,11 @@
     },
     {
       "id": "T3",
-      "subject": "MatchFlowOrchestrator ?�운??wind ?�정 + stage override + round snapshot ?�장",
+      "subject": "MatchFlowOrchestrator ?�운??wind ?�정 + stage override + round snapshot ?�장",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T1", "T2"],
-      "description": "src/domain/round/MatchFlowOrchestrator.ts ???�운???�작 ?�점??wind ?�정 로직 추�?. 로직: (1) stage.wind가 ?�으�?createWindState(stage.wind)�?고정 ?�용, (2) ?�으�?rotateWind(previousWind, rng, windConfig)�????�태 ?�정, (3) round snapshot??wind: WindState ?�드 추�?. 기존 round start/end ?�벤???�서·?�이로드 변�?금�? ??wind??snapshot??붙이기만 ?? tests/MatchFlowOrchestrator.test.ts ?�장 ??stage.wind override ?�선?�위, ?�속 ?�운??rotation deterministic(seed 고정), wind ?�함 snapshot payload ?��?.",
+      "description": "src/domain/round/MatchFlowOrchestrator.ts ???�운???�작 ?�점??wind ?�정 로직 추�?. 로직: (1) stage.wind가 ?�으�?createWindState(stage.wind)�?고정 ?�용, (2) ?�으�?rotateWind(previousWind, rng, windConfig)�????�태 ?�정, (3) round snapshot??wind: WindState ?�드 추�?. 기존 round start/end ?�벤???�서·?�이로드 변�?금�? ??wind??snapshot??붙이기만 ?? tests/MatchFlowOrchestrator.test.ts ?�장 ??stage.wind override ?�선?�위, ?�속 ?�운??rotation deterministic(seed 고정), wind ?�함 snapshot payload ?��?.",
       "files": [
         "src/domain/round/MatchFlowOrchestrator.ts",
         "tests/MatchFlowOrchestrator.test.ts"
@@ -71,7 +71,7 @@
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T2", "T3"],
-      "description": "src/scenes/scene-runtime-state.ts ??SceneRuntimeState??currentWind: WindState ?�드 추�?(기본�?{ angleDegrees: 0, strength: 0 }). src/scenes/combat-controller.ts ??updateProjectiles tick?�서 WindLogic.computeForce(state.currentWind, forceScale) ?�출??{ x, y } ?�출 ??ProjectileRuntime.stepProjectile??windX/windY ?�달. ?�운??snapshot ?�신 ??state.currentWind 갱신(match-flow-controller 경유). 기존 bullet loop / pendingBulletClear race hotfix 경로???�전 보존.",
+      "description": "src/scenes/scene-runtime-state.ts ??SceneRuntimeState??currentWind: WindState ?�드 추�?(기본�?{ angleDegrees: 0, strength: 0 }). src/scenes/combat-controller.ts ??updateProjectiles tick?�서 WindLogic.computeForce(state.currentWind, forceScale) ?�출??{ x, y } ?�출 ??ProjectileRuntime.stepProjectile??windX/windY ?�달. ?�운??snapshot ?�신 ??state.currentWind 갱신(match-flow-controller 경유). 기존 bullet loop / pendingBulletClear race hotfix 경로???�전 보존.",
       "files": [
         "src/scenes/scene-runtime-state.ts",
         "src/scenes/combat-controller.ts"
@@ -80,11 +80,11 @@
     },
     {
       "id": "T5",
-      "subject": "hud-events WIND_CHANGED + hud-presenters ?�살??강도 �?+ match-flow-controller 브로?�캐?�트",
+      "subject": "hud-events WIND_CHANGED + hud-presenters ?�살??강도 �?+ match-flow-controller 브로?�캐?�트",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T3"],
-      "description": "src/ui/hud-events.ts ??WIND_CHANGED ?�벤???�??추�?(payload: { angleDegrees, strength }). src/ui/hud-presenters.ts ???�측 ?�단 고정 ?�롯??바람 ?�살??24px, angleDegrees ?�전) + 3�?pip 강도 �??�더. ?�상: strength 0~1=cyan, 2=yellow, 3=red. src/scenes/match-flow-controller.ts ??round snapshot.wind ?�신 ??HUD�?WIND_CHANGED 브로?�캐?�트. src/scenes/hud-controller.ts가 ?�벤???�신??presenter 갱신. 기존 XP/unlock/boss overlay?� ?��? 좌표 분리.",
+      "description": "src/ui/hud-events.ts ??WIND_CHANGED ?�벤???�??추�?(payload: { angleDegrees, strength }). src/ui/hud-presenters.ts ???�측 ?�단 고정 ?�롯??바람 ?�살??24px, angleDegrees ?�전) + 3�?pip 강도 �??�더. ?�상: strength 0~1=cyan, 2=yellow, 3=red. src/scenes/match-flow-controller.ts ??round snapshot.wind ?�신 ??HUD�?WIND_CHANGED 브로?�캐?�트. src/scenes/hud-controller.ts가 ?�벤???�신??presenter 갱신. 기존 XP/unlock/boss overlay?� ?��? 좌표 분리.",
       "files": [
         "src/ui/hud-events.ts",
         "src/ui/hud-presenters.ts",
@@ -95,11 +95,11 @@
     },
     {
       "id": "T6",
-      "subject": "MainScene.getDebugSnapshot.wind ?�드 추�? (?�인 ?�증 0 목표)",
+      "subject": "MainScene.getDebugSnapshot.wind ?�드 추�? (?�인 ?�증 0 목표)",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T4", "T5"],
-      "description": "src/scenes/MainScene.ts??getDebugSnapshot 반환 객체??wind: { angleDegrees, strength, forceX, forceY } ?�드 추�?. 집계??combat-controller가 state.currentWind + forceScale�??�출???�공(기존 mapObjects 집계 ?�턴 ?�사??. MainScene.ts �??�인 ????900 ?�수 ???�재 900줄이므�??�증 0�?목표. 불�?????기존 ?�퍼�?분리??controller�??�동. 공개 debug ?�그?�처(debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot) 불�?.",
+      "description": "src/scenes/MainScene.ts??getDebugSnapshot 반환 객체??wind: { angleDegrees, strength, forceX, forceY } ?�드 추�?. 집계??combat-controller가 state.currentWind + forceScale�??�출???�공(기존 mapObjects 집계 ?�턴 ?�사??. MainScene.ts �??�인 ????900 ?�수 ???�재 900줄이므�??�증 0�?목표. 불�?????기존 ?�퍼�?분리??controller�??�동. 공개 debug ?�그?�처(debugSwapWeapon, debugFire, debugFireAt, debugGetRuntimeStats, getDebugSnapshot) 불�?.",
       "files": [
         "src/scenes/MainScene.ts"
       ],
@@ -107,11 +107,11 @@
     },
     {
       "id": "T7",
-      "subject": "E2E tests/e2e/wind-system.spec.ts ??3 ?�나리오",
+      "subject": "E2E tests/e2e/wind-system.spec.ts ??3 ?�나리오",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T6"],
-      "description": "tests/e2e/wind-system.spec.ts ?�규 ??Playwright 3 ?�나리오. (1) debugGetRuntimeStats ?�는 debug helper�?wind={angleDegrees:0, strength:2} 강제 ?�정 ??debugFireAt?�로 bazooka(windMultiplier=0.35) 발사 ??착탄?�이 windX=0 ?��??�른쪽으�??�의미한 ?�향(?�용 ?�차 ?? ?�인. (2) 같�? wind ?�태?�서 carbine(linear) 발사 ??착탄?�이 무풍 ?��??�일 ?�인(?�향 ?�음). (3) ?�운??종료 ?�리�??????�운???�작 ??getDebugSnapshot.wind �?변??+ WIND_CHANGED ?�벤??HUD 반영 ?�인. 기존 20 E2E ?��? 0�???기존 spec ?�일?� 건드리�? ?�음.",
+      "description": "tests/e2e/wind-system.spec.ts ?�규 ??Playwright 3 ?�나리오. (1) debugGetRuntimeStats ?�는 debug helper�?wind={angleDegrees:0, strength:2} 강제 ?�정 ??debugFireAt?�로 bazooka(windMultiplier=0.35) 발사 ??착탄?�이 windX=0 ?��??�른쪽으�??�의미한 ?�향(?�용 ?�차 ?? ?�인. (2) 같�? wind ?�태?�서 carbine(linear) 발사 ??착탄?�이 무풍 ?��??�일 ?�인(?�향 ?�음). (3) ?�운??종료 ?�리�??????�운???�작 ??getDebugSnapshot.wind �?변??+ WIND_CHANGED ?�벤??HUD 반영 ?�인. 기존 20 E2E ?��? 0�???기존 spec ?�일?� 건드리�? ?�음.",
       "files": [
         "tests/e2e/wind-system.spec.ts"
       ],
@@ -119,11 +119,11 @@
     },
     {
       "id": "T8",
-      "subject": "?�위 ?�스???��? ?�비 ??ProjectileRuntime / MatchFlowOrchestrator",
+      "subject": "?�위 ?�스???��? ?�비 ??ProjectileRuntime / MatchFlowOrchestrator",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T2", "T3"],
-      "description": "tests/ProjectileRuntime.test.ts ??arc/bounce windY ?�용 케?�스, linear/beam/homing/aoe-call??windX/windY ?�향 ?�음 케?�스, 기존 bazooka/grenade ?�스???��? ?�인. tests/MatchFlowOrchestrator.test.ts ??stage.wind override ?�선?�위, ?�속 ?�운??wind deterministic(seed 고정), wind ?�함 snapshot payload ?�???�환. 커버리�? 목표: ProjectileRuntime wind 분기 100%, MatchFlowOrchestrator wind ?�정 3경로(null prev, rotation, override) ?��?.",
+      "description": "tests/ProjectileRuntime.test.ts ??arc/bounce windY ?�용 케?�스, linear/beam/homing/aoe-call??windX/windY ?�향 ?�음 케?�스, 기존 bazooka/grenade ?�스???��? ?�인. tests/MatchFlowOrchestrator.test.ts ??stage.wind override ?�선?�위, ?�속 ?�운??wind deterministic(seed 고정), wind ?�함 snapshot payload ?�???�환. 커버리�? 목표: ProjectileRuntime wind 분기 100%, MatchFlowOrchestrator wind ?�정 3경로(null prev, rotation, override) ?��?.",
       "files": [
         "tests/ProjectileRuntime.test.ts",
         "tests/MatchFlowOrchestrator.test.ts"
@@ -132,11 +132,11 @@
     },
     {
       "id": "T9",
-      "subject": "검�?게이??5�?+ execution report + postflight sync",
+      "subject": "검�?게이??5�?+ execution report + postflight sync",
       "assignee": "ultron",
       "status": "complete",
       "depends": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"],
-      "description": "검�?게이??5�??�행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. ?��? pass ??Sprint 2 ?�함 273 unit + 20 E2E ?��? 0�? 목표: ??48 files / ??283 unit tests, ??23 E2E(A11). 빌드 �?�� < 800 kB, gzip < 250 kB ?�확??A12). docs/handoffs/current-execution-report.md 갱신(Summary / Changes / Verification / Risks)(A13). workspace/2D-FPS-game/docs/planning/phase6-sprint1-wbs.md 200�??�하 최종 ?�인(A14). phase6-sprint1-tasks.json ?�성 ?�인(A15). npm run codex-postflight�?execution-status.json ?�동 sync.",
+      "description": "검�?게이??5�??�행: (1) NODE_OPTIONS=--max-old-space-size=4096 npm run type-check, (2) npm run lint, (3) NODE_OPTIONS=--max-old-space-size=4096 npx vitest run --maxWorkers 1, (4) NODE_OPTIONS=--max-old-space-size=4096 npm run build, (5) NODE_OPTIONS=--max-old-space-size=4096 npx playwright test --reporter=line. ?��? pass ??Sprint 2 ?�함 273 unit + 20 E2E ?��? 0�? 목표: ??48 files / ??283 unit tests, ??23 E2E(A11). 빌드 �?�� < 800 kB, gzip < 250 kB ?�확??A12). docs/handoffs/current-execution-report.md 갱신(Summary / Changes / Verification / Risks)(A13). workspace/2D-FPS-game/docs/planning/phase6-sprint1-wbs.md 200�??�하 최종 ?�인(A14). phase6-sprint1-tasks.json ?�성 ?�인(A15). npm run codex-postflight�?execution-status.json ?�동 sync.",
       "files": [
         "docs/handoffs/current-execution-report.md",
         "docs/handoffs/execution-status.json"
@@ -157,28 +157,28 @@
     "T9": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
   },
   "acceptanceMap": {
-    "A1": "game-balance.json wind ?�션 추�?(enabled/strengthRange/angleStepDegrees/rotationMode/defaultMultiplier/forceScale) + GameBalanceWind ?�??+ type-check ?�과",
-    "A2": "WindLogic 3 ?�수(createWindState/rotateWind/computeForce) 구현 + stub rng�?결정???�스???�과",
-    "A3": "ProjectileRuntime windY 추�? + arc/bounce ?�축 ?�용 + linear/beam/homing/aoe-call 무시 + 기존 ?�스???��? 0�?,
-    "A4": "StageDefinition optional wind ?�드 + strength 범위 검�?+ 기존 3�??�테?��? wind 미설???��?",
-    "A5": "MatchFlowOrchestrator ?�운???�작 wind ?�정 ??stage override ?�선, ?�으�?rotation, round snapshot??wind ?�드 추�?",
-    "A6": "scene-runtime-state.currentWind + combat-controller가 WindLogic.computeForce�??�해 ProjectileRuntime??windX/windY ?�달",
-    "A7": "hud-events WIND_CHANGED + hud-presenters ?�살?�·강??�?+ match-flow-controller가 round snapshot?�서 HUD�?브로?�캐?�트",
-    "A8": "MainScene.getDebugSnapshot.wind(angleDegrees/strength/forceX/forceY) ?�드 추�? + MainScene.ts ??900 �??�수",
-    "A9": "E2E 3 ?�나리오 ?�과 ??bazooka ?�향 / carbine 무영??/ ?�운??rotation + HUD 반영",
-    "A10": "ProjectileRuntime/MatchFlowOrchestrator ?�위 ?�스???�장 ??wind 분기 커버리�? 100%, 기존 ?�스???��? 0�?,
-    "A11": "검�?게이??5�??��? pass ????48 files / ??283 unit, ??23 E2E, Sprint 2 ?��? 0�?,
-    "A12": "빌드 �?�� < 800 kB, gzip < 250 kB ?��?",
+    "A1": "game-balance.json wind ?�션 추�?(enabled/strengthRange/angleStepDegrees/rotationMode/defaultMultiplier/forceScale) + GameBalanceWind ?�??+ type-check ?�과",
+    "A2": "WindLogic 3 ?�수(createWindState/rotateWind/computeForce) 구현 + stub rng�?결정???�스???�과",
+    "A3": "ProjectileRuntime windY 추�? + arc/bounce ?�축 ?�용 + linear/beam/homing/aoe-call 무시 + 기존 ?�스???��? 0�?,
+    "A4": "StageDefinition optional wind ?�드 + strength 범위 검�?+ 기존 3�??�테?��? wind 미설???��?",
+    "A5": "MatchFlowOrchestrator ?�운???�작 wind ?�정 ??stage override ?�선, ?�으�?rotation, round snapshot??wind ?�드 추�?",
+    "A6": "scene-runtime-state.currentWind + combat-controller가 WindLogic.computeForce�??�해 ProjectileRuntime??windX/windY ?�달",
+    "A7": "hud-events WIND_CHANGED + hud-presenters ?�살?�·강??�?+ match-flow-controller가 round snapshot?�서 HUD�?브로?�캐?�트",
+    "A8": "MainScene.getDebugSnapshot.wind(angleDegrees/strength/forceX/forceY) ?�드 추�? + MainScene.ts ??900 �??�수",
+    "A9": "E2E 3 ?�나리오 ?�과 ??bazooka ?�향 / carbine 무영??/ ?�운??rotation + HUD 반영",
+    "A10": "ProjectileRuntime/MatchFlowOrchestrator ?�위 ?�스???�장 ??wind 분기 커버리�? 100%, 기존 ?�스???��? 0�?,
+    "A11": "검�?게이??5�??��? pass ????48 files / ??283 unit, ??23 E2E, Sprint 2 ?��? 0�?,
+    "A12": "빌드 �?�� < 800 kB, gzip < 250 kB ?��?",
     "A13": "docs/handoffs/current-execution-report.md 갱신 (Summary / Changes / Verification / Risks)",
-    "A14": "workspace/2D-FPS-game/docs/planning/phase6-sprint1-wbs.md ?�성 (200�??�하)",
-    "A15": "workspace/2D-FPS-game/docs/planning/phase6-sprint1-tasks.json ?�성 + dependencyGraph + acceptanceMap ?�함"
+    "A14": "workspace/2D-FPS-game/docs/planning/phase6-sprint1-wbs.md ?�성 (200�??�하)",
+    "A15": "workspace/2D-FPS-game/docs/planning/phase6-sprint1-tasks.json ?�성 + dependencyGraph + acceptanceMap ?�함"
   },
   "scopeOutOfSprint1": [
-    "Weather 5�?clear/rain/fog/sandstorm/storm) ??Sprint 2?�서 WeatherLogic + visionRange + movementMultiplier ?�입",
-    "Wind ?�티???�각 ?�레???�도 ?�어�??�더) ??Sprint 2 Weather 비주?�과 ?�께 ?�업",
-    "gradient rotationMode(�?tick ?�진 변?? ??Sprint 1?� ?�식�? 구현?� Sprint 2",
-    "Wind/Weather audio cue(바람 ?�리, �??�리) ??sounder ?�스 별도 ?�프린트",
-    "무기�?wind 반응 ?�닝 ??bazooka/grenade 기본�??��?, ?�레?�테?�트 ??조정"
+    "Weather 5�?clear/rain/fog/sandstorm/storm) ??Sprint 2?�서 WeatherLogic + visionRange + movementMultiplier ?�입",
+    "Wind ?�티???�각 ?�레???�도 ?�어�??�더) ??Sprint 2 Weather 비주?�과 ?�께 ?�업",
+    "gradient rotationMode(�?tick ?�진 변?? ??Sprint 1?� ?�식�? 구현?� Sprint 2",
+    "Wind/Weather audio cue(바람 ?�리, �??�리) ??sounder ?�스 별도 ?�프린트",
+    "무기�?wind 반응 ?�닝 ??bazooka/grenade 기본�??��?, ?�레?�테?�트 ??조정"
   ],
   "references": {
     "previousSprintTasks": "./phase2-sprint2-tasks.json",

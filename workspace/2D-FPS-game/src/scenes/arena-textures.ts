@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { createArcadeFloor } from "./arcade-arena-art";
 import type { TerrainCrop } from "./scene-types";
 import {
   OBSTACLE_CORE_KEY, OBSTACLE_TOWER_KEY, OBSTACLE_BARRIER_KEY,
@@ -32,6 +33,7 @@ export interface ArenaBackdropVisuals {
   readonly terrain: Phaser.GameObjects.Image;
   readonly toneOverlay: Phaser.GameObjects.Rectangle;
   readonly border: Phaser.GameObjects.Rectangle;
+  readonly arcadeFloor: Phaser.GameObjects.Image;
 }
 
 export function addArenaBackdrop(scene: Phaser.Scene): ArenaBackdropVisuals {
@@ -54,7 +56,7 @@ export function addArenaBackdrop(scene: Phaser.Scene): ArenaBackdropVisuals {
   const toneOverlay = scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x10273a, 0.035).setDepth(0);
   const border = scene.add.rectangle(playfieldCenterX, playfieldCenterY, playfieldWidth, playfieldHeight, 0x234f85, 0).setStrokeStyle(2, 0xa7ddff, 0.42).setDepth(1);
 
-  return { background, terrain, toneOverlay, border };
+  return { background, terrain, toneOverlay, border, arcadeFloor: createArcadeFloor(scene) };
 }
 
 export function addTerrainSurface(
@@ -131,6 +133,32 @@ function createObstacleTexture(
   graphics.fillRoundedRect(12, 10, width - 24, Math.max(8, Math.floor(height * 0.16)), 6);
   graphics.lineStyle(3, 0xffffff, 0.18);
   graphics.strokeRoundedRect(6, 4, width - 12, height - 12, 10);
+  // Molded housing, inset face, vent slats and fasteners share the same lighting.
+  graphics.fillStyle(shadowColor, 0.72);
+  graphics.fillRoundedRect(13, 26, width - 26, height - 42, 7);
+  graphics.fillStyle(fillColor, 1);
+  graphics.fillRoundedRect(16, 27, width - 32, height - 48, 5);
+  graphics.lineStyle(2, highlightColor, 0.7);
+  graphics.lineBetween(17, 28, width - 18, 28);
+  if (height > width) {
+    for (let y = 49; y < height - 32; y += 15) {
+      graphics.fillStyle(shadowColor, 0.8).fillRoundedRect(26, y, width - 52, 7, 3);
+      graphics.fillStyle(highlightColor, 0.32).fillRect(28, y + 7, width - 56, 2);
+    }
+  } else if (width > 140) {
+    for (let x = 32; x < width - 20; x += 26) {
+      graphics.fillStyle(shadowColor, 0.5).fillRoundedRect(x, 30, 6, 14, 2);
+    }
+  } else {
+    graphics.fillStyle(shadowColor, 0.7).fillRoundedRect(30, 38, width - 60, height - 60, 5);
+    graphics.fillStyle(highlightColor, 0.9).fillCircle(width / 2, height / 2, 7);
+  }
+  for (const x of [15, width - 15]) {
+    for (const y of [17, height - 20]) {
+      graphics.fillStyle(shadowColor).fillCircle(x, y + 1, 3);
+      graphics.fillStyle(highlightColor).fillCircle(x, y, 2);
+    }
+  }
   graphics.generateTexture(textureKey, width, height);
   graphics.destroy();
 }

@@ -233,6 +233,10 @@ export class MatchFlowController {
   }
 
   public handleStageFlow(now: number): void {
+    // Combat and match confirmation own these keys after deployment.
+    // Reading JustDown here would consume 1/2 before weapon selection.
+    const phase = this.deps.matchFlow.state.phase;
+    if (phase === "combat-live" || phase === "match-over") return;
     const input = this.deps.getStageInput();
     if (input === null) {
       return;

@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: product + product_owner + ultron/codex
-- Status: T0-T2 complete; T3 is next
+- Status: T0-T3 complete
 - Architecture: `./phase12-map-object-vertical-slice-architecture.md`
 - Previous phase: `./phase11-wbs.md` (complete)
 
@@ -17,7 +17,7 @@ Replace player-visible debug shapes and glyphs with one approved, coherent autho
 | T0 | Approve the fixed 960x540 Foundry v5 target frame and six-family architecture | Phase 11 | completed |
 | T1 | Generate, deterministically pack, integrate, and verify barrel/mine/crate/cover/bounce-wall/teleporter art | T0 | completed |
 | T2 | Extend the same contract to arena obstacles, service gate, vent/hazard surfaces, ammo pickup, and health pickup | T1 | completed |
-| T3 | Run Phase 12 full-inventory cohesion, budget, lifecycle, fallback, performance, reviewer, drift, and postflight gates | T2 | pending |
+| T3 | Run Phase 12 full-inventory cohesion, budget, lifecycle, fallback, performance, reviewer, drift, and postflight gates | T2 | completed |
 
 ## T1 acceptance
 
@@ -31,7 +31,7 @@ Replace player-visible debug shapes and glyphs with one approved, coherent autho
 
 ## Next slice
 
-T3 must assess the complete 11-family inventory as one cohesive product slice, including its performance gate and final reviewer/drift/postflight closeout. It must not promote `product-v1` to `/`; default promotion remains a later integrated product decision.
+T3 assessed and closed the complete 11-family inventory as one cohesive product slice. `product-v1` remains opt-in; object animation and default promotion remain a later Phase 13 integrated product decision.
 
 ## T2 acceptance
 
@@ -41,3 +41,12 @@ T3 must assess the complete 11-family inventory as one cohesive product slice, i
 - `?worldSkin=product-v1` shows all eleven families without production glyphs. Default, explicit legacy, unknown, corrupt-manifest, and incomplete-atlas routes retain total legacy fallback.
 - Three stages by five weather states pass with all eleven families, quantitative pixel checks, and zero console/page/request errors.
 - Type-check, lint, 63 files / 388 unit tests, the 1,797-module build, focused browser contracts, the current 64/64 runnable-scenario full browser regression, and `MainScene.ts` 837/850 pass. Current-fingerprint independent re-review, harness 17/17, manual drift, diff check, and Codex postflight pass.
+
+## T3 acceptance
+
+- T3-only evidence paths prevent the explicit visual and performance refreshes from overwriting historical T1/T2 artifacts.
+- Fifteen 960x540 captures cover all eleven families across Foundry, Relay Yard, and Storm Drain × five weather states with zero runtime errors and recorded hashes/pixel checks.
+- Independent scoring passes art cohesion, actor focus, team readability, object affordance, and implemented static-state readability at a conservative minimum of 4/5.
+- Twenty stage/weather transitions, corrupt/incomplete total fallback, route isolation, scene restart, gate/pickup synchronization, and legacy/product collider parity pass through focused browser contracts.
+- The strict D3D11 AB-BA-AB gate passes 18,000 samples with no sample above 16.7ms, product p95 0.1ms, and negative relative regression. The preceding one-sample legacy failure remains preserved as separate evidence; no threshold changed.
+- Full unit/static/build/browser, independent review, manual drift, diff check, and Codex postflight pass. Phase 13 remains unstarted.

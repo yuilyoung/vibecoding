@@ -145,7 +145,8 @@ export class CombatController {
   }
 
   public handlePlayerFire(now: number): void {
-    const pointerFirePressed = now >= this.state.suppressPointerFireUntilMs && this.deps.activePointer().leftButtonDown();
+    const pointer = this.deps.activePointer();
+    const pointerFirePressed = pointer.downElement === this.scene.game.canvas && now >= this.state.suppressPointerFireUntilMs && pointer.leftButtonDown();
     const firePressed = pointerFirePressed || this.deps.moveKeys()?.fire.isDown === true;
 
     if (!firePressed || !canPlayerFire(this.deps.getCombatAvailability(now))) {
@@ -256,6 +257,12 @@ export class CombatController {
     if (Phaser.Input.Keyboard.JustDown(moveKeys.swap)) {
       this.debugSwapWeapon(now);
     }
+  }
+
+  public requestWeaponSlot(slot: number, now: number): void {
+    if (!Number.isInteger(slot) || !canPlayerUseCombatInteraction(this.deps.getCombatAvailability(now))) return;
+    this.state.suppressPointerFireUntilMs = Math.max(this.state.suppressPointerFireUntilMs, now + 200);
+    this.tryEquipSlot(slot - 1, "EQUIPPED", now);
   }
 
   public updateProjectiles(deltaSeconds: number, now: number): void {

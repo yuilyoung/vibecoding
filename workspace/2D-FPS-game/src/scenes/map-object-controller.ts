@@ -377,6 +377,7 @@ export class MapObjectController {
 
   public clear(): void {
     for (const view of this.viewsById.values()) {
+      this.presentationEvents?.releaseSubject(view.state.id);
       view.blinkTween?.stop();
       this.presentation?.detach(view.presentationHandle);
       for (const visual of view.visuals) {
@@ -386,6 +387,7 @@ export class MapObjectController {
 
     this.viewsById.clear();
     this.emittedDropIds.clear();
+    this.presentationSequences.clear();
   }
 
   public destroy(): void {
@@ -419,7 +421,16 @@ export class MapObjectController {
     if (state.kind !== "barrel") return;
     const sequence = (this.presentationSequences.get(state.id) ?? 0) + 1;
     this.presentationSequences.set(state.id, sequence);
-    this.presentationEvents?.publish({ subjectId: state.id, family: "barrel", kind, sequence, x: state.x, y: state.y });
+    this.presentationEvents?.publish({
+      subjectId: state.id,
+      family: "barrel",
+      kind,
+      sequence,
+      x: state.x,
+      y: state.y,
+      occurredAt: this.scene.time.now,
+      state: state.active ? "active" : "destroyed"
+    });
   }
 
   private createView(state: MapObjectState): MapObjectView {

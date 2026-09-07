@@ -13,14 +13,21 @@ const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 const WORKSPACE_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const DIST_INDEX = path.join(PROJECT_ROOT, "dist", "index.html");
 const VITE_ENTRY = path.join(PROJECT_ROOT, "node_modules", "vite", "bin", "vite.js");
-const OUTPUT_PATH = path.join(PROJECT_ROOT, "docs", "reports", "phase12-t1-evidence", "phase12-t1-world-object-performance.json");
+const REPORTS_ROOT = path.join(PROJECT_ROOT, "docs", "reports");
+const T3_OUTPUT_PATH = path.join(REPORTS_ROOT, "phase12-t3-evidence", "phase12-t3-world-object-performance.json");
+const OUTPUT_PATH = path.resolve(PROJECT_ROOT, process.env.PHASE12_PERF_OUTPUT ?? T3_OUTPUT_PATH);
 const PORT = Number(process.env.PHASE12_PERF_PORT ?? 4192);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const MAX_BUILD_AGE_MS = 10 * 60 * 1_000;
 const WARMUP_SAMPLES = 500;
 const MEASURED_SAMPLES = 3_000;
 const P95_LIMIT_MS = 0.5;
+const FRAME_INTERVAL_LIMIT_MS = 16.7;
 const CAPTURE_ORDERS = [["legacy", "product"], ["product", "legacy"], ["legacy", "product"]];
+const EXPECTED_PRODUCT_FAMILIES = [
+  "ammo-pickup", "arena-obstacle", "barrel", "bounce-wall", "cover", "crate",
+  "health-pickup", "mine", "service-gate", "teleporter", "vent-hazard"
+];
 
 const round = (value, digits = 4) => Number(value.toFixed(digits));
 const percentile = (values, fraction) => {
@@ -32,7 +39,8 @@ const summarize = (samples) => ({
   p50Ms: round(percentile(samples, 0.5)),
   p95Ms: round(percentile(samples, 0.95)),
   maxMs: round(Math.max(...samples)),
-  meanMs: round(samples.reduce((sum, value) => sum + value, 0) / samples.length)
+  meanMs: round(samples.reduce((sum, value) => sum + value, 0) / samples.length),
+  samplesOverFrameInterval: samples.filter((value) => value > FRAME_INTERVAL_LIMIT_MS).length
 });
 
 const waitForServer = async (server, output) => {
@@ -111,6 +119,9 @@ const capture = async (context, route, sequence) => {
 };
 
 const main = async () => {
+  if (OUTPUT_PATH !== T3_OUTPUT_PATH) {
+    throw new Error("PHASE12_PERF_OUTPUT must resolve to the Phase 12 T3 performance artifact.");
+  }
   if (!existsSync(DIST_INDEX)) throw new Error("Missing dist/index.html. Run npm run build first.");
   const build = await stat(DIST_INDEX);
   const buildAgeMs = Date.now() - build.mtimeMs;
@@ -153,6 +164,7 @@ const main = async () => {
     const failures = [];
     for (const entry of captures) {
       if (entry.summary.sampleCount !== MEASURED_SAMPLES) failures.push(`capture ${entry.sequence}: sample count mismatch`);
+      if (entry.summary.samplesOverFrameInterval !== 0) failures.push(`capture ${entry.sequence}: samples exceeded ${FRAME_INTERVAL_LIMIT_MS}ms`);
       if (entry.fixedScene.stage !== "relay-yard" || entry.fixedScene.weather !== "storm" || entry.fixedScene.objectCount !== 15) {
         failures.push(`capture ${entry.sequence}: fixed-scene mismatch`);
       }
@@ -160,6 +172,18 @@ const main = async () => {
       if (Object.values(entry.errors).some((values) => values.length > 0)) failures.push(`capture ${entry.sequence}: runtime errors`);
       const expected = entry.route === "product" ? "product-v1" : "legacy";
       if (entry.fixedScene.presentation.skinId !== expected) failures.push(`capture ${entry.sequence}: resolved ${entry.fixedScene.presentation.skinId}`);
+      if (entry.route === "legacy" && (entry.fixedScene.presentation.overlayCount !== 0 || entry.fixedScene.presentation.objects.length !== 0)) {
+        failures.push(`capture ${entry.sequence}: legacy presentation was not empty`);
+      }
+      if (entry.route === "product") {
+        const families = [...new Set(entry.fixedScene.presentation.objects.map((object) => object.family))].sort();
+        if (entry.fixedScene.presentation.overlayCount !== 22 || entry.fixedScene.presentation.objects.length !== 22) {
+          failures.push(`capture ${entry.sequence}: product overlay inventory mismatch`);
+        }
+        if (JSON.stringify(families) !== JSON.stringify(EXPECTED_PRODUCT_FAMILIES)) {
+          failures.push(`capture ${entry.sequence}: product family coverage mismatch`);
+        }
+      }
       if (entry.route === "product" && entry.summary.p95Ms > P95_LIMIT_MS) failures.push(`capture ${entry.sequence}: product p95 ${entry.summary.p95Ms}ms`);
     }
     for (const pair of pairs) {
@@ -172,7 +196,7 @@ const main = async () => {
       commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: WORKSPACE_ROOT, encoding: "utf8" }).trim(),
       environment: { platform: process.platform, release: os.release(), architecture: process.arch, cpu: os.cpus()[0]?.model, node: process.version, chromium: browser.version() },
       controls: { productionBuild: true, buildModifiedAt: build.mtime.toISOString(), buildAgeMsAtStart: Math.round(buildAgeMs), viewport: { width: 960, height: 540, deviceScaleFactor: 1 }, stage: "relay-yard", weather: "storm", actors: "quaternius-animated", warmupSamples: WARMUP_SAMPLES, measuredSamples: MEASURED_SAMPLES, captureOrders: CAPTURE_ORDERS },
-      limits: { productP95Ms: P95_LIMIT_MS, regressionP95Ms: P95_LIMIT_MS },
+      limits: { productP95Ms: P95_LIMIT_MS, regressionP95Ms: P95_LIMIT_MS, frameIntervalMs: FRAME_INTERVAL_LIMIT_MS },
       captures,
       pairs,
       failures,

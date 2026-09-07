@@ -110,6 +110,7 @@ const rotateToStage = async (page: Page, stageId: string): Promise<void> => {
 const expectPresentationAligned = (world: Awaited<ReturnType<typeof readWorld>>): void => {
   expect(world.presentation.overlayCount).toBe(world.objects.length + 7);
   expect(world.presentation.objects).toHaveLength(world.objects.length + 7);
+  expect(new Set(world.presentation.objects.map((object) => object.id)).size).toBe(world.presentation.objects.length);
   for (const object of world.objects) {
     const overlay = world.presentation.objects.find((candidate) => candidate.id === object.id);
     expect(overlay, object.id).toMatchObject({
@@ -265,8 +266,10 @@ test("falls the complete product presentation back for a corrupt manifest", asyn
     requestedSkinId: "product-v1",
     skinId: "legacy",
     atlasActive: false,
-    overlayCount: 0
+    overlayCount: 0,
+    objects: []
   });
+  expect(world.presentation.fallbackReason).not.toBeNull();
   expect(world.presentation.fallbackReason).toContain("manifest atlas record mismatch");
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-world-skin", "legacy");
 });
@@ -279,13 +282,30 @@ test("falls back atomically for an incomplete atlas and survives scene restart",
     await route.fulfill({ response, json: atlas });
   });
   await open(page, "/?worldSkin=product-v1");
-  expect((await readWorld(page)).presentation).toMatchObject({ skinId: "legacy", atlasActive: false, overlayCount: 0 });
+  const fallback = (await readWorld(page)).presentation;
+  expect(fallback).toMatchObject({ skinId: "legacy", atlasActive: false, overlayCount: 0, objects: [] });
+  expect(fallback.fallbackReason).not.toBeNull();
 
   await page.unroute("**/assets/runtime/world/product-v1/map-objects.json");
   await page.reload();
   await waitForScene(page);
   const before = await readWorld(page);
   expect(before.presentation).toMatchObject({ skinId: "product-v1", atlasActive: true });
+  const coveredStages = new Set<string>();
+  const weather: readonly WeatherType[] = ["clear", "rain", "fog", "sandstorm", "storm"];
+  for (let transition = 0; transition < 20; transition += 1) {
+    await withScene(page, (scene: WorldObjectScene) => scene.debugRotateStage());
+    await page.evaluate((type: WeatherType) => {
+      const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as WorldObjectScene | undefined;
+      if (scene === undefined) throw new Error("Missing MainScene world-object handle.");
+      scene.debugSetWeather(type);
+    }, weather[transition % weather.length]);
+    const current = await readWorld(page);
+    coveredStages.add(current.snapshot.stage);
+    expectPresentationAligned(current);
+  }
+  expect(coveredStages).toEqual(new Set(["foundry", "relay-yard", "storm-drain"]));
+  const beforeRestart = await readWorld(page);
   await page.evaluate(() => {
     const game = window.__FPS_GAME__;
     if (game === undefined) throw new Error("Missing game handle.");
@@ -297,10 +317,11 @@ test("falls back atomically for an incomplete atlas and survives scene restart",
   expect(after.presentation).toMatchObject({
     skinId: "product-v1",
     atlasActive: true,
-    overlayCount: before.presentation.overlayCount,
+    overlayCount: beforeRestart.presentation.overlayCount,
     initialized: true,
     destroyed: false
   });
+  expectPresentationAligned(after);
 });
 
 test("preserves domain positions and collision rectangles across legacy and product routes", async ({ page }) => {
@@ -308,6 +329,6 @@ test("preserves domain positions and collision rectangles across legacy and prod
   const legacy = await readWorld(page);
   await open(page, "/?worldSkin=product-v1");
   const product = await readWorld(page);
-  expect(product.objects).toEqual(legacy.objects);
-  expect(product.collisions).toEqual(legacy.collisions);
+  expect(JSON.stringify(product.objects)).toBe(JSON.stringify(legacy.objects));
+  expect(JSON.stringify(product.collisions)).toBe(JSON.stringify(legacy.collisions));
 });
