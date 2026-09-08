@@ -117,9 +117,13 @@ test("covers Phase 4 settings, tutorial replay, and boss overlay smoke", async (
   await expect(page.locator("#banner-subtitle")).toContainText("Forge Titan");
   await page.screenshot({ path: test.info().outputPath("boss.png"), fullPage: true });
 
-  await withScene(page, (scene: Phase4Scene) => scene.debugRegisterPlayerRoundWin());
-  await expect.poll(async () => (await readHudSnapshot(page)).lastEvent).toBe("TITAN CACHE SECURED");
-  const afterBossHud = await readHudSnapshot(page);
+  // lastEvent is transient: the next live AI tick may replace the reward message.
+  // Observe the actual reward and unlock together in the same browser task.
+  const afterBossHud = await withScene(page, (scene: Phase4Scene) => {
+    scene.debugRegisterPlayerRoundWin();
+    return scene.getHudSnapshot();
+  });
+  expect(afterBossHud.lastEvent).toBe("TITAN CACHE SECURED");
   expect(afterBossHud.weaponUnlock?.newlyUnlockedWeaponIds).toContain("airStrike");
   await page.screenshot({ path: test.info().outputPath("after-boss.png"), fullPage: true });
 });

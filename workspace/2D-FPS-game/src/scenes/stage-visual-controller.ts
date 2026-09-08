@@ -1,7 +1,8 @@
 import type { StageVisualTheme } from "../domain/visual/VisualAssetCatalog";
 import { getStageVisualTheme } from "../domain/visual/VisualAssetCatalog";
 import type { ArenaBackdropVisuals } from "./arena-textures";
-import { getArcadeFloorTint } from "./arcade-arena-art";
+import { ARCADE_FLOOR_KEY, getArcadeFloorTint } from "./arcade-arena-art";
+import { getArcadeStageFloorKey } from "./arcade-stage-art";
 
 export interface StageVisualDebugState {
   readonly stageId: string;
@@ -18,7 +19,9 @@ export class StageVisualController {
 
   public applyStage(stageId: string): void {
     this.theme = getStageVisualTheme(stageId);
-    this.visuals.arcadeFloor.setTint(getArcadeFloorTint(stageId));
+    const floor = this.visuals.arcadeFloor;
+    const stageFloorKey = getArcadeStageFloorKey(floor.scene, stageId);
+    floor.setTexture(stageFloorKey ?? ARCADE_FLOOR_KEY).setTint(stageFloorKey === null ? getArcadeFloorTint(stageId) : 0xffffff);
     const crop = this.theme.terrainCrop;
     this.visuals.terrain
       .setCrop(crop.x, crop.y, crop.width, crop.height)

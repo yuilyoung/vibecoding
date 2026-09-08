@@ -60,6 +60,7 @@ export interface MapObjectDebugSummary {
 }
 
 export interface MapObjectControllerDeps {
+  readonly arcadePresentation?: boolean;
   readonly gameBalanceMapObjects: GameBalanceMapObjects;
   readonly rng?: () => number;
   readonly onObjectDamaged?: (result: MapObjectDamageResult) => void;
@@ -418,12 +419,12 @@ export class MapObjectController {
   }
 
   private publishBarrelEvent(state: MapObjectState, kind: "damage" | "destroy"): void {
-    if (state.kind !== "barrel") return;
+    if (state.kind !== "barrel" && !(this.deps.arcadePresentation === true && (state.kind === "crate" || state.kind === "cover"))) return;
     const sequence = (this.presentationSequences.get(state.id) ?? 0) + 1;
     this.presentationSequences.set(state.id, sequence);
     this.presentationEvents?.publish({
       subjectId: state.id,
-      family: "barrel",
+      family: state.kind,
       kind,
       sequence,
       x: state.x,

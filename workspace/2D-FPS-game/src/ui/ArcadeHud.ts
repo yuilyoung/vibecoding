@@ -17,8 +17,8 @@ export class ArcadeHud {
   private readonly energyStatus = element("energy-status");
   private readonly readiness = element("weapon-readiness");
   private readonly scoreboard = document.querySelector<HTMLElement>(".match-scoreboard")!;
-  private readonly playerBadge = document.querySelector<HTMLElement>(".player-card .operator-badge")!;
-  private readonly enemyBadge = document.querySelector<HTMLElement>(".enemy-card .operator-badge")!;
+  private readonly playerBadge = document.querySelector<HTMLElement>(".player-card .operator-badge, .player-card .cozy-mascot")!;
+  private readonly enemyBadge = document.querySelector<HTMLElement>(".enemy-card .operator-badge, .enemy-card .cozy-mascot")!;
 
   public render(snapshot: HudSnapshot, now = performance.now()): void {
     this.state = advanceArcadeHud(this.state, snapshot, now);
@@ -38,6 +38,13 @@ export class ArcadeHud {
     this.readiness.dataset.state = readiness.kind;
     this.readiness.style.setProperty("--ready-progress", `${Math.round(readiness.progress * 100)}%`);
     // Badge color follows the chosen team; typography also identifies YOU/RIVAL.
+    if (this.playerBadge.classList.contains("cozy-mascot")) {
+      this.playerBadge.classList.toggle("cozy-mascot--rival", snapshot.team === "RED");
+      this.enemyBadge.classList.toggle("cozy-mascot--rival", snapshot.team !== "RED");
+      this.playerBadge.setAttribute("aria-label", `${snapshot.team === "RED" ? "Red" : "Blue"} arcade friend`);
+      this.enemyBadge.setAttribute("aria-label", `${snapshot.team === "RED" ? "Blue" : "Red"} arcade friend`);
+      return;
+    }
     this.playerBadge.classList.toggle("operator-badge--red", snapshot.team === "RED");
     this.playerBadge.classList.toggle("operator-badge--blue", snapshot.team !== "RED");
     this.enemyBadge.classList.toggle("operator-badge--red", snapshot.team !== "RED");

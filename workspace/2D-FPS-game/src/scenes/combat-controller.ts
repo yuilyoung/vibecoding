@@ -205,6 +205,8 @@ export class CombatController {
       );
       bullet.setRotation(angle);
 
+      if (this.deps.gameBalance.arcadePresentation === true) this.vfx.decorateProjectile(bullet, activeWeapon.id, this.state.currentDummyTeam);
+
       this.state.bullets.push({
         sprite: bullet,
         velocityX: Math.cos(angle) * attempt.bulletSpeed,
@@ -907,6 +909,8 @@ export class CombatController {
         1
       );
       bullet.setRotation(angle);
+
+      if (this.deps.gameBalance.arcadePresentation === true) this.vfx.decorateProjectile(bullet, activeWeapon.id, this.state.currentPlayerTeam);
 
       this.state.bullets.push({
         sprite: bullet,

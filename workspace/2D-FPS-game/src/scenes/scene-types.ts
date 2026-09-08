@@ -137,6 +137,7 @@ export interface GameBalanceAudio {
 }
 
 export interface GameBalance {
+  readonly arcadePresentation?: boolean;
   movementSpeed: number;
   dashMultiplier: number;
   maxHealth: number;

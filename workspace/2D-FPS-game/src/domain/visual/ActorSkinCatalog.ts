@@ -22,11 +22,13 @@ export const ACTOR_DIRECTIONS = Object.freeze([
 ] as const);
 
 export type ActorDirection = (typeof ACTOR_DIRECTIONS)[number];
-export type ActorSkinId = "legacy-vehicle" | "kenney-infantry" | "quaternius-animated";
+export type ArcadeActorSkinId = "arcade-bunny" | "arcade-bear";
+export type ActorSkinId = "legacy-vehicle" | "kenney-infantry" | "quaternius-animated" | ArcadeActorSkinId;
 export type ActorSkinSourceId =
   | "ground-shaker"
   | "kenney-top-down-shooter"
-  | "quaternius-universal-core";
+  | "quaternius-universal-core"
+  | "original-arcade";
 export type ActorWeaponLayerPolicy = "external" | "embedded";
 
 export const ACTOR_ATLAS_MANIFEST_CACHE_KEY = "actor-atlas-manifest";
@@ -36,6 +38,10 @@ export const ACTOR_ATLAS_HEIGHT = 2048;
 export const ACTOR_ATLAS_TRANSFER_LIMIT_BYTES = 8 * 1024 * 1024;
 export const ACTOR_ATLAS_GPU_LIMIT_BYTES = 32 * 1024 * 1024;
 export const ACTOR_ATLAS_FRAMES_PER_TEAM = 176;
+export const ARCADE_ACTOR_FRAME_SIZE = 96;
+export const ARCADE_ACTOR_ATLAS_COLUMNS = 16;
+export const ARCADE_ACTOR_ATLAS_WIDTH = ARCADE_ACTOR_FRAME_SIZE * ARCADE_ACTOR_ATLAS_COLUMNS;
+export const ARCADE_ACTOR_ATLAS_HEIGHT = ARCADE_ACTOR_FRAME_SIZE * 11;
 
 export interface ActorAnimationClip {
   readonly kind: "static" | "atlas";
@@ -51,6 +57,7 @@ export interface ActorTeamTexture {
   readonly atlasDataPath?: string;
   readonly sourcePath: string;
   readonly sourceId: ActorSkinSourceId;
+  readonly generated?: boolean;
 }
 
 export interface ActorSkinDefinition {
@@ -147,7 +154,29 @@ const LEGACY_STATIC_CLIPS = createStaticClips();
 const INFANTRY_STATIC_CLIPS = createStaticClips();
 const QUATERNIUS_ANIMATED_CLIPS = createAnimatedClips();
 
+const createArcadeSkin = (id: ArcadeActorSkinId, label: string): ActorSkinDefinition => {
+  const texture = (team: TeamId): ActorTeamTexture => Object.freeze({
+    kind: "atlas",
+    textureKey: `actor-${id}-${team.toLowerCase()}`,
+    runtimePath: `generated:actor-${id}-${team.toLowerCase()}`,
+    sourcePath: "src/scenes/arcade-actor-art.ts",
+    sourceId: "original-arcade",
+    generated: true
+  });
+  return Object.freeze({
+    id, label, sourceId: "original-arcade", fallbackId: "legacy-vehicle",
+    bodyScale: 0.6,
+    rotationOffsetRadians: Math.PI / 2,
+    weaponLayer: "external",
+    teamTextures: Object.freeze({ BLUE: texture("BLUE"), RED: texture("RED") }),
+    animationClips: createAnimatedClips(),
+    directions: ACTOR_DIRECTIONS
+  });
+};
+
 export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefinition>> = Object.freeze({
+  "arcade-bunny": createArcadeSkin("arcade-bunny", "Bunny Club"),
+  "arcade-bear": createArcadeSkin("arcade-bear", "Honey Bear"),
   "legacy-vehicle": Object.freeze({
     id: "legacy-vehicle",
     label: "Ground Shaker vehicle",
@@ -235,10 +264,19 @@ export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefin
 
 export function getActorSkinDefinition(requestedId: string | null | undefined): ActorSkinDefinition {
   const normalized = requestedId?.trim().toLowerCase();
-  if (normalized === "kenney-infantry" || normalized === "quaternius-animated") {
+  if (normalized === "kenney-infantry" || normalized === "quaternius-animated" ||
+    normalized === "arcade-bunny" || normalized === "arcade-bear") {
     return ACTOR_SKIN_DEFINITIONS[normalized];
   }
   return ACTOR_SKIN_DEFINITIONS["legacy-vehicle"];
+}
+
+export function isArcadeActorSkin(definition: ActorSkinDefinition): boolean {
+  return definition.sourceId === "original-arcade";
+}
+
+export function isAnimatedActorSkin(definition: ActorSkinDefinition): boolean {
+  return definition.animationClips.idle.kind === "atlas";
 }
 
 export function resolveActorSkinFromSearch(search: string): ActorSkinDefinition {
@@ -369,6 +407,21 @@ export function resolveActorSkinForRuntime(
   manifestInput: unknown,
   availability: readonly ActorAtlasAvailability[]
 ): ActorSkinRuntimeResolution {
+  if (isArcadeActorSkin(requested)) {
+    for (const team of ["BLUE", "RED"] as const) {
+      const loaded = availability.find((item) => item.team === team);
+      const expectedFrames = ACTOR_ANIMATION_STATES.flatMap((state) =>
+        ACTOR_DIRECTIONS.flatMap((direction) => getActorAnimationFrameKeys(requested, team, state, direction))
+      );
+      if (loaded?.textureKey !== requested.teamTextures[team].textureKey ||
+        loaded.width !== ARCADE_ACTOR_ATLAS_WIDTH || loaded.height !== ARCADE_ACTOR_ATLAS_HEIGHT ||
+        loaded.frameKeys.length !== expectedFrames.length ||
+        expectedFrames.some((frame) => !loaded.frameKeys.includes(frame))) {
+        return fallbackResolution(`${team} original arcade atlas is unavailable or incomplete`);
+      }
+    }
+    return { definition: requested, fallbackReason: null };
+  }
   if (requested.id !== "quaternius-animated") {
     return { definition: requested, fallbackReason: null };
   }

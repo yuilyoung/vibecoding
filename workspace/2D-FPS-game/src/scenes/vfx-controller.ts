@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { ImpactFxView, ImpactProfile, MovementFxView, ShotTrailView } from "./scene-types";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import { MAX_IMPACT_EFFECTS, MAX_MOVEMENT_EFFECTS, MAX_SHOT_TRAILS } from "./scene-constants";
+import { ArcadeFxRenderer } from "./arcade-fx-renderer";
 
 export type MovementFxActor = "player" | "dummy";
 
@@ -12,17 +13,32 @@ export interface VfxRuntimeStats {
 }
 
 export interface VfxControllerDeps {
+  arcade?: boolean;
   isPlayerSprintDown?: () => boolean;
 }
 
 export class VfxController {
+  private readonly arcadeFx: ArcadeFxRenderer | null;
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly state: SceneRuntimeState,
     private readonly deps: VfxControllerDeps = {}
-  ) {}
+  ) { this.arcadeFx = deps.arcade === true ? new ArcadeFxRenderer(scene) : null; }
+
+  public decorateProjectile(sprite: Phaser.GameObjects.Rectangle, profile: string, team: "BLUE" | "RED"): void {
+    this.arcadeFx?.decorateProjectile(sprite, profile, team);
+  }
+
+  public destroy(): void {
+    this.clearCombatFx();
+    for (const effect of this.state.movementEffects) this.destroyMovementEffect(effect);
+    this.state.movementEffects.length = 0;
+    // MainScene reuses this facade on restart; retain the renderer but release all scene objects.
+    this.arcadeFx?.clear();
+  }
 
   public spawnImpactEffect(x: number, y: number, profile: ImpactProfile): void {
+    this.arcadeFx?.burst(x, y, profile === "bazooka" || profile === "grenade" || profile === "airStrike", profile);
     const fxProfile = profile === "scatter"
       ? { flashRadius: 12, ringRadius: 20, flashColor: 0xffa44b, ringColor: 0xffe0aa, durationMs: 170, rayLength: 18 }
       : profile === "bazooka"
@@ -126,12 +142,14 @@ export class VfxController {
   }
 
   public update(now: number): void {
+    this.arcadeFx?.update(now);
     this.updateImpactEffects(now);
     this.updateShotTrails(now);
     this.updateMovementEffects(now);
   }
 
   public clearCombatFx(): void {
+    this.arcadeFx?.clear();
     for (const effect of this.state.impactEffects) {
       this.destroyImpactEffect(effect);
     }

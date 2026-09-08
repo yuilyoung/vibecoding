@@ -121,12 +121,23 @@ const createRuntimeState = (): SceneRuntimeState => ({
   playerConsecutiveBlockedFrames: 0, dummyConsecutiveBlockedFrames: 0
 } as unknown as SceneRuntimeState);
 
-const createScene = (options: { manifest?: unknown; missingTeam?: "BLUE" | "RED"; texturesLoaded?: boolean } = {}) => {
+const createScene = (options: { manifest?: unknown; missingTeam?: "BLUE" | "RED"; texturesLoaded?: boolean; canvasUnavailable?: boolean } = {}) => {
   const animations = new Map<string, FakeAnimationConfig>();
   const images: FakeImage[] = [];
   const sprites: FakeSprite[] = [];
   const loadJson = vi.fn();
   const loadAtlas = vi.fn();
+  const generatedTextures = new Map<string, { width: number; height: number; frames: string[] }>();
+  const noDraw = () => undefined;
+  const drawing = new Proxy({ createLinearGradient: () => ({ addColorStop: noDraw }) }, {
+    get: (target, key) => key in target ? target[key as keyof typeof target] : noDraw
+  });
+  const createCanvas = vi.fn((key: string, width: number, height: number) => {
+    if (options.canvasUnavailable) return null;
+    const record = { width, height, frames: [] as string[] };
+    generatedTextures.set(key, record);
+    return { getContext: () => drawing, add: (frame: string | number) => record.frames.push(String(frame)), refresh: vi.fn() };
+  });
   const manifest = "manifest" in options
     ? options.manifest
     : readJson("public/assets/runtime/actors/manifest.json");
@@ -144,13 +155,20 @@ const createScene = (options: { manifest?: unknown; missingTeam?: "BLUE" | "RED"
     },
     load: { json: loadJson, atlas: loadAtlas },
     textures: {
+      createCanvas,
       exists: (key: string) => {
+        if (key.startsWith("actor-arcade-") || key.startsWith("arcade-blaster-")) return generatedTextures.has(key);
         if (options.texturesLoaded === false) return false;
         if (key === "actor-animated-blue") return options.missingTeam !== "BLUE";
         if (key === "actor-animated-red") return options.missingTeam !== "RED";
         return true;
       },
       get: (key: string) => {
+        const generated = generatedTextures.get(key);
+        if (generated) return {
+          getSourceImage: () => ({ width: generated.width, height: generated.height }),
+          getFrameNames: () => ["__BASE", ...generated.frames]
+        };
         const team = key.endsWith("blue") ? "BLUE" : "RED";
         return {
           getSourceImage: () => ({ width: 2048, height: 2048 }),
@@ -177,17 +195,18 @@ const createScene = (options: { manifest?: unknown; missingTeam?: "BLUE" | "RED"
     input: { activePointer: { worldX: 0, worldY: 0 } }
   };
 
-  return { scene, animations, images, sprites, loadJson, loadAtlas };
+  return { scene, animations, images, sprites, loadJson, loadAtlas, generatedTextures, createCanvas };
 };
 
 const createComposition = (
   scene: unknown,
   state = createRuntimeState(),
-  deps: Partial<VisualControllerDeps> = {}
+  deps: Partial<VisualControllerDeps> = {},
+  skinId = "quaternius-animated"
 ) => new ActorPresentationComposition({
   scene: scene as never,
   state,
-  requestedSkin: getActorSkinDefinition("quaternius-animated"),
+  requestedSkin: getActorSkinDefinition(skinId),
   playerSpawn: { x: 100, y: 200 },
   dummySpawn: { x: 300, y: 400 },
   controllerDeps: {
@@ -201,6 +220,70 @@ const createComposition = (
 });
 
 describe("ActorPresentationComposition", () => {
+  it.each(["arcade-bunny", "arcade-bear"])("constructs %s once, preserves collider anchors, and reuses cached art after cleanup", (skinId) => {
+    const { scene, generatedTextures, createCanvas, animations } = createScene({ manifest: undefined });
+    const composition = createComposition(scene, createRuntimeState(), {}, skinId);
+    expect(composition.refs.activeSkin.id).toBe(skinId);
+    expect(composition.refs.playerSprite).toMatchObject({ texture: { key: "ground-body-blue" }, alpha: 0, scaleX: 0.42 });
+    expect(composition.refs.controller.getDebugState()).toMatchObject({ skinId, atlasActive: true });
+    expect(generatedTextures.get(`actor-${skinId}-blue`)?.frames).toHaveLength(176);
+    expect(generatedTextures.get(`actor-${skinId}-red`)?.frames).toHaveLength(176);
+    expect(animations.get(`${skinId}:blue:run:east`)).toMatchObject({ frameRate: 12, repeat: -1 });
+    expect(animations.get("arcade-blaster-blue-carbine-fire")?.frames).toHaveLength(4);
+    expect(createCanvas).toHaveBeenCalledTimes(6);
+    composition.destroy();
+    composition.destroy();
+    const restarted = createComposition(scene, createRuntimeState(), {}, skinId);
+    expect(restarted.refs.controller.getDebugState().atlasActive).toBe(true);
+    expect(createCanvas).toHaveBeenCalledTimes(6);
+    restarted.destroy();
+  });
+
+  it("animates arcade locomotion, fire, hit and death while the blaster follows independent aim", () => {
+    let hit = false;
+    let dead = false;
+    const state = createRuntimeState();
+    state.playerLogic.isDead = () => dead;
+    const { scene } = createScene();
+    const composition = createComposition(scene, state, { isPlayerHit: () => hit }, "arcade-bunny");
+    const controller = composition.refs.controller;
+    const overlay = composition.refs.playerAnimatedSprite as unknown as FakeSprite;
+    expect(controller.getDebugState().playerState).toBe("idle");
+    controller.updatePlayerVisuals(100);
+    expect(controller.getDebugState()).toMatchObject({ playerState: "run", playerDirection: "west" });
+    state.muzzleFlashUntilMs = 200;
+    controller.updatePlayerVisuals(150);
+    state.playerLogic.state.aimAngleRadians = Math.PI / 2;
+    controller.updateWeaponVisuals();
+    expect(controller.getDebugState()).toMatchObject({ playerState: "fire", playerDirection: "east", playerWeaponRotation: Math.PI });
+    expect(composition.refs.playerWeaponSprite.texture.key).toBe("arcade-blaster-blue-carbine");
+    expect(composition.refs.playerSprite.scaleX).toBeCloseTo(0.42 * 1.04);
+    overlay.completeAnimation("arcade-bunny:blue:fire:east");
+    hit = true;
+    controller.updatePlayerVisuals(210);
+    expect(controller.getDebugState().playerState).toBe("hit");
+    dead = true;
+    controller.updatePlayerVisuals(230);
+    expect(controller.getDebugState().playerState).toBe("death");
+    expect(overlay.alpha).toBeGreaterThanOrEqual(0.7);
+    controller.applyTeamVisuals("RED", "BLUE");
+    controller.updateWeaponVisuals();
+    expect(controller.getDebugState().playerTextureKey).toBe("actor-arcade-bunny-red");
+    expect(composition.refs.playerWeaponSprite.texture.key).toBe("arcade-blaster-red-carbine");
+    composition.destroy();
+  });
+
+  it("uses the complete legacy fallback if generated canvas allocation is unavailable", () => {
+    const { scene } = createScene({ canvasUnavailable: true });
+    const composition = createComposition(scene, createRuntimeState(), {}, "arcade-bear");
+    expect(composition.refs.controller.getDebugState()).toMatchObject({
+      requestedSkinId: "arcade-bear", skinId: "legacy-vehicle", atlasActive: false,
+      fallbackReason: expect.stringContaining("arcade atlas")
+    });
+    expect(composition.refs.playerSprite.alpha).toBe(1);
+    composition.destroy();
+  });
+
   it("preloads the manifest and both atlases only for the animated opt-in", () => {
     const animatedScene = createScene({ manifest: undefined, texturesLoaded: false });
     preloadActorPresentationAssets(animatedScene.scene as never, getActorSkinDefinition("quaternius-animated"));

@@ -78,6 +78,12 @@ describe("ActorSkinCatalog", () => {
     for (const definition of Object.values(ACTOR_SKIN_DEFINITIONS)) {
       for (const texture of Object.values(definition.teamTextures)) {
         expect(texture.sourceId).toBe(definition.sourceId);
+        if (texture.generated) {
+          expect(definition.sourceId).toBe("original-arcade");
+          expect(texture.runtimePath).toMatch(/^generated:actor-arcade-/);
+          expect(existsSync(texture.sourcePath), texture.sourcePath).toBe(true);
+          continue;
+        }
         expect(existsSync(`public${texture.runtimePath}`), texture.runtimePath).toBe(true);
         expect(existsSync(`public${texture.sourcePath}`), texture.sourcePath).toBe(true);
       }
@@ -86,6 +92,20 @@ describe("ActorSkinCatalog", () => {
     const infantry = getActorSkinDefinition("kenney-infantry");
     for (const texture of Object.values(infantry.teamTextures)) {
       expect(readFileSync(`public${texture.runtimePath}`).equals(readFileSync(`public${texture.sourcePath}`))).toBe(true);
+    }
+  });
+
+  it("exposes two authored arcade skins with animated states and independent weapon layers", () => {
+    for (const id of ["arcade-bunny", "arcade-bear"] as const) {
+      const skin = getActorSkinDefinition(id);
+      expect(resolveActorSkinFromSearch(`actorSkin=${id.toUpperCase()}`)).toBe(skin);
+      expect(skin.sourceId).toBe("original-arcade");
+      expect(skin.weaponLayer).toBe("external");
+      expect(skin.teamTextures.BLUE.textureKey).not.toBe(skin.teamTextures.RED.textureKey);
+      expect(Object.values(skin.animationClips).every((clip) => clip.kind === "atlas" && clip.framesPerDirection > 1)).toBe(true);
+      expect(resolveActorSkinForRuntime(skin, undefined, [])).toMatchObject({
+        definition: { id: "legacy-vehicle" }, fallbackReason: expect.stringContaining("arcade atlas")
+      });
     }
   });
 

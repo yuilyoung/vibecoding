@@ -134,6 +134,14 @@ const STAGE_VISUAL_THEMES: Readonly<Record<(typeof CONFIGURED_STAGE_IDS)[number]
   "storm-drain": Object.freeze({ id: "storm-drain", label: "Storm Drain", terrainCrop: Object.freeze({ x: 224, y: 64, width: 576, height: 512 }), terrainTint: 0x9fc5b6, overlayColor: 0x153f3a, overlayAlpha: 0.13, borderColor: 0x79d8bd, accentCss: "#79d8bd" })
 });
 
+export const CONFIGURED_ARCADE_STAGE_IDS = Object.freeze(["garden-maze", "bubble-bay", "picnic-plaza"] as const);
+
+const ARCADE_STAGE_VISUAL_THEMES: Readonly<Record<(typeof CONFIGURED_ARCADE_STAGE_IDS)[number], StageVisualTheme>> = Object.freeze({
+  "garden-maze": Object.freeze({ id: "garden-maze", label: "클로버 미로", terrainCrop: Object.freeze({ x: 0, y: 0, width: 896, height: 640 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x72c99b, accentCss: "#72c99b" }),
+  "bubble-bay": Object.freeze({ id: "bubble-bay", label: "버블 베이", terrainCrop: Object.freeze({ x: 96, y: 48, width: 704, height: 512 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x63cddd, accentCss: "#63cddd" }),
+  "picnic-plaza": Object.freeze({ id: "picnic-plaza", label: "피크닉 광장", terrainCrop: Object.freeze({ x: 224, y: 64, width: 576, height: 512 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0xf2a293, accentCss: "#f2a293" })
+});
+
 export const MAP_OBJECT_KINDS = Object.freeze(["barrel", "mine", "crate", "cover", "bounce-wall", "teleporter"] as const satisfies readonly MapObjectKind[]);
 
 const MAP_OBJECT_VISUALS: Readonly<Record<MapObjectKind, MapObjectVisualTheme>> = Object.freeze({
@@ -164,7 +172,9 @@ export function getWeaponHudAsset(weaponId: string): WeaponHudAsset {
 }
 
 export function getStageVisualTheme(stageId: string): StageVisualTheme {
-  return STAGE_VISUAL_THEMES[stageId as keyof typeof STAGE_VISUAL_THEMES] ?? STAGE_VISUAL_THEMES.foundry;
+  return ARCADE_STAGE_VISUAL_THEMES[stageId as keyof typeof ARCADE_STAGE_VISUAL_THEMES]
+    ?? STAGE_VISUAL_THEMES[stageId as keyof typeof STAGE_VISUAL_THEMES]
+    ?? STAGE_VISUAL_THEMES.foundry;
 }
 
 export function getMapObjectVisual(kind: MapObjectKind): MapObjectVisualTheme {

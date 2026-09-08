@@ -5,6 +5,8 @@ import {
   getActorAnimationKey,
   getActorSkinDefinition,
   getActorTeamTexture,
+  isAnimatedActorSkin,
+  isArcadeActorSkin,
   resolveActorAnimationState,
   resolveActorPresentationDirection,
   type ActorAnimationState,
@@ -15,6 +17,7 @@ import {
 } from "../domain/visual/ActorSkinCatalog";
 import { getDummyVisualState, getPlayerVisualState, type RespawnFxState } from "../ui/scene-visuals";
 import type { SceneRuntimeState } from "./scene-runtime-state";
+import { getArcadeBlasterTexture } from "./arcade-actor-art";
 import {
   DUMMY_WEAPON_SCALE,
   GROUND_TURRET_CARBINE_BLUE_KEY,
@@ -205,6 +208,12 @@ export class VisualController {
     if (!playerWeaponSprite.anims.isPlaying) playerWeaponSprite.setFrame(0);
     if (!dummyWeaponSprite.anims.isPlaying) dummyWeaponSprite.setFrame(0);
 
+    if (isArcadeActorSkin(this.skinDefinition)) {
+      this.positionArcadeBlaster(playerWeaponSprite, playerSprite, this.overlays.player, playerAngle);
+      this.positionArcadeBlaster(dummyWeaponSprite, targetDummy, this.overlays.dummy, dummyAngle);
+      return;
+    }
+
     playerWeaponSprite
       .setPosition(playerSprite.x, playerSprite.y)
       .setRotation(this.getWeaponRotation(playerAngle))
@@ -361,6 +370,7 @@ export class VisualController {
   }
 
   public getWeaponTurretTexture(team: TeamId, weaponId: string): string {
+    if (isArcadeActorSkin(this.skinDefinition)) return getArcadeBlasterTexture(team, weaponId);
     const isScatter = weaponId === "scatter";
     if (team === "RED") return isScatter ? GROUND_TURRET_SCATTER_RED_KEY : GROUND_TURRET_CARBINE_RED_KEY;
     return isScatter ? GROUND_TURRET_SCATTER_BLUE_KEY : GROUND_TURRET_CARBINE_BLUE_KEY;
@@ -371,7 +381,7 @@ export class VisualController {
   }
 
   public getDebugState(): ActorPresentationDebugState {
-    const atlasActive = this.skinDefinition.id === "quaternius-animated" &&
+    const atlasActive = isAnimatedActorSkin(this.skinDefinition) &&
       this.overlays.player !== null && this.overlays.dummy !== null;
     const playerPresentation = this.overlays.player ?? this.state.playerSprite;
     const dummyPresentation = this.overlays.dummy ?? this.state.targetDummy;
@@ -414,13 +424,28 @@ export class VisualController {
   }
 
   private getGameplayAnchorDefinition(): ActorSkinDefinition {
-    return this.skinDefinition.id === "quaternius-animated"
+    return isAnimatedActorSkin(this.skinDefinition)
       ? getActorSkinDefinition("legacy-vehicle")
       : this.skinDefinition;
   }
 
   private getWeaponRotation(angleRadians: number): number {
     return angleRadians + this.skinDefinition.rotationOffsetRadians;
+  }
+
+  private positionArcadeBlaster(
+    weapon: Phaser.GameObjects.Sprite,
+    anchor: Phaser.GameObjects.Image,
+    overlay: Phaser.GameObjects.Sprite | null,
+    angle: number
+  ): void {
+    const visualScale = anchor.scaleX / this.getGameplayAnchorDefinition().bodyScale;
+    weapon
+      .setPosition(anchor.x + Math.cos(angle) * 9, anchor.y + 9 + Math.sin(angle) * 5)
+      .setRotation(this.getWeaponRotation(angle))
+      .setScale(0.75 * visualScale)
+      .setDepth(Math.sin(angle) < -0.25 ? 4.9 : 6)
+      .setAlpha(overlay?.alpha ?? anchor.alpha);
   }
 
   private applyActorVisual(
@@ -433,11 +458,12 @@ export class VisualController {
     const anchorScale = this.getGameplayAnchorDefinition().bodyScale * visualScale;
     anchor.setTint(tint).setScale(anchorScale).setAlpha(overlay === null ? alpha : 0);
     if (overlay === null) return;
+    const arcade = isArcadeActorSkin(this.skinDefinition);
     overlay
       .setPosition(anchor.x, anchor.y)
       .setRotation(0)
-      .setTint(tint)
-      .setAlpha(alpha)
+      .setTint(arcade && alpha < 0.5 ? 0xd9e8ff : tint)
+      .setAlpha(arcade ? Math.max(0.72, alpha) : alpha)
       .setScale(this.skinDefinition.bodyScale * visualScale);
   }
 

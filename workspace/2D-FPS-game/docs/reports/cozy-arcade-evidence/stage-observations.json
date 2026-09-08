@@ -1,0 +1,30 @@
+{
+  "observedDate": "2026-09-08",
+  "purpose": "Read-only observations, not a performance qualification or comparison against the legacy game",
+  "environment": {
+    "os": "Windows",
+    "browser": "headless Chromium via Playwright",
+    "viewport": { "width": 1440, "height": 1000 },
+    "canvas": { "width": 960, "height": 540 },
+    "phaserRendererType": 2,
+    "mode": "arcade=cozy, actorSkin=arcade-bunny, combat live, input overlay active",
+    "sharedEnvironment": "Other repository verification was active during measurement"
+  },
+  "method": {
+    "frameTiming": "120 consecutive requestAnimationFrame timestamp intervals per stage; median is the middle pair average, p95 is nearest rank",
+    "textureFilter": "TextureManager keys containing arcade or cozy",
+    "textureBytes": "Sum of source.width * source.height * 4 for each selected texture source; includes existing arcade-arena-floor, bunny atlases and blasters; excludes driver overhead, CPU Canvas duplication and unrelated legacy textures"
+  },
+  "pageErrorCount": 0,
+  "stages": [
+    { "id": "garden-maze", "screenshot": "stage-garden-maze.png", "rafSamples": 120, "rafMedianMs": 116.8, "rafP95Ms": 150.1, "selectedTextureRawRgbaBytes": 17543552, "newStageArtRawRgbaBytes": 2231680 },
+    { "id": "bubble-bay", "screenshot": "stage-bubble-bay.png", "rafSamples": 120, "rafMedianMs": 83.3, "rafP95Ms": 116.6, "selectedTextureRawRgbaBytes": 17583088, "newStageArtRawRgbaBytes": 2271216 },
+    { "id": "picnic-plaza", "screenshot": "stage-picnic-plaza.png", "rafSamples": 120, "rafMedianMs": 116.7, "rafP95Ms": 150, "selectedTextureRawRgbaBytes": 17462128, "newStageArtRawRgbaBytes": 2150256 }
+  ],
+  "allThreeStageArtCache": {
+    "method": "Calculated catalog upper bound: 3 floors + 9 distinct block material/dimension pairs + 4 shared props",
+    "textureCount": 16,
+    "rawRgbaBytes": 6593248,
+    "legacyBaseFloorExcludedBytes": 2073600
+  }
+}

@@ -37,7 +37,7 @@ test("places the score above and energy/weapons below the unobstructed arena at 
     expect(boxes.slots.right).toBeLessThanOrEqual(width);
     expect(boxes.overflow).toBe(false);
     await expect(page.locator("#weather-pill")).toBeVisible();
-    await page.screenshot({ path: `docs/reports/arcade-hud-evidence/entry-${width}.png`, fullPage: true });
+    await page.screenshot({ path: test.info().outputPath(`entry-${width}.png`), fullPage: true });
   }
 });
 
@@ -52,7 +52,7 @@ test("shows actual damage, low energy, recovery and expired feedback", async ({ 
   await expect(page.locator("#energy-status")).toContainText("LOW ENERGY");
   await expect(page.locator("#combat-feedback")).toContainText("−75 HP");
   await expect(page.locator("#damage-flash")).toHaveClass(/is-active/);
-  await page.screenshot({ path: "docs/reports/arcade-hud-evidence/hit.png", fullPage: true });
+  await page.screenshot({ path: test.info().outputPath("hit.png"), fullPage: true });
   await page.evaluate(() => window.__FPS_GAME__!.loop.wake());
   await expect(page.locator("#damage-flash")).not.toHaveClass(/is-active/);
   await expect(page.locator("#combat-feedback")).toBeEmpty();
@@ -120,7 +120,7 @@ test("scores a projectile elimination and clears transient state on scene restar
   });
   await expect(page.locator("#score-text")).toHaveText("1 : 0");
   await expect(page.locator("#combat-feedback")).toContainText("ROUND WON");
-  await page.screenshot({ path: "docs/reports/arcade-hud-evidence/score.png", fullPage: true });
+  await page.screenshot({ path: test.info().outputPath("score.png"), fullPage: true });
   await page.evaluate(() => new Promise<void>((resolve) => {
     const s = window.__FPS_GAME__!.scene.keys.MainScene as MainScene;
     s.events.once("create", resolve); s.scene.restart();
@@ -168,7 +168,7 @@ test("captures all three arena palettes and five weather states without renderin
       await expect(page.locator("#stage-frame")).toHaveAttribute("data-stage-id", stage);
       await expect(page.locator("#stage-frame")).toHaveAttribute("data-weather", weather);
       await page.waitForTimeout(150);
-      await page.screenshot({ path: `docs/reports/arcade-hud-evidence/${stage}-${weather}.png`, fullPage: true });
+      await page.screenshot({ path: test.info().outputPath(`${stage}-${weather}.png`), fullPage: true });
     }
   }
   expect(errors).toEqual([]);

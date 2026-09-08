@@ -12,6 +12,7 @@ import type { CoverEffectId, GameBalance, GateView, HazardZoneView, ImpactProfil
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { ActorCollisionResolver } from "./actor-collision";
 import { addTerrainSurface } from "./arena-textures";
+import { getArcadeObstacleMaterial, getArcadeObstacleTexture, getArcadeStagePropTexture } from "./arcade-stage-art";
 import type { ArenaObstacleVariant, WorldObjectFamily } from "../domain/visual/WorldObjectSkinCatalog";
 import type {
   WorldObjectPresentationHandle,
@@ -69,6 +70,8 @@ export class StageGeometryManager {
   private presentation: WorldObjectPresentationPort | undefined;
   private readonly presentationBindings = new Map<string, StagePresentationBinding>();
   private readonly obstaclePresentationIds = new Map<ObstacleView, string>();
+  private arcadeGateArtwork: Phaser.GameObjects.Image | undefined;
+  private arcadeFountainArtwork: Phaser.GameObjects.Image | undefined;
 
   public constructor(
     private readonly scene: Phaser.Scene,
@@ -205,6 +208,8 @@ export class StageGeometryManager {
     this.state.hazardZone = undefined;
     this.state.ammoPickup = undefined;
     this.state.healthPickup = undefined;
+    this.arcadeGateArtwork = undefined;
+    this.arcadeFountainArtwork = undefined;
     this.presentation = undefined;
   }
 
@@ -386,8 +391,9 @@ export class StageGeometryManager {
       view.sprite.setFillStyle(activeCover ? activeColor : highlightCover ? 0xfde68a : baseColor, activeCover ? 0.4 : highlightCover ? 0.34 : 0.18);
       view.sprite.setStrokeStyle(1, activeCover ? activeColor : highlightCover ? 0xfacc15 : baseColor, activeCover ? 0.98 : highlightCover ? 0.95 : 0.65);
       view.label.setText(this.deps.getCoverLabel(index));
-      view.label.setColor(activeCover ? "#f8fafc" : highlightCover ? "#fde68a" : "#dbeafe");
-      view.label.setAlpha(activeCover ? 0.98 : highlightCover ? 0.95 : 0.7);
+      const arcade = this.gameBalance.arcadePresentation === true;
+      view.label.setColor(arcade ? "#244a58" : activeCover ? "#f8fafc" : highlightCover ? "#fde68a" : "#dbeafe");
+      view.label.setAlpha(arcade ? 1 : activeCover ? 0.98 : highlightCover ? 0.95 : 0.7);
       view.sprite.setScale(activeCover ? pulse * 1.06 : highlightCover ? pulse : 1);
     }
   }
@@ -453,7 +459,7 @@ export class StageGeometryManager {
     pickup.respawnMs = definition.respawnMs;
     pickup.sprite.setPosition(definition.x, definition.y);
     pickup.label
-      .setText(definition.kind === "ammo" ? "AMMO" : definition.kind === "health" ? "MED" : fallbackLabel)
+      .setText(this.useArcadeProps() ? definition.kind === "ammo" ? "충전" : "하트" : definition.kind === "ammo" ? "AMMO" : definition.kind === "health" ? "MED" : fallbackLabel)
       .setPosition(definition.x, definition.y - 26);
     this.syncPickupPresentation(
       pickup,
@@ -490,6 +496,15 @@ export class StageGeometryManager {
   }
 
   private addObstacle(id: string, x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): ObstacleView {
+    const arcadeMaterial = getArcadeObstacleMaterial(id);
+    if (arcadeMaterial !== null) {
+      const texture = getArcadeObstacleTexture(this.scene, arcadeMaterial, width, height);
+      const artwork = this.scene.add.image(x, y, texture).setDisplaySize(width, height).setDepth(3);
+      const sprite = this.scene.add.rectangle(x, y, width, height, 0xffffff, 0).setDepth(4);
+      const obstacle = { sprite, bounds: createCenteredRect(x, y, width, height), visuals: [artwork] };
+      this.state.obstacles.push(obstacle);
+      return obstacle;
+    }
     const visualKey = width > 140 ? OBSTACLE_BARRIER_KEY : height > width ? OBSTACLE_TOWER_KEY : OBSTACLE_CORE_KEY;
     const variant: ArenaObstacleVariant = width > 140 ? "barrier" : height > width ? "tower" : "core";
     const visuals: Phaser.GameObjects.GameObject[] = [];
@@ -520,6 +535,13 @@ export class StageGeometryManager {
   }
 
   private addGate(x: number, y: number, width: number, height: number, color: number, crop?: TerrainCrop): GateView {
+    if (this.useArcadeProps()) {
+      const sprite = this.scene.add.rectangle(x, y, width, height, 0xffffff, 0).setDepth(4);
+      this.arcadeGateArtwork = this.scene.add.image(x, y, getArcadeStagePropTexture(this.scene, "gate")).setDisplaySize(width, height).setDepth(3);
+      const gate = { id: "service-gate", sprite, bounds: createCenteredRect(x, y, width, height), open: false, visuals: [this.arcadeGateArtwork, sprite] };
+      this.state.obstacles.push(gate);
+      return gate;
+    }
     const visuals: StageLegacyVisual[] = [];
     visuals.push(this.scene.add.rectangle(x + 5, y + 6, width, height, 0x0c1420, 0.22).setDepth(2));
     if (crop !== undefined) {
@@ -549,6 +571,11 @@ export class StageGeometryManager {
   }
 
   private addHazardZone(x: number, y: number, width: number, height: number): HazardZoneView {
+    if (this.useArcadeProps()) {
+      const sprite = this.scene.add.rectangle(x, y, width, height, 0xffffff, 0).setDepth(3);
+      this.arcadeFountainArtwork = this.scene.add.image(x, y, getArcadeStagePropTexture(this.scene, "fountain")).setDisplaySize(width, height).setDepth(2);
+      return { sprite, bounds: createCenteredRect(x, y, width, height), logic: new HazardZoneLogic(this.gameBalance.hazardDamage, this.gameBalance.hazardTickMs), visuals: [this.arcadeFountainArtwork, sprite] };
+    }
     const visuals: StageLegacyVisual[] = [];
     visuals.push(this.scene.add.image(x, y, VENT_PANEL_KEY).setDisplaySize(width, height).setDepth(2).setAlpha(0.92));
     const sprite = this.scene.add
@@ -611,10 +638,12 @@ export class StageGeometryManager {
     amount: number,
     respawnMs: number
   ): PickupView {
+    const arcade = this.useArcadeProps();
+    const ammo = textureKey === PICKUP_AMMO_KEY;
     const pickup = {
-      sprite: this.scene.add.image(x, y, textureKey).setScale(0.44).setDepth(4),
-      label: this.scene.add.text(x, y - 26, labelText, {
-        color: labelColor,
+      sprite: this.scene.add.image(x, y, arcade ? getArcadeStagePropTexture(this.scene, ammo ? "ammo" : "health") : textureKey).setScale(0.44).setDepth(4),
+      label: this.scene.add.text(x, y - 26, arcade ? ammo ? "충전" : "하트" : labelText, {
+        color: arcade ? ammo ? "#417f83" : "#a96878" : labelColor,
         fontFamily: "monospace",
         fontSize: "10px"
       }).setOrigin(0.5).setAlpha(0.8),
@@ -625,6 +654,7 @@ export class StageGeometryManager {
       amount,
       respawnMs
     };
+    if (arcade) return pickup;
     const family = textureKey === PICKUP_AMMO_KEY ? "ammo-pickup" : "health-pickup";
     const id = family === "ammo-pickup" ? "stage:ammo-pickup" : "stage:health-pickup";
     this.registerPresentationBinding(id, pickup.sprite, family, [pickup.sprite, pickup.label], {
@@ -758,6 +788,11 @@ export class StageGeometryManager {
   private syncGatePresentation(): void {
     const gate = this.state.gate;
     if (gate === undefined) return;
+    if (this.arcadeGateArtwork !== undefined) {
+      gate.sprite.setFillStyle(0xffffff, 0);
+      this.arcadeGateArtwork.setPosition(gate.sprite.x, gate.sprite.y)
+        .setDisplaySize(gate.bounds.width, gate.bounds.height).setAlpha(gate.open ? 0.28 : 1);
+    }
     this.syncPresentationBinding("stage:service-gate", {
       active: true,
       hp: 1,
@@ -768,6 +803,11 @@ export class StageGeometryManager {
 
   private syncHazardPresentation(): void {
     if (this.state.hazardZone === undefined) return;
+    if (this.arcadeFountainArtwork !== undefined) {
+      const hazard = this.state.hazardZone;
+      this.arcadeFountainArtwork.setPosition(hazard.sprite.x, hazard.sprite.y)
+        .setDisplaySize(hazard.bounds.width, hazard.bounds.height);
+    }
     this.syncPresentationBinding("stage:vent-hazard", {
       active: true,
       hp: 1,
@@ -821,6 +861,10 @@ export class StageGeometryManager {
     }
 
     return this.state.gate;
+  }
+
+  private useArcadeProps(): boolean {
+    return this.gameBalance.arcadePresentation === true && this.presentation?.atlasActive !== true;
   }
 
   private requireHazardZone(): HazardZoneView {

@@ -9,6 +9,8 @@ import {
   getActorAnimationKey,
   getActorSkinDefinition,
   getActorTeamTexture,
+  isAnimatedActorSkin,
+  isArcadeActorSkin,
   resolveActorSkinForRuntime,
   type ActorAtlasAvailability,
   type ActorSkinDefinition,
@@ -21,6 +23,7 @@ import {
   PLAYER_WEAPON_SCALE
 } from "./scene-constants";
 import type { SceneRuntimeState } from "./scene-runtime-state";
+import { ensureArcadeActorTextures, getArcadeBlasterTexture } from "./arcade-actor-art";
 import {
   VisualController,
   type AnimatedActorOverlays,
@@ -69,6 +72,7 @@ export class ActorPresentationComposition {
 
   public constructor(options: ActorPresentationCompositionOptions) {
     this.state = options.state;
+    ensureArcadeActorTextures(options.scene, options.requestedSkin);
     const availability = collectAtlasAvailability(options.scene, options.requestedSkin);
     const resolution = resolveActorSkinForRuntime(
       options.requestedSkin,
@@ -78,7 +82,7 @@ export class ActorPresentationComposition {
     const activeSkin = resolution.definition;
     ensureActorAnimations(options.scene, activeSkin);
 
-    const anchorSkin = activeSkin.id === "quaternius-animated"
+    const anchorSkin = isAnimatedActorSkin(activeSkin)
       ? getActorSkinDefinition("legacy-vehicle")
       : activeSkin;
     const playerSprite = createGameplayAnchor(
@@ -86,27 +90,27 @@ export class ActorPresentationComposition {
       anchorSkin,
       options.state.currentPlayerTeam,
       options.playerSpawn,
-      activeSkin.id === "quaternius-animated"
+      isAnimatedActorSkin(activeSkin)
     );
     const targetDummy = createGameplayAnchor(
       options.scene,
       anchorSkin,
       options.state.currentDummyTeam,
       options.dummySpawn,
-      activeSkin.id === "quaternius-animated"
+      isAnimatedActorSkin(activeSkin)
     );
     const overlays = createAnimatedActorOverlays(options.scene, activeSkin, options);
     const playerWeaponSprite = createWeaponSprite(
       options.scene,
       playerSprite,
-      GROUND_TURRET_CARBINE_BLUE_KEY,
-      PLAYER_WEAPON_SCALE
+      isArcadeActorSkin(activeSkin) ? getArcadeBlasterTexture(options.state.currentPlayerTeam, "carbine") : GROUND_TURRET_CARBINE_BLUE_KEY,
+      isArcadeActorSkin(activeSkin) ? 0.75 : PLAYER_WEAPON_SCALE
     );
     const dummyWeaponSprite = createWeaponSprite(
       options.scene,
       targetDummy,
-      GROUND_TURRET_CARBINE_RED_KEY,
-      DUMMY_WEAPON_SCALE
+      isArcadeActorSkin(activeSkin) ? getArcadeBlasterTexture(options.state.currentDummyTeam, "carbine") : GROUND_TURRET_CARBINE_RED_KEY,
+      isArcadeActorSkin(activeSkin) ? 0.75 : DUMMY_WEAPON_SCALE
     );
 
     options.state.playerSprite = playerSprite;
@@ -176,7 +180,7 @@ function createAnimatedActorOverlays(
   definition: ActorSkinDefinition,
   options: ActorPresentationCompositionOptions
 ): AnimatedActorOverlays {
-  if (definition.id !== "quaternius-animated") return { player: null, dummy: null };
+  if (!isAnimatedActorSkin(definition)) return { player: null, dummy: null };
 
   return {
     player: createAnimatedActorSprite(scene, definition, options.state.currentPlayerTeam, options.playerSpawn),
@@ -215,7 +219,7 @@ function collectAtlasAvailability(
   scene: Phaser.Scene,
   requestedSkin: ActorSkinDefinition
 ): readonly ActorAtlasAvailability[] {
-  if (requestedSkin.id !== "quaternius-animated") return [];
+  if (!isAnimatedActorSkin(requestedSkin)) return [];
 
   const availability: ActorAtlasAvailability[] = [];
   for (const team of ["BLUE", "RED"] as const) {
@@ -235,7 +239,7 @@ function collectAtlasAvailability(
 }
 
 function ensureActorAnimations(scene: Phaser.Scene, definition: ActorSkinDefinition): void {
-  if (definition.id !== "quaternius-animated") return;
+  if (!isAnimatedActorSkin(definition)) return;
 
   for (const team of ["BLUE", "RED"] as const) {
     const texture = getActorTeamTexture(definition, team);

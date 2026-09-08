@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { createExperienceCoverPoints } from "../domain/visual/ArcadeExperience";
 import { DummyAiLogic, type CoverPoint } from "../domain/ai/DummyAiLogic";
 import { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { StageContentSpawner, type StageContentSpawnPlan } from "../domain/map/StageContentSpawner";
@@ -218,11 +219,7 @@ export class MainScene extends Phaser.Scene {
     this.unlockNoticeUntilMs = 0;
     this.currentGlobalWeather = createWeatherState("clear", gameBalance.weather);
     this.currentEffectiveWeather = this.currentGlobalWeather;
-    this.dummyCoverPoints = [
-      { x: 700, y: 160 },
-      { x: 690, y: 390 },
-      { x: 260, y: 330 }
-    ];
+    this.dummyCoverPoints = createExperienceCoverPoints(this.gameBalance.arcadePresentation === true);
     this.coverPointViews = [];
     this.runtimeState = createSceneRuntimeState({
       playerLogic: this.playerLogic,
@@ -271,9 +268,11 @@ export class MainScene extends Phaser.Scene {
     });
     this.actorCollisionResolver = new ActorCollisionResolver(this.runtimeState);
     this.vfxController = new VfxController(this, this.runtimeState, {
+      arcade: this.gameBalance.arcadePresentation === true,
       isPlayerSprintDown: () => this.moveKeys?.sprint.isDown === true
     });
     this.mapObjectController = new MapObjectController(this, {
+      arcadePresentation: this.gameBalance.arcadePresentation === true,
       gameBalanceMapObjects: this.gameBalance.mapObjects
     });
     this.combatController = new CombatController(this, this.runtimeState, this.vfxController, this.actorCollisionResolver, {
@@ -539,11 +538,11 @@ export class MainScene extends Phaser.Scene {
     this.muzzleFlash = visualRefs.muzzleFlash;
     this.runtimeState.muzzleFlash = this.muzzleFlash;
 
-    createArenaPropTextures(this);
+    createArenaPropTextures(this, this.gameBalance.arcadePresentation === true);
     createTurretAnimations(this);
     this.worldObjectPresentationComposition = new WorldObjectPresentationComposition(this, this.worldObjectSkinDefinition);
     this.worldObjectPresentationComposition.initialize(); this.stageGeometry.wirePresentation(this.worldObjectPresentationComposition); this.mapObjectController.wirePresentation(this.worldObjectPresentationComposition); this.onWorldObjectSkinResolved(this.worldObjectPresentationComposition.activeSkin);
-    this.integratedPresentationComposition = new IntegratedPresentationComposition(this, this.worldObjectPresentationComposition.atlasActive);
+    this.integratedPresentationComposition = new IntegratedPresentationComposition(this, this.worldObjectPresentationComposition.atlasActive || this.gameBalance.arcadePresentation === true, this.gameBalance.arcadePresentation === true);
     this.mapObjectController.wirePresentationEvents(this.integratedPresentationComposition);
     this.stageVisualController = new StageVisualController(addArenaBackdrop(this));
     this.stageVisualController.applyStage(this.currentStage.id);
@@ -598,7 +597,10 @@ export class MainScene extends Phaser.Scene {
 
   private onSceneShutdown(): void {
     unbindMainScenePointer(this, this.handlePointerDown, this);
+    this.combatController.clearBullets();
+    this.combatController.flushPendingBulletClear();
     this.integratedPresentationComposition?.destroy();
+    this.vfxController.destroy();
     this.integratedPresentationComposition = null;
     this.actorPresentationComposition?.destroy();
     this.worldObjectPresentationComposition?.destroy();

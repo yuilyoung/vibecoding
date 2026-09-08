@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
-const FLOOR_KEY = "arcade-arena-floor";
+export const ARCADE_FLOOR_KEY = "arcade-arena-floor";
+const FLOOR_KEY = ARCADE_FLOOR_KEY;
 
 /** One cached texture (960×540, 1.98 MiB RGBA), no per-frame graphics allocation. */
 export function createArcadeFloor(scene: Phaser.Scene): Phaser.GameObjects.Image {

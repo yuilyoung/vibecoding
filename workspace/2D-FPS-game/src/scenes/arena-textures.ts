@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { createArcadeFloor } from "./arcade-arena-art";
+import { getArcadeStagePropTexture } from "./arcade-stage-art";
 import type { TerrainCrop } from "./scene-types";
 import {
   OBSTACLE_CORE_KEY, OBSTACLE_TOWER_KEY, OBSTACLE_BARRIER_KEY,
@@ -11,7 +12,10 @@ import {
   PLAYFIELD_MIN_X, PLAYFIELD_MAX_X, PLAYFIELD_MIN_Y, PLAYFIELD_MAX_Y,
 } from "./scene-constants";
 
-export function createArenaPropTextures(scene: Phaser.Scene): void {
+export function createArenaPropTextures(scene: Phaser.Scene, arcade = false): void {
+  if (arcade) {
+    for (const prop of ["gate", "fountain", "ammo", "health"] as const) getArcadeStagePropTexture(scene, prop);
+  }
   createObstacleTexture(scene, OBSTACLE_CORE_KEY, 96, 96, 0xe6b35f, 0x8c5a21, 0xfff0ca);
   createObstacleTexture(scene, OBSTACLE_TOWER_KEY, 96, 160, 0x5bb3d8, 0x214f7a, 0xd7f2ff);
   createObstacleTexture(scene, OBSTACLE_BARRIER_KEY, 160, 64, 0x72cb8a, 0x2d6b42, 0xe0ffe8);

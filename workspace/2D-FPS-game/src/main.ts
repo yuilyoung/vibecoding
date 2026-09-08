@@ -19,7 +19,10 @@ import {
   getWeaponHudAsset,
   getWeatherVisualTheme
 } from "./domain/visual/VisualAssetCatalog";
-import { resolveActorSkinFromSearch } from "./domain/visual/ActorSkinCatalog";
+import { getActorSkinDefinition, resolveActorSkinFromSearch } from "./domain/visual/ActorSkinCatalog";
+import { resolveArcadeExperience } from "./domain/visual/ArcadeExperience";
+import { getArcadeStagesStartingWith } from "./domain/map/ArcadeStageCatalog";
+import { bindCozyArcadePicker, renderCozyArcadePicker } from "./ui/CozyArcadePicker";
 import { resolveWorldObjectSkinFromSearch } from "./domain/visual/WorldObjectSkinCatalog";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
@@ -36,6 +39,7 @@ import { buildTutorialOverlayRenderState } from "./ui/TutorialOverlay";
 import { ArcadeHud } from "./ui/ArcadeHud";
 import "./styles.css";
 import "./ui/arcade-hud.css";
+import "./ui/cozy-arcade.css";
 
 declare global {
   interface Window {
@@ -51,7 +55,11 @@ declare global {
 
 const GAME_VIEWPORT_WIDTH = 960;
 const GAME_VIEWPORT_HEIGHT = 540;
-const actorSkinDefinition = resolveActorSkinFromSearch(window.location.search);
+const arcadeExperience = resolveArcadeExperience(window.location.search);
+document.documentElement.dataset.experience = arcadeExperience.enabled ? "cozy" : "classic";
+const actorSkinDefinition = arcadeExperience.enabled
+  ? getActorSkinDefinition(arcadeExperience.character)
+  : resolveActorSkinFromSearch(window.location.search);
 const worldObjectSkinDefinition = resolveWorldObjectSkinFromSearch(window.location.search);
 
 const appRoot = document.querySelector<HTMLDivElement>("#app");
@@ -70,12 +78,13 @@ appRoot.innerHTML = `
       <div class="header-actions"><span class="header-chip">1 vs 1 · ARCADE BATTLE</span><button id="open-settings" type="button" aria-label="Open settings" disabled>Settings <kbd>Esc</kbd></button></div>
     </header>
     <main class="shell-main">
+      ${renderCozyArcadePicker(arcadeExperience)}
       <section class="stage-panel">
         <div class="hud-strip hud-strip--top">
           <section class="hud-card player-card">
             <div class="identity-head">
               <img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />
-              <span class="operator-badge operator-badge--blue" role="img" aria-label="Blue Vanguard">V</span>
+              <span class="${arcadeExperience.enabled ? `cozy-mascot cozy-mascot--${arcadeExperience.character === "arcade-bear" ? "bear" : "bunny"}` : "operator-badge operator-badge--blue"}" role="img" aria-label="Player character">${arcadeExperience.enabled ? "<b>•ᴗ•</b>" : "V"}</span>
               <div class="identity-copy">
                 <p class="hud-label">YOU / CHALLENGER</p>
                 <strong id="player-operator-text">Blue Vanguard operator</strong>
@@ -91,7 +100,7 @@ appRoot.innerHTML = `
           <section class="hud-card enemy-card">
             <div class="identity-head identity-head--enemy">
               <img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />
-              <span class="operator-badge operator-badge--red" role="img" aria-label="Red Vanguard">V</span>
+              <span class="${arcadeExperience.enabled ? `cozy-mascot cozy-mascot--${arcadeExperience.character === "arcade-bear" ? "bear" : "bunny"} cozy-mascot--rival` : "operator-badge operator-badge--red"}" role="img" aria-label="Rival character">${arcadeExperience.enabled ? "<b>•ᴗ•</b>" : "V"}</span>
               <div class="identity-copy">
                 <p class="hud-label">RIVAL / CHALLENGER</p>
                 <strong id="enemy-operator-text">Red Vanguard operator</strong>
@@ -257,8 +266,12 @@ if (gameContainer === null) {
   throw new Error("Missing #game-root element.");
 }
 
+const unbindCozyPicker = bindCozyArcadePicker(appRoot, (search) => { window.location.search = search; }, () => mainScene.input.keyboard?.resetKeys());
+const runtimeBalance = arcadeExperience.enabled
+  ? { ...gameBalance, stages: getArcadeStagesStartingWith(arcadeExperience.stage), arcadePresentation: true }
+  : gameBalance;
 const mainScene = new MainScene(
-  gameBalance as unknown as GameBalance,
+  runtimeBalance as unknown as GameBalance,
   actorSkinDefinition,
   worldObjectSkinDefinition,
   (resolvedSkin) => {
@@ -643,6 +656,7 @@ function removeUiListeners(): void {
   tutorialOverlayElements.skip.removeEventListener("click", skipTutorial);
   tutorialOverlayElements.hide.removeEventListener("click", hideTutorialPermanently);
   window.removeEventListener("keydown", onGlobalKeyDown, { capture: true });
+  unbindCozyPicker();
   window.removeEventListener("keyup", blockGameInputWhenSettingsOpen, { capture: true });
   window.removeEventListener("pointerdown", onGlobalPointerDown, { capture: true });
 }
@@ -658,10 +672,10 @@ function renderHud(snapshot: HudSnapshot): void {
 
   updateImageSource(hudElements.playerPortrait, portraits.playerPath, "player-portrait-src");
   updateAttribute(hudElements.playerPortrait, "alt", portraits.playerLabel, "player-portrait-alt");
-  updateText(hudElements.playerOperatorText, portraits.playerLabel, "player-operator-text");
+  updateText(hudElements.playerOperatorText, arcadeExperience.enabled ? `${actorSkinDefinition.label} · YOU` : portraits.playerLabel, "player-operator-text");
   updateImageSource(hudElements.enemyPortrait, portraits.enemyPath, "enemy-portrait-src");
   updateAttribute(hudElements.enemyPortrait, "alt", portraits.enemyLabel, "enemy-portrait-alt");
-  updateText(hudElements.enemyOperatorText, portraits.enemyLabel, "enemy-operator-text");
+  updateText(hudElements.enemyOperatorText, arcadeExperience.enabled ? `${actorSkinDefinition.label} · RIVAL` : portraits.enemyLabel, "enemy-operator-text");
   updateText(hudElements.teamChip, snapshot.team, "team-chip-text");
   updateClassState(hudElements.teamChip, "team-chip--blue", snapshot.team === "BLUE", "team-chip-blue");
   updateClassState(hudElements.teamChip, "team-chip--red", snapshot.team === "RED", "team-chip-red");
