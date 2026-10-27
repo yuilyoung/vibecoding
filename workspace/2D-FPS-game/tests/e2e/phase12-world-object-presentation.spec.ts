@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.setTimeout(90_000);
 
@@ -87,7 +88,7 @@ const waitForScene = async (page: Page): Promise<void> => {
 };
 
 const open = async (page: Page, path: string): Promise<void> => {
-  await page.goto(path);
+  await page.goto(runtimeRoute(path, { arcade: "classic" }));
   await waitForScene(page);
 };
 
@@ -130,7 +131,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
 });
 
-test("keeps default, explicit legacy, and unknown routes on legacy world art", async ({ page }) => {
+test("keeps implicit, explicit legacy, and unknown selections on legacy world art", async ({ page }) => {
   for (const path of ["/", "/?worldSkin=legacy", "/?worldSkin=unknown"]) {
     const requested: string[] = [];
     const listener = (request: { url(): string }) => {

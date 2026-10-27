@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 type SkinId = "legacy-vehicle" | "kenney-infantry" | "quaternius-animated";
 
@@ -45,14 +46,14 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
 });
 
-test("promotes the animated actor on the default route without prototype-facing copy", async ({ page }) => {
+test("uses the configured animated actor in classic runtime without prototype-facing copy", async ({ page }) => {
   const runtimeErrors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") runtimeErrors.push(message.text()); });
   page.on("pageerror", (error) => runtimeErrors.push(error.message));
   page.on("requestfailed", (request) => runtimeErrors.push(`${request.method()} ${request.url()}`));
   page.on("response", (response) => { if (response.status() >= 400) runtimeErrors.push(`${response.status()} ${response.url()}`); });
 
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await waitForProductScene(page);
 
   const state = await readProductState(page);
@@ -66,7 +67,7 @@ test("promotes the animated actor on the default route without prototype-facing 
   expect(state.debug.audio.activeWeatherLoopCue).toBeNull();
   expect(state.debug).toMatchObject({ playerX: 120, playerY: 120, dummyX: 760, dummyY: 210 });
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "quaternius-animated");
-  await expect(page.locator("#actor-skin-label")).toHaveText("Vanguard animated infantry");
+  await expect(page.locator("#actor-skin-label")).toHaveText("Vanguard animated infantry · Standard loadout");
   await expect(page.locator(".operator-badge--blue")).toBeVisible();
   await expect(page.locator(".operator-badge--red")).toBeVisible();
   await expect(page.locator("#player-portrait")).toBeHidden();
@@ -78,7 +79,7 @@ test("promotes the animated actor on the default route without prototype-facing 
 });
 
 test("routes PLAY and the first Enter through one idempotent stage-entry transition", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await waitForProductScene(page);
 
   await page.getByTestId("primary-play").click();
@@ -97,14 +98,14 @@ test("routes PLAY and the first Enter through one idempotent stage-entry transit
   await expect(page.getByTestId("tutorial-overlay")).toHaveAttribute("aria-hidden", "false");
 });
 
-test("keeps explicit recovery and comparison routes deterministic", async ({ page }) => {
+test("keeps explicit recovery routes and normalizes unknown skins to the configured default", async ({ page }) => {
   for (const [path, expected] of [
     ["/?actorSkin=legacy-vehicle", "legacy-vehicle"],
     ["/?actorSkin=kenney-infantry", "kenney-infantry"],
     ["/?actorSkin=quaternius-animated", "quaternius-animated"],
-    ["/?actorSkin=unknown", "legacy-vehicle"]
+    ["/?actorSkin=unknown", "quaternius-animated"]
   ] as const) {
-    await page.goto(path);
+    await page.goto(runtimeRoute(path, { arcade: "classic" }));
     await waitForProductScene(page);
     const state = await readProductState(page);
     expect(state.presentation.requestedSkinId).toBe(expected);

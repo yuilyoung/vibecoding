@@ -30,6 +30,8 @@ export interface HudCombatPresenterState {
   readonly playerMaxHealth: number;
   readonly dummyHealth: number;
   readonly dummyMaxHealth: number;
+  readonly livingEnemyCount?: number;
+  readonly totalEnemyCount?: number;
   readonly gateOpen: boolean;
   readonly lastEvent: string;
   readonly lastSoundCue: string;
@@ -222,6 +224,8 @@ export function buildHudSnapshot(input: HudPresenterInput, overlay: HudOverlaySt
     playerMaxHealth: input.combat.playerMaxHealth,
     dummyHealth: input.combat.dummyHealth,
     dummyMaxHealth: input.combat.dummyMaxHealth,
+    livingEnemyCount: input.combat.livingEnemyCount,
+    totalEnemyCount: input.combat.totalEnemyCount,
     gateOpen: input.combat.gateOpen,
     roundNumber: input.round.roundNumber,
     playerScore: input.round.playerScore,

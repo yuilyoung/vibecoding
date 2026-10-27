@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { HudSnapshot } from "../../src/ui/hud-events";
+import { runtimeRoute } from "./runtime-route";
 
 /**
  * Phase 3 smoke (T9) — closes QA audit gap.
@@ -126,7 +127,7 @@ test.setTimeout(60_000);
 
 test("phase 3 smoke — stage rotation, all 6 weapons, pickups, progression", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
 

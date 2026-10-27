@@ -6,12 +6,16 @@ import type { StageRotationState } from "../domain/map/StageRotationLogic";
 import type { StageContentSpawnPlan, StageContentSpawner } from "../domain/map/StageContentSpawner";
 import type { ProgressionState } from "../domain/progression/ProgressionLogic";
 import type { ProgressionStorageAdapter } from "../domain/progression/ProgressionStorage";
+import type { RewardStorageAdapter } from "../domain/rewards/RewardStorage";
+import type { RewardState } from "../domain/rewards/VictoryRewardLogic";
+import type { LeaderboardStorageAdapter } from "../domain/rewards/LeaderboardStorage";
+import type { LeaderboardState } from "../domain/rewards/LeaderboardLogic";
 import type { WeaponUnlockRule, UnlockState } from "../domain/progression/UnlockLogic";
 import type { MatchFlowLogic, TeamId } from "../domain/round/MatchFlowLogic";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import type { PlayerLogic } from "../domain/player/PlayerLogic";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
-import type { WeatherState } from "../domain/environment/WeatherLogic";
+import type { WeatherState, WeatherType } from "../domain/environment/WeatherLogic";
 import type { WindState } from "../domain/environment/WindLogic";
 import type { GameBalance, PlayerWeaponSlot, TeamSpawnTable } from "./scene-types";
 import { MatchFlowController, type MatchFlowControllerState, type MatchFlowStageInput } from "./match-flow-controller";
@@ -19,6 +23,8 @@ import { MatchFlowController, type MatchFlowControllerState, type MatchFlowStage
 export interface MainSceneMatchStateRefs {
   stageRotationState: StageRotationState;
   progressionState: ProgressionState;
+  rewardState: RewardState;
+  leaderboardState: LeaderboardState;
   unlockState: UnlockState;
   newlyUnlockedWeaponIds: readonly string[];
   unlockNoticeUntilMs: number;
@@ -45,6 +51,8 @@ export interface CreateMainSceneMatchFlowControllerOptions {
   readonly stageDefinitions: readonly StageDefinition[];
   readonly stageContentSpawner: StageContentSpawner;
   readonly progressionStorage: ProgressionStorageAdapter;
+  readonly rewardStorage: RewardStorageAdapter;
+  readonly leaderboardStorage: LeaderboardStorageAdapter;
   readonly gameBalance: GameBalance;
   readonly bossWaveRules: BossWaveRules;
   readonly unlockRules: readonly WeaponUnlockRule[];
@@ -68,6 +76,7 @@ export interface CreateMainSceneMatchFlowControllerOptions {
   readonly setPlayerSpriteDeployment: (x: number, y: number, rotation: number) => void;
   readonly setDummySpriteDeployment: (x: number, y: number, rotation: number) => void;
   readonly resetActorVisuals: () => void;
+  readonly resetAdditionalActors: (team: TeamId) => void;
   readonly applyGateDeployment: (open: boolean) => void;
   readonly clearBullets: () => void;
   readonly resetPickupState: () => void;
@@ -81,6 +90,7 @@ export interface CreateMainSceneMatchFlowControllerOptions {
   readonly setCurrentGlobalWeather: (weather: WeatherState) => void;
   readonly getCurrentEffectiveWeather: () => WeatherState;
   readonly setCurrentEffectiveWeather: (weather: WeatherState) => void;
+  readonly initialWeather?: WeatherType;
   readonly getNow: () => number;
   readonly getRandomValue: () => number;
 }
@@ -90,6 +100,8 @@ export function createMainSceneMatchFlowControllerState(refs: MainSceneMatchStat
   Object.defineProperties(state, {
     stageRotationState: { get: () => refs.stageRotationState, set: (value: StageRotationState) => { refs.stageRotationState = value; } },
     progressionState: { get: () => refs.progressionState, set: (value: ProgressionState) => { refs.progressionState = value; } },
+    rewardState: { get: () => refs.rewardState, set: (value: RewardState) => { refs.rewardState = value; } },
+    leaderboardState: { get: () => refs.leaderboardState, set: (value: LeaderboardState) => { refs.leaderboardState = value; } },
     unlockState: { get: () => refs.unlockState, set: (value: UnlockState) => { refs.unlockState = value; } },
     newlyUnlockedWeaponIds: { get: () => refs.newlyUnlockedWeaponIds, set: (value: readonly string[]) => { refs.newlyUnlockedWeaponIds = value; } },
     unlockNoticeUntilMs: { get: () => refs.unlockNoticeUntilMs, set: (value: number) => { refs.unlockNoticeUntilMs = value; } },
@@ -119,6 +131,8 @@ export function createMainSceneMatchFlowController(options: CreateMainSceneMatch
     stageDefinitions: options.stageDefinitions,
     stageContentSpawner: options.stageContentSpawner,
     progressionStorage: options.progressionStorage,
+    rewardStorage: options.rewardStorage,
+    leaderboardStorage: options.leaderboardStorage,
     gameBalance: options.gameBalance,
     bossWaveRules: options.bossWaveRules,
     unlockRules: options.unlockRules,
@@ -145,6 +159,7 @@ export function createMainSceneMatchFlowController(options: CreateMainSceneMatch
     setPlayerSpriteDeployment: options.setPlayerSpriteDeployment,
     setDummySpriteDeployment: options.setDummySpriteDeployment,
     resetActorVisuals: options.resetActorVisuals,
+    resetAdditionalActors: options.resetAdditionalActors,
     applyGateDeployment: options.applyGateDeployment,
     clearBullets: options.clearBullets,
     resetPickupState: options.resetPickupState,
@@ -158,6 +173,7 @@ export function createMainSceneMatchFlowController(options: CreateMainSceneMatch
     setCurrentGlobalWeather: options.setCurrentGlobalWeather,
     getCurrentEffectiveWeather: options.getCurrentEffectiveWeather,
     setCurrentEffectiveWeather: options.setCurrentEffectiveWeather,
+    initialWeather: options.initialWeather,
     getNow: options.getNow,
     getRandomValue: options.getRandomValue
   });

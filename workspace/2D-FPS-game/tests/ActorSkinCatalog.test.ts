@@ -95,11 +95,12 @@ describe("ActorSkinCatalog", () => {
     }
   });
 
-  it("exposes two authored arcade skins with animated states and independent weapon layers", () => {
-    for (const id of ["arcade-bunny", "arcade-bear"] as const) {
+  it("exposes four authored arcade skins with animated states, traits, and independent weapon layers", () => {
+    for (const id of ["arcade-bunny", "arcade-bear", "arcade-fox", "arcade-cat"] as const) {
       const skin = getActorSkinDefinition(id);
       expect(resolveActorSkinFromSearch(`actorSkin=${id.toUpperCase()}`)).toBe(skin);
       expect(skin.sourceId).toBe("original-arcade");
+      expect(skin.gameplayProfile.id).toBe(id);
       expect(skin.weaponLayer).toBe("external");
       expect(skin.teamTextures.BLUE.textureKey).not.toBe(skin.teamTextures.RED.textureKey);
       expect(Object.values(skin.animationClips).every((clip) => clip.kind === "atlas" && clip.framesPerDirection > 1)).toBe(true);

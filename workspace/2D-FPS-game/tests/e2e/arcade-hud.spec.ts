@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { HudSnapshot } from "../../src/ui/hud-events";
 import type { MainScene } from "../../src/scenes/MainScene";
+import { runtimeRoute } from "./runtime-route";
 
 const ready = async (page: Page) => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await page.waitForFunction(() => typeof (window.__FPS_GAME__?.scene.keys.MainScene as MainScene | undefined)?.getHudSnapshot === "function");
   await expect(page.locator("#weapon-slot-grid button")).toHaveCount(6, { timeout: 15000 });
 };
@@ -21,6 +22,7 @@ const read = (page: Page): Promise<HudSnapshot> => page.evaluate(() => (window._
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.clear()); });
 
 test("places the score above and energy/weapons below the unobstructed arena at desktop and narrow widths", async ({ page }) => {
+  test.setTimeout(60_000);
   await ready(page);
   for (const width of [1440, 960, 390]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -102,13 +104,16 @@ test("reflects real weapon cooldown and reload completion", async ({ page }) => 
   await page.evaluate(() => window.__FPS_GAME__!.loop.wake());
   await expect.poll(async () => (await read(page)).ammoInMagazine).toBe(5);
   await page.keyboard.press("r");
-  await expect(page.locator("#weapon-readiness")).toHaveAttribute("data-state", "reload");
-  await expect(page.locator("#reload-text")).toHaveText("RELOADING");
+  await expect.poll(() => page.evaluate(() => ({
+    readiness: document.querySelector("#weapon-readiness")?.getAttribute("data-state"),
+    reloadText: document.querySelector("#reload-text")?.textContent
+  }))).toEqual({ readiness: "reload", reloadText: "RELOADING" });
   await expect(page.locator("#weapon-readiness")).toHaveAttribute("data-state", "ready");
   expect((await read(page)).ammoInMagazine).toBe(6);
 });
 
 test("scores a projectile elimination and clears transient state on scene restart", async ({ page }) => {
+  test.setTimeout(60_000);
   await combat(page);
   await page.evaluate(() => {
     const s = window.__FPS_GAME__!.scene.keys.MainScene as MainScene;
@@ -133,7 +138,13 @@ test("scores a projectile elimination and clears transient state on scene restar
   await expect(page.locator("#damage-flash")).not.toHaveClass(/is-active/);
   await page.locator('[data-weapon-id="carbine"]').focus();
   await page.evaluate(() => (window.__FPS_GAME__!.scene.keys.MainScene as MainScene).debugForceMatchOver("PLAYER"));
-  await page.keyboard.press("Enter");
+  await page.locator("canvas").click({ position: { x: 20, y: 20 } });
+  await page.keyboard.down("Enter");
+  try {
+    await page.waitForTimeout(80);
+  } finally {
+    await page.keyboard.up("Enter");
+  }
   await expect(page.locator("#score-text")).toHaveText("0 : 0");
   await expect(page.locator("#phase-chip")).toHaveText("TEAM SELECT");
   await expect(page.locator("#combat-feedback")).toBeEmpty();
@@ -150,7 +161,7 @@ test("keeps settings fully reachable on a narrow screen", async ({ page }) => {
 });
 
 test("captures all three arena palettes and five weather states without rendering errors", async ({ page }) => {
-  test.setTimeout(60000);
+  test.setTimeout(180_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });

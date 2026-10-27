@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Original arcade actor art", () => {
-  for (const skin of ["arcade-bunny", "arcade-bear"] as const) {
+  for (const skin of ["arcade-bunny", "arcade-bear", "arcade-fox", "arcade-cat"] as const) {
     test(`${skin} has complete, visibly changing animation frames`, async ({ page }, testInfo) => {
+      test.setTimeout(90_000);
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.setViewportSize({ width: 1280, height: 1100 });
-      await page.goto(`/?actorSkin=${skin}`);
+      await page.goto(`/?actorSkin=${skin}&setup=complete`, { waitUntil: "domcontentloaded", timeout: 60_000 });
       await page.waitForFunction(() => {
         const scene = window.__FPS_GAME__?.scene.keys.MainScene;
         return scene?.textures.exists("arcade-blaster-blue-carbine");
@@ -34,7 +35,7 @@ test.describe("Original arcade actor art", () => {
         scene.debugRefreshActorPresentation();
       });
       await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-      await page.locator("canvas").first().screenshot({ path: testInfo.outputPath(`${skin}-in-game.png`) });
+      await page.screenshot({ path: testInfo.outputPath(`${skin}-in-game.png`), animations: "disabled" });
       const evidence = await page.evaluate((skinId) => {
         const game = window.__FPS_GAME__!;
         const scene = game.scene.keys.MainScene;

@@ -3,6 +3,7 @@ import {
   resolveWeatherSoundContract,
   resolveWeatherSoundQueueItem
 } from "../src/audio/sound-cue-contract";
+import gameBalance from "../assets/data/game-balance.json";
 import type { GameBalanceWeather } from "../src/scenes/scene-types";
 import type { HudWeatherChangedDetail } from "../src/ui/hud-events";
 
@@ -71,6 +72,16 @@ describe("SoundCueContract", () => {
       fadeMs: 900,
       priority: 18,
       reason: "MATCH_RESET"
+    });
+  });
+
+  it("ships production weather loop channels instead of an empty sound map", () => {
+    const contract = resolveWeatherSoundContract(gameBalance.weather as unknown as GameBalanceWeather);
+
+    expect(contract).toMatchObject({
+      rain: { cue: "weather.rain.loop" },
+      sandstorm: { cue: "weather.sandstorm.loop" },
+      storm: { cue: "weather.storm.loop" }
     });
   });
 });

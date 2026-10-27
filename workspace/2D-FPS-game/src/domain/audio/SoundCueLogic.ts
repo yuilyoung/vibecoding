@@ -1,15 +1,17 @@
-export type WeaponCueId = "carbine" | "scatter" | "generic";
+export type WeaponCueId = "carbine" | "scatter" | "bazooka" | "grenade" | "sniper" | "airStrike" | "generic";
 export type PickupCueId = "ammo" | "health";
 export type GateCueId = "open" | "close";
 export type MatchConfirmCueId = "ready" | "accept";
 export type DeflectCueId = "ricochet" | "shield";
 export type ReloadCueId = "start" | "complete" | "empty";
 export type WeaponStateCueId = "swap";
+export type ImpactSurfaceCueId = "actor" | "world";
 
 export type SoundCueKey =
   | `fire.${WeaponCueId}`
   | "hit.player"
   | "hit.dummy"
+  | `impact.${ImpactSurfaceCueId}`
   | `deflect.${DeflectCueId}`
   | `pickup.${PickupCueId}`
   | `gate.${GateCueId}`
@@ -27,6 +29,10 @@ export type SoundCueEvent =
   | {
       readonly kind: "hit";
       readonly target: "player" | "dummy";
+    }
+  | {
+      readonly kind: "impact";
+      readonly surface: ImpactSurfaceCueId;
     }
   | {
       readonly kind: "deflect";
@@ -64,6 +70,12 @@ export type SoundCueEvent =
       readonly kind: "match-start";
     };
 
+export function resolveWeaponCueId(weaponId: string): WeaponCueId {
+  return weaponId === "carbine" || weaponId === "scatter" || weaponId === "bazooka" || weaponId === "grenade" || weaponId === "sniper" || weaponId === "airStrike"
+    ? weaponId
+    : "generic";
+}
+
 export class SoundCueLogic {
   public resolveCue(event: SoundCueEvent): SoundCueKey {
     switch (event.kind) {
@@ -71,6 +83,8 @@ export class SoundCueLogic {
         return `fire.${event.weaponId}`;
       case "hit":
         return event.target === "player" ? "hit.player" : "hit.dummy";
+      case "impact":
+        return `impact.${event.surface}`;
       case "deflect":
         return `deflect.${event.mode}`;
       case "pickup":

@@ -5,7 +5,7 @@ export interface MovementInput {
 }
 
 export interface PlayerState {
-  readonly maxHealth: number;
+  maxHealth: number;
   health: number;
   positionX: number;
   positionY: number;
@@ -18,6 +18,7 @@ export interface PlayerState {
 export interface MovementConfig {
   readonly movementSpeed: number;
   readonly dashMultiplier: number;
+  readonly movementSpeedMultiplier?: number;
 }
 
 const clamp = (value: number, min: number, max: number): number => {
@@ -27,6 +28,7 @@ const clamp = (value: number, min: number, max: number): number => {
 export class PlayerLogic {
   public readonly state: PlayerState;
   private readonly config: MovementConfig;
+  private movementSpeedMultiplier = 1;
 
   public constructor(maxHealth: number, config: MovementConfig) {
     this.state = {
@@ -40,6 +42,9 @@ export class PlayerLogic {
       stunUntilMs: 0
     };
     this.config = config;
+    this.movementSpeedMultiplier = Number.isFinite(config.movementSpeedMultiplier)
+      ? Math.max(0.1, config.movementSpeedMultiplier as number)
+      : 1;
   }
 
   public move(input: MovementInput, deltaSeconds: number, atTimeMs = 0, envMovementMultiplier = 1): void {
@@ -60,9 +65,9 @@ export class PlayerLogic {
     const speedMultiplier = this.state.isSprinting ? this.config.dashMultiplier : 1;
     const normalizedX = input.x / distance;
     const normalizedY = input.y / distance;
-    const appliedSpeed = this.config.movementSpeed * speedMultiplier * envMovementMultiplier * deltaSeconds;
+    const appliedSpeed = this.config.movementSpeed * this.movementSpeedMultiplier * speedMultiplier * envMovementMultiplier * deltaSeconds;
 
-    this.state.lastAppliedSpeed = this.config.movementSpeed * speedMultiplier * envMovementMultiplier;
+    this.state.lastAppliedSpeed = this.config.movementSpeed * this.movementSpeedMultiplier * speedMultiplier * envMovementMultiplier;
     this.state.positionX += normalizedX * appliedSpeed;
     this.state.positionY += normalizedY * appliedSpeed;
   }
@@ -101,6 +106,16 @@ export class PlayerLogic {
     this.state.isSprinting = false;
     this.state.lastAppliedSpeed = 0;
     this.state.stunUntilMs = 0;
+  }
+
+  public increaseMaxHealth(amount: number): void {
+    const increase = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+    this.state.maxHealth += increase;
+    this.state.health = Math.min(this.state.maxHealth, this.state.health + increase);
+  }
+
+  public increaseMovementSpeed(multiplier: number): void {
+    this.movementSpeedMultiplier = Math.max(1, this.movementSpeedMultiplier + (Number.isFinite(multiplier) ? multiplier : 0));
   }
 
   public isDead(): boolean {

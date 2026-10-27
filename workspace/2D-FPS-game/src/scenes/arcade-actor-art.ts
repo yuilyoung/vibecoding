@@ -4,7 +4,7 @@ import {
   ACTOR_ANIMATION_STATES, ACTOR_DIRECTIONS,
   ARCADE_ACTOR_ATLAS_COLUMNS, ARCADE_ACTOR_ATLAS_HEIGHT, ARCADE_ACTOR_ATLAS_WIDTH,
   ARCADE_ACTOR_FRAME_SIZE, getActorAnimationFrameKeys, isArcadeActorSkin,
-  type ActorAnimationState, type ActorDirection, type ActorSkinDefinition
+  type ActorAnimationState, type ActorDirection, type ActorSkinDefinition, type ArcadeActorSkinId
 } from "../domain/visual/ActorSkinCatalog";
 
 interface ArcadePalette {
@@ -43,7 +43,7 @@ export function ensureArcadeActorTextures(scene: Phaser.Scene, definition: Actor
             context.save();
             context.translate(x, y);
             context.scale(1.5, 1.5);
-            drawArcadeActorFrame(context, definition.id === "arcade-bear", team, state, direction, frameIndex, frames.length);
+            drawArcadeActorFrame(context, definition.id as ArcadeActorSkinId, team, state, direction, frameIndex, frames.length);
             context.restore();
             atlas.add(frameKey, 0, x, y, ARCADE_ACTOR_FRAME_SIZE, ARCADE_ACTOR_FRAME_SIZE);
             index++;
@@ -66,13 +66,16 @@ export function getArcadeBlasterTexture(team: TeamId, weaponId: string): string 
  */
 export function drawArcadeActorFrame(
   ctx: CanvasRenderingContext2D,
-  bear: boolean,
+  variant: ArcadeActorSkinId,
   team: TeamId,
   state: ActorAnimationState,
   direction: ActorDirection,
   frame: number,
   count: number
 ): void {
+  const bear = variant === "arcade-bear";
+  const fox = variant === "arcade-fox";
+  const cat = variant === "arcade-cat";
   const p = PALETTES[team];
   const octant = ACTOR_DIRECTIONS.indexOf(direction);
   const angle = octant * Math.PI / 4;
@@ -86,9 +89,9 @@ export function drawArcadeActorFrame(
   const stride = running ? Math.sin(phase) * 3.3 : 0;
   const bob = running ? -Math.abs(Math.sin(phase)) * 2.1 : Math.sin(phase) * 0.65;
   const recoil = state === "fire" ? Math.sin(progress * Math.PI) * 2.3 : 0;
-  const hood = bear ? "#edc08c" : p.hood;
-  const hoodShade = bear ? "#c88868" : p.shade;
-  const hoodLight = bear ? "#fff0c4" : p.light;
+  const hood = bear ? "#edc08c" : fox ? "#f3a271" : cat ? "#c6a5eb" : p.hood;
+  const hoodShade = bear ? "#c88868" : fox ? "#c56555" : cat ? "#8967b6" : p.shade;
+  const hoodLight = bear ? "#fff0c4" : fox ? "#ffe7c6" : cat ? "#f5e9ff" : p.light;
 
   // Contact shadow remains grounded while the silhouette bounces above it.
   ellipse(ctx, 32, 58, 15 - Math.abs(bob), 3.2, "#344b7240");
@@ -116,9 +119,14 @@ export function drawArcadeActorFrame(
     ctx.save();
     ctx.translate(sign * (bear ? 12.5 : 9.1), bear ? -43 : -43.5);
     ctx.rotate(sign * (bear ? 0.15 : 0.12) + (running ? stride * 0.025 : bob * 0.05));
-    ellipse(ctx, 0, 0, bear ? 7.1 : 4.9, bear ? 7.1 : 9.5,
-      gradient(ctx, -13, 9, hoodLight, hood, hoodShade), p.ink, 1.8);
-    ellipse(ctx, 0, bear ? 0 : -0.7, bear ? 3.8 : 2.4, bear ? 3.8 : 6.4, bear ? "#d99579" : "#ffaac2");
+    if (fox || cat) {
+      pointedEar(ctx, 0, 0, fox ? 5.8 : 6.4, fox ? 12 : 10, gradient(ctx, -13, 9, hoodLight, hood, hoodShade), p.ink, 1.8);
+      pointedEar(ctx, 0, fox ? 0 : -0.7, fox ? 2.6 : 3, fox ? 7 : 6, fox ? "#ffb29a" : "#e6b8ff");
+    } else {
+      ellipse(ctx, 0, 0, bear ? 7.1 : 4.9, bear ? 7.1 : 9.5,
+        gradient(ctx, -13, 9, hoodLight, hood, hoodShade), p.ink, 1.8);
+      ellipse(ctx, 0, bear ? 0 : -0.7, bear ? 3.8 : 2.4, bear ? 3.8 : 6.4, bear ? "#d99579" : "#ffaac2");
+    }
     ctx.restore();
   }
 
@@ -150,6 +158,10 @@ export function drawArcadeActorFrame(
     if (state === "fire") ellipse(ctx, faceX + side * 1.4, -23.9, 1.5, 2, "#bb7184");
     else stroke(ctx, [[faceX - 2, -23.9], [faceX, -22.8], [faceX + 2, -23.9]], "#bb7184", 1.1);
     if (bear) ellipse(ctx, faceX, -27, 1.5, 1, "#996c66");
+    if (cat && !back) {
+      stroke(ctx, [[faceX - 11, -24], [faceX - 17, -22]], "#8967b6", 0.8);
+      stroke(ctx, [[faceX + 11, -24], [faceX + 17, -22]], "#8967b6", 0.8);
+    }
   }
 
   // Shape-coded team accessories remain distinct even without color perception.
@@ -219,6 +231,18 @@ function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number
   ctx.fillStyle = fill;
   ctx.fill();
   if (outline) { ctx.strokeStyle = outline; ctx.lineWidth = width; ctx.stroke(); }
+}
+
+function pointedEar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number,
+  fill: string | CanvasGradient, outline?: string, lineWidth = 1): void {
+  ctx.beginPath();
+  ctx.moveTo(x, y - height);
+  ctx.lineTo(x + width, y + height * 0.58);
+  ctx.quadraticCurveTo(x, y + height * 0.82, x - width, y + height * 0.58);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (outline) { ctx.strokeStyle = outline; ctx.lineWidth = lineWidth; ctx.stroke(); }
 }
 
 function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number,

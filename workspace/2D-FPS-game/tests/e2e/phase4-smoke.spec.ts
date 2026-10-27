@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { HudSnapshot } from "../../src/ui/hud-events";
 import type { TutorialSignal } from "../../src/domain/tutorial/TutorialOverlayLogic";
+import { runtimeRoute } from "./runtime-route";
 
 interface Phase4Scene {
   getHudSnapshot(): HudSnapshot;
@@ -67,7 +68,7 @@ const enterCombat = async (page: Page): Promise<void> => {
 
 test("covers Phase 4 settings, tutorial replay, and boss overlay smoke", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
 

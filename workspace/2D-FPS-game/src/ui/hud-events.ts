@@ -112,6 +112,8 @@ export interface HudSnapshot {
   readonly playerMaxHealth: number;
   readonly dummyHealth: number;
   readonly dummyMaxHealth: number;
+  readonly livingEnemyCount?: number;
+  readonly totalEnemyCount?: number;
   readonly gateOpen: boolean;
   readonly roundNumber: number;
   readonly playerScore: number;

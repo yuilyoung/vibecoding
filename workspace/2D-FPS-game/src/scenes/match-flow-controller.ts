@@ -7,7 +7,7 @@ import { selectNextStage, type StageRotationState } from "../domain/map/StageRot
 import type { StageDefinition } from "../domain/map/StageDefinition";
 import { createDeploymentViewState } from "../domain/round/DeploymentRuntime";
 import { MatchFlowLogic, type SpawnAssignment, type TeamId } from "../domain/round/MatchFlowLogic";
-import { createWeatherState, createWeatherTimer, rotateWeather, tickWeatherTimer, type WeatherState, type WeatherTimer } from "../domain/environment/WeatherLogic";
+import { createWeatherState, createWeatherTimer, rotateWeather, tickWeatherTimer, type WeatherState, type WeatherTimer, type WeatherType } from "../domain/environment/WeatherLogic";
 import { planRoundReset, resolveBossWaveOverlay, resolveEffectiveWeather, resolveRoundStartWeather, resolveRoundStartWind, resolveStageFlow, tickRoundWeather } from "../domain/round/MatchFlowOrchestrator";
 import type { RoundLogic } from "../domain/round/RoundLogic";
 import { createBossSpawn, type BossWaveRules, type BossWaveSpawnPlan } from "../domain/round/BossWaveLogic";
@@ -20,6 +20,11 @@ import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import { publishWeatherChanged, publishWindChanged, type HudWeatherChangedDetail, type HudWindChangedDetail } from "../ui/hud-events";
 import { createWindState, rotateWind, type WindState } from "../domain/environment/WindLogic";
 import { resolveZoneWeather } from "../domain/map/MapZoneLogic";
+import { resolveVictoryReward } from "../domain/rewards/VictoryRewardLogic";
+import type { RewardStorageAdapter } from "../domain/rewards/RewardStorage";
+import { applyVictoryReward } from "../domain/rewards/VictoryRewardLogic";
+import type { LeaderboardStorageAdapter } from "../domain/rewards/LeaderboardStorage";
+import { submitLeaderboardScore, type LeaderboardState } from "../domain/rewards/LeaderboardLogic";
 
 export interface MatchFlowStageInput {
   confirmPressed: boolean;
@@ -30,6 +35,8 @@ export interface MatchFlowStageInput {
 export interface MatchFlowControllerState {
   stageRotationState: StageRotationState;
   progressionState: ProgressionState;
+  rewardState: import("../domain/rewards/VictoryRewardLogic").RewardState;
+  leaderboardState: LeaderboardState;
   unlockState: UnlockState;
   newlyUnlockedWeaponIds: readonly string[];
   unlockNoticeUntilMs: number;
@@ -56,6 +63,8 @@ export interface MatchFlowControllerDeps {
   readonly stageDefinitions: readonly StageDefinition[];
   readonly stageContentSpawner: { spawn(stage: StageDefinitionWithContent): StageContentSpawnPlan };
   readonly progressionStorage: ProgressionStorageAdapter;
+  readonly rewardStorage: RewardStorageAdapter;
+  readonly leaderboardStorage: LeaderboardStorageAdapter;
   readonly gameBalance: GameBalance;
   readonly bossWaveRules: BossWaveRules;
   readonly unlockRules: readonly WeaponUnlockRule[];
@@ -79,6 +88,7 @@ export interface MatchFlowControllerDeps {
   readonly setPlayerSpriteDeployment: (x: number, y: number, rotation: number) => void;
   readonly setDummySpriteDeployment: (x: number, y: number, rotation: number) => void;
   readonly resetActorVisuals: () => void;
+  readonly resetAdditionalActors: (team: TeamId) => void;
   readonly applyGateDeployment: (open: boolean) => void;
   readonly clearBullets: () => void;
   readonly resetPickupState: () => void;
@@ -92,6 +102,7 @@ export interface MatchFlowControllerDeps {
   readonly setCurrentGlobalWeather: (weather: WeatherState) => void;
   readonly getCurrentEffectiveWeather: () => WeatherState;
   readonly setCurrentEffectiveWeather: (weather: WeatherState) => void;
+  readonly initialWeather?: WeatherType;
   readonly getNow: () => number;
   readonly getRandomValue: () => number;
 }
@@ -100,6 +111,7 @@ export class MatchFlowController {
   private lastBroadcastWind: HudWindChangedDetail | null = null;
   private lastBroadcastWeather: HudWeatherChangedDetail | null = null;
   private weatherTimer: WeatherTimer | null = null;
+  private initialWeatherApplied = false;
 
   public constructor(private readonly deps: MatchFlowControllerDeps) {}
 
@@ -131,6 +143,19 @@ export class MatchFlowController {
 
     if (this.deps.roundLogic.state.playerScore === previousPlayerScore) {
       return;
+    }
+
+    if (this.deps.roundLogic.state.isMatchOver) {
+      const reward = resolveVictoryReward({
+        roundsWon: this.deps.roundLogic.state.playerScore,
+        roundsLost: this.deps.roundLogic.state.dummyScore,
+        elapsedSeconds: 0
+      });
+      state.rewardState = applyVictoryReward(state.rewardState, reward);
+      this.deps.rewardStorage.save(state.rewardState);
+      state.leaderboardState = submitLeaderboardScore(state.leaderboardState, { id: "player", name: "YOU", score: state.rewardState.totalScore });
+      this.deps.leaderboardStorage.save(state.leaderboardState);
+      this.deps.setLastCombatEvent(`VICTORY +${reward.score} SCORE / +${reward.coins} COINS`);
     }
 
     const killGain = awardKillXp(state.progressionState, this.deps.gameBalance.progression);
@@ -289,6 +314,7 @@ export class MatchFlowController {
     this.deps.setDummyBodyAngle(deployment.dummyRotation);
     this.deps.setPlayerSpriteDeployment(deployment.playerPositionX, deployment.playerPositionY, this.deps.getActorRotation(deployment.playerRotation));
     this.deps.setDummySpriteDeployment(deployment.dummyPositionX, deployment.dummyPositionY, this.deps.getActorRotation(deployment.dummyRotation));
+    this.deps.resetAdditionalActors(assignment.dummyTeam);
     this.deps.getState().lastSpawnSummary = deployment.spawnSummary;
     this.deps.clearBullets();
     this.deps.resetPickupState();
@@ -518,6 +544,16 @@ export class MatchFlowController {
       this.weatherTimer = null;
       this.deps.setCurrentGlobalWeather(clearWeather);
       this.deps.setCurrentEffectiveWeather(clearWeather);
+      this.broadcastRoundSnapshotWeather();
+      return;
+    }
+
+    if (!this.initialWeatherApplied && this.deps.initialWeather !== undefined) {
+      this.initialWeatherApplied = true;
+      this.weatherTimer = null;
+      const selectedWeather = createWeatherState(this.deps.initialWeather, this.deps.gameBalance.weather);
+      this.deps.setCurrentGlobalWeather(selectedWeather);
+      this.deps.setCurrentEffectiveWeather(selectedWeather);
       this.broadcastRoundSnapshotWeather();
       return;
     }

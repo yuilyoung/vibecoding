@@ -6,6 +6,10 @@ describe("SoundCueLogic", () => {
 
     expect(logic.resolveCue({ kind: "fire", weaponId: "carbine" })).toBe("fire.carbine");
     expect(logic.resolveCue({ kind: "fire", weaponId: "scatter" })).toBe("fire.scatter");
+    expect(logic.resolveCue({ kind: "fire", weaponId: "bazooka" })).toBe("fire.bazooka");
+    expect(logic.resolveCue({ kind: "fire", weaponId: "grenade" })).toBe("fire.grenade");
+    expect(logic.resolveCue({ kind: "fire", weaponId: "sniper" })).toBe("fire.sniper");
+    expect(logic.resolveCue({ kind: "fire", weaponId: "airStrike" })).toBe("fire.airStrike");
   });
 
   it("maps hit, pickup, gate, hazard, and match-confirm cues", () => {
@@ -21,6 +25,13 @@ describe("SoundCueLogic", () => {
     expect(logic.resolveCue({ kind: "match-confirm", action: "ready" })).toBe("match.confirm.ready");
     expect(logic.resolveCue({ kind: "match-confirm", action: "accept" })).toBe("match.confirm.accept");
     expect(logic.resolveCue({ kind: "match-start" })).toBe("match.start");
+  });
+
+  it("maps collision impact events to distinct surface cues", () => {
+    const logic = new SoundCueLogic();
+
+    expect(logic.resolveCue({ kind: "impact", surface: "actor" })).toBe("impact.actor");
+    expect(logic.resolveCue({ kind: "impact", surface: "world" })).toBe("impact.world");
   });
 
   it("preserves cue order when resolving batches", () => {

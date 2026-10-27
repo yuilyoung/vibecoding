@@ -20,6 +20,7 @@ export interface ProjectileConfig {
   readonly aoeCount?: number;
   readonly aoeIntervalMs?: number;
   readonly aoeSpreadRadius?: number;
+  readonly hitRadius?: number;
 }
 
 export interface ProjectileRuntimeState {
@@ -82,6 +83,17 @@ export interface AoeCallImpact {
   readonly x: number;
   readonly y: number;
   readonly triggerAtMs: number;
+}
+
+export function createProjectileCollisionRect(
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  hitRadius = 0
+): Rect {
+  const radius = Number.isFinite(hitRadius) ? Math.max(0, hitRadius) : 0;
+  return createCenteredRect(centerX, centerY, width + radius * 2, height + radius * 2);
 }
 
 export function createProjectileRuntimeState(input: {
@@ -437,6 +449,34 @@ export function reflectVelocity(
     x: -projectile.velocityX,
     y: -projectile.velocityY
   };
+}
+
+export function reflectProjectileAtObstacle(
+  projectile: ProjectileMotionState,
+  obstacle: Rect
+): { x: number; y: number } {
+  const previousBounds = createCenteredRect(projectile.x, projectile.y, projectile.width, projectile.height);
+  const clearHorizontally = previousBounds.x + previousBounds.width <= obstacle.x || previousBounds.x >= obstacle.x + obstacle.width;
+  const clearVertically = previousBounds.y + previousBounds.height <= obstacle.y || previousBounds.y >= obstacle.y + obstacle.height;
+
+  if (clearHorizontally && !clearVertically) return { x: -projectile.velocityX, y: projectile.velocityY };
+  if (clearVertically && !clearHorizontally) return { x: projectile.velocityX, y: -projectile.velocityY };
+
+  const entryX = projectile.velocityX > 0
+    ? (obstacle.x - projectile.width / 2 - projectile.x) / projectile.velocityX
+    : projectile.velocityX < 0
+      ? (obstacle.x + obstacle.width + projectile.width / 2 - projectile.x) / projectile.velocityX
+      : Number.NEGATIVE_INFINITY;
+  const entryY = projectile.velocityY > 0
+    ? (obstacle.y - projectile.height / 2 - projectile.y) / projectile.velocityY
+    : projectile.velocityY < 0
+      ? (obstacle.y + obstacle.height + projectile.height / 2 - projectile.y) / projectile.velocityY
+      : Number.NEGATIVE_INFINITY;
+
+  if (Math.abs(entryX - entryY) < 1e-9) return { x: -projectile.velocityX, y: -projectile.velocityY };
+  return entryX > entryY
+    ? { x: -projectile.velocityX, y: projectile.velocityY }
+    : { x: projectile.velocityX, y: -projectile.velocityY };
 }
 
 function intersectRayWithRect(

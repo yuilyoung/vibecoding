@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial", timeout: 120_000 });
 
@@ -63,7 +64,7 @@ const openGame = async (page: Page, path: string): Promise<string[]> => {
     if (message.type() === "error") errors.push(message.text());
   });
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto(path);
+  await page.goto(runtimeRoute(path, { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await page.waitForFunction(() => {
     const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as AnimatedActorScene | undefined;
@@ -177,7 +178,7 @@ test("activates the complete Quaternius pair and swaps BLUE/RED atomically", asy
   });
   expect(presentation.playerFrameName).toMatch(/^actor\/red\/idle\//);
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "quaternius-animated");
-  await expect(page.locator("#actor-skin-label")).toHaveText("Vanguard animated infantry");
+  await expect(page.locator("#actor-skin-label")).toHaveText("Vanguard animated infantry · Standard loadout");
   expect(errors).toEqual([]);
 });
 
@@ -263,7 +264,7 @@ test("falls back both actors when the RED atlas JSON is incomplete", async ({ pa
   });
   expect(presentation.fallbackReason).toContain("RED animated atlas frames are incomplete");
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "legacy-vehicle");
-  await expect(page.locator("#actor-skin-label")).toHaveText("Ground Shaker vehicle");
+  await expect(page.locator("#actor-skin-label")).toHaveText("Ground Shaker vehicle · Standard loadout");
   expect(errors).toEqual([]);
 });
 

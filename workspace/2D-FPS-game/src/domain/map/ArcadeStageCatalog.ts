@@ -90,6 +90,41 @@ export const ARCADE_STAGES: readonly StageDefinitionWithContent[] = [
         { id: "picnic-pop-south", kind: "barrel", x: 390, y: 354 }
       ]
     }
+  },
+  {
+    id: "beach-boardwalk", label: "Sunny Beach", weight: 1,
+    blueSpawns: [{ x: 110, y: 270, label: "Boardwalk West" }], redSpawns: [{ x: 850, y: 270, label: "Boardwalk East" }],
+    wind: { angleDegrees: 0, strength: 0.2 }, weather: { type: "clear" },
+    obstacles: [block("beach-pier-north", 320, 150, 160, 44), block("beach-pier-south", 640, 390, 160, 44), block("beach-cabana", 480, 270, 72, 120)],
+    content: { ...supplies("beach", [180, 120], [780, 420], [480, 100], [480, 430]), mapObjects: [{ id: "beach-buoy-west", kind: "barrel", x: 220, y: 360 }, { id: "beach-buoy-east", kind: "crate", x: 740, y: 180 }] }
+  },
+  {
+    id: "whispering-woods", label: "Whispering Woods", weight: 1,
+    blueSpawns: [{ x: 110, y: 420, label: "Forest Trail West" }], redSpawns: [{ x: 850, y: 120, label: "Forest Trail East" }],
+    wind: { angleDegrees: 35, strength: 0.3 }, weather: { type: "clear" },
+    obstacles: [block("woods-tree-north", 300, 150, 72, 72), block("woods-tree-south", 660, 390, 72, 72), block("woods-log-center", 480, 270, 220, 42)],
+    content: { ...supplies("woods", [180, 390], [780, 150], [480, 100], [480, 430]), mapObjects: [{ id: "woods-stump-west", kind: "crate", x: 200, y: 220 }, { id: "woods-stump-east", kind: "barrel", x: 760, y: 320 }] }
+  },
+  {
+    id: "sun-dune", label: "Sun Dune", weight: 1,
+    blueSpawns: [{ x: 110, y: 120, label: "Dune West" }], redSpawns: [{ x: 850, y: 420, label: "Dune East" }],
+    wind: { angleDegrees: 180, strength: 0.3 }, weather: { type: "clear" },
+    obstacles: [block("dune-rock-north", 330, 180, 120, 60), block("dune-rock-south", 630, 360, 120, 60), block("dune-oasis", 480, 270, 86, 86)],
+    content: { ...supplies("dune", [180, 180], [780, 360], [480, 100], [480, 120]), mapObjects: [{ id: "dune-cactus-west", kind: "barrel", x: 220, y: 330 }, { id: "dune-cactus-east", kind: "crate", x: 740, y: 210 }] }
+  },
+  {
+    id: "neon-city", label: "Neon City", weight: 1,
+    blueSpawns: [{ x: 110, y: 270, label: "City West" }], redSpawns: [{ x: 850, y: 270, label: "City East" }],
+    wind: { angleDegrees: -20, strength: 0.1 }, weather: { type: "clear" },
+    obstacles: [block("city-building-north", 300, 145, 110, 90), block("city-building-south", 660, 395, 110, 90), block("city-crosswalk", 480, 270, 54, 210)],
+    content: { ...supplies("city", [180, 420], [780, 120], [480, 100], [180, 350]), mapObjects: [{ id: "city-kiosk-west", kind: "crate", x: 200, y: 180 }, { id: "city-kiosk-east", kind: "barrel", x: 760, y: 360 }] }
+  },
+  {
+    id: "frost-festival", label: "Frost Festival", weight: 1,
+    blueSpawns: [{ x: 110, y: 390, label: "Snow Gate West" }], redSpawns: [{ x: 850, y: 150, label: "Snow Gate East" }],
+    wind: { angleDegrees: 90, strength: 0.3 }, weather: { type: "clear" },
+    obstacles: [block("frost-ice-north", 320, 150, 150, 48), block("frost-ice-south", 640, 390, 150, 48), block("frost-snowman", 480, 270, 66, 96)],
+    content: { ...supplies("frost", [180, 150], [780, 390], [480, 100], [480, 430]), mapObjects: [{ id: "frost-gift-west", kind: "crate", x: 200, y: 300 }, { id: "frost-gift-east", kind: "barrel", x: 760, y: 240 }] }
   }
 ];
 

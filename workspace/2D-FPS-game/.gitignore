@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+.npm-cache/
 .vercel
 test-results/*
 !test-results/.last-run.json

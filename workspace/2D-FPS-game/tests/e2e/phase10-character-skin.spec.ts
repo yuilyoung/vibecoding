@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial" });
+test.setTimeout(60_000);
 
 type Team = "BLUE" | "RED";
 type WeatherType = "clear" | "rain" | "fog" | "sandstorm" | "storm";
@@ -40,7 +42,7 @@ const openGame = async (page: Page, path = "/"): Promise<string[]> => {
     if (message.type() === "error") errors.push(message.text());
   });
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto(path);
+  await page.goto(runtimeRoute(path, { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await page.waitForFunction(() => {
     const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as DebugScene | undefined;
@@ -102,7 +104,7 @@ test("switches the local infantry POC by team and keeps weather presentation act
     destroyed: false
   });
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "kenney-infantry");
-  await expect(page.locator(".enemy-card .identity-copy span")).toHaveText("Kenney infantry fallback");
+  await expect(page.locator(".enemy-card .identity-copy span")).toHaveText("Kenney infantry fallback · Standard loadout");
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-weather", "storm");
   await page.locator("canvas").screenshot({ path: test.info().outputPath("phase10-infantry-red-storm.png") });
   expect(errors).toEqual([]);

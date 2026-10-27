@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial" });
 
@@ -88,7 +89,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page, team: "BLUE" | "RED" = "BLUE"): Promise<DebugSnapshot> => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible();
   await waitForSceneReady(page);
@@ -112,7 +113,7 @@ const enterCombat = async (page: Page, team: "BLUE" | "RED" = "BLUE"): Promise<D
 };
 
 test("supports stage entry, team selection, deployment, weapon swap, fire, and gate toggle", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible();
   await waitForSceneReady(page);

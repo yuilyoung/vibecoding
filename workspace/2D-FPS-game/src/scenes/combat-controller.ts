@@ -1,8 +1,9 @@
 import Phaser from "phaser";
-import { createCenteredRect, intersectsRect } from "../domain/collision/CollisionLogic";
 import { advanceAirStrike, createAirStrike } from "../domain/combat/AirStrikeLogic";
 import { castBeam } from "../domain/combat/BeamLogic";
 import { resolveBulletCollision, resolveDamage } from "../domain/combat/CombatResolution";
+import { selectEarliestProjectileImpact } from "../domain/combat/ProjectileImpactLogic";
+import { resolveWeaponCueId } from "../domain/audio/SoundCueLogic";
 import {
   canDummyFire,
   canInterruptReload,
@@ -12,7 +13,7 @@ import {
   type CombatAvailabilityInput,
 } from "../domain/combat/CombatRuntime";
 import { resolveChainExplosion, resolveExplosion } from "../domain/combat/ExplosionLogic";
-import { advanceProjectile, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
+import { advanceProjectile, reflectProjectileAtObstacle, type ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { WeaponInventoryLogic } from "../domain/combat/WeaponInventoryLogic";
 import { reflectProjectileOffWall } from "../domain/map/BounceWallLogic";
 import { isBulletBlocked } from "../domain/map/CoverLogic";
@@ -20,7 +21,9 @@ import { computeForce } from "../domain/environment/WindLogic";
 import type { SoundCueEvent } from "../domain/audio/SoundCueLogic";
 import type { CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import type { TeamId } from "../domain/round/MatchFlowLogic";
+import { createActorId, type ActorId, type BattleRosterLogic } from "../domain/round/BattleRosterLogic";
 import type { TacticalSnapshot } from "./scene-types";
+import type { SceneCombatActor } from "./combat-actor-port";
 import { flushPendingBulletClear, requestBulletClear } from "./combat-bullet-clear";
 import { playTurretFireAnimation } from "./arena-textures";
 import type { ActorCollisionResolver } from "./actor-collision";
@@ -69,9 +72,13 @@ export interface CombatControllerDeps {
   readonly damageMapObject: (id: string, damage: number) => MapObjectDamageResult | null;
   readonly destroyMapObject: (id: string) => MapObjectDamageResult | null;
   readonly setMapObjectState: (id: string, state: MapObjectCollisionRect["state"]) => MapObjectCollisionRect["state"] | null;
+  readonly getCombatActors: () => readonly SceneCombatActor[];
+  readonly battleRoster: BattleRosterLogic;
 }
 
 export class CombatController {
+  private resolvedEliminationTeam: TeamId | null = null;
+
   public constructor(
     private readonly scene: Phaser.Scene,
     private readonly state: SceneRuntimeState,
@@ -166,7 +173,7 @@ export class CombatController {
       activeWeapon.logic.refundRound(now);
     }
     this.state.lastCombatEvent = `${activeWeapon.label.toUpperCase()} FIRED`;
-    this.deps.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : activeWeapon.id === "carbine" ? "carbine" : "generic" });
+    this.deps.emitSoundCue({ kind: "fire", weaponId: resolveWeaponCueId(activeWeapon.id) });
 
     if (attempt.ammoInMagazine === 0) {
       this.state.lastCombatEvent = "MAG EMPTY";
@@ -174,27 +181,38 @@ export class CombatController {
   }
 
   public handleDummyFire(now: number): void {
-    if (!canDummyFire(this.deps.getCombatAvailability(now)) || !this.state.lastDummyShouldFire) {
+    const activeWeapon = this.getActiveDummyWeaponSlot(now);
+    this.state.currentDummyWeaponId = activeWeapon.id;
+    const actor = this.deps.getCombatActors().find((candidate) => candidate.id === "dummy");
+    if (actor === undefined) return;
+    actor.activeWeaponIndex = Math.max(0, actor.weaponSlots.indexOf(activeWeapon));
+    actor.shouldFire = this.state.lastDummyShouldFire;
+    this.handleCpuFire(actor, now);
+  }
+
+  public handleCpuFire(actor: SceneCombatActor, now: number): void {
+    if (actor.controller !== "cpu" || actor.logic.isDead() || !canDummyFire(this.deps.getCombatAvailability(now)) || !actor.shouldFire) {
       return;
     }
 
-    const activeWeapon = this.getActiveDummyWeaponSlot(now);
-    this.state.currentDummyWeaponId = activeWeapon.id;
+    const activeWeapon = actor.weaponSlots[actor.activeWeaponIndex] ?? actor.weaponSlots[0];
+    if (activeWeapon === undefined) return;
     const attempt = activeWeapon.logic.tryFire(now);
 
     if (!attempt.allowed) {
+      if (attempt.reason === "empty") activeWeapon.logic.startReload(now);
       return;
     }
 
-    const turretTexture = this.deps.getWeaponTurretTexture(this.state.currentDummyTeam, activeWeapon.id);
-    playTurretFireAnimation(this.requireDummyWeaponSprite(), turretTexture);
+    const turretTexture = this.deps.getWeaponTurretTexture(actor.team, activeWeapon.id);
+    playTurretFireAnimation(actor.weaponSprite as Phaser.GameObjects.Sprite, turretTexture);
 
     const pelletStart = -(activeWeapon.pelletCount - 1) / 2;
     for (let index = 0; index < activeWeapon.pelletCount; index += 1) {
       const spreadOffset = (pelletStart + index) * activeWeapon.spreadRadians;
-      const angle = this.state.dummyLogic.state.aimAngleRadians + spreadOffset;
-      const spawnX = this.requireTargetDummy().x + Math.cos(angle) * 24;
-      const spawnY = this.requireTargetDummy().y + Math.sin(angle) * 24;
+      const angle = actor.logic.state.aimAngleRadians + spreadOffset;
+      const spawnX = actor.sprite.x + Math.cos(angle) * 24;
+      const spawnY = actor.sprite.y + Math.sin(angle) * 24;
       const bullet = this.scene.add.rectangle(
         spawnX,
         spawnY,
@@ -205,7 +223,7 @@ export class CombatController {
       );
       bullet.setRotation(angle);
 
-      if (this.deps.gameBalance.arcadePresentation === true) this.vfx.decorateProjectile(bullet, activeWeapon.id, this.state.currentDummyTeam);
+      if (this.deps.gameBalance.arcadePresentation === true) this.vfx.decorateProjectile(bullet, activeWeapon.id, actor.team);
 
       this.state.bullets.push({
         sprite: bullet,
@@ -215,6 +233,8 @@ export class CombatController {
         critChance: activeWeapon.critChance,
         critMultiplier: activeWeapon.critMultiplier,
         owner: "dummy",
+        ownerId: actor.id,
+        ownerTeam: actor.team,
         effectProfile: activeWeapon.id === "scatter" ? "scatter" : "dummy",
         projectileConfig: activeWeapon.projectileConfig,
         bouncesRemaining: activeWeapon.projectileConfig.bounceCount
@@ -231,7 +251,7 @@ export class CombatController {
       );
     }
 
-    this.deps.emitSoundCue({ kind: "fire", weaponId: activeWeapon.id === "scatter" ? "scatter" : activeWeapon.id === "carbine" ? "carbine" : "generic" });
+    this.deps.emitSoundCue({ kind: "fire", weaponId: resolveWeaponCueId(activeWeapon.id) });
   }
 
   public handleWeaponSwitch(now: number): void {
@@ -269,12 +289,9 @@ export class CombatController {
 
   public updateProjectiles(deltaSeconds: number, now: number): void {
     const activeObstacles = this.collisionResolver.getActiveObstacles();
-    const targetDummy = this.requireTargetDummy();
-    const playerSprite = this.requirePlayerSprite();
-    const dummyAlive = !this.state.dummyLogic.isDead();
-    const playerAlive = !this.state.playerLogic.isDead();
-    const dummyBounds = dummyAlive ? this.collisionResolver.getActorCollisionBounds(targetDummy.x, targetDummy.y) : null;
-    const playerBounds = playerAlive ? this.collisionResolver.getActorCollisionBounds(playerSprite.x, playerSprite.y) : null;
+    const activeMapObjects = this.deps.getMapObjectCollisionRects();
+    const actors = this.deps.getCombatActors();
+    if (this.deps.battleRoster.getEliminatedTeam() === null) this.resolvedEliminationTeam = null;
     const windForce = computeForce(this.state.currentWind, this.deps.gameBalance.wind.forceScale);
     const environmentWindMultiplier = Math.max(0, this.state.currentWeather.windStrengthMultiplier - 1);
 
@@ -304,25 +321,45 @@ export class CombatController {
         deltaSeconds,
         arenaWidth: 960,
         arenaHeight: 540,
-        obstacles: activeObstacles.map((obstacle) => obstacle.bounds),
+        obstacles: [],
         windX: windForce.x,
         windY: windForce.y,
         environmentWindMultiplier
       });
-      const projectileBounds = createCenteredRect(
-        runtimeFrame.projectile.x,
-        runtimeFrame.projectile.y,
-        runtimeFrame.projectile.width,
-        runtimeFrame.projectile.height
-      );
+      const impact = selectEarliestProjectileImpact({
+        previous: { x: previousX, y: previousY },
+        next: { x: runtimeFrame.projectile.x, y: runtimeFrame.projectile.y },
+        projectileWidth: runtimeFrame.projectile.width,
+        projectileHeight: runtimeFrame.projectile.height,
+        hitRadius: bullet.projectileConfig.hitRadius,
+        ownerId: bullet.ownerId,
+        ownerTeam: bullet.ownerTeam,
+        actors: actors.map((actor) => ({
+          id: actor.id,
+          team: actor.team,
+          alive: !actor.logic.isDead(),
+          bounds: this.collisionResolver.getActorCollisionBounds(actor.sprite.x, actor.sprite.y)
+        })),
+        world: [
+          ...activeObstacles.map((obstacle, obstacleIndex) => ({ id: `obstacle:${obstacleIndex}`, bounds: obstacle.bounds })),
+          ...activeMapObjects.map((mapObject) => ({ id: `map:${mapObject.id}`, bounds: mapObject.rect }))
+        ]
+      });
+      const hitMapObject = impact?.kind === "world" && impact.id.startsWith("map:")
+        ? activeMapObjects.find((mapObject) => mapObject.id === impact.id.slice(4)) ?? null
+        : null;
+      const hitActor = impact?.kind === "actor"
+        ? actors.find((actor) => actor.id === impact.id) ?? null
+        : null;
       const frame = {
-        nextX: runtimeFrame.projectile.x,
-        nextY: runtimeFrame.projectile.y,
-        outOfBounds: runtimeFrame.expired,
-        hitObstacle: runtimeFrame.hitObstacle,
-        hitPlayer: playerBounds !== null && intersectsRect(projectileBounds, playerBounds),
-        hitDummy: dummyBounds !== null && intersectsRect(projectileBounds, dummyBounds),
-        hitMapObject: this.findHitMapObject(projectileBounds)
+        nextX: impact?.x ?? runtimeFrame.projectile.x,
+        nextY: impact?.y ?? runtimeFrame.projectile.y,
+        outOfBounds: impact === null && runtimeFrame.expired,
+        hitObstacle: impact?.kind === "world" && impact.id.startsWith("obstacle:"),
+        hitPlayer: hitActor?.controller === "human",
+        hitDummy: hitActor !== null && hitActor.controller !== "human",
+        hitActor,
+        hitMapObject
       };
 
       bullet.sprite.x = frame.nextX;
@@ -330,6 +367,43 @@ export class CombatController {
       bullet.velocityX = runtimeFrame.projectile.velocityX;
       bullet.velocityY = runtimeFrame.projectile.velocityY;
       bullet.bouncesRemaining = runtimeFrame.projectile.bouncesRemaining;
+
+      const hitArenaObstacle = impact?.kind === "world" && impact.id.startsWith("obstacle:")
+        ? activeObstacles[Number(impact.id.slice("obstacle:".length))]?.bounds ?? null
+        : null;
+      if (
+        hitArenaObstacle !== null &&
+        bullet.projectileConfig.trajectory === "bounce" &&
+        (bullet.bouncesRemaining ?? 0) > 0
+      ) {
+        const incomingVelocityX = bullet.velocityX;
+        const incomingVelocityY = bullet.velocityY;
+        const reflectedVelocity = reflectProjectileAtObstacle({
+          x: previousX,
+          y: previousY,
+          width: bullet.sprite.width,
+          height: bullet.sprite.height,
+          velocityX: bullet.velocityX,
+          velocityY: bullet.velocityY,
+          bouncesRemaining: bullet.bouncesRemaining
+        }, hitArenaObstacle);
+        const separated = separateFromReflectionBoundary(
+          frame.nextX,
+          frame.nextY,
+          incomingVelocityX,
+          incomingVelocityY,
+          reflectedVelocity.x,
+          reflectedVelocity.y
+        );
+        bullet.sprite.x = separated.x;
+        bullet.sprite.y = separated.y;
+        bullet.velocityX = reflectedVelocity.x;
+        bullet.velocityY = reflectedVelocity.y;
+        bullet.bouncesRemaining = Math.max(0, (bullet.bouncesRemaining ?? 0) - 1);
+        this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
+        this.deps.emitSoundCue({ kind: "deflect", mode: "ricochet" });
+        continue;
+      }
 
       if (frame.hitMapObject?.kind === "bounce-wall") {
         const reflection = reflectProjectileOffWall({
@@ -345,8 +419,16 @@ export class CombatController {
 
         if (reflection.kind === "reflected") {
           this.deps.setMapObjectState(frame.hitMapObject.id, reflection.wall);
-          bullet.sprite.x = previousX;
-          bullet.sprite.y = previousY;
+          const separated = separateFromReflectionBoundary(
+            frame.nextX,
+            frame.nextY,
+            bullet.velocityX,
+            bullet.velocityY,
+            reflection.projectile.velocityX,
+            reflection.projectile.velocityY
+          );
+          bullet.sprite.x = separated.x;
+          bullet.sprite.y = separated.y;
           bullet.velocityX = reflection.projectile.velocityX;
           bullet.velocityY = reflection.projectile.velocityY;
           bullet.bouncesRemaining = reflection.projectile.bouncesRemaining;
@@ -366,11 +448,11 @@ export class CombatController {
       const hitDummy = hitActiveCover ? false : frame.hitDummy;
       const hitPlayer = hitActiveCover ? false : frame.hitPlayer;
 
-      const dummyCoverProtected = hitDummy && bullet.owner === "player" && this.deps.hasDummyCoverProtection(now);
+      const dummyCoverProtected = hitDummy && frame.hitActor?.isCoverProtected(now) === true;
       let appliedDamage = bullet.damage;
       let isCritical = false;
 
-      if (hitDummy && bullet.owner === "player") {
+      if (frame.hitActor !== null) {
         if (dummyCoverProtected) {
           appliedDamage = 0;
         } else {
@@ -378,40 +460,25 @@ export class CombatController {
           appliedDamage = damageResult.damage;
           isCritical = damageResult.isCritical;
         }
-      } else if (hitPlayer && bullet.owner === "dummy") {
-        const damageResult = this.resolveWeaponDamage(bullet.damage, bullet.critChance, bullet.critMultiplier);
-        appliedDamage = damageResult.damage;
-        isCritical = damageResult.isCritical;
       }
 
-      if (hitDummy && bullet.owner === "player" && !dummyCoverProtected) {
-        this.state.dummyLogic.takeDamage(appliedDamage);
-        this.deps.recordDummyHit(now);
+      if (frame.hitActor !== null && !dummyCoverProtected) {
+        const target = frame.hitActor;
+        target.logic.takeDamage(appliedDamage, target.controller === "human" ? this.deps.gameBalance.hitStunMs : 0, now);
+        target.onHit(now);
         this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, false);
-        if (!this.state.dummyLogic.isDead()) {
-          this.deps.playDummyHitFeedback();
+        if (target.id === "player") {
+          this.deps.recordPlayerHit(now);
+          if (!target.logic.isDead()) this.deps.playPlayerHitFeedback();
+        } else if (target.id === "dummy") {
+          this.deps.recordDummyHit(now);
+          if (!target.logic.isDead()) this.deps.playDummyHitFeedback();
         }
-      }
-
-      if (hitDummy && bullet.owner === "player" && dummyCoverProtected) {
+        this.deps.battleRoster.setAlive(target.id, !target.logic.isDead());
+      } else if (frame.hitActor !== null) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile === "scatter" ? "scatter" : "carbine");
-        this.vfx.spawnShotTrail(
-          frame.nextX,
-          frame.nextY,
-          this.state.dummyLogic.state.aimAngleRadians + Math.PI,
-          bullet.effectProfile === "scatter" ? 18 : 22,
-          0x7dd3fc,
-          85
-        );
-      }
-
-      if (hitPlayer && bullet.owner === "dummy") {
-        this.state.playerLogic.takeDamage(appliedDamage, this.deps.gameBalance.hitStunMs, now);
-        this.deps.recordPlayerHit(now);
-        this.deps.spawnDamageNumber(frame.nextX, frame.nextY, appliedDamage, isCritical, true);
-        if (!this.state.playerLogic.isDead()) {
-          this.deps.playPlayerHitFeedback();
-        }
+        this.vfx.spawnShotTrail(frame.nextX, frame.nextY, frame.hitActor.logic.state.aimAngleRadians + Math.PI,
+          bullet.effectProfile === "scatter" ? 18 : 22, 0x7dd3fc, 85);
       }
 
       if (frame.hitMapObject !== null && frame.hitMapObject.kind !== "bounce-wall") {
@@ -430,7 +497,7 @@ export class CombatController {
         outOfBounds: frame.outOfBounds,
         damage: bullet.damage,
         appliedDamage,
-        targetDied: bullet.owner === "player" ? this.state.dummyLogic.isDead() : this.state.playerLogic.isDead(),
+        targetDied: frame.hitActor?.logic.isDead() ?? false,
         coverProtected: dummyCoverProtected
       });
 
@@ -448,13 +515,13 @@ export class CombatController {
         this.deps.emitSoundCue({ kind: "hit", target: bulletResolution.soundTarget });
       }
 
-      if (bulletResolution.roundWinner === "PLAYER") {
-        this.deps.registerPlayerRoundWin(now);
-        this.deps.scheduleResetAfterRound(now);
-      } else if (bulletResolution.roundWinner === "DUMMY") {
-        this.deps.registerDummyRoundWin();
-        this.deps.scheduleResetAfterRound(now);
+      if (hitDummy || hitPlayer) {
+        this.deps.emitSoundCue({ kind: "impact", surface: "actor" });
+      } else if (frame.hitObstacle || hitActiveCover || frame.hitMapObject !== null) {
+        this.deps.emitSoundCue({ kind: "impact", surface: "world" });
       }
+
+      if (frame.hitActor?.logic.isDead() === true) this.completeRoundIfTeamEliminated(now);
 
       if (frame.hitObstacle || hitActiveCover) {
         this.vfx.spawnImpactEffect(frame.nextX, frame.nextY, bullet.effectProfile);
@@ -471,7 +538,9 @@ export class CombatController {
           bullet.owner,
           false,
           bullet.critChance,
-          bullet.critMultiplier
+          bullet.critMultiplier,
+          bullet.ownerId,
+          bullet.ownerTeam
         );
       }
 
@@ -500,7 +569,9 @@ export class CombatController {
           airStrike.owner,
           true,
           airStrike.critChance,
-          airStrike.critMultiplier
+          airStrike.critMultiplier,
+          airStrike.ownerId,
+          airStrike.ownerTeam
         );
       }
 
@@ -519,78 +590,48 @@ export class CombatController {
     owner: "player" | "dummy",
     ignoreCover = false,
     critChance = 0,
-    critMultiplier = 1
+    critMultiplier = 1,
+    ownerId: ActorId = createActorId(owner),
+    ownerTeam: TeamId = owner === "player" ? this.state.currentPlayerTeam : this.state.currentDummyTeam
   ): void {
-    const playerSprite = this.requirePlayerSprite();
-    const targetDummy = this.requireTargetDummy();
-    const playerWasDead = this.state.playerLogic.isDead();
-    const dummyWasDead = this.state.dummyLogic.isDead();
+    const actors = this.deps.getCombatActors();
     const results = resolveExplosion({
       centerX,
       centerY,
       blastRadius: radius,
       baseDamage: damage,
       knockback,
-      targets: [
-        { id: "player", x: playerSprite.x, y: playerSprite.y },
-        { id: "dummy", x: targetDummy.x, y: targetDummy.y }
-      ]
+      targets: actors
+        .filter((actor) => actor.id !== ownerId && actor.team !== ownerTeam && !actor.logic.isDead())
+        .map((actor) => ({ id: actor.id, x: actor.sprite.x, y: actor.sprite.y }))
     });
 
     for (const result of results) {
-      if (owner === "player" && result.id === "dummy" && !this.state.dummyLogic.isDead()) {
-        const damageResult = !ignoreCover && this.deps.hasDummyCoverProtection(this.scene.time.now)
-          ? { damage: 0, isCritical: false }
-          : this.resolveWeaponDamage(result.damage, critChance, critMultiplier);
-        const appliedDamage = damageResult.damage;
-        this.state.dummyLogic.takeDamage(appliedDamage);
-        this.deps.recordDummyHit(this.scene.time.now);
-        this.deps.spawnDamageNumber(targetDummy.x, targetDummy.y, appliedDamage, damageResult.isCritical, false);
-        if (!this.state.dummyLogic.isDead()) {
-          this.deps.playDummyHitFeedback();
-        }
-        if (Math.abs(result.knockbackX) > 0.1 || Math.abs(result.knockbackY) > 0.1) {
-          this.scene.tweens.add({
-            targets: targetDummy,
-            x: targetDummy.x + result.knockbackX,
-            y: targetDummy.y + result.knockbackY,
-            duration: 150,
-            ease: "Back.easeOut"
-          });
-        }
-      }
-
-      if (owner === "dummy" && result.id === "player" && !this.state.playerLogic.isDead()) {
-        const damageResult = this.resolveWeaponDamage(result.damage, critChance, critMultiplier);
-        this.state.playerLogic.takeDamage(damageResult.damage, this.deps.gameBalance.hitStunMs, this.scene.time.now);
+      const target = actors.find((actor) => actor.id === result.id);
+      if (target === undefined || target.logic.isDead()) continue;
+      const damageResult = !ignoreCover && target.isCoverProtected(this.scene.time.now)
+        ? { damage: 0, isCritical: false }
+        : this.resolveWeaponDamage(result.damage, critChance, critMultiplier);
+      target.logic.takeDamage(damageResult.damage, target.controller === "human" ? this.deps.gameBalance.hitStunMs : 0, this.scene.time.now);
+      target.onHit(this.scene.time.now);
+      this.deps.spawnDamageNumber(target.sprite.x, target.sprite.y, damageResult.damage, damageResult.isCritical, target.controller === "human");
+      if (target.id === "player") {
         this.deps.recordPlayerHit(this.scene.time.now);
-        this.deps.spawnDamageNumber(playerSprite.x, playerSprite.y, damageResult.damage, damageResult.isCritical, true);
-        if (!this.state.playerLogic.isDead()) {
-          this.deps.playPlayerHitFeedback();
-        }
-        if (Math.abs(result.knockbackX) > 0.1 || Math.abs(result.knockbackY) > 0.1) {
-          this.scene.tweens.add({
-            targets: playerSprite,
-            x: playerSprite.x + result.knockbackX,
-            y: playerSprite.y + result.knockbackY,
-            duration: 150,
-            ease: "Back.easeOut"
-          });
-        }
+        if (!target.logic.isDead()) this.deps.playPlayerHitFeedback();
+      } else if (target.id === "dummy") {
+        this.deps.recordDummyHit(this.scene.time.now);
+        if (!target.logic.isDead()) this.deps.playDummyHitFeedback();
+      }
+      this.deps.battleRoster.setAlive(target.id, !target.logic.isDead());
+      if (Math.abs(result.knockbackX) > 0.1 || Math.abs(result.knockbackY) > 0.1) {
+        this.scene.tweens.add({ targets: target.sprite, x: target.sprite.x + result.knockbackX,
+          y: target.sprite.y + result.knockbackY, duration: 150, ease: "Back.easeOut" });
       }
     }
 
     this.applyExplosionDamageToMapObjects(centerX, centerY, radius, damage);
 
-    if (!dummyWasDead && this.state.dummyLogic.isDead() && !this.deps.isMatchOver()) {
-      this.deps.triggerCameraFeedback({ kind: "death" });
-      this.deps.registerPlayerRoundWin(this.scene.time.now);
-      this.deps.scheduleResetAfterRound(this.scene.time.now);
-    } else if (!playerWasDead && this.state.playerLogic.isDead() && !this.deps.isMatchOver()) {
-      this.deps.triggerCameraFeedback({ kind: "death" });
-      this.deps.registerDummyRoundWin();
-      this.deps.scheduleResetAfterRound(this.scene.time.now);
-    } else if (results.length > 0) {
+    if (!this.completeRoundIfTeamEliminated(this.scene.time.now) && results.length > 0) {
       this.deps.triggerCameraFeedback({ kind: "explosion" });
     }
   }
@@ -607,15 +648,32 @@ export class CombatController {
       return;
     }
 
-    if (this.deps.weaponInventory.selectSlot(slotIndex)) {
-      this.getActiveWeaponSlot().logic.cancelReload(now);
+    if (this.deps.weaponInventory.selectSlot(slotIndex, now)) {
       this.state.lastActiveWeaponReloading = false;
       this.state.lastCombatEvent = `DEBUG EQUIPPED ${this.getActiveWeaponSlot().label.toUpperCase()}`;
     }
   }
 
+  public debugDamageActor(actorId: ActorId, damage: number, now = this.scene.time.now): boolean {
+    const actor = this.deps.getCombatActors().find((candidate) => candidate.id === actorId);
+    if (actor === undefined || actor.logic.isDead() || !Number.isFinite(damage) || damage <= 0) return false;
+    actor.logic.takeDamage(damage, actor.controller === "human" ? this.deps.gameBalance.hitStunMs : 0, now);
+    actor.onHit(now);
+    this.deps.battleRoster.setAlive(actor.id, !actor.logic.isDead());
+    if (actor.logic.isDead()) this.completeRoundIfTeamEliminated(now);
+    return true;
+  }
+
+  public syncActorLife(actorId: ActorId, now = this.scene.time.now): void {
+    const actor = this.deps.getCombatActors().find((candidate) => candidate.id === actorId);
+    if (actor === undefined) return;
+    this.deps.battleRoster.setAlive(actor.id, !actor.logic.isDead());
+    if (actor.logic.isDead()) this.completeRoundIfTeamEliminated(now);
+  }
+
   public debugFire(now = this.scene.time.now): void {
-    if (!this.deps.getCombatAvailability(now).isCombatLive || this.state.dummyLogic.isDead() || this.state.playerLogic.isDead()) {
+    const availability = this.deps.getCombatAvailability(now);
+    if (!availability.isCombatLive || availability.isDummyDead || availability.isPlayerDead) {
       return;
     }
 
@@ -636,7 +694,8 @@ export class CombatController {
 
   public debugFireAt(targetX: number, targetY: number, now = this.scene.time.now): void {
     const playerSprite = this.requirePlayerSprite();
-    if (!this.deps.getCombatAvailability(now).isCombatLive || this.state.dummyLogic.isDead() || this.state.playerLogic.isDead()) {
+    const availability = this.deps.getCombatAvailability(now);
+    if (!availability.isCombatLive || availability.isDummyDead || availability.isPlayerDead) {
       return;
     }
 
@@ -745,8 +804,7 @@ export class CombatController {
       return;
     }
 
-    if (this.deps.weaponInventory.selectSlot(slotIndex)) {
-      this.getActiveWeaponSlot().logic.cancelReload(now);
+    if (this.deps.weaponInventory.selectSlot(slotIndex, now)) {
       this.state.lastActiveWeaponReloading = false;
       this.state.lastCombatEvent = `${eventPrefix} ${this.getActiveWeaponSlot().label.toUpperCase()}`;
       this.deps.emitSoundCue({ kind: "weapon-state", action: "swap" });
@@ -797,11 +855,6 @@ export class CombatController {
 
   private resolveWeaponDamage(damage: number, critChance: number, critMultiplier: number): { damage: number; isCritical: boolean } {
     return resolveDamage(damage, critChance, critMultiplier);
-  }
-
-  private findHitMapObject(projectileBounds: { x: number; y: number; width: number; height: number }): MapObjectCollisionRect | null {
-    return this.deps.getMapObjectCollisionRects()
-      .find((mapObject) => intersectsRect(projectileBounds, mapObject.rect)) ?? null;
   }
 
   private applyExplosionDamageToMapObjects(centerX: number, centerY: number, radius: number, damage: number): void {
@@ -920,6 +973,8 @@ export class CombatController {
         critChance: activeWeapon.critChance,
         critMultiplier: activeWeapon.critMultiplier,
         owner: "player",
+        ownerId: createActorId("player"),
+        ownerTeam: this.state.currentPlayerTeam,
         effectProfile: this.vfx.getImpactProfile(activeWeapon.id),
         projectileConfig,
         bouncesRemaining: projectileConfig.bounceCount
@@ -941,7 +996,7 @@ export class CombatController {
 
   private firePlayerBeam(activeWeapon: PlayerWeaponSlot, projectileConfig: ProjectileConfig, damage: number): void {
     const playerSprite = this.requirePlayerSprite();
-    const targetDummy = this.requireTargetDummy();
+    const actors = this.deps.getCombatActors();
     playTurretFireAnimation(this.requirePlayerWeaponSprite(), this.deps.getWeaponTurretTexture(this.state.currentPlayerTeam, activeWeapon.id));
     const angle = this.state.playerLogic.state.aimAngleRadians;
     const origin = {
@@ -953,39 +1008,43 @@ export class CombatController {
       angle,
       projectileConfig.beamRange ?? 820,
       this.collisionResolver.getActiveObstacles().map((obstacle) => obstacle.bounds),
-      this.state.dummyLogic.isDead()
-        ? []
-        : [{
-            ...this.collisionResolver.getActorCollisionBounds(targetDummy.x, targetDummy.y),
-            id: "dummy"
-          }]
+      actors
+        .filter((actor) => actor.team !== this.state.currentPlayerTeam && !actor.logic.isDead())
+        .map((actor) => ({
+          ...this.collisionResolver.getActorCollisionBounds(actor.sprite.x, actor.sprite.y),
+          id: actor.id
+        }))
     );
 
     this.vfx.spawnShotTrail(origin.x, origin.y, angle, hit.distance, 0xdff8ff, 140);
     this.vfx.spawnImpactEffect(hit.hitPoint.x, hit.hitPoint.y, "sniper");
 
-    if (hit.kind === "actor" && hit.targetId === "dummy" && !this.deps.hasDummyCoverProtection(this.scene.time.now)) {
+    const target = hit.kind === "actor" ? actors.find((actor) => actor.id === hit.targetId) : undefined;
+    if (target !== undefined && !target.isCoverProtected(this.scene.time.now)) {
       const damageResult = this.resolveWeaponDamage(projectileConfig.blastDamage ?? damage, activeWeapon.critChance, activeWeapon.critMultiplier);
       const beamDamage = damageResult.damage;
-      this.state.dummyLogic.takeDamage(beamDamage);
-      this.deps.recordDummyHit(this.scene.time.now);
+      target.logic.takeDamage(beamDamage);
+      target.onHit(this.scene.time.now);
+      if (target.id === "dummy") this.deps.recordDummyHit(this.scene.time.now);
       this.deps.spawnDamageNumber(hit.hitPoint.x, hit.hitPoint.y, beamDamage, damageResult.isCritical, false);
-      if (!this.state.dummyLogic.isDead()) {
+      if (target.id === "dummy" && !target.logic.isDead()) {
         this.deps.playDummyHitFeedback();
       }
       this.deps.emitSoundCue({ kind: "hit", target: "dummy" });
-      this.state.lastCombatEvent = this.state.dummyLogic.isDead() ? "DUMMY DOWN" : "DUMMY HIT";
+      this.deps.emitSoundCue({ kind: "impact", surface: "actor" });
+      this.state.lastCombatEvent = target.logic.isDead() ? "ENEMY DOWN" : "ENEMY HIT";
+      this.deps.battleRoster.setAlive(target.id, !target.logic.isDead());
 
-      if (this.state.dummyLogic.isDead()) {
-        this.deps.registerPlayerRoundWin(this.scene.time.now);
-        this.deps.scheduleResetAfterRound(this.scene.time.now);
-      }
+      if (target.logic.isDead()) this.completeRoundIfTeamEliminated(this.scene.time.now);
       return;
     }
 
     if (hit.kind === "actor") {
+      this.deps.emitSoundCue({ kind: "impact", surface: "actor" });
       this.deps.emitSoundCue({ kind: "deflect", mode: "shield" });
       this.state.lastCombatEvent = "COVER BLOCKED";
+    } else if (hit.kind === "obstacle") {
+      this.deps.emitSoundCue({ kind: "impact", surface: "world" });
     }
   }
 
@@ -1004,6 +1063,8 @@ export class CombatController {
     playTurretFireAnimation(this.requirePlayerWeaponSprite(), this.deps.getWeaponTurretTexture(this.state.currentPlayerTeam, "airStrike"));
     this.state.activeAirStrikes.push({
       owner: "player",
+      ownerId: createActorId("player"),
+      ownerTeam: this.state.currentPlayerTeam,
       critChance: activeWeapon.critChance,
       critMultiplier: activeWeapon.critMultiplier,
       state: createAirStrike(clampedTargetX, clampedTargetY, {
@@ -1038,6 +1099,17 @@ export class CombatController {
     );
     muzzleFlash.setVisible(true);
     this.state.muzzleFlashUntilMs = this.scene.time.now + muzzleProfile.durationMs;
+  }
+
+  private completeRoundIfTeamEliminated(now: number): boolean {
+    const eliminatedTeam = this.deps.battleRoster.getEliminatedTeam();
+    if (eliminatedTeam === null || eliminatedTeam === this.resolvedEliminationTeam || this.deps.isMatchOver()) return false;
+    this.resolvedEliminationTeam = eliminatedTeam;
+    this.deps.triggerCameraFeedback({ kind: "death" });
+    if (eliminatedTeam === this.state.currentPlayerTeam) this.deps.registerDummyRoundWin();
+    else this.deps.registerPlayerRoundWin(now);
+    this.deps.scheduleResetAfterRound(now);
+    return true;
   }
 
   private trimBulletPool(): void {
@@ -1086,4 +1158,20 @@ export class CombatController {
 
     return this.state.muzzleFlash;
   }
+}
+
+const REFLECTION_BOUNDARY_EPSILON = 0.001;
+
+function separateFromReflectionBoundary(
+  x: number,
+  y: number,
+  incomingVelocityX: number,
+  incomingVelocityY: number,
+  reflectedVelocityX: number,
+  reflectedVelocityY: number
+): { x: number; y: number } {
+  return {
+    x: x + (incomingVelocityX === reflectedVelocityX ? 0 : Math.sign(reflectedVelocityX) * REFLECTION_BOUNDARY_EPSILON),
+    y: y + (incomingVelocityY === reflectedVelocityY ? 0 : Math.sign(reflectedVelocityY) * REFLECTION_BOUNDARY_EPSILON)
+  };
 }

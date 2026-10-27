@@ -50,6 +50,37 @@ export interface ActorPresentationRefs {
   readonly activeSkin: ActorSkinDefinition;
 }
 
+export interface AdditionalActorPresentationRefs {
+  readonly sprite: Phaser.GameObjects.Image;
+  readonly animatedSprite: Phaser.GameObjects.Sprite | null;
+  readonly weaponSprite: Phaser.GameObjects.Sprite;
+}
+
+export function createAdditionalActorPresentation(
+  scene: Phaser.Scene,
+  activeSkin: ActorSkinDefinition,
+  team: TeamId,
+  spawn: Readonly<{ x: number; y: number }>
+): AdditionalActorPresentationRefs {
+  const animated = isAnimatedActorSkin(activeSkin);
+  const anchorSkin = animated ? getActorSkinDefinition("legacy-vehicle") : activeSkin;
+  const sprite = createGameplayAnchor(scene, anchorSkin, team, spawn, animated);
+  const animatedSprite = animated ? createAnimatedActorSprite(scene, activeSkin, team, spawn) : null;
+  const weaponTexture = isArcadeActorSkin(activeSkin)
+    ? getArcadeBlasterTexture(team, "carbine")
+    : team === "BLUE"
+      ? GROUND_TURRET_CARBINE_BLUE_KEY
+      : GROUND_TURRET_CARBINE_RED_KEY;
+  const weaponSprite = createWeaponSprite(
+    scene,
+    sprite,
+    weaponTexture,
+    isArcadeActorSkin(activeSkin) ? 0.75 : DUMMY_WEAPON_SCALE
+  );
+
+  return { sprite, animatedSprite, weaponSprite };
+}
+
 export function preloadActorPresentationAssets(scene: Phaser.Scene, requestedSkin: ActorSkinDefinition): void {
   if (requestedSkin.id !== "quaternius-animated") return;
 

@@ -1,5 +1,6 @@
 import { advanceArcadeHud, createArcadeHudState, getWeaponReadiness } from "./arcade-hud-state";
 import type { HudSnapshot } from "./hud-events";
+import { formatHealthValue } from "./health-formatters";
 
 const element = (id: string): HTMLElement => {
   const result = document.getElementById(id);
@@ -31,7 +32,7 @@ export class ArcadeHud {
     const low = snapshot.playerHealth > 0 && snapshot.playerHealth / snapshot.playerMaxHealth <= 0.3;
     this.energy.dataset.state = snapshot.playerHealth <= 0 ? "dead" : low ? "low" : "healthy";
     this.meter.setAttribute("aria-valuemax", String(snapshot.playerMaxHealth));
-    this.meter.setAttribute("aria-valuenow", String(Math.max(0, Math.min(snapshot.playerMaxHealth, snapshot.playerHealth))));
+    this.meter.setAttribute("aria-valuenow", formatHealthValue(Math.max(0, Math.min(snapshot.playerMaxHealth, snapshot.playerHealth))));
     this.energyStatus.textContent = snapshot.playerHealth <= 0 ? "KNOCKED OUT" : low ? "LOW ENERGY · FIND MED" : "BATTLE READY";
     const readiness = getWeaponReadiness(snapshot);
     this.readiness.textContent = readiness.label;

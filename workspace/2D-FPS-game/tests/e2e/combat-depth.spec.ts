@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 interface TacticalSnapshot {
   intent: "pressure" | "hold" | "retreat" | "flank";
@@ -49,7 +50,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
-  await page.goto(process.env.PLAYTEST_BASE_URL ?? "/");
+  await page.goto(runtimeRoute(process.env.PLAYTEST_BASE_URL ?? "/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
 

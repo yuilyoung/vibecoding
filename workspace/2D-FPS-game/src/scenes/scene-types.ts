@@ -13,6 +13,7 @@ import type { SpawnPoint, TeamId } from "../domain/round/MatchFlowLogic";
 import type { WindState } from "../domain/environment/WindLogic";
 import type { WeatherState, WeatherType } from "../domain/environment/WeatherLogic";
 import type { SoundCueKey } from "../domain/audio/SoundCueLogic";
+import type { ActorId } from "../domain/round/BattleRosterLogic";
 
 export interface GameBalanceMapObjects {
   readonly barrel: {
@@ -197,6 +198,8 @@ export interface BulletView {
   critChance: number;
   critMultiplier: number;
   owner: "player" | "dummy";
+  ownerId: ActorId;
+  ownerTeam: TeamId;
   effectProfile: ImpactProfile;
   projectileConfig: ProjectileConfig;
   bouncesRemaining?: number;
@@ -207,6 +210,8 @@ export type ImpactProfile = "carbine" | "scatter" | "bazooka" | "grenade" | "sni
 export interface ActiveAirStrikeView {
   state: AirStrikeState;
   owner: "player" | "dummy";
+  ownerId: ActorId;
+  ownerTeam: TeamId;
   critChance: number;
   critMultiplier: number;
 }
@@ -301,10 +306,15 @@ export interface TacticalSnapshot {
 
 export interface AudioRuntimeSnapshot {
   readonly activeWeatherLoopCue: string | null;
+  readonly activeAmbientLoopCue: string | null;
   readonly queuedWeatherSoundCount: number;
   readonly lastDroppedCue: string | null;
   readonly maxSimultaneous: number;
   readonly weatherLoopCooldownMs: number;
+  readonly contextState: AudioContextState | "not-created" | "unavailable";
+  readonly ambientLoopScheduled: boolean;
+  readonly weatherLoopScheduled: boolean;
+  readonly outputVolume: number;
 }
 
 export interface TerrainCrop {

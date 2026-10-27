@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { runtimeRoute } from "./runtime-route";
 // @ts-expect-error The repository harness helper is an untyped ESM module.
 import { workspaceFingerprint } from "../../../../plugins/hermes-ssot/scripts/harness-controller.mjs";
 
@@ -93,7 +94,7 @@ test("captures product-v1 across three stages and five weather states", async ({
   page.on("requestfailed", (request) => errors.push(`${request.method()} ${request.url()}`));
   page.on("response", (response) => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto("/?worldSkin=product-v1");
+  await page.goto(runtimeRoute("/?worldSkin=product-v1", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await page.waitForFunction(() => {
     const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as EvidenceScene | undefined;

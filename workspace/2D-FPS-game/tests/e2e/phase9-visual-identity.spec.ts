@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial" });
 
@@ -72,7 +73,7 @@ const openGame = async (page: Page): Promise<string[]> => {
     }
   });
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
   return errors;

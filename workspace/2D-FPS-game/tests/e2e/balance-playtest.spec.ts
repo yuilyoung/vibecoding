@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { HudSnapshot } from "../../src/ui/hud-events";
+import { runtimeRoute } from "./runtime-route";
 
 interface DebugSnapshot {
   phase: string;
@@ -21,6 +22,7 @@ interface ActorLogicLike {
 }
 
 interface BalanceScene {
+  readonly time: { now: number };
   getDebugSnapshot(): DebugSnapshot;
   getHudSnapshot(): HudSnapshot;
   debugEnterStage(): void;
@@ -30,6 +32,7 @@ interface BalanceScene {
   debugMovePlayerTo(x: number, y: number): void;
   debugToggleGate(): void;
   clearBullets(): void;
+  update(time: number, delta: number): void;
   targetDummy: SpriteLike;
   dummyLogic: ActorLogicLike;
   updateDummyCoverState(now: number): void;
@@ -66,7 +69,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible();
   await waitForSceneReady(page);
@@ -117,19 +120,33 @@ test("records cover, hazard, and audio balance signals in a browser session", as
   expect(gateSnapshot.lastSoundCue).toBe("gate.open");
 
   await moveDummyTo(page, 900, 500);
-  await withScene(page, (scene: BalanceScene) => scene.debugMovePlayerTo(510, 138));
-  const beforeHazardHealth = (await readSnapshot(page)).playerHealth;
-  await expect.poll(async () => (await readHudSnapshot(page)).lastSoundCue).toBe("hazard.tick");
-  await page.waitForTimeout(1050);
-  const hazardSnapshot = await readSnapshot(page);
+  const hazardResult = await page.evaluate(() => {
+    const game = window.__FPS_GAME__;
+    if (game === undefined) throw new Error("Missing __FPS_GAME__ test handle.");
+    const scene = game.scene.keys.MainScene as unknown as BalanceScene;
+    game.loop.sleep();
+    try {
+      scene.debugMovePlayerTo(510, 138);
+      const beforeHealth = scene.getDebugSnapshot().playerHealth;
+      scene.update(scene.time.now + 16, 16);
+      return {
+        beforeHealth,
+        afterHealth: scene.getDebugSnapshot().playerHealth,
+        lastSoundCue: scene.getHudSnapshot().lastSoundCue
+      };
+    } finally {
+      scene.debugMovePlayerTo(120, 90);
+      game.loop.wake();
+    }
+  });
 
   await moveDummyTo(page, 700, 160);
   await withScene(page, (scene: BalanceScene) => scene.updateDummyCoverState(performance.now()));
   const coverSnapshot = await readHudSnapshot(page);
 
   expect(pageErrors).toEqual([]);
-  expect(hazardSnapshot.playerHealth).toBeLessThanOrEqual(beforeHazardHealth - 7);
-  expect(hazardSnapshot.playerHealth).toBeGreaterThanOrEqual(beforeHazardHealth - 14);
+  expect(hazardResult.afterHealth).toBe(hazardResult.beforeHealth - 7);
+  expect(hazardResult.lastSoundCue).toBe("hazard.tick");
   expect(coverSnapshot.coverVisionActive).toBe(true);
   expect(coverSnapshot.coverVisionRadius).toBe(10);
 });

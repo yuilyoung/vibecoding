@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.setTimeout(90_000);
 
@@ -19,7 +20,7 @@ const withScene = <T>(page: Page, action: (scene: PresentationScene) => T): Prom
 );
 
 const open = async (page: Page, path: string): Promise<void> => {
-  await page.goto(path);
+  await page.goto(runtimeRoute(path, { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await page.waitForFunction(() => typeof (window.__FPS_GAME__?.scene.keys.MainScene as PresentationScene | undefined)?.debugGetIntegratedPresentationEffectCount === "function");
 };

@@ -1,4 +1,5 @@
 import type { TeamId } from "../round/MatchFlowLogic";
+import { getCharacterGameplayProfile, type CharacterGameplayProfile } from "../player/CharacterGameplayProfile";
 
 export const ACTOR_ANIMATION_STATES = Object.freeze([
   "idle",
@@ -22,7 +23,7 @@ export const ACTOR_DIRECTIONS = Object.freeze([
 ] as const);
 
 export type ActorDirection = (typeof ACTOR_DIRECTIONS)[number];
-export type ArcadeActorSkinId = "arcade-bunny" | "arcade-bear";
+export type ArcadeActorSkinId = "arcade-bunny" | "arcade-bear" | "arcade-fox" | "arcade-cat";
 export type ActorSkinId = "legacy-vehicle" | "kenney-infantry" | "quaternius-animated" | ArcadeActorSkinId;
 export type ActorSkinSourceId =
   | "ground-shaker"
@@ -71,6 +72,7 @@ export interface ActorSkinDefinition {
   readonly teamTextures: Readonly<Record<TeamId, ActorTeamTexture>>;
   readonly animationClips: Readonly<Record<ActorAnimationState, ActorAnimationClip>>;
   readonly directions: readonly ActorDirection[];
+  readonly gameplayProfile: CharacterGameplayProfile;
 }
 
 export interface ActorAnimationInput {
@@ -170,13 +172,16 @@ const createArcadeSkin = (id: ArcadeActorSkinId, label: string): ActorSkinDefini
     weaponLayer: "external",
     teamTextures: Object.freeze({ BLUE: texture("BLUE"), RED: texture("RED") }),
     animationClips: createAnimatedClips(),
-    directions: ACTOR_DIRECTIONS
+    directions: ACTOR_DIRECTIONS,
+    gameplayProfile: getCharacterGameplayProfile(id)
   });
 };
 
 export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefinition>> = Object.freeze({
   "arcade-bunny": createArcadeSkin("arcade-bunny", "Bunny Club"),
   "arcade-bear": createArcadeSkin("arcade-bear", "Honey Bear"),
+  "arcade-fox": createArcadeSkin("arcade-fox", "Turbo Fox"),
+  "arcade-cat": createArcadeSkin("arcade-cat", "Mochi Cat"),
   "legacy-vehicle": Object.freeze({
     id: "legacy-vehicle",
     label: "Ground Shaker vehicle",
@@ -202,7 +207,8 @@ export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefin
       })
     }),
     animationClips: LEGACY_STATIC_CLIPS,
-    directions: ACTOR_DIRECTIONS
+    directions: ACTOR_DIRECTIONS,
+    gameplayProfile: getCharacterGameplayProfile("legacy-vehicle")
   }),
   "kenney-infantry": Object.freeze({
     id: "kenney-infantry",
@@ -229,7 +235,8 @@ export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefin
       })
     }),
     animationClips: INFANTRY_STATIC_CLIPS,
-    directions: ACTOR_DIRECTIONS
+    directions: ACTOR_DIRECTIONS,
+    gameplayProfile: getCharacterGameplayProfile("kenney-infantry")
   }),
   "quaternius-animated": Object.freeze({
     id: "quaternius-animated",
@@ -258,14 +265,16 @@ export const ACTOR_SKIN_DEFINITIONS: Readonly<Record<ActorSkinId, ActorSkinDefin
       })
     }),
     animationClips: QUATERNIUS_ANIMATED_CLIPS,
-    directions: ACTOR_DIRECTIONS
+    directions: ACTOR_DIRECTIONS,
+    gameplayProfile: getCharacterGameplayProfile("quaternius-animated")
   })
 });
 
 export function getActorSkinDefinition(requestedId: string | null | undefined): ActorSkinDefinition {
   const normalized = requestedId?.trim().toLowerCase();
   if (normalized === "kenney-infantry" || normalized === "quaternius-animated" ||
-    normalized === "arcade-bunny" || normalized === "arcade-bear") {
+    normalized === "arcade-bunny" || normalized === "arcade-bear" ||
+    normalized === "arcade-fox" || normalized === "arcade-cat") {
     return ACTOR_SKIN_DEFINITIONS[normalized];
   }
   return ACTOR_SKIN_DEFINITIONS["legacy-vehicle"];

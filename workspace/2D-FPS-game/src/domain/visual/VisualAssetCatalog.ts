@@ -134,15 +134,23 @@ const STAGE_VISUAL_THEMES: Readonly<Record<(typeof CONFIGURED_STAGE_IDS)[number]
   "storm-drain": Object.freeze({ id: "storm-drain", label: "Storm Drain", terrainCrop: Object.freeze({ x: 224, y: 64, width: 576, height: 512 }), terrainTint: 0x9fc5b6, overlayColor: 0x153f3a, overlayAlpha: 0.13, borderColor: 0x79d8bd, accentCss: "#79d8bd" })
 });
 
-export const CONFIGURED_ARCADE_STAGE_IDS = Object.freeze(["garden-maze", "bubble-bay", "picnic-plaza"] as const);
+export const CONFIGURED_ARCADE_STAGE_IDS = Object.freeze(["garden-maze", "bubble-bay", "picnic-plaza", "beach-boardwalk", "whispering-woods", "sun-dune", "neon-city", "frost-festival"] as const);
 
-const ARCADE_STAGE_VISUAL_THEMES: Readonly<Record<(typeof CONFIGURED_ARCADE_STAGE_IDS)[number], StageVisualTheme>> = Object.freeze({
+const ARCADE_STAGE_VISUAL_THEMES: Readonly<Partial<Record<(typeof CONFIGURED_ARCADE_STAGE_IDS)[number], StageVisualTheme>>> = Object.freeze({
   "garden-maze": Object.freeze({ id: "garden-maze", label: "클로버 미로", terrainCrop: Object.freeze({ x: 0, y: 0, width: 896, height: 640 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x72c99b, accentCss: "#72c99b" }),
   "bubble-bay": Object.freeze({ id: "bubble-bay", label: "버블 베이", terrainCrop: Object.freeze({ x: 96, y: 48, width: 704, height: 512 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x63cddd, accentCss: "#63cddd" }),
   "picnic-plaza": Object.freeze({ id: "picnic-plaza", label: "피크닉 광장", terrainCrop: Object.freeze({ x: 224, y: 64, width: 576, height: 512 }), terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0xf2a293, accentCss: "#f2a293" })
 });
 
 export const MAP_OBJECT_KINDS = Object.freeze(["barrel", "mine", "crate", "cover", "bounce-wall", "teleporter"] as const satisfies readonly MapObjectKind[]);
+
+const EXTRA_ARCADE_STAGE_THEMES: Readonly<Record<string, StageVisualTheme>> = Object.freeze({
+  "beach-boardwalk": { id: "beach-boardwalk", label: "Sunny Beach", terrainCrop: { x: 0, y: 0, width: 896, height: 640 }, terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x63cddd, accentCss: "#63cddd" },
+  "whispering-woods": { id: "whispering-woods", label: "Whispering Woods", terrainCrop: { x: 0, y: 0, width: 896, height: 640 }, terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0x72c99b, accentCss: "#72c99b" },
+  "sun-dune": { id: "sun-dune", label: "Sun Dune", terrainCrop: { x: 0, y: 0, width: 896, height: 640 }, terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0xffbd66, accentCss: "#ffbd66" },
+  "neon-city": { id: "neon-city", label: "Neon City", terrainCrop: { x: 0, y: 0, width: 896, height: 640 }, terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0xb892ff, accentCss: "#b892ff" },
+  "frost-festival": { id: "frost-festival", label: "Frost Festival", terrainCrop: { x: 0, y: 0, width: 896, height: 640 }, terrainTint: 0xffffff, overlayColor: 0xffffff, overlayAlpha: 0, borderColor: 0xd8f3ff, accentCss: "#d8f3ff" }
+});
 
 const MAP_OBJECT_VISUALS: Readonly<Record<MapObjectKind, MapObjectVisualTheme>> = Object.freeze({
   barrel: Object.freeze({ kind: "barrel", label: "Blast Barrel", glyph: "!", fillColor: 0xc94343, accentColor: 0xffad66, shadowColor: 0x421b23, description: "Explosive" }),
@@ -173,6 +181,7 @@ export function getWeaponHudAsset(weaponId: string): WeaponHudAsset {
 
 export function getStageVisualTheme(stageId: string): StageVisualTheme {
   return ARCADE_STAGE_VISUAL_THEMES[stageId as keyof typeof ARCADE_STAGE_VISUAL_THEMES]
+    ?? EXTRA_ARCADE_STAGE_THEMES[stageId]
     ?? STAGE_VISUAL_THEMES[stageId as keyof typeof STAGE_VISUAL_THEMES]
     ?? STAGE_VISUAL_THEMES.foundry;
 }

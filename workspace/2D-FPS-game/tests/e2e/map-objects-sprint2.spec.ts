@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 interface MapObjectState {
   id: string;
@@ -97,7 +98,7 @@ const stabilizeEnvironment = async (page: Page): Promise<void> => {
 
 const enterCombat = async (page: Page): Promise<void> => {
   await page.addInitScript(() => window.localStorage.clear());
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
   await page.locator("canvas").click({ position: { x: 220, y: 220 } });

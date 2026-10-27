@@ -35,6 +35,15 @@ describe("Arcade HUD feedback", () => {
     expect(healed.notice?.text).toContain("+30 HP");
     expect(advanceArcadeHud(initial(), snapshot({ activeWeapon: "Scatter", weaponSlot: 2 }), 30).notice?.text).toBe("SCATTER EQUIPPED");
   });
+  it("rounds fractional health changes before showing combat notices", () => {
+    const damaged = advanceArcadeHud(initial(), snapshot({ playerHealth: 72.4 }), 10);
+    expect(damaged.notice?.text).toContain("−28 HP");
+    expect(damaged.notice?.text).not.toContain("27.6");
+
+    const healed = advanceArcadeHud(damaged, snapshot({ playerHealth: 83.6 }), 20);
+    expect(healed.notice?.text).toContain("+11 HP");
+    expect(healed.notice?.text).not.toContain("11.2");
+  });
   it.each([
     { phase: "STAGE ENTRY" }, { phase: "TEAM SELECT" }, { team: "RED" }, { roundNumber: 2 }
   ])("clears transient damage on lifecycle change %j", (change) => {

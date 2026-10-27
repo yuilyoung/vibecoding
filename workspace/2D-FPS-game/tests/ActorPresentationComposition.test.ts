@@ -220,7 +220,7 @@ const createComposition = (
 });
 
 describe("ActorPresentationComposition", () => {
-  it.each(["arcade-bunny", "arcade-bear"])("constructs %s once, preserves collider anchors, and reuses cached art after cleanup", (skinId) => {
+  it.each(["arcade-bunny", "arcade-bear", "arcade-fox", "arcade-cat"])("constructs %s once, preserves collider anchors, and reuses cached art after cleanup", (skinId) => {
     const { scene, generatedTextures, createCanvas, animations } = createScene({ manifest: undefined });
     const composition = createComposition(scene, createRuntimeState(), {}, skinId);
     expect(composition.refs.activeSkin.id).toBe(skinId);

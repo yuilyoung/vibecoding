@@ -1,5 +1,7 @@
 import Phaser from "phaser";
+import { applyArcadeWeaponBalance } from "../domain/combat/ArcadeWeaponBalance";
 import { WeaponLogic } from "../domain/combat/WeaponLogic";
+import { applyCharacterWeaponProfile, getCharacterGameplayProfile, type CharacterGameplayProfile } from "../domain/player/CharacterGameplayProfile";
 import type { WeaponConfig, WeaponRoleProfile, WeaponTacticalTag } from "../domain/combat/WeaponLogic";
 import type { ProjectileConfig } from "../domain/combat/ProjectileRuntime";
 import type { BalanceWeaponConfig, GameBalance, PlayerWeaponSlot } from "./scene-types";
@@ -67,10 +69,34 @@ function createWeaponSlot(
   };
 }
 
-export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {
+function createProfiledWeaponSlot(
+  id: string,
+  label: string,
+  config: WeaponConfig,
+  view: {
+    readonly bulletColor: number;
+    readonly bulletWidth: number;
+    readonly bulletHeight: number;
+    readonly pelletCount: number;
+    readonly spreadRadians: number;
+  },
+  profile: CharacterGameplayProfile,
+  arcadePresentation: boolean
+): PlayerWeaponSlot {
+  const arcadeConfig = arcadePresentation ? applyArcadeWeaponBalance(config, id) : config;
+  return createWeaponSlot(id, label, {
+    ...arcadeConfig,
+    ...applyCharacterWeaponProfile(arcadeConfig, profile)
+  }, view);
+}
+
+export function createPlayerWeaponSlots(
+  gameBalance: GameBalance,
+  characterProfile: CharacterGameplayProfile = getCharacterGameplayProfile(null)
+): PlayerWeaponSlot[] {
   const weapons = (gameBalance.weapons ?? {}) as Record<string, BalanceWeaponConfig>;
-  return [
-    createWeaponSlot("carbine", "Carbine", {
+  const slots = [
+    createProfiledWeaponSlot("carbine", "Carbine", {
       ...mergeWeaponConfig({
       fireRateMs: gameBalance.fireRateMs,
       bulletSpeed: gameBalance.bulletSpeed,
@@ -86,8 +112,8 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 4,
       pelletCount: 1,
       spreadRadians: 0
-    }),
-    createWeaponSlot("scatter", "Scatter", {
+    }, characterProfile, gameBalance.arcadePresentation === true),
+    createProfiledWeaponSlot("scatter", "Scatter", {
       ...mergeWeaponConfig({
       fireRateMs: 620,
       bulletSpeed: gameBalance.bulletSpeed * 0.82,
@@ -103,8 +129,8 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 4,
       pelletCount: 3,
       spreadRadians: Phaser.Math.DegToRad(7)
-    }),
-    createWeaponSlot("bazooka", "Bazooka", {
+    }, characterProfile, gameBalance.arcadePresentation === true),
+    createProfiledWeaponSlot("bazooka", "Bazooka", {
       ...mergeWeaponConfig({
       fireRateMs: 1250,
       bulletSpeed: gameBalance.bulletSpeed * 0.54,
@@ -120,8 +146,8 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 8,
       pelletCount: 1,
       spreadRadians: 0
-    }),
-    createWeaponSlot("grenade", "Grenade", {
+    }, characterProfile, gameBalance.arcadePresentation === true),
+    createProfiledWeaponSlot("grenade", "Grenade", {
       ...mergeWeaponConfig({
       fireRateMs: 1100,
       bulletSpeed: gameBalance.bulletSpeed * 0.66,
@@ -137,8 +163,8 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 12,
       pelletCount: 1,
       spreadRadians: 0
-    }),
-    createWeaponSlot("sniper", "Sniper", {
+    }, characterProfile, gameBalance.arcadePresentation === true),
+    createProfiledWeaponSlot("sniper", "Sniper", {
       ...mergeWeaponConfig({
       fireRateMs: 2000,
       bulletSpeed: 0,
@@ -154,8 +180,8 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 3,
       pelletCount: 1,
       spreadRadians: 0
-    }),
-    createWeaponSlot("airStrike", "Air Strike", {
+    }, characterProfile, gameBalance.arcadePresentation === true),
+    createProfiledWeaponSlot("airStrike", "Air Strike", {
       ...mergeWeaponConfig({
       fireRateMs: 15000,
       bulletSpeed: 0,
@@ -171,8 +197,12 @@ export function createPlayerWeaponSlots(gameBalance: GameBalance): PlayerWeaponS
       bulletHeight: 18,
       pelletCount: 1,
       spreadRadians: 0
-    })
+    }, characterProfile, gameBalance.arcadePresentation === true)
   ];
+  if (gameBalance.arcadePresentation === true) {
+    slots.forEach((slot) => slot.logic?.increaseAmmoCapacity(5));
+  }
+  return slots;
 }
 
 export function createDummyWeaponSlots(gameBalance: GameBalance): PlayerWeaponSlot[] {

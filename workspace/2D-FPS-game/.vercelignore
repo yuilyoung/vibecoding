@@ -1,0 +1,10 @@
+.git/
+.claude/
+.codex/
+.npm-cache/
+coverage/
+docs/
+playwright-report/
+test-results/
+tests/
+tools/

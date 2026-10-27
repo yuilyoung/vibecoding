@@ -1,6 +1,7 @@
 import {
   advanceProjectile,
   castBeam,
+  createProjectileCollisionRect,
   createProjectileRuntimeState,
   planAoeCall,
   stepProjectile,
@@ -9,6 +10,15 @@ import {
 
 describe("ProjectileRuntime", () => {
   const arenaBounds = { x: 0, y: 0, width: 960, height: 540 };
+
+  it("expands only the collision footprint when a weapon declares hit radius", () => {
+    expect(createProjectileCollisionRect(100, 120, 10, 4, 5)).toEqual({
+      x: 90,
+      y: 113,
+      width: 20,
+      height: 14
+    });
+  });
 
   it("advances linear projectiles without changing velocity", () => {
     const config: ProjectileConfig = { trajectory: "linear", speed: 100 };

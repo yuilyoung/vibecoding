@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { AudioCueLogic, type AudioCueRuleOverride, type AudioCueState } from "../domain/audio/AudioCueLogic";
-import { GeneratedAudioCuePlayer, type GeneratedToneOverride } from "../domain/audio/GeneratedAudioCuePlayer";
+import { GeneratedAudioCuePlayer, type AmbientCueKey, type GeneratedToneOverride } from "../domain/audio/GeneratedAudioCuePlayer";
 import { SoundCueLogic, type SoundCueEvent, type SoundCueKey } from "../domain/audio/SoundCueLogic";
 import { resolveCameraFeedback, type CameraFeedbackEvent } from "../domain/feedback/CameraFeedbackLogic";
 import { createWeatherSoundStopItem, type WeatherSoundCueKey, type WeatherSoundQueueItem } from "../audio/sound-cue-contract";
@@ -26,8 +26,15 @@ export class AudioFeedbackController {
   private lastDroppedCue: string | null;
   private lastHazardCueStickyUntilMs: number;
   private cameraHitPauseUntilMs: number;
+  private ambientCue: AmbientCueKey;
+  private activeAmbientCue: AmbientCueKey | null;
+  private destroyed: boolean;
 
-  public constructor(private readonly scene: Phaser.Scene, config?: GameBalanceAudio | AudioFeedbackConfig) {
+  public constructor(
+    private readonly scene: Phaser.Scene,
+    config?: GameBalanceAudio | AudioFeedbackConfig,
+    ambientCue: AmbientCueKey = "ambient.casual"
+  ) {
     this.soundCueLogic = new SoundCueLogic();
     this.audioCueLogic = new AudioCueLogic(config?.cueRules);
     this.audioCuePlayer = new GeneratedAudioCuePlayer(config?.cueProfiles);
@@ -45,6 +52,9 @@ export class AudioFeedbackController {
     this.lastDroppedCue = null;
     this.lastHazardCueStickyUntilMs = 0;
     this.cameraHitPauseUntilMs = 0;
+    this.ambientCue = ambientCue;
+    this.activeAmbientCue = null;
+    this.destroyed = false;
   }
 
   public setVolume(volume: number): void {
@@ -64,6 +74,7 @@ export class AudioFeedbackController {
   }
 
   public queueWeatherSoundCue(item: WeatherSoundQueueItem): void {
+    if (this.destroyed) return;
     const now = this.scene.time.now;
 
     if (item.action === "stop") {
@@ -98,10 +109,14 @@ export class AudioFeedbackController {
     }
 
     this.weatherSoundQueue.push(item);
-    this.audioCuePlayer.playWeatherLoop(item.cue, item.volume, item.fadeMs);
-    this.activeWeatherSoundCue = item.cue;
-    this.lastWeatherLoopStartedAtMsByCue[item.cue] = now;
-    this.lastDroppedCue = null;
+    if (this.audioCuePlayer.playWeatherLoop(item.cue, item.volume, item.fadeMs)) {
+      this.activeWeatherSoundCue = item.cue;
+      this.lastWeatherLoopStartedAtMsByCue[item.cue] = now;
+      this.lastDroppedCue = null;
+    } else {
+      this.activeWeatherSoundCue = null;
+      this.lastDroppedCue = item.cue;
+    }
   }
 
   public getWeatherSoundQueue(): readonly WeatherSoundQueueItem[] {
@@ -112,17 +127,43 @@ export class AudioFeedbackController {
     this.weatherSoundQueue = [];
   }
 
+  public setAmbientCue(cue: AmbientCueKey): void {
+    this.ambientCue = cue;
+  }
+
+  public startAmbientLoop(cue: AmbientCueKey = this.ambientCue): void {
+    if (this.destroyed) return;
+    this.activeAmbientCue = this.audioCuePlayer.playAmbientLoop(cue, 0.55, 900) ? cue : null;
+  }
+
+  public stopAmbientLoop(fadeMs = 500): void {
+    this.audioCuePlayer.stopAmbientLoop(fadeMs);
+    this.activeAmbientCue = null;
+  }
+
   public getRuntimeAudioSnapshot(): AudioRuntimeSnapshot {
+    const playback = this.audioCuePlayer.getPlaybackSnapshot();
     return {
       activeWeatherLoopCue: this.activeWeatherSoundCue,
+      activeAmbientLoopCue: this.activeAmbientCue,
       queuedWeatherSoundCount: this.weatherSoundQueue.length,
       lastDroppedCue: this.lastDroppedCue,
       maxSimultaneous: this.audioCueState.maxSimultaneous,
-      weatherLoopCooldownMs: this.weatherLoopCooldownMs
+      weatherLoopCooldownMs: this.weatherLoopCooldownMs,
+      ...playback
     };
   }
 
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.activeAmbientCue = null;
+    this.activeWeatherSoundCue = null;
+    this.audioCuePlayer.destroy();
+  }
+
   public emitSoundCue(event: SoundCueEvent): void {
+    if (this.destroyed) return;
     const now = this.scene.time.now;
     const fallbackCue = this.soundCueLogic.resolveCue(event);
     const decision = this.audioCueLogic.resolveCues([event], this.audioCueState, now);
@@ -154,6 +195,10 @@ export class AudioFeedbackController {
       this.lastDroppedCue = decision.drop[0] ?? null;
     } else {
       this.lastDroppedCue = decision.drop[0] ?? nextCue;
+    }
+
+    if (event.kind === "match-start") {
+      this.startAmbientLoop();
     }
 
     this.triggerCameraFeedbackForSoundEvent(event);

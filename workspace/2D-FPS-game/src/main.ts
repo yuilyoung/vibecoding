@@ -19,11 +19,13 @@ import {
   getWeaponHudAsset,
   getWeatherVisualTheme
 } from "./domain/visual/VisualAssetCatalog";
-import { getActorSkinDefinition, resolveActorSkinFromSearch } from "./domain/visual/ActorSkinCatalog";
+import { getActorSkinDefinition } from "./domain/visual/ActorSkinCatalog";
+import { resolveDeploymentSelection } from "./domain/deployment/DeploymentSelection";
 import { resolveArcadeExperience } from "./domain/visual/ArcadeExperience";
 import { getArcadeStagesStartingWith } from "./domain/map/ArcadeStageCatalog";
 import { bindCozyArcadePicker, renderCozyArcadePicker } from "./ui/CozyArcadePicker";
-import { resolveWorldObjectSkinFromSearch } from "./domain/visual/WorldObjectSkinCatalog";
+import { getWorldObjectSkinDefinition, resolveWorldObjectSkinFromSearch } from "./domain/visual/WorldObjectSkinCatalog";
+import { bindSelectionFlow, renderSelectionFlow } from "./ui/SelectionFlow";
 import { HUD_SNAPSHOT_EVENT, type HudSnapshot } from "./ui/hud-events";
 import {
   applySettingsPanelDraft,
@@ -37,6 +39,9 @@ import {
 } from "./ui/SettingsPanel";
 import { buildTutorialOverlayRenderState } from "./ui/TutorialOverlay";
 import { ArcadeHud } from "./ui/ArcadeHud";
+import { renderArcadeProfileMarkup } from "./ui/arcade-profile";
+import { formatHealthPair, formatHealthValue } from "./ui/health-formatters";
+import { SHOP_ITEMS, getRankForScore } from "./domain/rewards/VictoryRewardLogic";
 import "./styles.css";
 import "./ui/arcade-hud.css";
 import "./ui/cozy-arcade.css";
@@ -56,11 +61,22 @@ declare global {
 const GAME_VIEWPORT_WIDTH = 960;
 const GAME_VIEWPORT_HEIGHT = 540;
 const arcadeExperience = resolveArcadeExperience(window.location.search);
+const deploymentSelection = resolveDeploymentSelection(window.location.search);
+const selectionFlowOpen = !new URLSearchParams(window.location.search).has("setup");
 document.documentElement.dataset.experience = arcadeExperience.enabled ? "cozy" : "classic";
+document.documentElement.dataset.selection = selectionFlowOpen ? "open" : "complete";
 const actorSkinDefinition = arcadeExperience.enabled
   ? getActorSkinDefinition(arcadeExperience.character)
-  : resolveActorSkinFromSearch(window.location.search);
-const worldObjectSkinDefinition = resolveWorldObjectSkinFromSearch(window.location.search);
+  : getActorSkinDefinition(deploymentSelection.actorSkin);
+const worldObjectSkinDefinition = arcadeExperience.enabled
+  ? resolveWorldObjectSkinFromSearch(window.location.search)
+  : getWorldObjectSkinDefinition(deploymentSelection.worldSkin);
+const playerIdentityMarkup = arcadeExperience.enabled
+  ? renderArcadeProfileMarkup("player", arcadeExperience.character, actorSkinDefinition.label)
+  : '<img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />';
+const enemyIdentityMarkup = arcadeExperience.enabled
+  ? renderArcadeProfileMarkup("rival", arcadeExperience.character, `${actorSkinDefinition.label} rival`)
+  : '<img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />';
 
 const appRoot = document.querySelector<HTMLDivElement>("#app");
 
@@ -75,16 +91,16 @@ appRoot.innerHTML = `
         <p class="eyebrow">THE LITTLE ARENA. THE BIG SHOWDOWN.</p>
         <h1>ARENA<span>STRIKE</span><i>★</i></h1>
       </div>
-      <div class="header-actions"><span class="header-chip">1 vs 1 · ARCADE BATTLE</span><button id="open-settings" type="button" aria-label="Open settings" disabled>Settings <kbd>Esc</kbd></button></div>
+      <div class="header-actions"><span class="header-chip">1 vs 1 · ARCADE BATTLE</span><button id="open-ranking" type="button" aria-label="Open ranking" disabled>Ranking</button><button id="open-shop" type="button" aria-label="Open shop" disabled>Shop</button><button id="open-settings" type="button" aria-label="Open settings" disabled>Settings <kbd>Esc</kbd></button></div>
     </header>
     <main class="shell-main">
-      ${renderCozyArcadePicker(arcadeExperience)}
+      ${selectionFlowOpen ? renderSelectionFlow(deploymentSelection) : renderCozyArcadePicker(arcadeExperience)}
       <section class="stage-panel">
         <div class="hud-strip hud-strip--top">
           <section class="hud-card player-card">
             <div class="identity-head">
-              <img id="player-portrait" class="operator-portrait" src="/assets/runtime/sprites/player-blue.png" alt="Blue operator preview" />
-              <span class="${arcadeExperience.enabled ? `cozy-mascot cozy-mascot--${arcadeExperience.character === "arcade-bear" ? "bear" : "bunny"}` : "operator-badge operator-badge--blue"}" role="img" aria-label="Player character">${arcadeExperience.enabled ? "<b>•ᴗ•</b>" : "V"}</span>
+              ${playerIdentityMarkup}
+              <span class="operator-badge operator-badge--blue" role="img" aria-label="Player team">V</span>
               <div class="identity-copy">
                 <p class="hud-label">YOU / CHALLENGER</p>
                 <strong id="player-operator-text">Blue Vanguard operator</strong>
@@ -99,12 +115,12 @@ appRoot.innerHTML = `
           </section>
           <section class="hud-card enemy-card">
             <div class="identity-head identity-head--enemy">
-              <img id="enemy-portrait" class="operator-portrait" src="/assets/runtime/sprites/enemy-red.png" alt="Red hitman preview" />
-              <span class="${arcadeExperience.enabled ? `cozy-mascot cozy-mascot--${arcadeExperience.character === "arcade-bear" ? "bear" : "bunny"} cozy-mascot--rival` : "operator-badge operator-badge--red"}" role="img" aria-label="Rival character">${arcadeExperience.enabled ? "<b>•ᴗ•</b>" : "V"}</span>
+              ${enemyIdentityMarkup}
+              <span class="operator-badge operator-badge--red" role="img" aria-label="Rival team">V</span>
               <div class="identity-copy">
                 <p class="hud-label">RIVAL / CHALLENGER</p>
                 <strong id="enemy-operator-text">Red Vanguard operator</strong>
-                <span id="actor-skin-label">${actorSkinDefinition.label}</span>
+                <span id="actor-skin-label">${actorSkinDefinition.label} · ${actorSkinDefinition.gameplayProfile.traitLabel}</span>
               </div>
             </div>
             <div class="rival-vitality">
@@ -163,6 +179,23 @@ appRoot.innerHTML = `
                 <button id="settings-save" type="button" data-testid="settings-save">Save</button>
                 <button id="settings-replay-tutorial" type="button" data-testid="settings-replay-tutorial">Replay Tutorial</button>
               </div>
+            </div>
+          </section>
+          <section id="shop-panel-root" class="settings-panel is-hidden" data-testid="shop-panel" aria-hidden="true">
+            <div class="settings-panel-surface shop-panel-surface" role="dialog" aria-modal="true" aria-labelledby="shop-panel-title">
+              <div class="overlay-head"><p class="panel-kicker">REWARD SHOP</p><button id="shop-close" class="overlay-icon-button" type="button" aria-label="Close shop">Close</button></div>
+              <h2 id="shop-panel-title">Spend your victory coins</h2>
+              <p id="shop-wallet" class="shop-wallet"></p>
+              <div id="shop-items" class="shop-items">${renderShopCatalogMarkup()}</div>
+              <p id="shop-feedback" class="shop-feedback" role="status"></p>
+            </div>
+          </section>
+          <section id="ranking-panel-root" class="settings-panel is-hidden" data-testid="ranking-panel" aria-hidden="true">
+            <div class="settings-panel-surface ranking-panel-surface" role="dialog" aria-modal="true" aria-labelledby="ranking-panel-title">
+              <div class="overlay-head"><p class="panel-kicker">ARENA RANKING</p><button id="ranking-close" class="overlay-icon-button" type="button" aria-label="Close ranking">Close</button></div>
+              <h2 id="ranking-panel-title">Local leaderboard</h2>
+              <p id="ranking-position" class="shop-wallet"></p>
+              <div id="ranking-entries" class="ranking-entries"></div>
             </div>
           </section>
           <section id="tutorial-overlay-root" class="tutorial-overlay is-hidden" data-testid="tutorial-overlay" aria-hidden="true">
@@ -267,30 +300,35 @@ if (gameContainer === null) {
 }
 
 const unbindCozyPicker = bindCozyArcadePicker(appRoot, (search) => { window.location.search = search; }, () => mainScene.input.keyboard?.resetKeys());
+const unbindSelectionFlow = selectionFlowOpen ? bindSelectionFlow(appRoot, (search) => { window.location.search = search; }) : () => undefined;
 const runtimeBalance = arcadeExperience.enabled
   ? { ...gameBalance, stages: getArcadeStagesStartingWith(arcadeExperience.stage), arcadePresentation: true }
-  : gameBalance;
+  : { ...gameBalance, stages: [...gameBalance.stages.filter((stage) => stage.id === deploymentSelection.stage), ...gameBalance.stages.filter((stage) => stage.id !== deploymentSelection.stage)] };
 const mainScene = new MainScene(
   runtimeBalance as unknown as GameBalance,
   actorSkinDefinition,
   worldObjectSkinDefinition,
   (resolvedSkin) => {
-    queryText("#actor-skin-label").textContent = resolvedSkin.label;
+    queryText("#actor-skin-label").textContent = `${resolvedSkin.label} · ${resolvedSkin.gameplayProfile.traitLabel}`;
     queryElement("#stage-frame").dataset.actorSkin = resolvedSkin.id;
   },
   (resolvedSkin) => {
     queryElement("#stage-frame").dataset.worldSkin = resolvedSkin.id;
-  }
+  },
+  deploymentSelection.weather,
+  deploymentSelection.weapon,
+  deploymentSelection.enemyCount
 );
 const hudElements = {
-  playerPortrait: queryElement("#player-portrait"),
+  playerPortrait: document.querySelector<HTMLElement>("#player-portrait"),
   playerOperatorText: queryText("#player-operator-text"),
-  enemyPortrait: queryElement("#enemy-portrait"),
+  enemyPortrait: document.querySelector<HTMLElement>("#enemy-portrait"),
   enemyOperatorText: queryText("#enemy-operator-text"),
   teamChip: queryText("#team-chip"),
   phaseChip: queryText("#phase-chip"),
   playerHealthText: queryText("#player-health-text"),
   playerHealthFill: queryElement("#player-health-fill"),
+  energyMeter: queryElement("#energy-meter"),
   weaponIcon: queryElement("#weapon-icon"),
   weaponName: queryText("#weapon-name"),
   ammoCount: queryText("#ammo-count"),
@@ -335,6 +373,19 @@ const settingsPanelElements = {
   mouseSensitivity: queryInput("#settings-mouse-sensitivity"),
   mouseSensitivityText: queryText("#settings-mouse-sensitivity-text")
 };
+const shopPanelElements = {
+  root: queryElement("#shop-panel-root"),
+  close: queryButton("#shop-close"),
+  wallet: queryText("#shop-wallet"),
+  items: queryElement("#shop-items"),
+  feedback: queryText("#shop-feedback")
+};
+const rankingPanelElements = {
+  root: queryElement("#ranking-panel-root"),
+  close: queryButton("#ranking-close"),
+  position: queryText("#ranking-position"),
+  entries: queryElement("#ranking-entries")
+};
 const tutorialOverlayElements = {
   root: queryElement("#tutorial-overlay-root"),
   skip: queryButton("#tutorial-skip"),
@@ -359,6 +410,8 @@ const onHudSnapshot = ((event: Event) => {
     hudElements.primaryPlay.disabled = false;
     hudElements.primaryPlay.querySelector("span")!.textContent = "Choose your team";
     queryButton("#open-settings").disabled = false;
+    queryButton("#open-shop").disabled = false;
+    queryButton("#open-ranking").disabled = false;
   }
   renderHud(snapshot);
 }) as EventListener;
@@ -399,6 +452,11 @@ renderTutorialOverlay();
 
 settingsPanelElements.close.addEventListener("click", closeSettings);
 queryButton("#open-settings").addEventListener("click", openSettings);
+queryButton("#open-shop").addEventListener("click", openShop);
+shopPanelElements.close.addEventListener("click", closeShop);
+shopPanelElements.items.addEventListener("click", onShopItemClick);
+queryButton("#open-ranking").addEventListener("click", openRanking);
+rankingPanelElements.close.addEventListener("click", closeRanking);
 hudElements.weaponSlotGrid.addEventListener("click", onWeaponSlotClick);
 settingsPanelElements.apply.addEventListener("click", applySettingsDraft);
 settingsPanelElements.save.addEventListener("click", saveSettingsDraft);
@@ -644,6 +702,11 @@ function isSettingsPanelField(value: string | undefined): value is SettingsPanel
 
 function removeUiListeners(): void {
   queryButton("#open-settings").removeEventListener("click", openSettings);
+  queryButton("#open-shop").removeEventListener("click", openShop);
+  queryButton("#open-ranking").removeEventListener("click", openRanking);
+  shopPanelElements.close.removeEventListener("click", closeShop);
+  shopPanelElements.items.removeEventListener("click", onShopItemClick);
+  rankingPanelElements.close.removeEventListener("click", closeRanking);
   hudElements.weaponSlotGrid.removeEventListener("click", onWeaponSlotClick);
   settingsPanelElements.close.removeEventListener("click", closeSettings);
   settingsPanelElements.apply.removeEventListener("click", applySettingsDraft);
@@ -657,6 +720,7 @@ function removeUiListeners(): void {
   tutorialOverlayElements.hide.removeEventListener("click", hideTutorialPermanently);
   window.removeEventListener("keydown", onGlobalKeyDown, { capture: true });
   unbindCozyPicker();
+  unbindSelectionFlow();
   window.removeEventListener("keyup", blockGameInputWhenSettingsOpen, { capture: true });
   window.removeEventListener("pointerdown", onGlobalPointerDown, { capture: true });
 }
@@ -670,17 +734,21 @@ function renderHud(snapshot: HudSnapshot): void {
   const stageTheme = getStageVisualTheme(snapshot.areaPreview?.stageId ?? "foundry");
   const weatherTheme = getWeatherVisualTheme(snapshot.weather?.type ?? "clear");
 
-  updateImageSource(hudElements.playerPortrait, portraits.playerPath, "player-portrait-src");
-  updateAttribute(hudElements.playerPortrait, "alt", portraits.playerLabel, "player-portrait-alt");
+  if (hudElements.playerPortrait !== null) {
+    updateImageSource(hudElements.playerPortrait, portraits.playerPath, "player-portrait-src");
+    updateAttribute(hudElements.playerPortrait, "alt", portraits.playerLabel, "player-portrait-alt");
+  }
   updateText(hudElements.playerOperatorText, arcadeExperience.enabled ? `${actorSkinDefinition.label} · YOU` : portraits.playerLabel, "player-operator-text");
-  updateImageSource(hudElements.enemyPortrait, portraits.enemyPath, "enemy-portrait-src");
-  updateAttribute(hudElements.enemyPortrait, "alt", portraits.enemyLabel, "enemy-portrait-alt");
-  updateText(hudElements.enemyOperatorText, arcadeExperience.enabled ? `${actorSkinDefinition.label} · RIVAL` : portraits.enemyLabel, "enemy-operator-text");
+  if (hudElements.enemyPortrait !== null) {
+    updateImageSource(hudElements.enemyPortrait, portraits.enemyPath, "enemy-portrait-src");
+    updateAttribute(hudElements.enemyPortrait, "alt", portraits.enemyLabel, "enemy-portrait-alt");
+  }
+  updateText(hudElements.enemyOperatorText, arcadeExperience.enabled ? `${actorSkinDefinition.label} · RIVALS ${snapshot.livingEnemyCount ?? 1}/${snapshot.totalEnemyCount ?? 1}` : portraits.enemyLabel, "enemy-operator-text");
   updateText(hudElements.teamChip, snapshot.team, "team-chip-text");
   updateClassState(hudElements.teamChip, "team-chip--blue", snapshot.team === "BLUE", "team-chip-blue");
   updateClassState(hudElements.teamChip, "team-chip--red", snapshot.team === "RED", "team-chip-red");
   updateText(hudElements.phaseChip, snapshot.phase, "phase-chip-text");
-  updateText(hudElements.playerHealthText, `${snapshot.playerHealth}/${snapshot.playerMaxHealth}`, "player-health-text");
+  updateText(hudElements.playerHealthText, formatHealthPair(snapshot.playerHealth, snapshot.playerMaxHealth), "player-health-text");
   updateImageSource(
     hudElements.weaponIcon,
     weaponAsset.iconPath,
@@ -697,7 +765,7 @@ function renderHud(snapshot: HudSnapshot): void {
   updateClassState(hudElements.bannerCard, "is-hidden", !snapshot.overlay.visible, "banner-hidden");
   updateText(hudElements.scoreText, `${snapshot.playerScore} : ${snapshot.dummyScore}`, "score-text");
   updateText(hudElements.roundText, `Round ${snapshot.roundNumber} / First to ${snapshot.scoreToWin}`, "round-text");
-  updateText(hudElements.dummyHealthText, `${snapshot.dummyHealth}/${snapshot.dummyMaxHealth}`, "dummy-health-text");
+  updateText(hudElements.dummyHealthText, formatHealthPair(snapshot.dummyHealth, snapshot.dummyMaxHealth), "dummy-health-text");
   updateText(hudElements.spawnText, formatSpawnStatus(snapshot), "spawn-text");
   updateText(hudElements.eventText, toActionCallout(snapshot), "event-text");
   updateText(hudElements.gateText, snapshot.gateOpen ? "Gate Open" : "Gate Closed", "gate-text");
@@ -724,6 +792,7 @@ function renderHud(snapshot: HudSnapshot): void {
 
   setMeterWidth(hudElements.playerHealthFill, snapshot.playerHealth, snapshot.playerMaxHealth);
   setMeterWidth(hudElements.dummyHealthFill, snapshot.dummyHealth, snapshot.dummyMaxHealth);
+  updateAttribute(hudElements.energyMeter, "aria-valuenow", formatHealthValue(snapshot.playerHealth), "player-health-aria-value");
   updateStyle(hudElements.reloadFill, "width", `${Math.round(snapshot.reloadProgress * 100)}%`, "reload-fill-width");
   updateStyle(hudElements.reloadFill, "opacity", snapshot.isReloading ? "1" : "0.24", "reload-fill-opacity");
 }
@@ -785,6 +854,8 @@ function normalizeHudSnapshot(snapshot: HudSnapshot | null | undefined): HudSnap
     playerMaxHealth: maxOrFallback(snapshot?.playerMaxHealth, gameBalance.maxHealth),
     dummyHealth: fallbackNumber(snapshot?.dummyHealth, gameBalance.maxHealth),
     dummyMaxHealth: maxOrFallback(snapshot?.dummyMaxHealth, gameBalance.maxHealth),
+    livingEnemyCount: fallbackNumber(snapshot?.livingEnemyCount, 1),
+    totalEnemyCount: maxOrFallback(snapshot?.totalEnemyCount, 1),
     gateOpen: Boolean(snapshot?.gateOpen),
     roundNumber: fallbackNumber(snapshot?.roundNumber, 1),
     playerScore: fallbackNumber(snapshot?.playerScore, 0),
@@ -975,6 +1046,65 @@ function renderWeaponSlots(snapshot: HudSnapshot): void {
   hudElements.weaponSlotGrid.replaceChildren(...buttons);
   if (focusedSlot !== undefined) buttons.find((button) => button.dataset.slot === focusedSlot)?.focus({ preventScroll: true });
   hudRenderCache.set("weapon-slot-grid", serialized);
+}
+
+function renderShopCatalogMarkup(): string {
+  return SHOP_ITEMS.map((item) => `<article class="shop-item"><div><strong>${item.label}</strong><small>${item.description}</small></div><button type="button" data-shop-item="${item.id}">${item.price} COINS</button></article>`).join("");
+}
+
+function openShop(): void {
+  if (!mainScene.sys.isActive()) return;
+  mainScene.setInputOverlayActive(true);
+  shopPanelElements.root.className = "settings-panel";
+  shopPanelElements.root.setAttribute("aria-hidden", "false");
+  renderShopPanel();
+}
+
+function closeShop(): void {
+  mainScene.setInputOverlayActive(false);
+  shopPanelElements.root.className = "settings-panel is-hidden";
+  shopPanelElements.root.setAttribute("aria-hidden", "true");
+}
+
+function renderShopPanel(): void {
+  const rewards = mainScene.getRewardState();
+  const rank = getRankForScore(rewards.totalScore);
+  shopPanelElements.wallet.textContent = `${rank.label} · ${rewards.totalScore} score · ${rewards.coins} coins`;
+  shopPanelElements.items.querySelectorAll<HTMLButtonElement>("[data-shop-item]").forEach((button) => {
+    const item = SHOP_ITEMS.find((candidate) => candidate.id === button.dataset.shopItem);
+    const owned = item !== undefined && rewards.purchasedItemIds.includes(item.id);
+    button.disabled = owned || item === undefined || rewards.coins < (item?.price ?? Number.MAX_SAFE_INTEGER);
+    button.textContent = owned ? "OWNED" : item === undefined ? "UNAVAILABLE" : `${item.price} COINS`;
+  });
+}
+
+function onShopItemClick(event: Event): void {
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-shop-item]");
+  if (!target?.dataset.shopItem) return;
+  const result = mainScene.purchaseShopItem(target.dataset.shopItem);
+  shopPanelElements.feedback.textContent = result.success ? `${result.item?.label} purchased.` : result.reason === "INSUFFICIENT_COINS" ? "You need more victory coins." : "Already owned.";
+  renderShopPanel();
+}
+
+function openRanking(): void {
+  if (!mainScene.sys.isActive()) return;
+  mainScene.setInputOverlayActive(true);
+  rankingPanelElements.root.className = "settings-panel";
+  rankingPanelElements.root.setAttribute("aria-hidden", "false");
+  renderRankingPanel();
+}
+
+function closeRanking(): void {
+  mainScene.setInputOverlayActive(false);
+  rankingPanelElements.root.className = "settings-panel is-hidden";
+  rankingPanelElements.root.setAttribute("aria-hidden", "true");
+}
+
+function renderRankingPanel(): void {
+  const entries = mainScene.getLeaderboardState().entries;
+  const position = mainScene.getLeaderboardPosition();
+  rankingPanelElements.position.textContent = position === null ? "Play a match to register your first score." : `Your position: #${position}`;
+  rankingPanelElements.entries.innerHTML = entries.length === 0 ? "<p>No scores yet. Win a duel to enter the board.</p>" : entries.map((entry, index) => `<div class="ranking-entry ${entry.id === "player" ? "is-player" : ""}"><span>#${index + 1}</span><strong>${entry.name}</strong><small>${entry.rank.toUpperCase()}</small><b>${entry.score}</b></div>`).join("");
 }
 
 function onWeaponSlotClick(event: MouseEvent): void {

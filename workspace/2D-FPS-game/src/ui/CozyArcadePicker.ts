@@ -1,20 +1,22 @@
 import { createArcadeExperienceSearch, type ArcadeExperience } from "../domain/visual/ArcadeExperience";
+import { getCharacterGameplayProfile } from "../domain/player/CharacterGameplayProfile";
+import { ARCADE_STAGE_PREVIEWS } from "./arcade-stage-preview-catalog";
 
 export function renderCozyArcadePicker(selection: ArcadeExperience): string {
   return `<details class="cozy-picker" ${selection.enabled ? "open" : ""}>
-    <summary><span class="cozy-new">NEW</span> COZY ARCADE <span>작은 친구들의 반짝이는 한 판</span><b>캐릭터 & 맵 고르기 ↗</b></summary>
-    <form id="cozy-arcade-form" class="cozy-picker-body" aria-label="Cozy Arcade 선택">
-      <div class="cozy-picker-heading"><p>MAKE A LITTLE SPLASH</p><h2>오늘은 어디서 놀까?</h2><span>마음에 드는 친구와 놀이터를 골라요.</span></div>
-      <fieldset class="cozy-characters"><legend>01 · 나의 친구</legend>
-        ${characterCard("arcade-bunny", "bunny", "소다 버니", "SODA BUNNY", selection)}
-        ${characterCard("arcade-bear", "bear", "허니 베어", "HONEY BEAR", selection)}
+    <summary><span class="cozy-new">NEW</span> COZY ARCADE <span>Pick a buddy and arena for a quick duel.</span><b>Character & map</b></summary>
+    <form id="cozy-arcade-form" class="cozy-picker-body" aria-label="Cozy Arcade selection">
+      <div class="cozy-picker-heading"><p>MAKE A LITTLE SPLASH</p><h2>Choose your arcade buddy</h2><span>Every buddy brings a different way to play.</span></div>
+      <fieldset class="cozy-characters"><legend>01 · Your buddy</legend>
+        ${characterCard("arcade-bunny", "bunny", "Soda Bunny", "QUICK PAWS", selection)}
+        ${characterCard("arcade-bear", "bear", "Honey Bear", "COZY TANK", selection)}
+        ${characterCard("arcade-fox", "fox", "Turbo Fox", "DASH SCOUT", selection)}
+        ${characterCard("arcade-cat", "cat", "Mochi Cat", "SMOOTH LOADER", selection)}
       </fieldset>
-      <fieldset class="cozy-stages"><legend>02 · 오늘의 놀이터</legend>
-        ${stageCard("garden-maze", "garden", "미로 정원", "민트빛 울타리 사이로 쏙!", selection)}
-        ${stageCard("bubble-bay", "bay", "버블 비치", "나무다리 너머 푸른 바다", selection)}
-        ${stageCard("picnic-plaza", "picnic", "피크닉 광장", "넓은 광장에서 가볍게 한 판", selection)}
+      <fieldset class="cozy-stages"><legend>02 · Today's arena</legend>
+        ${ARCADE_STAGE_PREVIEWS.map((stage) => stageCard(stage, selection)).join("")}
       </fieldset>
-      <div class="cozy-launch"><span>WASD 이동 · 마우스 조준 & 발사 · Space 달리기</span><button type="submit" data-testid="cozy-play">이 친구로 놀러 가기 <b>→</b></button>${selection.enabled ? '<a href="?experience=classic">기존 아레나</a>' : ""}</div>
+      <div class="cozy-launch"><span>WASD move · mouse aim & fire · Space sprint</span><button type="submit" data-testid="cozy-play">Enter cozy arcade<b>→</b></button>${selection.enabled ? '<a href="?arcade=classic&setup=complete">Classic mode</a>' : ""}</div>
     </form>
   </details>`;
 }
@@ -27,8 +29,6 @@ export function bindCozyArcadePicker(root: HTMLElement, navigate: (search: strin
     const fields = new FormData(form);
     navigate(createArcadeExperienceSearch(String(fields.get("character")), String(fields.get("stage"))));
   };
-  // Phaser captures arrows/Space globally. Keep native radio and button defaults,
-  // but do not let focused picker controls also operate the live game.
   const shieldKeys = (event: KeyboardEvent): void => {
     if (event.target instanceof Node && form?.contains(event.target)) event.stopImmediatePropagation();
   };
@@ -45,9 +45,10 @@ export function bindCozyArcadePicker(root: HTMLElement, navigate: (search: strin
 }
 
 function characterCard(id: string, shape: string, name: string, subtitle: string, selection: ArcadeExperience): string {
-  return `<label class="cozy-character-card"><input type="radio" name="character" value="${id}" ${selection.character === id ? "checked" : ""}><span class="cozy-mascot cozy-mascot--${shape}" aria-hidden="true"><i></i><b>•ᴗ•</b></span><strong>${name}</strong><small>${subtitle}</small></label>`;
+  const profile = getCharacterGameplayProfile(id);
+  return `<label class="cozy-character-card"><input type="radio" name="character" value="${id}" ${selection.character === id ? "checked" : ""}><span class="cozy-mascot cozy-mascot--${shape}" aria-hidden="true"><i></i><b>•ᴗ•</b></span><strong>${name}</strong><small>${subtitle}</small><em>${profile.traitLabel}</em></label>`;
 }
 
-function stageCard(id: string, theme: string, name: string, subtitle: string, selection: ArcadeExperience): string {
-  return `<label class="cozy-stage-card"><input type="radio" name="stage" value="${id}" ${selection.stage === id ? "checked" : ""}><span class="cozy-stage-preview cozy-stage-preview--${theme}" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></span><strong>${name}</strong><small>${subtitle}</small></label>`;
+function stageCard(stage: (typeof ARCADE_STAGE_PREVIEWS)[number], selection: ArcadeExperience): string {
+  return `<label class="cozy-stage-card"><input type="radio" name="stage" value="${stage.id}" ${selection.stage === stage.id ? "checked" : ""}><span class="cozy-stage-preview cozy-stage-preview--${stage.id}" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></span><strong>${stage.label}</strong><small>${stage.subtitle}</small></label>`;
 }

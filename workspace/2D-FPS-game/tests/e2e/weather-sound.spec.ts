@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial" });
 
@@ -34,7 +35,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await waitForSceneReady(page);
 
@@ -48,7 +49,7 @@ const enterCombat = async (page: Page): Promise<void> => {
   });
 };
 
-test("keeps generated weather ambience disabled across weather and match reset transitions", async ({ page }) => {
+test("switches generated weather ambience across weather and match reset transitions", async ({ page }) => {
   await enterCombat(page);
 
   const result = await withScene(page, (scene) => {
@@ -59,15 +60,19 @@ test("keeps generated weather ambience disabled across weather and match reset t
     return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
   });
 
-  expect(result.queue).toEqual([]);
+  expect(result.queue).toEqual([
+    expect.objectContaining({ action: "play", cue: "weather.rain.loop", weatherType: "rain" }),
+    expect.objectContaining({ action: "stop", cue: "weather.rain.loop", reason: "MATCH_RESET" }),
+    expect.objectContaining({ action: "play", cue: "weather.storm.loop", weatherType: "storm" })
+  ]);
 
   expect(result.audio).toMatchObject({
-    activeWeatherLoopCue: null,
+    activeWeatherLoopCue: "weather.storm.loop",
     lastDroppedCue: null
   });
 });
 
-test("keeps every configured weather transition free of generated loop playback", async ({ page }) => {
+test("maps every configured weather transition to the expected loop playback", async ({ page }) => {
   await enterCombat(page);
 
   const result = await withScene(page, (scene) => {
@@ -81,7 +86,14 @@ test("keeps every configured weather transition free of generated loop playback"
     return { queue: scene.debugGetWeatherSoundQueue(), audio: scene.getDebugSnapshot().audio };
   });
 
-  expect(result.queue).toEqual([]);
+  expect(result.queue).toEqual([
+    expect.objectContaining({ action: "play", cue: "weather.rain.loop", weatherType: "rain" }),
+    expect.objectContaining({ action: "stop", cue: "weather.rain.loop", reason: "WEATHER_CLEAR" }),
+    expect.objectContaining({ action: "play", cue: "weather.sandstorm.loop", weatherType: "sandstorm" }),
+    expect.objectContaining({ action: "stop", cue: "weather.sandstorm.loop", reason: "WEATHER_CLEAR" }),
+    expect.objectContaining({ action: "play", cue: "weather.storm.loop", weatherType: "storm" }),
+    expect.objectContaining({ action: "stop", cue: "weather.storm.loop", reason: "MATCH_RESET" })
+  ]);
   expect(result.audio).toMatchObject({
     activeWeatherLoopCue: null,
     lastDroppedCue: null

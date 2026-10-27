@@ -1,6 +1,17 @@
 import type { WeatherSoundCueKey } from "../../audio/sound-cue-contract";
 import type { SoundCueKey } from "./SoundCueLogic";
 
+export type AmbientCueKey =
+  | "ambient.casual"
+  | "ambient.garden-maze"
+  | "ambient.bubble-bay"
+  | "ambient.picnic-plaza"
+  | "ambient.beach-boardwalk"
+  | "ambient.whispering-woods"
+  | "ambient.sun-dune"
+  | "ambient.neon-city"
+  | "ambient.frost-festival";
+
 export interface GeneratedTone {
   readonly frequencyHz: number;
   readonly durationMs: number;
@@ -22,9 +33,15 @@ export interface GeneratedToneOverride {
 const toneMap = {
   "fire.carbine": { frequencyHz: 304, durationMs: 58, gain: 0.028, attackMs: 4, releaseMs: 22, type: "square" },
   "fire.scatter": { frequencyHz: 158, durationMs: 104, gain: 0.038, attackMs: 6, releaseMs: 46, type: "triangle" },
+  "fire.bazooka": { frequencyHz: 118, durationMs: 160, gain: 0.045, attackMs: 8, releaseMs: 84, type: "sawtooth" },
+  "fire.grenade": { frequencyHz: 82, durationMs: 132, gain: 0.038, attackMs: 8, releaseMs: 72, type: "triangle" },
+  "fire.sniper": { frequencyHz: 640, durationMs: 180, gain: 0.034, attackMs: 3, releaseMs: 92, type: "sine" },
+  "fire.airStrike": { frequencyHz: 72, durationMs: 240, gain: 0.05, attackMs: 14, releaseMs: 128, type: "sawtooth" },
   "fire.generic": { frequencyHz: 226, durationMs: 62, gain: 0.024, attackMs: 3, releaseMs: 24, type: "square" },
   "hit.player": { frequencyHz: 108, durationMs: 108, gain: 0.038, attackMs: 2, releaseMs: 68, type: "sawtooth" },
   "hit.dummy": { frequencyHz: 388, durationMs: 74, gain: 0.028, attackMs: 5, releaseMs: 30, type: "triangle" },
+  "impact.actor": { frequencyHz: 516, durationMs: 52, gain: 0.022, attackMs: 2, releaseMs: 22, type: "square" },
+  "impact.world": { frequencyHz: 246, durationMs: 46, gain: 0.016, attackMs: 2, releaseMs: 20, type: "triangle" },
   "deflect.ricochet": { frequencyHz: 1240, durationMs: 68, gain: 0.02, attackMs: 2, releaseMs: 24, type: "square" },
   "deflect.shield": { frequencyHz: 702, durationMs: 128, gain: 0.024, attackMs: 10, releaseMs: 76, type: "sine" },
   "pickup.ammo": { frequencyHz: 628, durationMs: 76, gain: 0.026, attackMs: 10, releaseMs: 34, type: "sine" },
@@ -42,6 +59,44 @@ const toneMap = {
 } satisfies Record<SoundCueKey, GeneratedTone>;
 
 export const generatedToneKeys = Object.freeze(Object.keys(toneMap) as SoundCueKey[]);
+
+interface GeneratedAmbientTone extends GeneratedTone {
+  readonly melodyHz: readonly number[];
+  readonly beatMs: number;
+}
+
+const ambientToneMap: Record<AmbientCueKey, GeneratedAmbientTone> = {
+  "ambient.casual": { frequencyHz: 196, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "triangle", melodyHz: [196, 247, 294, 247], beatMs: 640 },
+  "ambient.garden-maze": { frequencyHz: 262, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "triangle", melodyHz: [262, 330, 392, 330], beatMs: 580 },
+  "ambient.bubble-bay": { frequencyHz: 220, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "sine", melodyHz: [220, 277, 330, 277], beatMs: 720 },
+  "ambient.picnic-plaza": { frequencyHz: 294, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "triangle", melodyHz: [294, 370, 440, 370], beatMs: 540 },
+  "ambient.beach-boardwalk": { frequencyHz: 247, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "sine", melodyHz: [247, 311, 370, 311], beatMs: 760 },
+  "ambient.whispering-woods": { frequencyHz: 174, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "triangle", melodyHz: [174, 220, 261, 220], beatMs: 840 },
+  "ambient.sun-dune": { frequencyHz: 196, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "sine", melodyHz: [196, 247, 330, 247], beatMs: 680 },
+  "ambient.neon-city": { frequencyHz: 330, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "square", melodyHz: [330, 392, 494, 392], beatMs: 420 },
+  "ambient.frost-festival": { frequencyHz: 233, durationMs: 2400, gain: 0.008, attackMs: 240, releaseMs: 420, type: "sine", melodyHz: [233, 294, 349, 294], beatMs: 900 }
+};
+
+export function getGeneratedAmbientTone(cue: AmbientCueKey): GeneratedAmbientTone {
+  return ambientToneMap[cue];
+}
+
+export interface GeneratedAudioPlaybackSnapshot {
+  readonly contextState: AudioContextState | "not-created" | "unavailable";
+  readonly ambientLoopScheduled: boolean;
+  readonly weatherLoopScheduled: boolean;
+  readonly outputVolume: number;
+}
+
+interface GeneratedLoopPlayback {
+  readonly oscillator: OscillatorNode;
+  readonly gainNode: GainNode;
+  readonly baseGain: number;
+}
+
+interface GeneratedAmbientLoopPlayback extends GeneratedLoopPlayback {
+  readonly melodyTimer: ReturnType<typeof globalThis.setInterval>;
+}
 
 export const getGeneratedTone = (
   cue: SoundCueKey,
@@ -65,19 +120,23 @@ export const getGeneratedTone = (
 
 export class GeneratedAudioCuePlayer {
   private audioContext: AudioContext | null;
-  private weatherLoop: { oscillator: OscillatorNode; gainNode: GainNode } | null;
+  private weatherLoop: GeneratedLoopPlayback | null;
+  private ambientLoop: GeneratedAmbientLoopPlayback | null;
   private volume: number;
+  private destroyed: boolean;
   private readonly toneOverrides?: Partial<Record<SoundCueKey, GeneratedToneOverride>>;
 
   public constructor(toneOverrides?: Partial<Record<SoundCueKey, GeneratedToneOverride>>) {
     this.audioContext = null;
     this.weatherLoop = null;
+    this.ambientLoop = null;
     this.volume = 1;
+    this.destroyed = false;
     this.toneOverrides = toneOverrides;
   }
 
   public play(cue: SoundCueKey): void {
-    if (typeof AudioContext === "undefined") {
+    if (this.destroyed || typeof AudioContext === "undefined") {
       return;
     }
 
@@ -108,17 +167,18 @@ export class GeneratedAudioCuePlayer {
     }
   }
 
-  public playWeatherLoop(cue: WeatherSoundCueKey, volume: number, fadeMs: number): void {
+  public playWeatherLoop(cue: WeatherSoundCueKey, volume: number, fadeMs: number): boolean {
     this.stopWeatherLoop(fadeMs);
-    if (typeof AudioContext === "undefined") {
-      return;
+    if (this.destroyed || typeof AudioContext === "undefined") {
+      return false;
     }
 
     const audioContext = this.getAudioContext();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     const startAt = audioContext.currentTime;
-    const targetGain = Math.max(0.0001, Math.min(1, volume * this.volume));
+    const baseGain = Math.max(0, Math.min(1, volume));
+    const targetGain = baseGain * this.volume;
     const fadeSeconds = Math.max(0, fadeMs) / 1000;
     const frequencyHz = cue === "weather.rain.loop" ? 184 : cue === "weather.sandstorm.loop" ? 96 : 132;
 
@@ -129,11 +189,68 @@ export class GeneratedAudioCuePlayer {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     oscillator.start(startAt);
-    this.weatherLoop = { oscillator, gainNode };
+    this.weatherLoop = { oscillator, gainNode, baseGain };
 
     if (audioContext.state === "suspended") {
       void audioContext.resume();
     }
+    return true;
+  }
+
+  public playAmbientLoop(cue: AmbientCueKey, volume: number, fadeMs: number): boolean {
+    this.stopAmbientLoop(fadeMs);
+    if (this.destroyed || typeof AudioContext === "undefined") {
+      return false;
+    }
+
+    const audioContext = this.getAudioContext();
+    const tone = getGeneratedAmbientTone(cue);
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const startAt = audioContext.currentTime;
+    const fadeSeconds = Math.max(0, fadeMs) / 1000;
+    const baseGain = Math.max(0, Math.min(1, volume * tone.gain));
+    const targetGain = baseGain * this.volume;
+
+    oscillator.type = tone.type;
+    oscillator.frequency.setValueAtTime(tone.melodyHz[0] ?? tone.frequencyHz, startAt);
+    let noteIndex = 1;
+    const beatMs = Math.max(200, tone.beatMs);
+    const melodyTimer = globalThis.setInterval(() => {
+      if (this.ambientLoop?.oscillator !== oscillator) return;
+      oscillator.frequency.setValueAtTime(
+        tone.melodyHz[noteIndex % tone.melodyHz.length] ?? tone.frequencyHz,
+        audioContext.currentTime
+      );
+      noteIndex += 1;
+    }, beatMs);
+    gainNode.gain.setValueAtTime(0.0001, startAt);
+    gainNode.gain.linearRampToValueAtTime(targetGain, startAt + fadeSeconds);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(startAt);
+    this.ambientLoop = { oscillator, gainNode, baseGain, melodyTimer };
+
+    if (audioContext.state === "suspended") {
+      void audioContext.resume();
+    }
+    return true;
+  }
+
+  public stopAmbientLoop(fadeMs: number): void {
+    if (this.ambientLoop === null) {
+      return;
+    }
+
+    const { oscillator, gainNode, melodyTimer } = this.ambientLoop;
+    this.ambientLoop = null;
+    globalThis.clearInterval(melodyTimer);
+    const audioContext = this.getAudioContext();
+    const stopAt = audioContext.currentTime + Math.max(0, fadeMs) / 1000;
+    gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+    gainNode.gain.setValueAtTime(Math.max(0.0001, gainNode.gain.value), audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    oscillator.stop(stopAt);
   }
 
   public stopWeatherLoop(fadeMs: number): void {
@@ -152,10 +269,41 @@ export class GeneratedAudioCuePlayer {
   }
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 1));
+    if (this.audioContext === null || this.audioContext.state === "closed") return;
+    const rampAt = this.audioContext.currentTime + 0.05;
+    for (const loop of [this.ambientLoop, this.weatherLoop]) {
+      if (loop === null) continue;
+      loop.gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
+      loop.gainNode.gain.setValueAtTime(Math.max(0, loop.gainNode.gain.value), this.audioContext.currentTime);
+      loop.gainNode.gain.linearRampToValueAtTime(loop.baseGain * this.volume, rampAt);
+    }
   }
 
   public getVolume(): number {
     return this.volume;
+  }
+
+  public getPlaybackSnapshot(): GeneratedAudioPlaybackSnapshot {
+    return {
+      contextState: this.destroyed
+        ? "closed"
+        : typeof AudioContext === "undefined"
+          ? "unavailable"
+          : this.audioContext?.state ?? "not-created",
+      ambientLoopScheduled: this.ambientLoop !== null,
+      weatherLoopScheduled: this.weatherLoop !== null,
+      outputVolume: this.volume
+    };
+  }
+
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.stopAmbientLoop(0);
+    this.stopWeatherLoop(0);
+    this.destroyed = true;
+    if (this.audioContext !== null && this.audioContext.state !== "closed") {
+      void this.audioContext.close();
+    }
   }
 
   private getAudioContext(): AudioContext {

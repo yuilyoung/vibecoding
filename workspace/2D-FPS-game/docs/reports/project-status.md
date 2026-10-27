@@ -1,17 +1,44 @@
 # 2D-FPS-game Project Status Report
 
-- Date: 2026-08-24
-- Author: ultron
-- **Phase:** Phase 12 T3 - Full-Inventory Cohesion and Performance Closeout
-- Previous Phase: Phase 11 - Quaternius Animated Character POC (complete, 2026-08-20)
-- Status: Phase 11 complete; Phase 12 T0-T2 complete, T3 pending
+## 2026-10-28 legacy E2E release-gate recovery
+
+The current SelectionFlow/runtime boundary is now explicit. Raw `/` remains the real selection entry, while legacy gameplay and presentation scenarios use a shared runtime-route helper that preserves origin, path, query, and hash and writes exactly one `setup=complete`. Cozy picker submissions and the Classic-mode link now preserve completed setup state.
+
+Browser recovery also fixed a real match-transition defect: map-object interactions now advance only during live combat, so a teleporter cannot overwrite the TEAM SELECT restart event after match confirmation. Combat-time teleporter, projectile, reload, hit, hazard, weather, generated weather ambience, map ambience, CPU roster, and object lifecycle coverage all remain green.
 
 | Key | Value |
 | --- | --- |
-| Active milestone | Phase 12 T3 - Complete eleven-family cohesion/performance closeout |
+| Active milestone | Legacy Playwright release-gate recovery |
+| Development status | Implemented; deterministic verification, independent review, drift, and postflight complete |
+| Browser verification | 29 files / 83 scenarios: 82 passed, 1 existing conditional visual-evidence skip, 0 failed, 0 retries; 13.5 minutes |
+| Static verification | type-check and lint passed; Vitest 86 files / 531 tests passed; production build passed (1,825 modules); harness 17/17 passed |
+
+Evidence: [verification report](legacy-e2e-route-recovery-evidence/verification-report.md), [design](../superpowers/specs/2026-10-27-legacy-e2e-route-recovery-design.md), and [implementation plan](../superpowers/plans/2026-10-27-legacy-e2e-route-recovery.md).
+
+## 2026-10-27 combat/service hardening update
+
+The active workspace now has verified reload/fire/hit regression coverage, pre-bounce swept projectile impact ordering, outgoing-reload cancellation on weapon switch, selected weather plus weather-audio browser evidence, continuously scheduled map-specific generated BGM with live mute and idempotent teardown, and a playable local 1v3 CPU roster with aggregate team elimination and full round reset. The architecture/UML separates the verified as-built system from future online contracts in [the design](../superpowers/specs/2026-10-27-combat-roster-online-readiness-design.md) and [capability matrix](combat-service-hardening-evidence/capability-matrix.md).
+
+Online many-v-many remains `prepared`, not shipped: versioned fail-closed RPC messages and input sequencing exist, but there is no transport, authoritative server, lobby/auth/reconnect/operations layer or hosted interoperability evidence. Unit/type/lint/build and the two new browser scenarios pass. The stale-route legacy E2E blocker recorded when this slice closed has since been resolved by the release-gate recovery documented above.
+
+| Key | Value |
+| --- | --- |
+| Active milestone | Combat/service hardening: local 1v3 and online protocol readiness |
+| Development status | Bounded local slice implemented and independently reviewed; hosted many-v-many remains unavailable |
+| Verification | Slice gate: 85 files / 524 unit tests, type-check, lint, build, 2 focused browser scenarios, reviewer, manual drift and postflight passed; current full browser gate is restored above |
+
+- Date: 2026-08-25
+- Author: ultron
+- **Phase:** Phase 13 - Integrated Presentation and Default Promotion (planned)
+- Previous Phase: Phase 11 - Quaternius Animated Character POC (complete, 2026-08-20)
+- Status: Phase 11 and Phase 12 complete; Phase 13 design is next
+
+| Key | Value |
+| --- | --- |
+| Active milestone | Phase 13 T1 - Opt-in presentation-event integration |
 | Product program | Phase 11-13 Visual Productization Vertical Slice |
 | Development status | T0-T5 complete; T4 retains the absolute failure and passes the approved final one-shot display-cadence exception. |
-| Verification | T2 deterministic/runtime/browser/reviewer/drift/postflight gates passed |
+| Verification | T3 deterministic/runtime/browser/cohesion/performance/reviewer gates passed; final drift/postflight pending |
 
 ## Summary
 
@@ -26,8 +53,8 @@ The product objective is now explicit: the default `/` route must become a coher
 | Phase | User-visible outcome | Current state |
 | --- | --- | --- |
 | Phase 11 | Default BLUE/RED animated characters with five states and eight directions | complete 2026-08-20; absolute fail retained, cadence exception passed |
-| Phase 12 | Authored skins for six map objects, three arena-prop families, gate, hazard, and two pickups | v5 approved; all eleven families integrated and T2 complete at opt-in `product-v1`; T3 pending |
-| Phase 13 | Object/interactions animation, integrated visual polish, and default-route promotion | locked behind Phase 12 runtime/reviewer pass |
+| Phase 12 | Authored skins for six map objects, three arena-prop families, gate, hazard, and two pickups | complete 2026-08-25 at opt-in `product-v1`; default remains legacy |
+| Phase 13 | Object/interactions animation, integrated visual polish, and default-route promotion | next: product-owner design and separate user promotion approval |
 
 The detailed product goal, object inventory, architecture boundaries, budgets, and promotion gate are in `../planning/phase11-13-visual-productization-roadmap.md`.
 
@@ -110,6 +137,16 @@ The detailed product goal, object inventory, architecture boundaries, budgets, a
 - Focused browser contracts pass 5/5 including gate redeploy closure. The current post-review-fix full run passed all 64 runnable scenarios with the explicit evidence refresh skipped. Two earlier pre-fix runs each had one different pre-existing transient, and each exact case passed alone. The explicit evidence refresh passed 1/1 and produced fifteen 960x540 captures with all 11 families and zero runtime errors.
 - Current evidence is in `phase12-t2-evidence/`. Independent re-review found no blocking/material issue; harness 17/17, manual drift, diff check, and Codex postflight passed. T2 is complete; T3 retains complete inventory cohesion/performance closeout.
 
+## Phase 12 T3 Cohesion and Performance Closeout - 2026-08-25
+
+- T3 added no gameplay, asset, atlas, actor, audio, or default-route behavior. It closes the opt-in eleven-family product slice with current evidence only.
+- Fresh T3-only output guards prevent explicit visual/performance refreshes from overwriting Phase 11, T1, or T2 artifacts. A denied T2 output target fails before capture.
+- The visual refresh passed 1/1 with fifteen 960x540 Foundry/Relay Yard/Storm Drain × five-weather captures, all eleven families, quantitative pixel checks, and zero runtime errors. Independent cohesion scoring passed every required category at a conservative minimum of 4/5.
+- Focused browser contracts passed 5/5 for route isolation, total fallback, twenty transitions, restart lifecycle, state synchronization, and legacy/product collider parity.
+- The strict final hardware D3D11 AB-BA-AB measurement passed 18,000 samples with zero samples above 16.7ms; product p95 was 0.1ms in all three product captures and relative regression was -0.7ms, -0.6ms, and -0.9ms. The immediately preceding legacy-only 18.5ms single-sample failure remains separately retained, without a threshold change.
+- An unrelated Air Strike browser observation race was stabilized by observing the unchanged deterministic update and its result in one browser evaluation. The corrected case passes 5/5 repeats, the weapon file passes 4/4, and the final full suite passes all 64 runnable scenarios with one intentional visual-evidence skip.
+- Evidence is stored in `phase12-t3-evidence/`. Current-diff independent review passed; final drift and postflight remain the only completion steps.
+
 ## Historical Phase 11 Contract Verification - 2026-08-13
 
 These results belong to the original Phase 11 contract fingerprint. They are retained as planning-baseline evidence and do not certify the 2026-08-14 Visual Productization roadmap edit, which requires its own current-fingerprint review, drift, and postflight sequence.
@@ -134,20 +171,20 @@ The previous executable evidence remains 58 Vitest files / 344 tests, production
 - T2 added only the offline build adapter/tool lock/tests, exact Sharp dependency, and generated actor atlas release.
 - T3 added only the catalog/manifest policy, scene-lifetime actor presentation composition, opt-in atlas playback, focused tests, and resolved-skin UI metadata.
 - The 2026-08-20 product amendment changes browser default selection, product-shell copy/entry presentation, initial preview position, and production weather-audio activation only. It does not change collision, combat, balance, weather mechanics, progression, persistence, input semantics, stage content, generated assets, or atlas bytes.
-- Phase 12 T2 authorizes only the eleven object families recorded above. Paid assets, live 3D, normal maps, `Light2D`, expanded weapon art, cosmetics, persistence, Phase 13 animation, and complete visual-pack promotion remain unauthorized here.
+- Phase 12 closes only the eleven static object families recorded above. Paid assets, live 3D, normal maps, `Light2D`, expanded weapon art, cosmetics, persistence, Phase 13 animation, and complete visual-pack promotion remain unauthorized here.
 - Preserved unrelated dirty workspace changes.
 
 ## Blocking Issues
 
-No Phase 11 or Phase 12 T2 blocker remains. The Phase 11 absolute 16.7 ms result and prior failed cadence collections remain recorded rather than hidden or reclassified. Phase 12 overall remains open for T3 cohesion/performance closeout.
+No Phase 11 or Phase 12 blocker remains. The Phase 11 absolute 16.7 ms result and prior failed cadence collections remain recorded rather than hidden or reclassified. Phase 13 remains unstarted.
 
 ## Immediate Next Tasks
 
 | Priority | ID | Task | Owner | Estimate |
 | --- | --- | --- | --- | --- |
-| 1 | Phase 12 T3 | Run complete 11-family cohesion, fallback, lifecycle, budget, browser, and performance closeout. | product_owner + ultron + reviewer | phase closeout |
+| 1 | Phase 13 T1 | Implement opt-in presentation-event integration and scene-lifetime ownership. | ultron/codex | implementation gate |
 
-Phase 11 and Phase 12 T2 are complete. The eleven-family world pack remains opt-in, so this is not Phase 12 completion or default promotion. T3 is the next product slice.
+Phase 11 and Phase 12 are complete. Phase 13 T0 design is approved; T1 integration remains opt-in. The eleven-family world pack must not be promoted to `/` without its separate product and explicit user approval.
 
 ## Risks
 

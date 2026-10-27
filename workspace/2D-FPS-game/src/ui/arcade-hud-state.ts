@@ -1,4 +1,5 @@
 import type { HudSnapshot } from "./hud-events";
+import { formatHealthValue } from "./health-formatters";
 
 export interface CombatNotice {
   readonly kind: "damage" | "hit" | "heal" | "score" | "defeat" | "weapon";
@@ -35,10 +36,10 @@ export function advanceArcadeHud(state: ArcadeHudState, snapshot: HudSnapshot, n
   const emit = (kind: CombatNotice["kind"], text: string, duration = 1400): CombatNotice => ({ kind, text, expiresAt: now + duration });
   if (scored) notice = emit("score", "+1 · ROUND WON!", 1800);
   else if (lost) notice = emit("defeat", "ROUND LOST · GET READY", 1800);
-  else if (damage > 0) notice = emit("damage", snapshot.playerHealth <= 0 ? "KNOCKED OUT" : `−${damage} HP · YOU WERE HIT`, 1000);
-  else if (snapshot.playerHealth > previous.playerHealth) notice = emit("heal", `+${snapshot.playerHealth - previous.playerHealth} HP · RECOVERED`);
+  else if (damage > 0) notice = emit("damage", snapshot.playerHealth <= 0 ? "KNOCKED OUT" : `−${formatHealthValue(damage)} HP · YOU WERE HIT`, 1000);
+  else if (snapshot.playerHealth > previous.playerHealth) notice = emit("heal", `+${formatHealthValue(snapshot.playerHealth - previous.playerHealth)} HP · RECOVERED`);
   else if (snapshot.weaponSlot !== previous.weaponSlot) notice = emit("weapon", `${snapshot.activeWeapon.toUpperCase()} EQUIPPED`, 1000);
-  else if (enemyDamage > 0 && (notice === null || notice.kind === "hit")) notice = emit("hit", `HIT! −${enemyDamage}`, 650);
+  else if (enemyDamage > 0 && (notice === null || notice.kind === "hit")) notice = emit("hit", `HIT! −${formatHealthValue(enemyDamage)}`, 650);
   return { previous: snapshot, notice, damageUntil };
 }
 

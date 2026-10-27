@@ -52,8 +52,8 @@ function reachablePoints(stage: StageDefinitionWithContent): Set<string> {
 
 describe("original casual stage catalog", () => {
   it("rotates the three choices without losing stages or changing legacy defaults", () => {
-    expect(ARCADE_STAGES.map((stage) => stage.id)).toEqual(["garden-maze", "bubble-bay", "picnic-plaza"]);
-    expect(getArcadeStagesStartingWith("bubble-bay").map((stage) => stage.id)).toEqual(["bubble-bay", "picnic-plaza", "garden-maze"]);
+    expect(ARCADE_STAGES.map((stage) => stage.id)).toEqual(["garden-maze", "bubble-bay", "picnic-plaza", "beach-boardwalk", "whispering-woods", "sun-dune", "neon-city", "frost-festival"]);
+    expect(getArcadeStagesStartingWith("bubble-bay").map((stage) => stage.id)).toEqual(["bubble-bay", "picnic-plaza", "beach-boardwalk", "whispering-woods", "sun-dune", "neon-city", "frost-festival", "garden-maze"]);
     expect(getArcadeStagesStartingWith(null)).toEqual(ARCADE_STAGES);
     expect(getArcadeStagesStartingWith("invalid")).toEqual(ARCADE_STAGES);
     expect(getArcadeStagesStartingWith(null)).not.toBe(ARCADE_STAGES);

@@ -68,6 +68,12 @@ export interface HudControllerDeps {
   readonly getRuntimeAudioSnapshot?: () => import("./scene-types").AudioRuntimeSnapshot;
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
+  readonly getEnemyTeamSnapshot?: () => {
+    readonly health: number;
+    readonly maxHealth: number;
+    readonly living: number;
+    readonly total: number;
+  };
 }
 
 export class HudController {
@@ -119,6 +125,8 @@ export class HudController {
       playerMaxHealth: this.deps.gameBalance.maxHealth,
       dummyHealth: this.deps.gameBalance.maxHealth,
       dummyMaxHealth: this.deps.gameBalance.maxHealth,
+      livingEnemyCount: 1,
+      totalEnemyCount: 1,
       gateOpen: false,
       roundNumber: 1,
       playerScore: 0,
@@ -190,6 +198,12 @@ export class HudController {
     const activeWeaponIndex = this.deps.getActiveWeaponIndex();
 
     const effectiveWeather = this.state.currentWeather ?? this.weatherState;
+    const enemyTeam = this.deps.getEnemyTeamSnapshot?.() ?? {
+      health: this.state.dummyLogic.state.health,
+      maxHealth: this.state.dummyLogic.state.maxHealth,
+      living: this.state.dummyLogic.isDead() ? 0 : 1,
+      total: 1
+    };
 
     return {
       now,
@@ -211,8 +225,10 @@ export class HudController {
         cooldownDurationMs: activeWeapon.logic.getCooldownDuration(),
         playerHealth: this.state.playerLogic.state.health,
         playerMaxHealth: this.state.playerLogic.state.maxHealth,
-        dummyHealth: this.state.dummyLogic.state.health,
-        dummyMaxHealth: this.state.dummyLogic.state.maxHealth,
+        dummyHealth: enemyTeam.health,
+        dummyMaxHealth: enemyTeam.maxHealth,
+        livingEnemyCount: enemyTeam.living,
+        totalEnemyCount: enemyTeam.total,
         gateOpen: this.state.gate?.open ?? false,
         lastEvent: this.state.lastCombatEvent,
         lastSoundCue: this.deps.getLastSoundCue(),

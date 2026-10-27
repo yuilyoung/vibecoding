@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 import { WeaponLogic } from "../src/domain/combat/WeaponLogic";
 
 describe("WeaponLogic", () => {
+  it("scales magazine and reserve capacity for arcade progression", () => {
+    const weapon = new WeaponLogic({ fireRateMs: 100, bulletSpeed: 1, damage: 1, magazineSize: 6, reloadTimeMs: 100, reserveAmmo: 24 });
+    weapon.increaseAmmoCapacity(5);
+    expect(weapon.getAmmoInMagazine(0)).toBe(30);
+    expect(weapon.getReserveAmmo(0)).toBe(120);
+  });
   it("loads the Phase 1 weapon balance section without dropping flat compatibility keys", () => {
     const balancePath = fileURLToPath(new URL("../assets/data/game-balance.json", import.meta.url));
     const balance = JSON.parse(readFileSync(balancePath, "utf8")) as {
@@ -314,6 +320,69 @@ describe("WeaponLogic", () => {
     expect(weapon.getReserveAmmo(0)).toBe(4);
     expect(weapon.getCooldownRemaining(0)).toBe(0);
     expect(weapon.getReloadRemaining(0)).toBe(0);
+  });
+
+  it("completes reload exactly at the boundary", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 4,
+      reloadTimeMs: 500,
+      reserveAmmo: 8
+    });
+
+    weapon.tryFire(0);
+    weapon.tryFire(20);
+    weapon.startReload(100);
+
+    expect(weapon.getAmmoInMagazine(599)).toBe(2);
+    expect(weapon.getReserveAmmo(599)).toBe(8);
+    expect(weapon.getAmmoInMagazine(600)).toBe(4);
+    expect(weapon.getReserveAmmo(600)).toBe(6);
+    expect(weapon.isReloading(600)).toBe(false);
+  });
+
+  it("preserves total ammo when reload is cancelled by a switch", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 4,
+      reloadTimeMs: 500,
+      reserveAmmo: 8
+    });
+
+    weapon.tryFire(0);
+    weapon.tryFire(20);
+    weapon.startReload(100);
+    const totalBeforeSwitch = weapon.getAmmoInMagazine(300) + weapon.getReserveAmmo(300);
+
+    expect(weapon.cancelReload(300)).toBe(true);
+    expect(weapon.getAmmoInMagazine(700) + weapon.getReserveAmmo(700)).toBe(totalBeforeSwitch);
+    expect(weapon.getAmmoInMagazine(700)).toBe(2);
+    expect(weapon.getReserveAmmo(700)).toBe(8);
+  });
+
+  it("restores configured ammo after death reset", () => {
+    const weapon = new WeaponLogic({
+      fireRateMs: 10,
+      bulletSpeed: 540,
+      damage: 20,
+      magazineSize: 4,
+      reloadTimeMs: 500,
+      reserveAmmo: 8
+    });
+
+    weapon.tryFire(0);
+    weapon.tryFire(20);
+    weapon.startReload(100);
+    weapon.reset();
+
+    expect(weapon.getAmmoInMagazine(1_000)).toBe(4);
+    expect(weapon.getReserveAmmo(1_000)).toBe(8);
+    expect(weapon.getCooldownRemaining(1_000)).toBe(0);
+    expect(weapon.getReloadRemaining(1_000)).toBe(0);
   });
 
   it("refunds a spent round without exceeding magazine capacity", () => {

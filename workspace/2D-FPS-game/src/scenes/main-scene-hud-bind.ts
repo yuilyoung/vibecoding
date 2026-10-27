@@ -45,6 +45,7 @@ export interface CreateMainSceneHudControllerOptions {
   readonly queueWeatherSoundCue?: (item: WeatherSoundQueueItem) => void;
   readonly getActiveWeatherSoundCue?: () => WeatherSoundCueKey | null;
   readonly getRuntimeAudioSnapshot?: () => AudioRuntimeSnapshot;
+  readonly getEnemyTeamSnapshot?: () => { readonly health: number; readonly maxHealth: number; readonly living: number; readonly total: number };
   readonly enterMatchOver: () => void;
   readonly getCoverEffectId: (index: number) => CoverEffectId;
 }
@@ -81,6 +82,7 @@ export function createMainSceneHudController(options: CreateMainSceneHudControll
     queueWeatherSoundCue: options.queueWeatherSoundCue,
     getActiveWeatherSoundCue: options.getActiveWeatherSoundCue,
     getRuntimeAudioSnapshot: options.getRuntimeAudioSnapshot,
+    getEnemyTeamSnapshot: options.getEnemyTeamSnapshot,
     enterMatchOver: options.enterMatchOver,
     getCoverEffectId: options.getCoverEffectId
   });

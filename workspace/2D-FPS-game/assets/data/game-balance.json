@@ -143,7 +143,11 @@
     "rotationMode": "perRound",
     "durationRangeMs": [60000, 120000],
     "particleCountMultiplier": 1.0,
-    "soundChannels": {},
+    "soundChannels": {
+      "rain": { "cue": "weather.rain.loop", "volume": 0.24, "fadeMs": 650 },
+      "sandstorm": { "cue": "weather.sandstorm.loop", "volume": 0.22, "fadeMs": 700 },
+      "storm": { "cue": "weather.storm.loop", "volume": 0.28, "fadeMs": 800 }
+    },
     "types": {
       "clear": {
         "weight": 3,

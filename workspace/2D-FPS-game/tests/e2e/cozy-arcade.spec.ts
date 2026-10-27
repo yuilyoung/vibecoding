@@ -1,14 +1,24 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { MainScene } from "../../src/scenes/MainScene";
+import { runtimeRoute } from "./runtime-route";
 
 async function ready(page: Page, path = "/?arcade=cozy") {
-  await page.goto(path, { waitUntil: "domcontentloaded" });
+  await page.goto(runtimeRoute(path), { waitUntil: "domcontentloaded" });
   await waitForScene(page);
 }
 
 async function waitForScene(page: Page) {
   await page.waitForFunction(() => (window.__FPS_GAME__?.scene.keys.MainScene as MainScene | undefined)?.sys.isActive(), undefined, { timeout: 60000 });
   await expect(page.locator("#primary-play")).toBeEnabled();
+}
+
+async function restartScene(page: Page) {
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    const scene = window.__FPS_GAME__!.scene.keys.MainScene as MainScene;
+    scene.events.once("shutdown", resolve);
+    scene.scene.restart();
+  }));
+  await waitForScene(page);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -19,7 +29,7 @@ test.beforeEach(async ({ page }) => {
 test("enters the cute experience from the ordinary UI and retains both character and stage choices", async ({ page }) => {
   // Includes four complete page boots on Windows CI; keep gameplay assertions strict.
   test.setTimeout(180000);
-  await ready(page, "/");
+  await ready(page, "/?arcade=classic");
   await page.locator(".cozy-picker summary").click();
   await page.locator('input[name="character"][value="arcade-bunny"]').focus();
   await page.keyboard.press("ArrowRight");
@@ -47,7 +57,7 @@ test("enters the cute experience from the ordinary UI and retains both character
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByTestId("cozy-play")).toBeVisible();
-  await page.getByRole("link", { name: "기존 아레나" }).click();
+  await page.getByRole("link", { name: "Classic mode" }).click();
   await waitForScene(page);
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-stage-id", "foundry");
 });
@@ -113,10 +123,7 @@ test("real shots wear different skins and real object destruction emits fragment
   await page.locator("canvas").screenshot({ path: testInfo.outputPath("picnic-destruction.png") });
   await expect.poll(() => page.evaluate(() => (window.__FPS_GAME__!.scene.keys.MainScene as MainScene).debugGetIntegratedPresentationEffectCount())).toBe(0);
   for (let index = 0; index < 3; index++) {
-    await page.evaluate(() => new Promise<void>((resolve) => {
-      const scene = window.__FPS_GAME__!.scene.keys.MainScene as MainScene;
-      scene.events.once("create", resolve); scene.scene.restart();
-    }));
+    await restartScene(page);
     expect(await page.evaluate(() => (window.__FPS_GAME__!.scene.keys.MainScene as MainScene).debugGetIntegratedPresentationEffectCount())).toBe(0);
     expect(await page.evaluate(() => (window.__FPS_GAME__!.scene.keys.MainScene as MainScene).debugGetProjectileSnapshot())).toEqual([]);
     expect(await page.evaluate(() => {

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { runtimeRoute } from "./runtime-route";
 
 interface MapObjectsSummary {
   total: number;
@@ -61,7 +62,7 @@ const waitForSceneReady = async (page: Page): Promise<void> => {
 };
 
 const enterCombat = async (page: Page): Promise<void> => {
-  await page.goto("/");
+  await page.goto(runtimeRoute("/", { arcade: "classic" }));
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible();
   await waitForSceneReady(page);

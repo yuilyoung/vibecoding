@@ -14,7 +14,12 @@ export function getArcadeStageFloorKey(scene: Phaser.Scene, stageId: string): st
   bake(scene, key, FLOOR_WIDTH, FLOOR_HEIGHT, (ctx) => {
     if (stageId === "garden-maze") drawGarden(ctx);
     else if (stageId === "bubble-bay") drawBay(ctx);
-    else drawPicnic(ctx);
+    else if (stageId === "picnic-plaza") drawPicnic(ctx);
+    else if (stageId === "beach-boardwalk") drawBeach(ctx);
+    else if (stageId === "whispering-woods") drawWoods(ctx);
+    else if (stageId === "sun-dune") drawDune(ctx);
+    else if (stageId === "neon-city") drawCity(ctx);
+    else drawFrost(ctx);
   });
   return key;
 }
@@ -266,6 +271,12 @@ function drawPicnic(ctx: Context): void {
   ctx.restore();
   drawCornerCaps(ctx, "#fff0ce", "#dcad93");
 }
+
+function drawBeach(ctx: Context): void { ctx.fillStyle = "#f7dba8"; ctx.fillRect(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT); ctx.fillStyle = "#63cddd"; ctx.fillRect(0, 0, FLOOR_WIDTH, 150); ctx.fillStyle = "#fff2bd"; ctx.fillRect(0, 150, FLOOR_WIDTH, 12); for (let x = 20; x < FLOOR_WIDTH; x += 70) { ctx.fillStyle = "rgba(255,255,255,.32)"; ctx.fillRect(x, 185 + (x % 3) * 30, 34, 4); } drawCornerCaps(ctx, "#f5b6a4", "#63cddd"); }
+function drawWoods(ctx: Context): void { ctx.fillStyle = "#9dcc89"; ctx.fillRect(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT); for (let x = 24; x < FLOOR_WIDTH; x += 70) { for (let y = 30; y < FLOOR_HEIGHT; y += 90) { ellipse(ctx, x, y, 28, 34, "#5d9f70"); ellipse(ctx, x + 8, y - 8, 22, 28, "#8acb82"); } } ctx.fillStyle = "#d9bd82"; ctx.fillRect(0, 242, FLOOR_WIDTH, 56); drawCornerCaps(ctx, "#5d9f70", "#d9bd82"); }
+function drawDune(ctx: Context): void { ctx.fillStyle = "#f2c879"; ctx.fillRect(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT); for (let y = 40; y < FLOOR_HEIGHT; y += 80) { ctx.strokeStyle = "rgba(255,239,170,.6)"; ctx.lineWidth = 18; ctx.beginPath(); ctx.moveTo(0, y); ctx.bezierCurveTo(240, y - 40, 500, y + 40, FLOOR_WIDTH, y - 5); ctx.stroke(); } drawCornerCaps(ctx, "#f09a62", "#f9df9d"); }
+function drawCity(ctx: Context): void { ctx.fillStyle = "#27365c"; ctx.fillRect(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT); ctx.fillStyle = "#354b78"; ctx.fillRect(0, 220, FLOOR_WIDTH, 100); for (let x = 30; x < FLOOR_WIDTH; x += 100) { ctx.fillStyle = x % 200 === 30 ? "#516da0" : "#405783"; ctx.fillRect(x, 55, 64, 120); ctx.fillStyle = "#ffd166"; for (let y = 70; y < 160; y += 28) ctx.fillRect(x + 12, y, 10, 8); } drawCornerCaps(ctx, "#b892ff", "#4f72a9"); }
+function drawFrost(ctx: Context): void { ctx.fillStyle = "#cbe8f2"; ctx.fillRect(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT); ctx.fillStyle = "#eaf8ff"; ctx.fillRect(0, 80, FLOOR_WIDTH, 380); for (let x = 40; x < FLOOR_WIDTH; x += 80) { ellipse(ctx, x, 110 + (x % 4) * 50, 28, 12, "rgba(126,185,211,.35)"); } drawCornerCaps(ctx, "#d8f3ff", "#8bc8df"); }
 
 function drawSpawnMedallion(ctx: Context, x: number, y: number, line: string, fill: string): void {
   ellipse(ctx, x, y + 3, 31, 23, "rgba(86,98,77,.13)");

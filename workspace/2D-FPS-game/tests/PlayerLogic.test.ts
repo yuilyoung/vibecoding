@@ -26,6 +26,19 @@ describe("PlayerLogic", () => {
     expect(player.state.lastAppliedSpeed).toBe(200);
   });
 
+  it("applies a character movement multiplier before sprint and weather modifiers", () => {
+    const player = new PlayerLogic(100, {
+      movementSpeed: 100,
+      dashMultiplier: 1.5,
+      movementSpeedMultiplier: 1.18
+    });
+
+    player.move({ x: 1, y: 0, sprint: false }, 1);
+
+    expect(player.state.positionX).toBeCloseTo(118, 5);
+    expect(player.state.lastAppliedSpeed).toBeCloseTo(118, 5);
+  });
+
   it("applies the environment movement multiplier to sprint distance and speed state", () => {
     const player = new PlayerLogic(100, {
       movementSpeed: 100,

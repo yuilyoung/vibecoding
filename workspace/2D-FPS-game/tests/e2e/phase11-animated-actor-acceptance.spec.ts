@@ -6,6 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { runtimeRoute } from "./runtime-route";
 
 test.describe.configure({ mode: "serial", timeout: 180_000 });
 
@@ -222,7 +223,7 @@ const expectCleanRuntime = async (page: Page, errors: RuntimeErrors): Promise<vo
 const openGame = async (page: Page, path: string): Promise<RuntimeErrors> => {
   const errors = await installRuntimeErrorCapture(page);
   await page.setViewportSize({ width: 1_600, height: 1_300 });
-  await page.goto(path);
+  await page.goto(runtimeRoute(path, { arcade: "classic" }));
   await expect(page.locator("canvas")).toBeVisible();
   await page.waitForFunction(() => {
     const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as AnimatedActorScene | undefined;
@@ -490,7 +491,7 @@ const expectTotalLegacyFallback = async (page: Page): Promise<void> => {
     dummyWeaponVisible: true
   });
   await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "legacy-vehicle");
-  await expect(page.locator("#actor-skin-label")).toHaveText("Ground Shaker vehicle");
+  await expect(page.locator("#actor-skin-label")).toHaveText("Ground Shaker vehicle · Standard loadout");
 };
 
 test("exercises all 80 Phaser team/state/direction clips with exact frame and playback contracts", async ({ page }) => {
@@ -570,7 +571,6 @@ const FALLBACK_CASES: Array<{
   path?: string;
   configure?: (page: Page) => Promise<void>;
 }> = [
-  { name: "unknown-query", path: "/?actorSkin=unknown" },
   { name: "missing-manifest-fields", configure: (page) => routeManifest(page, (manifest) => { delete manifest.atlases; }) },
   { name: "malformed-manifest", configure: (page) => routeManifest(page, (manifest) => {
     for (const key of Object.keys(manifest)) delete manifest[key];
@@ -596,13 +596,31 @@ const FALLBACK_CASES: Array<{
   } }
 ];
 
+test("normalizes an unknown actor query to the configured animated default without failed requests", async ({ page }) => {
+  const errors = await openGame(page, "/?actorSkin=unknown");
+  const presentation = await readPresentation(page);
+  expect(presentation).toMatchObject({
+    requestedSkinId: "quaternius-animated",
+    skinId: "quaternius-animated",
+    fallbackReason: null,
+    atlasActive: true,
+    playerTextureKey: "actor-animated-blue",
+    dummyTextureKey: "actor-animated-red",
+    playerWeaponVisible: true,
+    dummyWeaponVisible: true
+  });
+  await expect(page.locator("#stage-frame")).toHaveAttribute("data-actor-skin", "quaternius-animated");
+  await expect(page.locator("#actor-skin-label")).toHaveText("Vanguard animated infantry · Standard loadout");
+  await expectCleanRuntime(page, errors);
+});
+
 for (const fault of FALLBACK_CASES) {
   test(`falls back atomically for ${fault.name} without failed actor requests`, async ({ page }) => {
     if (fault.configure !== undefined) await fault.configure(page);
     const errors = await openGame(page, fault.path ?? "/");
     await expectTotalLegacyFallback(page);
     const presentation = await readPresentation(page);
-    if (fault.name !== "unknown-query") expect(presentation.fallbackReason, fault.name).not.toBeNull();
+    expect(presentation.fallbackReason, fault.name).not.toBeNull();
     await expectCleanRuntime(page, errors);
   });
 }

@@ -59,7 +59,7 @@ export interface FireAttempt {
 }
 
 export class WeaponLogic {
-  private readonly config: WeaponConfig;
+  private config: WeaponConfig;
   private readonly projectileConfig: ProjectileConfig;
   private nextReadyAtMs: number;
   private ammoInMagazine: number;
@@ -286,6 +286,15 @@ export class WeaponLogic {
       ...(projectile?.spreadRadians !== undefined ? { spreadRadians: projectile.spreadRadians } : config.spreadRadians !== undefined ? { spreadRadians: config.spreadRadians } : {}),
       ...(projectile?.windMultiplier !== undefined ? { windMultiplier: projectile.windMultiplier } : {})
     };
+  }
+
+  public increaseAmmoCapacity(multiplier: number): void {
+    const safeMultiplier = Number.isFinite(multiplier) ? Math.max(1, multiplier) : 1;
+    const magazineSize = Math.max(this.config.magazineSize, Math.ceil(this.config.magazineSize * safeMultiplier));
+    const reserveAmmo = Math.max(this.config.reserveAmmo, Math.ceil(this.config.reserveAmmo * safeMultiplier));
+    this.config = { ...this.config, magazineSize, reserveAmmo };
+    this.ammoInMagazine = magazineSize;
+    this.reserveAmmo = reserveAmmo;
   }
 
   private scoreIdealRange(distanceToTarget: number, idealRange: readonly [number, number], reasons: string[]): number {

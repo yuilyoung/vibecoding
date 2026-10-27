@@ -11,6 +11,7 @@ import type { PlayerLogic } from "../domain/player/PlayerLogic";
 import type { CoverEffectId, GameBalance, GateView, HazardZoneView, ImpactProfile, ObstacleView, PickupView, TerrainCrop } from "./scene-types";
 import type { SceneRuntimeState } from "./scene-runtime-state";
 import type { ActorCollisionResolver } from "./actor-collision";
+import type { SceneCombatActor } from "./combat-actor-port";
 import { addTerrainSurface } from "./arena-textures";
 import { getArcadeObstacleMaterial, getArcadeObstacleTexture, getArcadeStagePropTexture } from "./arcade-stage-art";
 import type { ArenaObstacleVariant, WorldObjectFamily } from "../domain/visual/WorldObjectSkinCatalog";
@@ -50,6 +51,8 @@ export interface StageGeometryDeps {
   isCoverActive(index: number): boolean;
   shouldHighlightCover(): boolean;
   suppressPointerFireUntil(untilMs: number): void;
+  getCombatActors?(): readonly SceneCombatActor[];
+  syncActorLife?(actorId: SceneCombatActor["id"], now: number): void;
 }
 
 export interface StageGeometryStaticObjects {
@@ -282,6 +285,12 @@ export class StageGeometryManager {
 
   public updateHazards(now: number): void {
     if (!canApplyHazard(this.deps.getCombatAvailability(now))) {
+      return;
+    }
+
+    const actors = this.deps.getCombatActors?.();
+    if (actors !== undefined && this.deps.syncActorLife !== undefined) {
+      for (const actor of actors) this.applyHazardToRosterActor(actor, now);
       return;
     }
 
@@ -746,6 +755,24 @@ export class StageGeometryManager {
     pickup.sprite.setVisible(true);
     pickup.label.setVisible(true);
     this.syncKnownPickupPresentation(pickup);
+  }
+
+  private applyHazardToRosterActor(actor: SceneCombatActor, now: number): void {
+    if (actor.logic.isDead()) return;
+    const overlapping = intersectsRect(
+      this.collisionResolver.getActorCollisionBounds(actor.sprite.x, actor.sprite.y),
+      this.requireHazardZone().bounds
+    );
+    const tick = this.requireHazardZone().logic.tick(actor.id, overlapping, now);
+    if (!tick.triggered) return;
+
+    actor.logic.takeDamage(tick.damage, Math.floor(this.gameBalance.hitStunMs / 2), now);
+    actor.onHit(now);
+    this.state.lastCombatEvent = actor.logic.isDead()
+      ? `${actor.controller === "human" ? "PLAYER" : "ENEMY"} DOWN IN HAZARD`
+      : `${actor.controller === "human" ? "PLAYER" : "ENEMY"} HAZARD HIT`;
+    this.deps.emitSoundCue({ kind: "hazard", source: "vent" });
+    this.deps.syncActorLife?.(actor.id, now);
   }
 
   private registerPresentationBinding(
