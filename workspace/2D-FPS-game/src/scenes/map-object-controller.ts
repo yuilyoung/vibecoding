@@ -290,10 +290,10 @@ export class MapObjectController {
 
     this.deps.onObjectDamaged?.(result);
     if (result.destroyed) {
-      this.publishBarrelEvent(after, "destroy");
+      this.publishDestructibleEvent(after, "destroy");
       this.deps.onObjectDestroyed?.(after);
     } else if (before.active && before.hp !== after.hp) {
-      this.publishBarrelEvent(after, "damage");
+      this.publishDestructibleEvent(after, "damage");
     }
 
     return result;
@@ -319,7 +319,7 @@ export class MapObjectController {
     };
 
     if (result.destroyed) {
-      this.publishBarrelEvent(after, "destroy");
+      this.publishDestructibleEvent(after, "destroy");
       this.deps.onObjectDestroyed?.(after);
     }
 
@@ -338,7 +338,7 @@ export class MapObjectController {
     this.syncVisual(view);
 
     if (wasActive && !state.active) {
-      this.publishBarrelEvent(state, "destroy");
+      this.publishDestructibleEvent(state, "destroy");
       this.deps.onObjectDestroyed?.(state);
     }
 
@@ -412,14 +412,14 @@ export class MapObjectController {
       this.syncVisual(view, now);
 
       if (previous?.active === true && !state.active) {
-        this.publishBarrelEvent(state, "destroy");
+        this.publishDestructibleEvent(state, "destroy");
         this.deps.onObjectDestroyed?.(state);
       }
     }
   }
 
-  private publishBarrelEvent(state: MapObjectState, kind: "damage" | "destroy"): void {
-    if (state.kind !== "barrel" && !(this.deps.arcadePresentation === true && (state.kind === "crate" || state.kind === "cover"))) return;
+  private publishDestructibleEvent(state: MapObjectState, kind: "damage" | "destroy"): void {
+    if (state.kind !== "barrel" && state.kind !== "crate" && state.kind !== "cover") return;
     const sequence = (this.presentationSequences.get(state.id) ?? 0) + 1;
     this.presentationSequences.set(state.id, sequence);
     this.presentationEvents?.publish({
