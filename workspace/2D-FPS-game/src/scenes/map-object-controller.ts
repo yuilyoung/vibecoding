@@ -333,11 +333,26 @@ export class MapObjectController {
       return null;
     }
 
-    const wasActive = view.state.active;
+    const before = view.state;
+    const previousReflections = before.reflectionsRemaining;
+    const nextReflections = state.reflectionsRemaining;
+    const reflected = before.id === id
+      && state.id === id
+      && before.kind === "bounce-wall"
+      && state.kind === "bounce-wall"
+      && before.active
+      && typeof previousReflections === "number"
+      && Number.isFinite(previousReflections)
+      && typeof nextReflections === "number"
+      && Number.isFinite(nextReflections)
+      && nextReflections < previousReflections;
     view.state = state;
     this.syncVisual(view);
 
-    if (wasActive && !state.active) {
+    if (reflected) {
+      this.publishBounceWallReflectEvent(state);
+    }
+    if (before.active && !state.active) {
       this.publishDestructibleEvent(state, "destroy");
       this.deps.onObjectDestroyed?.(state);
     }
@@ -426,6 +441,22 @@ export class MapObjectController {
       subjectId: state.id,
       family: state.kind,
       kind,
+      sequence,
+      x: state.x,
+      y: state.y,
+      occurredAt: this.scene.time.now,
+      state: state.active ? "active" : "destroyed"
+    });
+  }
+
+  private publishBounceWallReflectEvent(state: MapObjectState): void {
+    if (state.kind !== "bounce-wall") return;
+    const sequence = (this.presentationSequences.get(state.id) ?? 0) + 1;
+    this.presentationSequences.set(state.id, sequence);
+    this.presentationEvents?.publish({
+      subjectId: state.id,
+      family: "bounce-wall",
+      kind: "reflect",
       sequence,
       x: state.x,
       y: state.y,

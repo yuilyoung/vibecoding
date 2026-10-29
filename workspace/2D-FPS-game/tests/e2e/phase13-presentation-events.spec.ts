@@ -4,11 +4,24 @@ import { runtimeRoute } from "./runtime-route";
 test.setTimeout(90_000);
 
 interface PresentationScene {
+  getDebugSnapshot(): { stage: string };
   debugEnterStage(): void;
+  debugSelectTeam(team: "BLUE" | "RED"): void;
+  debugConfirmTeamSelection(): void;
+  debugForceCombatLive(): void;
+  debugRotateStage(): void;
+  debugSetWeather(type: "clear" | "rain" | "fog" | "sandstorm" | "storm"): void;
   debugDamageMapObject(id: string, damage: number): void;
-  debugGetMapObjectStates(): Array<{ id: string; hp: number; active: boolean }>;
+  debugGetMapObjectStates(): Array<{
+    id: string;
+    hp: number;
+    active: boolean;
+    reflectionsRemaining?: number;
+  }>;
+  debugGetProjectileSnapshot(): Array<{ owner: "player" | "dummy"; velocityY: number }>;
   debugGetIntegratedPresentationEffectCount(): number;
   debugGetWorldObjectPresentation(): { atlasActive: boolean };
+  update(time: number, delta: number): void;
 }
 
 const withScene = <T>(page: Page, action: (scene: PresentationScene) => T): Promise<T> => page.evaluate(
@@ -48,6 +61,89 @@ const waitForEffectsToFinish = async (page: Page): Promise<void> => {
     window.__FPS_GAME__?.scene.keys.MainScene as unknown as PresentationScene | undefined
   )?.debugGetIntegratedPresentationEffectCount() === 0);
 };
+
+const reflectAndObserve = async (page: Page): Promise<{
+  effectCount: number;
+  projectileVelocityY: number;
+  reflectionsRemaining: number;
+  wallActive: boolean;
+}> => page.evaluate(() => {
+  const game = window.__FPS_GAME__;
+  const scene = game?.scene.keys.MainScene as
+    | (PresentationScene & {
+        add: { rectangle(x: number, y: number, width: number, height: number, color: number, alpha: number): unknown };
+        runtimeState?: {
+          bullets: Array<{
+            sprite: { x: number; y: number; width: number; height: number };
+            velocityX: number;
+            velocityY: number;
+            damage: number;
+            critChance: number;
+            critMultiplier: number;
+            owner: "player" | "dummy";
+            effectProfile: string;
+            projectileConfig: Record<string, unknown>;
+            bouncesRemaining?: number;
+          }>;
+          currentWind: { angleDegrees: number; strength: number };
+        };
+        time: { now: number };
+      })
+    | undefined;
+  if (game === undefined || scene?.runtimeState === undefined) {
+    throw new Error("Missing MainScene reflection test handle.");
+  }
+
+  scene.debugEnterStage();
+  scene.debugSelectTeam("BLUE");
+  scene.debugConfirmTeamSelection();
+  scene.debugForceCombatLive();
+  game.loop.sleep();
+
+  for (let index = 0; index < 4 && scene.getDebugSnapshot().stage !== "storm-drain"; index += 1) {
+    scene.debugRotateStage();
+  }
+  if (scene.getDebugSnapshot().stage !== "storm-drain") {
+    throw new Error("Failed to rotate to storm-drain.");
+  }
+
+  scene.runtimeState.currentWind = { angleDegrees: 0, strength: 0 };
+  scene.debugSetWeather("clear");
+  scene.update(0, 0);
+
+  const sprite = scene.add.rectangle(432, 96, 8, 8, 0xffffff, 1) as {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  scene.runtimeState.bullets.push({
+    sprite,
+    velocityX: 0,
+    velocityY: 220,
+    damage: 20,
+    critChance: 0,
+    critMultiplier: 1,
+    owner: "player",
+    effectProfile: "carbine",
+    projectileConfig: { trajectory: "linear", speed: 0 },
+    bouncesRemaining: 0
+  });
+
+  scene.time.now += 50;
+  scene.update(scene.time.now, 50);
+  const wall = scene.debugGetMapObjectStates().find((object) => object.id === "drain-bounce-wall-a");
+  const projectile = scene.debugGetProjectileSnapshot().find((entry) => entry.owner === "player");
+  if (wall?.reflectionsRemaining === undefined || projectile === undefined) {
+    throw new Error("Missing authoritative reflection result.");
+  }
+  return {
+    effectCount: scene.debugGetIntegratedPresentationEffectCount(),
+    projectileVelocityY: projectile.velocityY,
+    reflectionsRemaining: wall.reflectionsRemaining,
+    wallActive: wall.active
+  };
+});
 
 test("keeps interaction feedback opt-in and releases it on scene restart", async ({ page }) => {
   await open(page, "/?worldSkin=legacy");
@@ -90,4 +186,22 @@ test("keeps interaction feedback opt-in and releases it on scene restart", async
   const restartedCrate = await damageAndObserve(page, "foundry-crate-a", 1);
   expect(restartedCrate).toMatchObject({ active: true, hp: 24 });
   expect(restartedCrate.effectCount).toBeGreaterThan(0);
+});
+
+test("publishes bounce-wall reflection feedback only for product-v1", async ({ page }) => {
+  await open(page, "/?worldSkin=product-v1");
+  await page.waitForFunction(() => {
+    const scene = window.__FPS_GAME__?.scene.keys.MainScene as unknown as PresentationScene | undefined;
+    return scene?.debugGetWorldObjectPresentation().atlasActive === true;
+  });
+  const product = await reflectAndObserve(page);
+  expect(product).toMatchObject({ reflectionsRemaining: 2, wallActive: true });
+  expect(product.projectileVelocityY).toBeLessThan(0);
+  expect(product.effectCount).toBeGreaterThan(0);
+
+  await open(page, "/?worldSkin=legacy");
+  const legacy = await reflectAndObserve(page);
+  expect(legacy).toMatchObject({ reflectionsRemaining: 2, wallActive: true });
+  expect(legacy.projectileVelocityY).toBeLessThan(0);
+  expect(legacy.effectCount).toBe(0);
 });
